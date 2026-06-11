@@ -62218,6 +62218,34 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     deploy_in_progress: deployInProgress,
     recent_file_edits: recentFileEdits
   };
+  const decisionItems = [...bundle.decisions, ...bundle.pinned.filter((p2) => p2.kind === "decision")];
+  if (decisionItems.length > 0) {
+    try {
+      const { data: verRows, error: verErr } = await ctx.supabase.from("decision_verifications").select("document_id, verdict, observed_at").eq("account_id", ctx.accountId).in("document_id", decisionItems.map((d2) => d2.id)).order("observed_at", { ascending: false }).limit(200);
+      if (!verErr && Array.isArray(verRows)) {
+        const latest = /* @__PURE__ */ new Map();
+        for (const r2 of verRows) {
+          const existing = latest.get(r2.document_id);
+          if (existing) {
+            existing.count += 1;
+          } else {
+            latest.set(r2.document_id, { verdict: r2.verdict, observed_at: r2.observed_at, count: 1 });
+          }
+        }
+        for (const item of decisionItems) {
+          const v2 = latest.get(item.id);
+          if (v2 && (v2.verdict === "held" || v2.verdict === "broke" || v2.verdict === "inconclusive")) {
+            item.verification = {
+              verdict: v2.verdict,
+              observed_at: v2.observed_at,
+              count: v2.count
+            };
+          }
+        }
+      }
+    } catch {
+    }
+  }
   const resolvedAt = (/* @__PURE__ */ new Date()).toISOString();
   let auditId = "";
   const taskEmbedding = queryVec ?? null;
