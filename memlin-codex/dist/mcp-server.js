@@ -60184,6 +60184,11 @@ async function writeMemory(ctx, rawArgs) {
 var ListVersionsArgs = external_exports.object({ document_id: external_exports.string().uuid() });
 async function listVersions(ctx, rawArgs) {
   const args = ListVersionsArgs.parse(rawArgs);
+  const { data: doc, error: docErr } = await ctx.supabase.from("documents").select("id, account_id").eq("id", args.document_id).maybeSingle();
+  if (docErr) throw new Error(`list_versions: ${docErr.message}`);
+  if (!doc || doc.account_id !== ctx.accountId) {
+    throw new Error("list_versions: document not found in this account");
+  }
   const { data, error: error2 } = await ctx.supabase.from("document_versions").select("id, version_number, content, author_id, commit_message, created_at, parent_version_id").eq("document_id", args.document_id).order("version_number", { ascending: false });
   if (error2) throw new Error(`list_versions: ${error2.message}`);
   return data ?? [];
@@ -61172,7 +61177,7 @@ async function assembleArchitecture(ctx, projectId, component, componentNameById
   }
   if (arch.data.length > 0) {
     const tableNames = [...new Set(arch.data.map((d2) => d2.table))];
-    const { data: schemaDocs, error: sErr } = await ctx.supabase.from("documents").select("id, title, path, metadata").eq("project_id", projectId).eq("kind", "schema").in("title", tableNames);
+    const { data: schemaDocs, error: sErr } = await ctx.supabase.from("documents").select("id, title, path, metadata").eq("account_id", ctx.accountId).eq("project_id", projectId).eq("kind", "schema").in("title", tableNames);
     if (sErr) {
       console.warn(`[resolver] architecture schema-doc fetch failed: ${sErr.message}`);
     } else {
