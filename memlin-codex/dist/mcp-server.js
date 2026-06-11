@@ -59578,6 +59578,19 @@ var MetadataFilterSchema = external_exports.record(
 ).refine((f2) => Object.keys(f2).length >= 1 && Object.keys(f2).length <= 8, {
   message: "metadata_filter takes 1-8 keys"
 });
+function matchesCustomFilter(custom3, filter) {
+  if (custom3 === null || typeof custom3 !== "object" || Array.isArray(custom3)) return false;
+  const obj = custom3;
+  for (const [key, condition] of Object.entries(filter)) {
+    const value = obj[key];
+    const candidates = typeof condition === "object" && condition !== null && "in" in condition ? condition.in : [condition];
+    const hit = candidates.some(
+      (c2) => Array.isArray(value) ? value.includes(c2) : value === c2
+    );
+    if (!hit) return false;
+  }
+  return true;
+}
 
 // packages/actions-engine/src/execute.ts
 import process4 from "node:process";
@@ -60187,7 +60200,11 @@ var ReadArgs = external_exports.object({
   kinds: external_exports.array(DocumentKindSchema).optional(),
   scopes: external_exports.array(DocumentScopeSchema).optional(),
   statuses: external_exports.array(DocumentStatusSchema).optional(),
-  project_id: external_exports.string().uuid().nullable().optional()
+  project_id: external_exports.string().uuid().nullable().optional(),
+  /** Filter on metadata.custom keys — equality, array-containment, or
+   *  {in:[…]} per key, AND across keys. Evaluated in-process against the
+   *  already-fetched metadata (exact semantics, no query-syntax games). */
+  metadata_filter: MetadataFilterSchema.optional()
 });
 async function readMemory(ctx, rawArgs) {
   const args = ReadArgs.parse(rawArgs ?? {});
@@ -60207,10 +60224,12 @@ async function readMemory(ctx, rawArgs) {
   }
   const { data, error: error2 } = await q2;
   if (error2) throw new Error(`read_memory: ${error2.message}`);
-  return (data ?? []).map((r2) => {
+  const docs = (data ?? []).map((r2) => {
     const row = r2;
     const v2 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
     const content = v2?.content ?? "";
+    const meta = row.metadata ?? null;
+    const customRaw = meta?.custom;
     const base = {
       id: row.id,
       kind: row.kind,
@@ -60220,7 +60239,8 @@ async function readMemory(ctx, rawArgs) {
       path: row.path ?? null,
       content,
       project_id: row.project_id ?? null,
-      origin: deriveDocOrigin(row.metadata ?? null),
+      origin: deriveDocOrigin(meta),
+      custom: customRaw && typeof customRaw === "object" && !Array.isArray(customRaw) ? customRaw : null,
       version_number: v2?.version_number ?? 1,
       updated_at: row.updated_at,
       created_at: row.created_at,
@@ -60229,6 +60249,11 @@ async function readMemory(ctx, rawArgs) {
     };
     return attachGoalProgress(base);
   });
+  if (args.metadata_filter) {
+    const filter = args.metadata_filter;
+    return docs.filter((d2) => matchesCustomFilter(d2.custom, filter));
+  }
+  return docs;
 }
 function attachGoalProgress(doc) {
   if (doc.kind !== "goal") return doc;
@@ -60356,11 +60381,31 @@ var SearchArgs = external_exports.object({
   kinds: external_exports.array(DocumentKindSchema).optional(),
   limit: external_exports.number().int().min(1).max(100).optional(),
   project_id: external_exports.string().uuid().nullable().optional(),
-  mode: external_exports.enum(SEARCH_MODES).optional()
+  mode: external_exports.enum(SEARCH_MODES).optional(),
+  /** Filter on metadata.custom keys (custom-metadata.ts semantics). The
+   *  ranked search runs first with an over-fetched limit, then hits are
+   *  post-filtered by one metadata round-trip — the hot search RPCs stay
+   *  untouched. Highly selective filters can under-fill `limit`. */
+  metadata_filter: MetadataFilterSchema.optional()
 });
 async function search(ctx, rawArgs) {
   const args = SearchArgs.parse(rawArgs);
-  const limit2 = args.limit ?? 20;
+  const requestedLimit = args.limit ?? 20;
+  if (!args.metadata_filter) {
+    return searchRanked(ctx, args, requestedLimit);
+  }
+  const overFetched = await searchRanked(ctx, args, Math.min(requestedLimit * 3, 100));
+  if (overFetched.length === 0) return [];
+  const { data: metaRows, error: metaErr } = await ctx.supabase.from("documents").select("id, metadata").eq("account_id", ctx.accountId).in("id", overFetched.map((h2) => h2.id));
+  if (metaErr) throw new Error(`search: metadata filter read failed: ${metaErr.message}`);
+  const customById = /* @__PURE__ */ new Map();
+  for (const r2 of metaRows ?? []) {
+    customById.set(r2.id, r2.metadata?.custom ?? null);
+  }
+  const filter = args.metadata_filter;
+  return overFetched.filter((h2) => matchesCustomFilter(customById.get(h2.id) ?? null, filter)).slice(0, requestedLimit);
+}
+async function searchRanked(ctx, args, limit2) {
   const projectId = args.project_id ?? ctx.projectId ?? null;
   const mode = args.mode ?? "semantic";
   if (mode === "hybrid" && ctx.embed) {
