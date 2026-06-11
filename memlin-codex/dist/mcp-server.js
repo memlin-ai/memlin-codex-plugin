@@ -60112,16 +60112,84 @@ async function rerankCandidates(task, candidates, chat) {
 var CONCURRENT_WINDOW_MS = 20 * 6e4;
 var CONCURRENT_MAX = 5;
 var DEPLOY_WINDOW_MS = 12 * 6e4;
-function buildCollisionWarnings(concurrent, activeComponentName) {
+var TASK_OVERLAP_PROMOTE = 0.34;
+var TASK_OVERLAP_MIN_SHARED = 2;
+var TASK_STOPWORDS = /* @__PURE__ */ new Set([
+  "this",
+  "that",
+  "with",
+  "from",
+  "have",
+  "want",
+  "need",
+  "make",
+  "sure",
+  "just",
+  "into",
+  "your",
+  "their",
+  "about",
+  "which",
+  "when",
+  "will",
+  "should",
+  "would",
+  "could",
+  "there",
+  "here",
+  "then",
+  "them",
+  "they",
+  "what",
+  "were",
+  "also",
+  "some",
+  "more",
+  "than",
+  "only",
+  "going",
+  "still",
+  "like",
+  "really",
+  "right",
+  "cause"
+]);
+function taskTokens(task) {
+  return new Set(
+    task.toLowerCase().split(/[^a-z0-9]+/).filter((t2) => t2.length >= 4 && !TASK_STOPWORDS.has(t2))
+  );
+}
+function taskOverlap(a2, b2) {
+  const ta = taskTokens(a2);
+  const tb = taskTokens(b2);
+  if (ta.size === 0 || tb.size === 0) return { score: 0, shared: 0 };
+  let shared = 0;
+  for (const t2 of ta) if (tb.has(t2)) shared++;
+  return { score: shared / Math.min(ta.size, tb.size), shared };
+}
+function buildCollisionWarnings(concurrent, activeComponentName, currentTask) {
   if (concurrent.length === 0) return [];
+  const others = concurrent.filter((entry) => entry.same_user !== true);
+  if (others.length === 0) return [];
   const currentArea = activeComponentName ?? null;
-  const overlapping = concurrent.filter((entry) => (entry.component ?? null) === currentArea);
+  let overlapping;
+  let area;
+  if (currentArea) {
+    overlapping = others.filter((entry) => (entry.component ?? null) === currentArea);
+    area = `component "${currentArea}"`;
+  } else {
+    overlapping = others.filter((entry) => {
+      if ((entry.component ?? null) !== null) return false;
+      const { score, shared } = taskOverlap(currentTask, entry.task);
+      return score >= TASK_OVERLAP_PROMOTE && shared >= TASK_OVERLAP_MIN_SHARED;
+    });
+    area = "the same work area";
+  }
   if (overlapping.length === 0) return [];
-  const area = currentArea ? `component "${currentArea}"` : "project-wide work";
   return [
     {
       component: currentArea,
-      guidance: `Possible collision: another agent is already active in ${area}. Route around their task, wait for it to finish, or split your work into a separate branch/worktree before editing the same files.`,
+      guidance: `Possible collision: another agent is active in ${area}. Route around their task, wait for it to finish, or split your work into a separate branch/worktree before editing the same files.`,
       entries: overlapping
     }
   ];
@@ -60129,7 +60197,7 @@ function buildCollisionWarnings(concurrent, activeComponentName) {
 async function assembleConcurrentWork(ctx, projectId, ownSessionId, componentNameById) {
   if (!projectId) return [];
   const sinceIso = new Date(Date.now() - CONCURRENT_WINDOW_MS).toISOString();
-  const { data, error: error2 } = await ctx.supabase.from("usage_events").select("created_at, metadata").eq("account_id", ctx.accountId).eq("event_type", "resolve.invocation").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(300);
+  const { data, error: error2 } = await ctx.supabase.from("usage_events").select("created_at, user_id, metadata").eq("account_id", ctx.accountId).eq("event_type", "resolve.invocation").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(300);
   if (error2 || !data) {
     console.warn(
       `[resolver] concurrent-work query failed: ${error2?.message ?? "no rows"} \u2014 proceeding without it`
@@ -60142,11 +60210,11 @@ async function assembleConcurrentWork(ctx, projectId, ownSessionId, componentNam
     if (meta.project_id !== projectId) continue;
     const sid = typeof meta.session_id === "string" ? meta.session_id : null;
     if (!sid || sid === ownSessionId) continue;
-    if (!latest.has(sid)) latest.set(sid, { meta, at: row.created_at });
+    if (!latest.has(sid)) latest.set(sid, { meta, at: row.created_at, userId: row.user_id ?? null });
   }
   const now = Date.now();
   const entries = [];
-  for (const { meta, at: at2 } of latest.values()) {
+  for (const [sid, { meta, at: at2, userId }] of latest) {
     const compId = typeof meta.active_component_id === "string" ? meta.active_component_id : null;
     const component = compId ? componentNameById.get(compId)?.name ?? null : null;
     const task = typeof meta.task === "string" ? meta.task.slice(0, 140) : "";
@@ -60154,7 +60222,11 @@ async function assembleConcurrentWork(ctx, projectId, ownSessionId, componentNam
       source: "resolve",
       component,
       task,
-      minutes_ago: Math.max(0, Math.round((now - new Date(at2).getTime()) / 6e4))
+      minutes_ago: Math.max(0, Math.round((now - new Date(at2).getTime()) / 6e4)),
+      session_short: sid.slice(0, 8),
+      agent_kind: typeof meta.agent_kind === "string" ? meta.agent_kind : null,
+      // "Your own other window" — surfaced, but never escalated to a collision.
+      same_user: userId != null && userId === (ctx.userId ?? null)
     });
   }
   const { data: claims, error: claimsErr } = await ctx.supabase.from("component_claims").select("component_id, task, path, expires_at, created_at").eq("project_id", projectId).is("released_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("expires_at", { ascending: true }).limit(20);
@@ -60175,6 +60247,43 @@ async function assembleConcurrentWork(ctx, projectId, ownSessionId, componentNam
   }
   entries.sort((a2, b2) => a2.minutes_ago - b2.minutes_ago);
   return entries.slice(0, CONCURRENT_MAX);
+}
+var FILE_ACTIVITY_WINDOW_MS = 15 * 6e4;
+var FILE_ACTIVITY_MAX = 8;
+async function assembleFileActivity(ctx, projectId, ownSessionId, ownUserId) {
+  if (!projectId) return [];
+  const sinceIso = new Date(Date.now() - FILE_ACTIVITY_WINDOW_MS).toISOString();
+  const { data, error: error2 } = await ctx.supabase.from("usage_events").select("created_at, user_id, metadata").eq("account_id", ctx.accountId).eq("event_type", "edit.activity").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(300);
+  if (error2 || !data) {
+    return [];
+  }
+  const now = Date.now();
+  const seen = /* @__PURE__ */ new Set();
+  const edits = [];
+  for (const row of data) {
+    const meta = row.metadata ?? {};
+    if (meta.project_id !== projectId) continue;
+    const sid = typeof meta.session_id === "string" ? meta.session_id : null;
+    if (sid && sid === ownSessionId) continue;
+    const paths = Array.isArray(meta.paths) ? meta.paths : [];
+    const agentKind2 = typeof meta.agent_kind === "string" ? meta.agent_kind : null;
+    const sameUser = row.user_id != null && row.user_id === ownUserId;
+    const minutesAgo = Math.max(0, Math.round((now - new Date(row.created_at).getTime()) / 6e4));
+    for (const p2 of paths) {
+      if (typeof p2 !== "string" || !p2) continue;
+      if (seen.has(p2)) continue;
+      seen.add(p2);
+      edits.push({
+        path: p2,
+        session_short: sid ? sid.slice(0, 8) : null,
+        agent_kind: agentKind2,
+        same_user: sameUser,
+        minutes_ago: minutesAgo
+      });
+      if (edits.length >= FILE_ACTIVITY_MAX) return edits;
+    }
+  }
+  return edits;
 }
 async function assembleDeployInProgress(ctx, projectId, ownSessionId, componentNameById) {
   if (!projectId) return [];
@@ -61668,7 +61777,15 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       `[resolver] concurrent-work assembly failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without it`
     );
   }
-  const collisionWarnings = buildCollisionWarnings(concurrentWork, activeComponentName);
+  const collisionWarnings = buildCollisionWarnings(concurrentWork, activeComponentName, args.task);
+  let recentFileEdits = [];
+  try {
+    recentFileEdits = await assembleFileActivity(ctx, projectId, audit.sessionId ?? null, ctx.userId ?? null);
+  } catch (e2) {
+    console.warn(
+      `[resolver] file-activity assembly failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without it`
+    );
+  }
   let deployInProgress = [];
   try {
     deployInProgress = await assembleDeployInProgress(
@@ -61698,7 +61815,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     architecture,
     concurrent_work: concurrentWork,
     collision_warnings: collisionWarnings,
-    deploy_in_progress: deployInProgress
+    deploy_in_progress: deployInProgress,
+    recent_file_edits: recentFileEdits
   };
   const resolvedAt = (/* @__PURE__ */ new Date()).toISOString();
   let auditId = "";
@@ -63026,11 +63144,12 @@ var MemlinApiClient = class {
   }
   /** POST /usage/event — write a usage_events row from the client.
    *  Server-side enforces an allowlist of event_types (today:
-   *  tool.guardrail, action.invoke) and re-derives account_id and
-   *  user_id from the auth context so callers can't forge rows for
-   *  other workspaces. */
-  async writeUsageEvent(input) {
-    return this.request("POST", "/usage/event", input);
+   *  tool.guardrail, action.invoke, resolve.outcome, edit.activity) and
+   *  re-derives account_id and user_id from the auth context so callers
+   *  can't forge rows for other workspaces. `opts.accountId` routes the
+   *  write to a non-default account (multi-account workspaces). */
+  async writeUsageEvent(input, opts = {}) {
+    return this.request("POST", "/usage/event", input, { accountId: opts.accountId });
   }
   /** GET /documents — list, filtered. */
   async listDocuments(opts = {}) {
