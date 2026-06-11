@@ -59462,6 +59462,123 @@ var NoiseSweepArgs = external_exports.object({
   include_accepted: external_exports.boolean().default(false)
 });
 
+// packages/mcp-tools/src/custom-metadata.ts
+var CUSTOM_KEY_RE = /^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,63}$/;
+var CUSTOM_MAX_BYTES = 8 * 1024;
+var CUSTOM_MAX_DEPTH = 3;
+var CUSTOM_MAX_KEYS = 64;
+var MetadataValidationError = class extends Error {
+  code = "custom_metadata_invalid";
+  issues;
+  constructor(issues) {
+    super(`invalid metadata.custom: ${issues[0] ?? "validation failed"}`);
+    this.name = "MetadataValidationError";
+    this.issues = issues;
+  }
+};
+var ISO_DATEISH = /^\d{4}-\d{2}-\d{2}([T ].*)?$/;
+var ArtifactSchema = external_exports.object({
+  path: external_exports.string().min(1).max(512).optional(),
+  url: external_exports.string().url().max(2048).optional(),
+  kind: external_exports.string().min(1).max(64).optional(),
+  sha: external_exports.string().max(128).optional()
+}).refine((a2) => a2.path || a2.url, { message: "artifact needs a path or a url" });
+var TYPED_KEYS = {
+  expected_outcome: external_exports.union([
+    external_exports.string().min(1).max(2e3),
+    external_exports.object({
+      text: external_exports.string().max(2e3).optional(),
+      metric: external_exports.string().max(128).optional(),
+      direction: external_exports.string().max(16).optional(),
+      magnitude: external_exports.number().optional(),
+      window: external_exports.string().max(128).optional()
+    }).passthrough()
+  ]),
+  review_by: external_exports.string().regex(ISO_DATEISH, "review_by must be an ISO date (YYYY-MM-DD\u2026)"),
+  artifacts: external_exports.array(ArtifactSchema).max(20),
+  occurred_at: external_exports.string().regex(ISO_DATEISH, "occurred_at must be an ISO date (YYYY-MM-DD\u2026)"),
+  entities: external_exports.array(external_exports.string().min(1).max(64)).max(32),
+  thread_status: external_exports.enum(["open", "resolved", "n/a"]),
+  resolves: external_exports.string().uuid()
+};
+function depthOf(value, depth = 0) {
+  if (depth > CUSTOM_MAX_DEPTH) return depth;
+  if (Array.isArray(value)) {
+    let max = depth + 1;
+    for (const v2 of value) max = Math.max(max, depthOf(v2, depth + 1));
+    return max;
+  }
+  if (value && typeof value === "object") {
+    let max = depth + 1;
+    for (const v2 of Object.values(value)) {
+      max = Math.max(max, depthOf(v2, depth + 1));
+    }
+    return max;
+  }
+  return depth;
+}
+function jsonSafe(value) {
+  if (value === null) return true;
+  const t2 = typeof value;
+  if (t2 === "string" || t2 === "boolean") return true;
+  if (t2 === "number") return Number.isFinite(value);
+  if (Array.isArray(value)) return value.every(jsonSafe);
+  if (t2 === "object") {
+    return Object.values(value).every(
+      (v2) => v2 !== void 0 && jsonSafe(v2)
+    );
+  }
+  return false;
+}
+function validateCustomMetadata(custom3) {
+  const issues = [];
+  if (custom3 === null || typeof custom3 !== "object" || Array.isArray(custom3)) {
+    throw new MetadataValidationError(["custom must be an object of named values"]);
+  }
+  const obj = custom3;
+  const keys = Object.keys(obj);
+  if (keys.length === 0) return {};
+  if (keys.length > CUSTOM_MAX_KEYS) {
+    issues.push(`too many keys (${keys.length} > ${CUSTOM_MAX_KEYS})`);
+  }
+  for (const key of keys) {
+    if (!CUSTOM_KEY_RE.test(key)) {
+      issues.push(`key "${key}" must match ${CUSTOM_KEY_RE}`);
+      continue;
+    }
+    const value = obj[key];
+    if (!jsonSafe(value)) {
+      issues.push(`key "${key}" holds a non-JSON-serializable value`);
+      continue;
+    }
+    const typed = TYPED_KEYS[key];
+    if (typed) {
+      const parsed = typed.safeParse(value);
+      if (!parsed.success) {
+        issues.push(`key "${key}": ${parsed.error.issues[0]?.message ?? "invalid shape"}`);
+      }
+    }
+  }
+  const size = JSON.stringify(obj).length;
+  if (size > CUSTOM_MAX_BYTES) {
+    issues.push(
+      `custom exceeds ${CUSTOM_MAX_BYTES} bytes (got ${size}) \u2014 store large payloads externally and reference them`
+    );
+  }
+  if (depthOf(obj) > CUSTOM_MAX_DEPTH) {
+    issues.push(`custom nests deeper than ${CUSTOM_MAX_DEPTH} levels`);
+  }
+  if (issues.length > 0) throw new MetadataValidationError(issues);
+  return obj;
+}
+var ScalarSchema = external_exports.union([external_exports.string(), external_exports.number(), external_exports.boolean()]);
+var MetadataFilterSchema = external_exports.record(
+  external_exports.string().regex(CUSTOM_KEY_RE),
+  external_exports.union([ScalarSchema, external_exports.object({ in: external_exports.array(ScalarSchema).min(1).max(32) }).strict()])
+).refine((f2) => Object.keys(f2).length >= 1 && Object.keys(f2).length <= 8, {
+  message: "metadata_filter takes 1-8 keys"
+});
+
 // packages/actions-engine/src/execute.ts
 import process4 from "node:process";
 
@@ -60147,13 +60264,19 @@ var CLIENT_WRITABLE_METADATA_KEYS = /* @__PURE__ */ new Set([
   "target-agents",
   "component-links",
   "examples",
-  "anti-examples"
+  "anti-examples",
+  "custom"
 ]);
 function filterClientMetadata(raw) {
   if (!raw) return {};
   const out = {};
   for (const k2 of Object.keys(raw)) {
-    if (CLIENT_WRITABLE_METADATA_KEYS.has(k2)) out[k2] = raw[k2];
+    if (!CLIENT_WRITABLE_METADATA_KEYS.has(k2)) continue;
+    if (k2 === "custom") {
+      out[k2] = validateCustomMetadata(raw[k2]);
+    } else {
+      out[k2] = raw[k2];
+    }
   }
   return out;
 }
