@@ -59058,6 +59058,400 @@ var TOOLS = [
   }
 ];
 
+// packages/mcp-tools/src/curation.ts
+var CurationError = class extends Error {
+  code;
+  constructor(code, message) {
+    super(message);
+    this.name = "CurationError";
+    this.code = code;
+  }
+};
+var ACTION_TARGET = {
+  approve: "approved",
+  archive: "archived",
+  // Unarchive restores to draft (the only legal move out of archived) —
+  // the doc re-enters the curation funnel rather than jumping straight
+  // back to approved.
+  unarchive: "draft"
+};
+function decideStatusChange(args) {
+  const { action, currentStatus, role } = args;
+  if (role === "viewer") {
+    throw new CurationError("forbidden", "viewer role cannot curate documents");
+  }
+  if (action === "approve" && role !== "owner" && role !== "admin") {
+    throw new CurationError("forbidden", "approving a document is owner/admin-only");
+  }
+  if (action === "unarchive" && currentStatus !== "archived") {
+    throw new CurationError("invalid_transition", "document is not archived");
+  }
+  const to = ACTION_TARGET[action];
+  if (currentStatus === to) {
+    throw new CurationError(
+      "invalid_transition",
+      `document is already ${currentStatus}`
+    );
+  }
+  const allowed = DOCUMENT_STATUS_TRANSITIONS[currentStatus] ?? [];
+  if (!allowed.includes(to)) {
+    throw new CurationError(
+      "invalid_transition",
+      `invalid transition: ${currentStatus} \u2192 ${to}`
+    );
+  }
+  return { to };
+}
+var SetStatusArgs = external_exports.object({
+  document_id: external_exports.string().uuid(),
+  action: external_exports.enum(["approve", "archive", "unarchive"])
+});
+async function setDocumentStatus(ctx, rawArgs) {
+  let args;
+  try {
+    args = SetStatusArgs.parse(rawArgs);
+  } catch (e2) {
+    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
+  }
+  const role = ctx.callerRole ?? "viewer";
+  const { data: doc, error: readErr } = await ctx.supabase.from("documents").select("id, account_id, scope, created_by, kind, title, status, metadata").eq("id", args.document_id).maybeSingle();
+  if (readErr) throw new CurationError("not_found", `document lookup failed: ${readErr.message}`);
+  if (!doc || doc.account_id !== ctx.accountId) {
+    throw new CurationError("not_found", "document not found in this account");
+  }
+  const row = doc;
+  if (row.scope === "personal" && row.created_by && ctx.userId !== row.created_by) {
+    throw new CurationError("forbidden", "personal-scope documents can only be curated by their creator");
+  }
+  const { to } = decideStatusChange({ action: args.action, currentStatus: row.status, role });
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const actor = ctx.userId ?? "api";
+  const meta = { ...row.metadata ?? {} };
+  let metadataStatusActivated = false;
+  if (args.action === "approve") {
+    meta.approved_at = nowIso;
+    meta.approved_by = actor;
+    if (meta.status === "proposed") {
+      meta.status = "active";
+      meta.accepted_at = nowIso;
+      meta.accepted_by_user_sub = actor;
+      metadataStatusActivated = true;
+    }
+  } else if (args.action === "archive") {
+    meta.lifecycle_action = "archived";
+    meta.lifecycle_archived_at = nowIso;
+    meta.lifecycle_archived_by_user_sub = actor;
+  } else {
+    meta.lifecycle_action = "unarchived";
+    meta.lifecycle_unarchived_at = nowIso;
+    meta.lifecycle_unarchived_by_user_sub = actor;
+    if (meta.status === "superseded") {
+      meta.status = "active";
+      metadataStatusActivated = true;
+    }
+  }
+  const { error: updateErr } = await ctx.supabase.from("documents").update({ status: to, metadata: meta }).eq("id", row.id).eq("account_id", ctx.accountId);
+  if (updateErr) {
+    throw new CurationError("forbidden", `status update failed: ${updateErr.message}`);
+  }
+  return {
+    id: row.id,
+    kind: row.kind,
+    title: row.title,
+    from: row.status,
+    to,
+    metadata_status_activated: metadataStatusActivated
+  };
+}
+async function applyCanonicalMerge(ctx, args) {
+  const count = (m2) => m2 && typeof m2.corroboration_count === "number" ? m2.corroboration_count : 0;
+  const canonicalMeta = args.canonical.metadata ?? {};
+  const summedCorroboration = Math.max(count(canonicalMeta), 1) + args.twins.reduce((s2, t2) => s2 + Math.max(count(t2.metadata), 1), 0);
+  let newVersionNumber = null;
+  const builtMetadata = args.buildCanonicalMetadata(summedCorroboration);
+  if (args.content !== null) {
+    const { data, error: writeErr } = await ctx.supabase.rpc("write_document", {
+      p_document_id: args.canonical.id,
+      p_account_id: ctx.accountId,
+      p_project_id: args.canonical.project_id ?? null,
+      p_scope: args.canonical.scope,
+      p_kind: args.canonical.kind,
+      p_title: args.canonical.title,
+      p_path: args.canonical.path ?? null,
+      p_content: args.content,
+      p_embedding: null,
+      p_metadata: builtMetadata,
+      p_commit_message: args.commitMessage,
+      p_yjs_state_b64: null
+    });
+    if (writeErr) {
+      throw new CurationError("forbidden", `merge apply failed: ${writeErr.message}`);
+    }
+    const rows = data;
+    newVersionNumber = rows?.[0]?.version_number ?? null;
+  } else {
+    const { error: metaErr } = await ctx.supabase.from("documents").update({ metadata: builtMetadata }).eq("id", args.canonical.id).eq("account_id", ctx.accountId);
+    if (metaErr) {
+      throw new CurationError("forbidden", `merge metadata update failed: ${metaErr.message}`);
+    }
+  }
+  for (const twin of args.twins) {
+    const twinMeta = twin.metadata ?? {};
+    const { error: archiveErr } = await ctx.supabase.from("documents").update({
+      status: "archived",
+      metadata: {
+        ...twinMeta,
+        status: "superseded",
+        superseded_by: args.canonical.id,
+        superseded_at: args.nowIso,
+        superseded_reason: args.supersededReason
+      }
+    }).eq("id", twin.id).eq("account_id", ctx.accountId);
+    if (archiveErr) {
+      throw new CurationError("forbidden", `twin archive failed: ${archiveErr.message}`);
+    }
+  }
+  return { newVersionNumber, summedCorroboration };
+}
+var MergeArgs = external_exports.object({
+  canonical_id: external_exports.string().uuid(),
+  duplicate_ids: external_exports.array(external_exports.string().uuid()).min(1).max(50),
+  /** Optional canonical body replacing the keeper's content (new version).
+   *  Omit when the keeper's existing body already is the merged truth —
+   *  the merge is then metadata-only and creates no version. */
+  merged_content: external_exports.string().min(1).optional(),
+  commit_message: external_exports.string().max(500).optional()
+});
+async function mergeDocuments(ctx, rawArgs) {
+  let args;
+  try {
+    args = MergeArgs.parse(rawArgs);
+  } catch (e2) {
+    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
+  }
+  const role = ctx.callerRole ?? "viewer";
+  if (role === "viewer") {
+    throw new CurationError("forbidden", "viewer role cannot merge documents");
+  }
+  const { data: canonicalRow, error: canonicalErr } = await ctx.supabase.from("documents").select("id, account_id, project_id, scope, kind, title, path, status, metadata").eq("id", args.canonical_id).maybeSingle();
+  if (canonicalErr) {
+    throw new CurationError("not_found", `canonical lookup failed: ${canonicalErr.message}`);
+  }
+  if (!canonicalRow || canonicalRow.account_id !== ctx.accountId) {
+    throw new CurationError("not_found", "canonical document not found in this account");
+  }
+  const canonical = canonicalRow;
+  if (canonical.scope === "personal") {
+    throw new CurationError("forbidden", "personal-scope documents cannot be merge targets");
+  }
+  if (canonical.status === "archived") {
+    throw new CurationError("invalid_transition", "canonical document is archived \u2014 unarchive it first");
+  }
+  const requestedIds = args.duplicate_ids.filter((id) => id !== args.canonical_id);
+  const skipped = args.duplicate_ids.filter((id) => id === args.canonical_id).map((id) => ({ id, reason: "is_canonical" }));
+  const { data: dupRows, error: dupErr } = await ctx.supabase.from("documents").select("id, kind, scope, status, metadata").eq("account_id", ctx.accountId).in("id", requestedIds);
+  if (dupErr) throw new CurationError("not_found", `duplicate lookup failed: ${dupErr.message}`);
+  const found = new Map(
+    (dupRows ?? []).map(
+      (r2) => [r2.id, r2]
+    )
+  );
+  const twins = [];
+  for (const id of requestedIds) {
+    const row = found.get(id);
+    if (!row) {
+      skipped.push({ id, reason: "not_found" });
+      continue;
+    }
+    if (row.kind !== canonical.kind) {
+      skipped.push({ id, reason: "kind_mismatch" });
+      continue;
+    }
+    if (row.scope === "personal") {
+      skipped.push({ id, reason: "personal_scope" });
+      continue;
+    }
+    const meta = row.metadata ?? {};
+    if (meta.superseded_by === args.canonical_id) {
+      skipped.push({ id, reason: "already_merged" });
+      continue;
+    }
+    twins.push({ id: row.id, metadata: row.metadata });
+  }
+  if (twins.length === 0) {
+    return {
+      canonical_id: canonical.id,
+      archived_ids: [],
+      skipped,
+      new_version_number: null,
+      corroboration_count: canonical.metadata && typeof canonical.metadata.corroboration_count === "number" ? canonical.metadata.corroboration_count : 1
+    };
+  }
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const canonicalMeta = canonical.metadata ?? {};
+  const priorMergedFrom = Array.isArray(canonicalMeta.merged_from) ? canonicalMeta.merged_from.filter((v2) => typeof v2 === "string") : [];
+  const { newVersionNumber, summedCorroboration } = await applyCanonicalMerge(ctx, {
+    canonical,
+    twins,
+    content: args.merged_content ?? null,
+    buildCanonicalMetadata: (sum) => ({
+      ...canonicalMeta,
+      // metadata.status stays as-is — making a doc live (or approved) is a
+      // deliberate separate action (setDocumentStatus), not a merge side
+      // effect.
+      merged_from: [...priorMergedFrom, ...twins.map((t2) => t2.id)],
+      merged_at: nowIso,
+      merged_via: "api",
+      corroboration_count: sum,
+      ...args.merged_content ? { embedding_stale: true } : {}
+    }),
+    commitMessage: args.commit_message ?? `merge ${twins.length} duplicate ${canonical.kind} doc(s)`,
+    supersededReason: "merged",
+    nowIso
+  });
+  return {
+    canonical_id: canonical.id,
+    archived_ids: twins.map((t2) => t2.id),
+    skipped,
+    new_version_number: newVersionNumber,
+    corroboration_count: summedCorroboration
+  };
+}
+var AUTO_MERGE_SAFE_THRESHOLD = 0.92;
+var SWEEP_DEFAULT_THRESHOLD = 0.85;
+var SWEEP_DOC_CAP = 800;
+var SWEEP_KINDS = ["decision", "memory", "skill"];
+function canonicalRank(a2, b2) {
+  const aApproved = a2.status === "approved" ? 1 : 0;
+  const bApproved = b2.status === "approved" ? 1 : 0;
+  if (aApproved !== bApproved) return bApproved - aApproved;
+  if (a2.corroboration_count !== b2.corroboration_count) {
+    return b2.corroboration_count - a2.corroboration_count;
+  }
+  return a2.updated_at < b2.updated_at ? 1 : a2.updated_at > b2.updated_at ? -1 : 0;
+}
+function clusterPairs(kind2, pairs, docs) {
+  const neighbours = /* @__PURE__ */ new Map();
+  for (const p2 of pairs) {
+    if (!docs.has(p2.id_a) || !docs.has(p2.id_b)) continue;
+    if (!neighbours.has(p2.id_a)) neighbours.set(p2.id_a, /* @__PURE__ */ new Map());
+    if (!neighbours.has(p2.id_b)) neighbours.set(p2.id_b, /* @__PURE__ */ new Map());
+    neighbours.get(p2.id_a).set(p2.id_b, p2.similarity);
+    neighbours.get(p2.id_b).set(p2.id_a, p2.similarity);
+  }
+  const ranked = [...neighbours.keys()].map((id) => docs.get(id)).sort(canonicalRank);
+  const claimed = /* @__PURE__ */ new Set();
+  const clusters = [];
+  for (const leader of ranked) {
+    if (claimed.has(leader.id)) continue;
+    claimed.add(leader.id);
+    const members = [];
+    for (const [otherId, similarity] of neighbours.get(leader.id) ?? []) {
+      if (claimed.has(otherId)) continue;
+      claimed.add(otherId);
+      members.push({ ...docs.get(otherId), similarity_to_canonical: similarity });
+    }
+    if (members.length === 0) continue;
+    members.sort((a2, b2) => b2.similarity_to_canonical - a2.similarity_to_canonical);
+    const avg = members.reduce((s2, m2) => s2 + m2.similarity_to_canonical, 0) / members.length;
+    clusters.push({
+      kind: kind2,
+      suggested_canonical_id: leader.id,
+      canonical: leader,
+      members,
+      avg_similarity: Math.round(avg * 1e3) / 1e3,
+      auto_merge_safe: members.every(
+        (m2) => m2.similarity_to_canonical >= AUTO_MERGE_SAFE_THRESHOLD
+      )
+    });
+  }
+  clusters.sort((a2, b2) => b2.members.length - a2.members.length);
+  return clusters;
+}
+var SweepArgs = external_exports.object({
+  project_id: external_exports.string().uuid().optional(),
+  kinds: external_exports.array(external_exports.enum(SWEEP_KINDS)).min(1).optional(),
+  threshold: external_exports.number().min(0.8).max(0.99).optional()
+});
+async function sweepDuplicates(ctx, rawArgs) {
+  let args;
+  try {
+    args = SweepArgs.parse(rawArgs ?? {});
+  } catch (e2) {
+    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
+  }
+  const kinds = args.kinds ?? [...SWEEP_KINDS];
+  const threshold = args.threshold ?? SWEEP_DEFAULT_THRESHOLD;
+  const clusters = [];
+  const scanned = {};
+  let truncated = false;
+  let vectorlessCount = 0;
+  for (const kind2 of kinds) {
+    let query = ctx.supabase.from("documents").select("id, title, status, updated_at, metadata").eq("account_id", ctx.accountId).eq("kind", kind2).neq("status", "archived").not("embedding", "is", null).or("metadata->>status.is.null,metadata->>status.eq.active");
+    if (args.project_id) query = query.eq("project_id", args.project_id);
+    const { data, error: error2 } = await query.order("updated_at", { ascending: false }).limit(SWEEP_DOC_CAP);
+    if (error2) throw new CurationError("invalid_args", `sweep candidate read failed: ${error2.message}`);
+    try {
+      let vectorlessQuery = ctx.supabase.from("documents").select("id", { count: "exact", head: true }).eq("account_id", ctx.accountId).eq("kind", kind2).neq("status", "archived").is("embedding", null).or("metadata->>status.is.null,metadata->>status.eq.active");
+      if (args.project_id) vectorlessQuery = vectorlessQuery.eq("project_id", args.project_id);
+      const { count } = await vectorlessQuery;
+      vectorlessCount += count ?? 0;
+    } catch {
+    }
+    const rows = data ?? [];
+    if (rows.length === SWEEP_DOC_CAP) truncated = true;
+    const docs = /* @__PURE__ */ new Map();
+    for (const r2 of rows) {
+      const meta = r2.metadata ?? {};
+      docs.set(r2.id, {
+        id: r2.id,
+        title: r2.title,
+        status: r2.status,
+        metadata_status: typeof meta.status === "string" ? meta.status : null,
+        updated_at: r2.updated_at,
+        corroboration_count: typeof meta.corroboration_count === "number" ? meta.corroboration_count : 1
+      });
+    }
+    scanned[kind2] = docs.size;
+    if (docs.size < 2) continue;
+    const { data: pairData, error: pairErr } = await ctx.supabase.rpc(
+      "document_similarity_pairs",
+      {
+        p_account_id: ctx.accountId,
+        p_ids: [...docs.keys()],
+        p_threshold: threshold
+      }
+    );
+    if (pairErr) {
+      throw new CurationError("invalid_args", `similarity sweep failed: ${pairErr.message}`);
+    }
+    clusters.push(...clusterPairs(kind2, pairData ?? [], docs));
+  }
+  clusters.sort((a2, b2) => b2.members.length - a2.members.length);
+  return { clusters, scanned, truncated, vectorless_count: vectorlessCount, threshold };
+}
+
+// packages/mcp-tools/src/origin.ts
+function deriveDocOrigin(metadata) {
+  const meta = metadata ?? {};
+  const proposedBy = typeof meta.proposed_by === "string" ? meta.proposed_by : "";
+  if (meta.source === "repo:function" || proposedBy === "scribe:repo") return "scanner";
+  if (proposedBy.startsWith("scribe:") || proposedBy === "correction" || meta.scribe_run_id != null) {
+    return "scribe";
+  }
+  if (meta.imported_from != null || meta.installed_via != null || meta.library_source != null) {
+    return "import";
+  }
+  return "human";
+}
+var NoiseSweepArgs = external_exports.object({
+  project_id: external_exports.string().uuid().optional(),
+  dry_run: external_exports.boolean().default(true),
+  /** Docs a human explicitly accepted (inbox accept stamps accepted_at)
+   *  are presumed wanted — skipped unless this is set. */
+  include_accepted: external_exports.boolean().default(false)
+});
+
 // packages/actions-engine/src/execute.ts
 import process4 from "node:process";
 
@@ -59673,7 +60067,7 @@ async function readMemory(ctx, rawArgs) {
   const projectId = args.project_id ?? ctx.projectId ?? null;
   let q2 = ctx.supabase.from("documents").select(
     `id, kind, scope, status, title, path, project_id, current_version_id,
-       updated_at, created_at,
+       metadata, updated_at, created_at,
        document_versions!documents_current_version_fk ( content, version_number, author_id )`
   ).eq("account_id", ctx.accountId);
   if (args.kinds?.length) q2 = q2.in("kind", args.kinds);
@@ -59699,6 +60093,7 @@ async function readMemory(ctx, rawArgs) {
       path: row.path ?? null,
       content,
       project_id: row.project_id ?? null,
+      origin: deriveDocOrigin(row.metadata ?? null),
       version_number: v2?.version_number ?? 1,
       updated_at: row.updated_at,
       created_at: row.created_at,
@@ -62128,379 +62523,6 @@ ${content.trim()}`);
     source,
     updated_at: effectiveUpdatedAt
   };
-}
-
-// packages/mcp-tools/src/curation.ts
-var CurationError = class extends Error {
-  code;
-  constructor(code, message) {
-    super(message);
-    this.name = "CurationError";
-    this.code = code;
-  }
-};
-var ACTION_TARGET = {
-  approve: "approved",
-  archive: "archived",
-  // Unarchive restores to draft (the only legal move out of archived) —
-  // the doc re-enters the curation funnel rather than jumping straight
-  // back to approved.
-  unarchive: "draft"
-};
-function decideStatusChange(args) {
-  const { action, currentStatus, role } = args;
-  if (role === "viewer") {
-    throw new CurationError("forbidden", "viewer role cannot curate documents");
-  }
-  if (action === "approve" && role !== "owner" && role !== "admin") {
-    throw new CurationError("forbidden", "approving a document is owner/admin-only");
-  }
-  if (action === "unarchive" && currentStatus !== "archived") {
-    throw new CurationError("invalid_transition", "document is not archived");
-  }
-  const to = ACTION_TARGET[action];
-  if (currentStatus === to) {
-    throw new CurationError(
-      "invalid_transition",
-      `document is already ${currentStatus}`
-    );
-  }
-  const allowed = DOCUMENT_STATUS_TRANSITIONS[currentStatus] ?? [];
-  if (!allowed.includes(to)) {
-    throw new CurationError(
-      "invalid_transition",
-      `invalid transition: ${currentStatus} \u2192 ${to}`
-    );
-  }
-  return { to };
-}
-var SetStatusArgs = external_exports.object({
-  document_id: external_exports.string().uuid(),
-  action: external_exports.enum(["approve", "archive", "unarchive"])
-});
-async function setDocumentStatus(ctx, rawArgs) {
-  let args;
-  try {
-    args = SetStatusArgs.parse(rawArgs);
-  } catch (e2) {
-    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
-  }
-  const role = ctx.callerRole ?? "viewer";
-  const { data: doc, error: readErr } = await ctx.supabase.from("documents").select("id, account_id, scope, created_by, kind, title, status, metadata").eq("id", args.document_id).maybeSingle();
-  if (readErr) throw new CurationError("not_found", `document lookup failed: ${readErr.message}`);
-  if (!doc || doc.account_id !== ctx.accountId) {
-    throw new CurationError("not_found", "document not found in this account");
-  }
-  const row = doc;
-  if (row.scope === "personal" && row.created_by && ctx.userId !== row.created_by) {
-    throw new CurationError("forbidden", "personal-scope documents can only be curated by their creator");
-  }
-  const { to } = decideStatusChange({ action: args.action, currentStatus: row.status, role });
-  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
-  const actor = ctx.userId ?? "api";
-  const meta = { ...row.metadata ?? {} };
-  let metadataStatusActivated = false;
-  if (args.action === "approve") {
-    meta.approved_at = nowIso;
-    meta.approved_by = actor;
-    if (meta.status === "proposed") {
-      meta.status = "active";
-      meta.accepted_at = nowIso;
-      meta.accepted_by_user_sub = actor;
-      metadataStatusActivated = true;
-    }
-  } else if (args.action === "archive") {
-    meta.lifecycle_action = "archived";
-    meta.lifecycle_archived_at = nowIso;
-    meta.lifecycle_archived_by_user_sub = actor;
-  } else {
-    meta.lifecycle_action = "unarchived";
-    meta.lifecycle_unarchived_at = nowIso;
-    meta.lifecycle_unarchived_by_user_sub = actor;
-    if (meta.status === "superseded") {
-      meta.status = "active";
-      metadataStatusActivated = true;
-    }
-  }
-  const { error: updateErr } = await ctx.supabase.from("documents").update({ status: to, metadata: meta }).eq("id", row.id).eq("account_id", ctx.accountId);
-  if (updateErr) {
-    throw new CurationError("forbidden", `status update failed: ${updateErr.message}`);
-  }
-  return {
-    id: row.id,
-    kind: row.kind,
-    title: row.title,
-    from: row.status,
-    to,
-    metadata_status_activated: metadataStatusActivated
-  };
-}
-async function applyCanonicalMerge(ctx, args) {
-  const count = (m2) => m2 && typeof m2.corroboration_count === "number" ? m2.corroboration_count : 0;
-  const canonicalMeta = args.canonical.metadata ?? {};
-  const summedCorroboration = Math.max(count(canonicalMeta), 1) + args.twins.reduce((s2, t2) => s2 + Math.max(count(t2.metadata), 1), 0);
-  let newVersionNumber = null;
-  const builtMetadata = args.buildCanonicalMetadata(summedCorroboration);
-  if (args.content !== null) {
-    const { data, error: writeErr } = await ctx.supabase.rpc("write_document", {
-      p_document_id: args.canonical.id,
-      p_account_id: ctx.accountId,
-      p_project_id: args.canonical.project_id ?? null,
-      p_scope: args.canonical.scope,
-      p_kind: args.canonical.kind,
-      p_title: args.canonical.title,
-      p_path: args.canonical.path ?? null,
-      p_content: args.content,
-      p_embedding: null,
-      p_metadata: builtMetadata,
-      p_commit_message: args.commitMessage,
-      p_yjs_state_b64: null
-    });
-    if (writeErr) {
-      throw new CurationError("forbidden", `merge apply failed: ${writeErr.message}`);
-    }
-    const rows = data;
-    newVersionNumber = rows?.[0]?.version_number ?? null;
-  } else {
-    const { error: metaErr } = await ctx.supabase.from("documents").update({ metadata: builtMetadata }).eq("id", args.canonical.id).eq("account_id", ctx.accountId);
-    if (metaErr) {
-      throw new CurationError("forbidden", `merge metadata update failed: ${metaErr.message}`);
-    }
-  }
-  for (const twin of args.twins) {
-    const twinMeta = twin.metadata ?? {};
-    const { error: archiveErr } = await ctx.supabase.from("documents").update({
-      status: "archived",
-      metadata: {
-        ...twinMeta,
-        status: "superseded",
-        superseded_by: args.canonical.id,
-        superseded_at: args.nowIso,
-        superseded_reason: args.supersededReason
-      }
-    }).eq("id", twin.id).eq("account_id", ctx.accountId);
-    if (archiveErr) {
-      throw new CurationError("forbidden", `twin archive failed: ${archiveErr.message}`);
-    }
-  }
-  return { newVersionNumber, summedCorroboration };
-}
-var MergeArgs = external_exports.object({
-  canonical_id: external_exports.string().uuid(),
-  duplicate_ids: external_exports.array(external_exports.string().uuid()).min(1).max(50),
-  /** Optional canonical body replacing the keeper's content (new version).
-   *  Omit when the keeper's existing body already is the merged truth —
-   *  the merge is then metadata-only and creates no version. */
-  merged_content: external_exports.string().min(1).optional(),
-  commit_message: external_exports.string().max(500).optional()
-});
-async function mergeDocuments(ctx, rawArgs) {
-  let args;
-  try {
-    args = MergeArgs.parse(rawArgs);
-  } catch (e2) {
-    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
-  }
-  const role = ctx.callerRole ?? "viewer";
-  if (role === "viewer") {
-    throw new CurationError("forbidden", "viewer role cannot merge documents");
-  }
-  const { data: canonicalRow, error: canonicalErr } = await ctx.supabase.from("documents").select("id, account_id, project_id, scope, kind, title, path, status, metadata").eq("id", args.canonical_id).maybeSingle();
-  if (canonicalErr) {
-    throw new CurationError("not_found", `canonical lookup failed: ${canonicalErr.message}`);
-  }
-  if (!canonicalRow || canonicalRow.account_id !== ctx.accountId) {
-    throw new CurationError("not_found", "canonical document not found in this account");
-  }
-  const canonical = canonicalRow;
-  if (canonical.scope === "personal") {
-    throw new CurationError("forbidden", "personal-scope documents cannot be merge targets");
-  }
-  if (canonical.status === "archived") {
-    throw new CurationError("invalid_transition", "canonical document is archived \u2014 unarchive it first");
-  }
-  const requestedIds = args.duplicate_ids.filter((id) => id !== args.canonical_id);
-  const skipped = args.duplicate_ids.filter((id) => id === args.canonical_id).map((id) => ({ id, reason: "is_canonical" }));
-  const { data: dupRows, error: dupErr } = await ctx.supabase.from("documents").select("id, kind, scope, status, metadata").eq("account_id", ctx.accountId).in("id", requestedIds);
-  if (dupErr) throw new CurationError("not_found", `duplicate lookup failed: ${dupErr.message}`);
-  const found = new Map(
-    (dupRows ?? []).map(
-      (r2) => [r2.id, r2]
-    )
-  );
-  const twins = [];
-  for (const id of requestedIds) {
-    const row = found.get(id);
-    if (!row) {
-      skipped.push({ id, reason: "not_found" });
-      continue;
-    }
-    if (row.kind !== canonical.kind) {
-      skipped.push({ id, reason: "kind_mismatch" });
-      continue;
-    }
-    if (row.scope === "personal") {
-      skipped.push({ id, reason: "personal_scope" });
-      continue;
-    }
-    const meta = row.metadata ?? {};
-    if (meta.superseded_by === args.canonical_id) {
-      skipped.push({ id, reason: "already_merged" });
-      continue;
-    }
-    twins.push({ id: row.id, metadata: row.metadata });
-  }
-  if (twins.length === 0) {
-    return {
-      canonical_id: canonical.id,
-      archived_ids: [],
-      skipped,
-      new_version_number: null,
-      corroboration_count: canonical.metadata && typeof canonical.metadata.corroboration_count === "number" ? canonical.metadata.corroboration_count : 1
-    };
-  }
-  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
-  const canonicalMeta = canonical.metadata ?? {};
-  const priorMergedFrom = Array.isArray(canonicalMeta.merged_from) ? canonicalMeta.merged_from.filter((v2) => typeof v2 === "string") : [];
-  const { newVersionNumber, summedCorroboration } = await applyCanonicalMerge(ctx, {
-    canonical,
-    twins,
-    content: args.merged_content ?? null,
-    buildCanonicalMetadata: (sum) => ({
-      ...canonicalMeta,
-      // metadata.status stays as-is — making a doc live (or approved) is a
-      // deliberate separate action (setDocumentStatus), not a merge side
-      // effect.
-      merged_from: [...priorMergedFrom, ...twins.map((t2) => t2.id)],
-      merged_at: nowIso,
-      merged_via: "api",
-      corroboration_count: sum,
-      ...args.merged_content ? { embedding_stale: true } : {}
-    }),
-    commitMessage: args.commit_message ?? `merge ${twins.length} duplicate ${canonical.kind} doc(s)`,
-    supersededReason: "merged",
-    nowIso
-  });
-  return {
-    canonical_id: canonical.id,
-    archived_ids: twins.map((t2) => t2.id),
-    skipped,
-    new_version_number: newVersionNumber,
-    corroboration_count: summedCorroboration
-  };
-}
-var AUTO_MERGE_SAFE_THRESHOLD = 0.92;
-var SWEEP_DEFAULT_THRESHOLD = 0.85;
-var SWEEP_DOC_CAP = 800;
-var SWEEP_KINDS = ["decision", "memory", "skill"];
-function canonicalRank(a2, b2) {
-  const aApproved = a2.status === "approved" ? 1 : 0;
-  const bApproved = b2.status === "approved" ? 1 : 0;
-  if (aApproved !== bApproved) return bApproved - aApproved;
-  if (a2.corroboration_count !== b2.corroboration_count) {
-    return b2.corroboration_count - a2.corroboration_count;
-  }
-  return a2.updated_at < b2.updated_at ? 1 : a2.updated_at > b2.updated_at ? -1 : 0;
-}
-function clusterPairs(kind2, pairs, docs) {
-  const neighbours = /* @__PURE__ */ new Map();
-  for (const p2 of pairs) {
-    if (!docs.has(p2.id_a) || !docs.has(p2.id_b)) continue;
-    if (!neighbours.has(p2.id_a)) neighbours.set(p2.id_a, /* @__PURE__ */ new Map());
-    if (!neighbours.has(p2.id_b)) neighbours.set(p2.id_b, /* @__PURE__ */ new Map());
-    neighbours.get(p2.id_a).set(p2.id_b, p2.similarity);
-    neighbours.get(p2.id_b).set(p2.id_a, p2.similarity);
-  }
-  const ranked = [...neighbours.keys()].map((id) => docs.get(id)).sort(canonicalRank);
-  const claimed = /* @__PURE__ */ new Set();
-  const clusters = [];
-  for (const leader of ranked) {
-    if (claimed.has(leader.id)) continue;
-    claimed.add(leader.id);
-    const members = [];
-    for (const [otherId, similarity] of neighbours.get(leader.id) ?? []) {
-      if (claimed.has(otherId)) continue;
-      claimed.add(otherId);
-      members.push({ ...docs.get(otherId), similarity_to_canonical: similarity });
-    }
-    if (members.length === 0) continue;
-    members.sort((a2, b2) => b2.similarity_to_canonical - a2.similarity_to_canonical);
-    const avg = members.reduce((s2, m2) => s2 + m2.similarity_to_canonical, 0) / members.length;
-    clusters.push({
-      kind: kind2,
-      suggested_canonical_id: leader.id,
-      canonical: leader,
-      members,
-      avg_similarity: Math.round(avg * 1e3) / 1e3,
-      auto_merge_safe: members.every(
-        (m2) => m2.similarity_to_canonical >= AUTO_MERGE_SAFE_THRESHOLD
-      )
-    });
-  }
-  clusters.sort((a2, b2) => b2.members.length - a2.members.length);
-  return clusters;
-}
-var SweepArgs = external_exports.object({
-  project_id: external_exports.string().uuid().optional(),
-  kinds: external_exports.array(external_exports.enum(SWEEP_KINDS)).min(1).optional(),
-  threshold: external_exports.number().min(0.8).max(0.99).optional()
-});
-async function sweepDuplicates(ctx, rawArgs) {
-  let args;
-  try {
-    args = SweepArgs.parse(rawArgs ?? {});
-  } catch (e2) {
-    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
-  }
-  const kinds = args.kinds ?? [...SWEEP_KINDS];
-  const threshold = args.threshold ?? SWEEP_DEFAULT_THRESHOLD;
-  const clusters = [];
-  const scanned = {};
-  let truncated = false;
-  let vectorlessCount = 0;
-  for (const kind2 of kinds) {
-    let query = ctx.supabase.from("documents").select("id, title, status, updated_at, metadata").eq("account_id", ctx.accountId).eq("kind", kind2).neq("status", "archived").not("embedding", "is", null).or("metadata->>status.is.null,metadata->>status.eq.active");
-    if (args.project_id) query = query.eq("project_id", args.project_id);
-    const { data, error: error2 } = await query.order("updated_at", { ascending: false }).limit(SWEEP_DOC_CAP);
-    if (error2) throw new CurationError("invalid_args", `sweep candidate read failed: ${error2.message}`);
-    try {
-      let vectorlessQuery = ctx.supabase.from("documents").select("id", { count: "exact", head: true }).eq("account_id", ctx.accountId).eq("kind", kind2).neq("status", "archived").is("embedding", null).or("metadata->>status.is.null,metadata->>status.eq.active");
-      if (args.project_id) vectorlessQuery = vectorlessQuery.eq("project_id", args.project_id);
-      const { count } = await vectorlessQuery;
-      vectorlessCount += count ?? 0;
-    } catch {
-    }
-    const rows = data ?? [];
-    if (rows.length === SWEEP_DOC_CAP) truncated = true;
-    const docs = /* @__PURE__ */ new Map();
-    for (const r2 of rows) {
-      const meta = r2.metadata ?? {};
-      docs.set(r2.id, {
-        id: r2.id,
-        title: r2.title,
-        status: r2.status,
-        metadata_status: typeof meta.status === "string" ? meta.status : null,
-        updated_at: r2.updated_at,
-        corroboration_count: typeof meta.corroboration_count === "number" ? meta.corroboration_count : 1
-      });
-    }
-    scanned[kind2] = docs.size;
-    if (docs.size < 2) continue;
-    const { data: pairData, error: pairErr } = await ctx.supabase.rpc(
-      "document_similarity_pairs",
-      {
-        p_account_id: ctx.accountId,
-        p_ids: [...docs.keys()],
-        p_threshold: threshold
-      }
-    );
-    if (pairErr) {
-      throw new CurationError("invalid_args", `similarity sweep failed: ${pairErr.message}`);
-    }
-    clusters.push(...clusterPairs(kind2, pairData ?? [], docs));
-  }
-  clusters.sort((a2, b2) => b2.members.length - a2.members.length);
-  return { clusters, scanned, truncated, vectorless_count: vectorlessCount, threshold };
 }
 
 // packages/mcp-tools/src/inbox.ts
