@@ -1,0 +1,20 @@
+{
+  "name": "memlin",
+  "interface": {
+    "displayName": "Memlin"
+  },
+  "plugins": [
+    {
+      "name": "memlin",
+      "source": {
+        "source": "local",
+        "path": "./memlin-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

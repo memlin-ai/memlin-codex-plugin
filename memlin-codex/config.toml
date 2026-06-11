@@ -1,0 +1,25 @@
+# Memlin — Codex config fragment for manual installs.
+#
+# Merge this [mcp_servers.memlin] block into ~/.codex/config.toml (or a
+# project-level .codex/config.toml). Do NOT overwrite the file — Codex keeps
+# every server, model, and profile setting in this one file.
+#
+# It enables Codex lifecycle hooks and registers the local stdio Memlin MCP
+# server bundled with the Codex plugin. Plugin installs use .mcp.json; this is
+# the equivalent manual MCP form, but the feature flag is still required for
+# hooks to fire.
+#
+# Auth: the server reads and refreshes the Auth0 token written by `memlin
+# login` to ~/.config/memlin/token.json.
+[features]
+hooks = true
+
+[mcp_servers.memlin]
+command = "/bin/sh"
+args = ["-lc", "exec node \"$HOME/.codex/plugins/cache/memlin/memlin/0.1.0/dist/mcp-server.js\""]
+startup_timeout_sec = 20
+
+[mcp_servers.memlin.env]
+MEMLIN_HOST = "codex"
+MEMLIN_AGENT_VERSION = "0.1.0"
+MEMLIN_AGENT_CAPABILITIES = "mcp,cli,hooks,rules,scribe,resolve"

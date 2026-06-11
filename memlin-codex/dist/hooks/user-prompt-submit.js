@@ -1,0 +1,893 @@
+#!/usr/bin/env node
+import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);
+
+// apps/codex-plugin/src/hooks/user-prompt-submit.ts
+import { execFile } from "node:child_process";
+import { promises as fs6 } from "node:fs";
+import os7 from "node:os";
+import path7 from "node:path";
+import { fileURLToPath } from "node:url";
+
+// apps/codex-plugin/src/hooks/heartbeat.ts
+import crypto from "node:crypto";
+import { promises as fs4 } from "node:fs";
+import os5 from "node:os";
+import path5 from "node:path";
+
+// packages/plugin-core/dist/client.js
+import { promises as fs3 } from "node:fs";
+import path4 from "node:path";
+import os4 from "node:os";
+
+// packages/plugin-core/dist/auth.js
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import os from "node:os";
+var MEMLIN_PROD_AUTH0_DOMAIN = "memlin.us.auth0.com";
+var MEMLIN_PROD_AUTH0_CLIENT_ID = "fyYMQ4Cxc6Nu5juVwL8Ihqq4fgAFecG9";
+var AUTH0_DOMAIN = process.env.MEMLIN_AUTH0_DOMAIN || MEMLIN_PROD_AUTH0_DOMAIN;
+var AUTH0_CLIENT_ID = process.env.MEMLIN_AUTH0_CLIENT_ID || MEMLIN_PROD_AUTH0_CLIENT_ID;
+var AUTH0_AUDIENCE = process.env.MEMLIN_AUTH0_AUDIENCE ?? "https://api.memlin.ai";
+function tokenFilePath() {
+  return process.env.MEMLIN_TOKEN_FILE || path.join(os.homedir(), ".config", "memlin", "token.json");
+}
+async function readPersistedToken() {
+  try {
+    const raw = await fs.readFile(tokenFilePath(), "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+async function writePersistedToken(t) {
+  const file = tokenFilePath();
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  const tmp = path.join(path.dirname(file), `token.json.tmp-${process.pid}`);
+  await fs.writeFile(tmp, JSON.stringify(t, null, 2), { mode: 384 });
+  await fs.chmod(tmp, 384).catch(() => {
+  });
+  await fs.rename(tmp, file);
+}
+async function refreshAccessToken(refreshToken) {
+  requireClientId();
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: refreshToken,
+    client_id: AUTH0_CLIENT_ID
+  });
+  const res = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString()
+  });
+  if (!res.ok) {
+    throw new Error(`refresh: ${res.status} ${await res.text()}`);
+  }
+  const json = await res.json();
+  return toPersisted(json, refreshToken);
+}
+var refreshInFlight = null;
+async function getValidAccessToken() {
+  const persisted = await readPersistedToken();
+  if (!persisted) throw new Error("not signed in \u2014 run `memlin login`");
+  if (Date.now() < persisted.expires_at - 6e4) return persisted.access_token;
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = doRefresh(persisted).finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}
+async function doRefresh(stale) {
+  const latest = await readPersistedToken();
+  if (latest && Date.now() < latest.expires_at - 6e4) return latest.access_token;
+  const refreshToken = latest?.refresh_token ?? stale.refresh_token;
+  if (!refreshToken) {
+    throw new Error("access token expired and no refresh token saved \u2014 run `memlin login`");
+  }
+  try {
+    const fresh = await refreshAccessToken(refreshToken);
+    await writePersistedToken(fresh);
+    return fresh.access_token;
+  } catch (err) {
+    const after = await readPersistedToken();
+    if (after && after.access_token !== stale.access_token && Date.now() < after.expires_at - 6e4) {
+      return after.access_token;
+    }
+    throw new Error(
+      `access token refresh failed (${err instanceof Error ? err.message : String(err)}) \u2014 run \`memlin login\``
+    );
+  }
+}
+function toPersisted(json, fallbackRefresh) {
+  return {
+    access_token: json.access_token,
+    refresh_token: json.refresh_token ?? fallbackRefresh,
+    expires_at: Date.now() + json.expires_in * 1e3
+  };
+}
+function requireClientId() {
+  if (!AUTH0_CLIENT_ID) {
+    throw new Error(
+      "Auth0 client id not configured. Set MEMLIN_AUTH0_CLIENT_ID env var (and optionally MEMLIN_AUTH0_DOMAIN / MEMLIN_AUTH0_AUDIENCE for self-hosted setups)."
+    );
+  }
+}
+
+// packages/plugin-core/dist/memlin-api-client.js
+import os3 from "node:os";
+
+// packages/plugin-core/dist/runtime-shared.js
+var AGENT_KIND_HEADER = "Memlin-Agent-Kind";
+var AGENT_DEVICE_HEADER = "Memlin-Agent-Device";
+var AGENT_VERSION_HEADER = "Memlin-Agent-Version";
+var AGENT_CAPABILITIES_HEADER = "Memlin-Agent-Capabilities";
+var AGENT_EXPECTED_CAPABILITIES = {
+  "claude-code": ["cli", "commands", "hooks", "sync", "scribe", "resolve"],
+  cursor: ["mcp", "commands", "hooks", "rules", "scribe", "resolve"],
+  codex: ["mcp", "cli", "hooks", "rules", "scribe", "resolve"],
+  windsurf: ["mcp", "cli", "hooks", "rules", "scribe", "resolve"],
+  gemini: ["mcp", "rules", "resolve"],
+  grok: ["mcp", "rules", "resolve"],
+  hermes: ["mcp", "resolve"],
+  openclaw: ["mcp", "rules", "resolve"],
+  antigravity: ["mcp", "cli", "hooks", "commands", "rules", "sync", "scribe", "resolve"],
+  mcp: ["mcp", "resolve"],
+  "claude-ai": ["mcp", "resolve"]
+};
+
+// packages/plugin-core/dist/host.js
+import os2 from "node:os";
+import path2 from "node:path";
+var BaseHost = class {
+  constructor(kind, home) {
+    this.kind = kind;
+    this.home = home;
+  }
+  kind;
+  home;
+  homeDir() {
+    return this.home;
+  }
+  plansDir() {
+    return path2.join(this.home, "plans");
+  }
+};
+var ClaudeCodeHost = class extends BaseHost {
+  constructor() {
+    super("claude-code", path2.join(os2.homedir(), ".claude"));
+  }
+};
+var CursorHost = class extends BaseHost {
+  constructor() {
+    super("cursor", path2.join(os2.homedir(), ".config", "memlin"));
+  }
+};
+var CodexHost = class extends BaseHost {
+  constructor() {
+    super("codex", path2.join(os2.homedir(), ".config", "memlin"));
+  }
+};
+var WindsurfHost = class extends BaseHost {
+  constructor() {
+    super("windsurf", path2.join(os2.homedir(), ".config", "memlin"));
+  }
+};
+var AntigravityHost = class extends BaseHost {
+  constructor() {
+    super("antigravity", path2.join(os2.homedir(), ".config", "memlin"));
+  }
+};
+var HOSTS = {
+  "claude-code": () => new ClaudeCodeHost(),
+  cursor: () => new CursorHost(),
+  codex: () => new CodexHost(),
+  windsurf: () => new WindsurfHost(),
+  antigravity: () => new AntigravityHost()
+};
+function resolveHost() {
+  const envHost = process.env.MEMLIN_HOST ?? (process.env.CURSOR_AGENT ? "cursor" : "claude-code");
+  const make = HOSTS[envHost];
+  return (make ?? HOSTS["claude-code"])();
+}
+
+// packages/plugin-core/dist/memlin-api-client.js
+var DEFAULT_API_URL = "https://memlin.ai/api/v1";
+function agentDevice() {
+  return process.env.MEMLIN_AGENT_DEVICE || os3.hostname() || "unknown";
+}
+function agentVersion() {
+  return process.env.MEMLIN_AGENT_VERSION || "0.1.0";
+}
+function agentCapabilities() {
+  return AGENT_EXPECTED_CAPABILITIES[resolveHost().kind] ?? ["api", "resolve"];
+}
+var MemlinApiClient = class {
+  constructor(cfg) {
+    this.cfg = cfg;
+  }
+  cfg;
+  // ---------- low-level ----------
+  async authHeaders(includeAccount = true) {
+    const token = await this.cfg.getAccessToken();
+    const h = {
+      Authorization: `Bearer ${token}`,
+      [AGENT_KIND_HEADER]: resolveHost().kind,
+      [AGENT_DEVICE_HEADER]: agentDevice(),
+      [AGENT_VERSION_HEADER]: agentVersion(),
+      [AGENT_CAPABILITIES_HEADER]: agentCapabilities().join(",")
+    };
+    if (includeAccount && this.cfg.accountId) {
+      h["Memlin-Account-Id"] = this.cfg.accountId;
+    }
+    return h;
+  }
+  async request(method, pathAndQuery, body, opts = {}) {
+    const url = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
+    const baseHeaders = await this.authHeaders(opts.includeAccount ?? true);
+    if (opts.accountId) {
+      baseHeaders["Memlin-Account-Id"] = opts.accountId;
+    }
+    const headers = {
+      ...baseHeaders,
+      Accept: "application/json"
+    };
+    if (body !== void 0) headers["Content-Type"] = "application/json";
+    const res = await fetch(url, {
+      method,
+      headers,
+      ...body !== void 0 ? { body: JSON.stringify(body) } : {}
+    });
+    const text = await res.text();
+    let parsed = null;
+    if (text) {
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+      }
+    }
+    if (!res.ok) {
+      const errMsg = parsed?.error ?? text ?? `HTTP ${res.status}`;
+      throw new Error(`${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`);
+    }
+    return parsed;
+  }
+  // ---------- endpoints ----------
+  /** GET /me — identity + account list. No account header sent (this is the discovery call). */
+  async me() {
+    return this.request("GET", "/me", void 0, { includeAccount: false });
+  }
+  /**
+   * POST /roles/assign — set a member's functional roles (backend, sre,
+   * ...). Defaults to the caller; pass user_id to assign another member
+   * (owner/admin only). Replaces the member's set wholesale.
+   */
+  async assignRoles(input, opts = {}) {
+    return this.request("POST", "/roles/assign", input, {
+      accountId: opts.accountId
+    });
+  }
+  /**
+   * POST /roles/tag — tag a document into one or more role packs. The
+   * resolver boosts the document for members holding a matching role.
+   * Replaces the document's role tags wholesale.
+   */
+  async tagDocumentRoles(input, opts = {}) {
+    return this.request("POST", "/roles/tag", input, {
+      accountId: opts.accountId
+    });
+  }
+  /**
+   * POST /documents/pin — force-include ("pin") a document, or unpin it.
+   * A pinned doc is fetched out-of-band by the resolver on every resolve in
+   * scope (no similarity threshold) and reserved budget off the top — a
+   * standing directive, not a similarity hit. Owner/admin-only server-side.
+   */
+  async setDocumentPinned(input, opts = {}) {
+    return this.request("POST", "/documents/pin", input, {
+      accountId: opts.accountId
+    });
+  }
+  /** GET /decisions/enforce — pull the guardrail rules currently
+   *  in effect for the caller's account (and optionally a project).
+   *  Returns kind='decision' docs whose `metadata.enforce` is set —
+   *  the PreToolUse handler in plugin-core's pre-tool-use-handler
+   *  module is the primary caller. */
+  async listEnforceDecisions(opts = {}) {
+    const qs = new URLSearchParams();
+    if (opts.project_id !== void 0) {
+      qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
+    }
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return this.request("GET", `/decisions/enforce${suffix}`);
+  }
+  /** POST /usage/event — write a usage_events row from the client.
+   *  Server-side enforces an allowlist of event_types (today:
+   *  tool.guardrail, action.invoke) and re-derives account_id and
+   *  user_id from the auth context so callers can't forge rows for
+   *  other workspaces. */
+  async writeUsageEvent(input) {
+    return this.request("POST", "/usage/event", input);
+  }
+  /** GET /documents — list, filtered. */
+  async listDocuments(opts = {}) {
+    const qs = new URLSearchParams();
+    if (opts.kinds) for (const k of opts.kinds) qs.append("kind", k);
+    if (opts.scopes) for (const s of opts.scopes) qs.append("scope", s);
+    if (opts.statuses) for (const s of opts.statuses) qs.append("status", s);
+    if (opts.project_id !== void 0) {
+      qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
+    }
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    const res = await this.request("GET", `/documents${suffix}`);
+    return res.documents.map((d) => {
+      const { status, ...rest } = d;
+      return status == null ? rest : { ...rest, status };
+    });
+  }
+  /** POST /documents — create or update a document. */
+  async writeDocument(input) {
+    return this.request("POST", "/documents", input);
+  }
+  /** GET /documents/{id}/versions — history. */
+  async listVersions(documentId) {
+    const res = await this.request(
+      "GET",
+      `/documents/${encodeURIComponent(documentId)}/versions`
+    );
+    return res.versions;
+  }
+  /** POST /documents/{id}/revert — non-destructive revert to an older version. */
+  async revertDocument(documentId, targetVersionId, commitMessage) {
+    const res = await this.request(
+      "POST",
+      `/documents/${encodeURIComponent(documentId)}/revert`,
+      {
+        target_version_id: targetVersionId,
+        ...commitMessage ? { commit_message: commitMessage } : {}
+      }
+    );
+    return res.new_version_id;
+  }
+  /** GET /inbox — pending scribe proposals (newest first), plus recently
+   *  auto-activated correction rules (so the user can see what stuck + undo).
+   *  Pass `opts.accountId` to read a different account's inbox than the pinned
+   *  one (e.g. `memlin status` showing the resolver-effective account). */
+  async listInbox(opts = {}) {
+    return this.request("GET", "/inbox", void 0, { accountId: opts.accountId });
+  }
+  /** GET /insights — pending derived insights, including auto-memory proposals. */
+  async listInsights(params = {}, opts = {}) {
+    const search = new URLSearchParams();
+    if (params.kind) search.set("kind", params.kind);
+    if (params.status) search.set("status", params.status);
+    if (params.limit) search.set("limit", String(params.limit));
+    const qs = search.toString();
+    return this.request(
+      "GET",
+      `/insights${qs ? `?${qs}` : ""}`,
+      void 0,
+      { accountId: opts.accountId }
+    );
+  }
+  async resolveInsight(insightId, action) {
+    return this.request("POST", `/insights/${encodeURIComponent(insightId)}/resolve`, { action });
+  }
+  /** POST /inbox/{id} — accept or reject a proposal. */
+  async resolveProposal(proposalId, action) {
+    return this.request("POST", `/inbox/${encodeURIComponent(proposalId)}`, {
+      action
+    });
+  }
+  async listHandoffs(opts = {}) {
+    const qs = new URLSearchParams();
+    if (opts.project_id) qs.set("project_id", opts.project_id);
+    if (opts.target_agent_kind) qs.set("target_agent_kind", opts.target_agent_kind);
+    if (opts.status) qs.set("status", opts.status);
+    if (opts.limit) qs.set("limit", String(opts.limit));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return this.request("GET", `/handoffs${suffix}`);
+  }
+  async updateHandoff(handoffId, action) {
+    return this.request("PATCH", `/handoffs/${encodeURIComponent(handoffId)}`, {
+      action
+    });
+  }
+  async createHandoff(input) {
+    return this.request("POST", "/handoffs", input);
+  }
+  /** POST /documents/search — semantic + text. */
+  async search(query, opts = {}) {
+    const res = await this.request("POST", "/documents/search", {
+      query,
+      ...opts
+    });
+    return res.hits;
+  }
+  /** GET /documents?q=... — fuzzy title/path lookup. Used by `memlin revert`. */
+  async findDocumentsByName(needle, limit = 10) {
+    const qs = new URLSearchParams({ q: needle, limit: String(limit) });
+    const res = await this.request("GET", `/documents?${qs.toString()}`);
+    return res.documents;
+  }
+  /**
+   * POST /resolve — the marquee context-assembly endpoint.
+   *
+   * `cwd` and `git_remote` let the server infer the caller's active component
+   * (when the project has any defined) and apply a soft +0.15 boost to
+   * docs tagged to that component. Both are optional; omitting them yields
+   * the same project-wide ranking we used pre-component-awareness.
+   */
+  async resolve(args, opts = {}) {
+    return this.request("POST", "/resolve", args, {
+      accountId: opts.accountId
+    });
+  }
+  /**
+   * GET /account — name/tier/kind for the current account.
+   *
+   * Pass `opts.accountId` to target an account other than the pinned one.
+   * `memlin status` uses this to show the resolver-effective account in a
+   * multi-account workspace, so the returned `id` and `name` always describe
+   * the same account (no global-default/pinned-name mismatch).
+   */
+  async getAccount(opts = {}) {
+    return this.request("GET", "/account", void 0, { accountId: opts.accountId });
+  }
+  /**
+   * POST /projects/resolve — server-side project resolution.
+   *
+   * Returns `account_id` when a project matches in any account the user
+   * has access to (via the JWT's memlin_account_ids claim) — not just the
+   * one pinned in config. Callers use the returned account_id to retarget
+   * the actual resolve / write call to the right backend.
+   */
+  async resolveProject(input) {
+    return this.request("POST", "/projects/resolve", input);
+  }
+  /**
+   * POST /deploy-guard — acquire or release the per-project deploy lease.
+   *
+   * The PreToolUse deploy hook calls `acquire` before a deploy command runs;
+   * the PostToolUse hook calls `release` after. `acquired: false` means another
+   * session already holds an active lease (the hook then warns or blocks).
+   * project_id is passed explicitly — the hook resolves it from cwd first.
+   */
+  async deployGuard(input, opts = {}) {
+    return this.request("POST", "/deploy-guard", input, { accountId: opts.accountId });
+  }
+  /** GET /audit/<id>/replay — reconstruct a past resolve's exact bundle. */
+  async replayAudit(auditId) {
+    return this.request("GET", `/audit/${auditId}/replay`);
+  }
+  /** GET /audit/<id>/explain — per-item decomposition of a past resolve's
+   *  ranking arithmetic (similarity, kind weight, component boost, rerank,
+   *  decay) plus human-readable reasons. The "homework, shown" companion
+   *  to /replay. */
+  async explainAudit(auditId) {
+    return this.request("GET", `/audit/${auditId}/explain`);
+  }
+  /** GET /actions — list approved actions in the workspace. Same shape
+   *  the memlin_actions_list MCP tool returns. */
+  async listActions(opts = {}) {
+    const q = [];
+    if (opts.filter) q.push(`filter=${encodeURIComponent(opts.filter)}`);
+    if (opts.limit !== void 0) q.push(`limit=${opts.limit}`);
+    const qs = q.length > 0 ? `?${q.join("&")}` : "";
+    const { actions } = await this.request("GET", `/actions${qs}`);
+    return actions;
+  }
+  /** POST /actions/<id>/execute — invoke a callable action by id with
+   *  validated input. Returns the result + audit_id. */
+  async executeAction(actionId, input) {
+    return this.request("POST", `/actions/${actionId}/execute`, { input });
+  }
+  /** POST /prompt-ci — run Prompt CI regression tests for a skill. */
+  async runPromptCi(skillId, content) {
+    return this.request("POST", "/prompt-ci", { skill_id: skillId, content });
+  }
+  /**
+   * POST /memory/propose — extract memory candidates from a recent agent
+   * turn and queue them for user accept/dismiss. Fire-and-forget from the
+   * Stop hook's perspective; the server runs a cheap Haiku extraction and
+   * silently no-ops if it finds nothing worth remembering.
+   */
+  async proposeMemory(input, opts = {}) {
+    return this.request("POST", "/memory/propose", input, { accountId: opts.accountId });
+  }
+  /**
+   * POST /scribe/diff — Phase 2 auto-capture from a single git commit.
+   *
+   * Called by the PostToolUse hook after the agent runs `git commit`.
+   * The server reads the commit message + diff, asks Haiku to extract
+   * any decision/memory/skill baked into the change, and persists
+   * results as documents with metadata.status='proposed'. They appear
+   * in the user's inbox until accepted.
+   */
+  async scribeDiff(input, opts = {}) {
+    return this.request("POST", "/scribe/diff", input, { accountId: opts.accountId });
+  }
+  /**
+   * POST /scribe/session — Phase 1 auto-capture from a Claude Code
+   * session transcript. Server slices the transcript (tail-biased
+   * when too large), runs Haiku extraction, persists proposals.
+   *
+   * Triggered manually by /memlin-scribe today; an auto-triggered
+   * variant on Stop with a 15-min debounce is a fast follow-up.
+   */
+  async scribeSession(input, opts = {}) {
+    return this.request("POST", "/scribe/session", input, { accountId: opts.accountId });
+  }
+  /**
+   * POST /plans — upload a Claude Code plan as a first-class plan document.
+   *
+   * Server resolves project from cwd/git_remote (when not pinned), writes
+   * the document via writeDocument (auto-embedding), and inserts a
+   * companion plans row with status='drafted'. Returns the document_id
+   * + version metadata for downstream URL construction.
+   */
+  async pushPlan(input) {
+    return this.request("POST", "/plans", input);
+  }
+  /**
+   * GET /plans — list plans for the account, optionally filtered by
+   * `updated_after` (epoch ms) for cheap delta polling. Used by the
+   * UserPromptSubmit + SessionStart hooks to keep ~/.claude/plans/ in
+   * sync with the server.
+   */
+  async listPlans(opts = {}) {
+    const qs = new URLSearchParams();
+    if (opts.status) qs.set("status", opts.status);
+    if (opts.project_id !== void 0) {
+      qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
+    }
+    if (opts.updated_after) qs.set("updated_after", opts.updated_after);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    const res = await this.request(
+      "GET",
+      `/plans${suffix}`
+    );
+    return res.plans;
+  }
+  /** GET /plans/<id> — full plan detail (status + body + bundle ref). */
+  async getPlan(id) {
+    return this.request("GET", `/plans/${encodeURIComponent(id)}`);
+  }
+  /**
+   * PATCH /plans/<id> — replace the plan's body (creates a new
+   * document_version, auto-embeds). Used by the PostToolUse hook to push
+   * Claude Code edits back up to Memlin.
+   */
+  async updatePlan(id, input) {
+    return this.request("PATCH", `/plans/${encodeURIComponent(id)}`, input);
+  }
+  /**
+   * POST /projects — create a project in the caller's current account.
+   * Used by `memlin init` to register a Claude Code workspace.
+   */
+  async createProject(input, opts = {}) {
+    return this.request("POST", "/projects", input, { accountId: opts.accountId });
+  }
+  /**
+   * POST /ask — natural-language Q&A over the team's workspace memory.
+   * Server resolves a bundle, sends it to Claude, returns answer +
+   * citations + audit_id. Used by `memlin ask` CLI and the web /ask
+   * panel.
+   */
+  async ask(input, opts = {}) {
+    return this.request("POST", "/ask", input, { accountId: opts.accountId });
+  }
+  /** GET /projects — list every project in the current account. */
+  async listProjects(opts = {}) {
+    const res = await this.request("GET", "/projects", void 0, { accountId: opts.accountId });
+    return res.projects;
+  }
+};
+function resolveApiUrl() {
+  return process.env.MEMLIN_API_URL?.trim() || DEFAULT_API_URL;
+}
+
+// packages/plugin-core/dist/workspace-binding.js
+import { promises as fs2 } from "node:fs";
+import path3 from "node:path";
+var WORKSPACE_DIR_NAME = ".memlin";
+var WORKSPACE_BINDING_FILE = "config.json";
+async function findWorkspaceBinding(startDir) {
+  let dir = path3.resolve(startDir);
+  for (let i = 0; i < 64; i++) {
+    const candidate = path3.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE);
+    try {
+      const raw = await fs2.readFile(candidate, "utf8");
+      const parsed = JSON.parse(raw);
+      if (typeof parsed.account_id === "string" && parsed.account_id) {
+        return {
+          binding: {
+            account_id: parsed.account_id,
+            project_id: parsed.project_id ?? null,
+            account_name: parsed.account_name
+          },
+          workspaceRoot: dir
+        };
+      }
+    } catch {
+    }
+    const parent = path3.dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+  return null;
+}
+
+// packages/plugin-core/dist/client.js
+var CONFIG_DIR = path4.join(os4.homedir(), ".config", "memlin");
+var CONFIG_FILE = path4.join(CONFIG_DIR, "config.json");
+var TOKEN_FILE = path4.join(CONFIG_DIR, "token.json");
+async function readConfig() {
+  try {
+    const raw = await fs3.readFile(CONFIG_FILE, "utf8");
+    const parsed = JSON.parse(raw);
+    if (!parsed.account_id || !parsed.user_id) return null;
+    return {
+      api_url: parsed.api_url ?? DEFAULT_API_URL,
+      account_id: parsed.account_id,
+      user_id: parsed.user_id,
+      project_id: parsed.project_id ?? null
+    };
+  } catch {
+    return null;
+  }
+}
+async function getApi(opts = {}) {
+  const config = await readConfig();
+  if (!config) return null;
+  try {
+    await getValidAccessToken();
+  } catch {
+    return null;
+  }
+  const cwd = opts.cwd ?? process.cwd();
+  let workspaceBound = false;
+  let workspaceRoot = null;
+  const overlay = await findWorkspaceBinding(cwd);
+  if (overlay && overlay.binding.account_id !== config.account_id) {
+    config.account_id = overlay.binding.account_id;
+    if (overlay.binding.project_id !== void 0) {
+      config.project_id = overlay.binding.project_id;
+    }
+    workspaceBound = true;
+    workspaceRoot = overlay.workspaceRoot;
+  }
+  const apiUrl = process.env.MEMLIN_API_URL?.trim() || config.api_url || resolveApiUrl();
+  const api = new MemlinApiClient({
+    baseUrl: apiUrl,
+    getAccessToken: getValidAccessToken,
+    accountId: config.account_id
+  });
+  return { api, config, workspaceBound, workspaceRoot };
+}
+function log(msg) {
+  if (process.env.MEMLIN_DEBUG) {
+    process.stderr.write(`[memlin] ${msg}
+`);
+  }
+}
+
+// apps/codex-plugin/src/hooks/heartbeat.ts
+var DEFAULT_THROTTLE_MS = 6e4;
+function statePath(cwd) {
+  const key = crypto.createHash("sha256").update(cwd).digest("hex").slice(0, 16);
+  return path5.join(os5.tmpdir(), `memlin-codex-heartbeat-${key}.json`);
+}
+async function recentlySent(file, throttleMs) {
+  try {
+    const raw = await fs4.readFile(file, "utf8");
+    const parsed = JSON.parse(raw);
+    return typeof parsed.sent_at === "number" && Date.now() - parsed.sent_at < throttleMs;
+  } catch {
+    return false;
+  }
+}
+async function recordCodexActivity(cwd, reason, opts = {}) {
+  const throttleMs = opts.throttleMs ?? DEFAULT_THROTTLE_MS;
+  const file = statePath(cwd);
+  if (await recentlySent(file, throttleMs)) return;
+  try {
+    const ctx = await getApi({ cwd });
+    if (!ctx) return;
+    await ctx.api.getAccount();
+    await fs4.writeFile(file, JSON.stringify({ sent_at: Date.now(), reason }), "utf8");
+    log(`codex activity recorded: ${reason}`);
+  } catch (err) {
+    log(`codex activity failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+// apps/codex-plugin/src/hook-io.ts
+function readHookInput() {
+  return new Promise((resolve) => {
+    let data = "";
+    const done = () => {
+      try {
+        resolve(data.trim() ? JSON.parse(data) : null);
+      } catch {
+        resolve(null);
+      }
+    };
+    const timer = setTimeout(done, 1e3);
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => {
+      data += chunk;
+    });
+    process.stdin.on("end", () => {
+      clearTimeout(timer);
+      done();
+    });
+    process.stdin.on("error", () => {
+      clearTimeout(timer);
+      done();
+    });
+  });
+}
+
+// packages/plugin-core/dist/state.js
+import { promises as fs5 } from "node:fs";
+import path6 from "node:path";
+import os6 from "node:os";
+import crypto2 from "node:crypto";
+var STATE_FILE = path6.join(os6.homedir(), ".config", "memlin", "state.json");
+var EMPTY = { documents: {} };
+async function readState() {
+  try {
+    const raw = await fs5.readFile(STATE_FILE, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return { ...EMPTY };
+  }
+}
+async function writeState(state) {
+  await fs5.mkdir(path6.dirname(STATE_FILE), { recursive: true });
+  const tmp = `${STATE_FILE}.${process.pid}.tmp`;
+  await fs5.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
+  await fs5.rename(tmp, STATE_FILE);
+}
+
+// packages/plugin-core/dist/continuity.js
+var CONTINUITY_WINDOW_MS = 10 * 60 * 1e3;
+var CONTINUATION_PATTERNS = [
+  /^\s*(and|also|then|now|next|plus|but|or|so)\b/i,
+  /^\s*(what about|how about|tell me more|go on|continue|keep going)\b/i,
+  /^\s*(explain|show me|expand|elaborate)\s+(that|this|it|the|more)\b/i,
+  /^\s*(yes|yeah|ok|sure|right),?\s+(now|and|so|continue|keep)\b/i,
+  /^\s*(can you|could you)\s+(also|now|then|continue|elaborate)\b/i,
+  /\b(the one|that|those|these)\b.*\?$/i
+  // referential question
+];
+function isContinuation(prompt, cwd, host, last) {
+  if (last.host !== host) return false;
+  if (last.cwd !== cwd) return false;
+  if (Date.now() - last.resolved_at > CONTINUITY_WINDOW_MS) return false;
+  if (!last.had_content) return false;
+  const trimmed = prompt.trim();
+  if (trimmed.length <= 80) return true;
+  for (const re of CONTINUATION_PATTERNS) {
+    if (re.test(trimmed)) return true;
+  }
+  return false;
+}
+function buildContinuityMarker(auditId) {
+  return [
+    "<memlin-context-unchanged>",
+    `# This turn is a follow-up to the prior turn. The same Memlin context applies.`,
+    `# Refer to the bundle injected on the previous turn (audit_id: ${auditId}).`,
+    "# If you need fresh context, ask the user to rephrase or invoke memlin_resolve_task directly.",
+    "</memlin-context-unchanged>"
+  ].join("\n");
+}
+
+// packages/plugin-core/dist/scribe-notice.js
+async function takeScribeNotice(currentSessionId) {
+  let state;
+  try {
+    state = await readState();
+  } catch {
+    return "";
+  }
+  const notice = state.scribe_notice;
+  const n = notice?.unsurfaced ?? 0;
+  if (n <= 0) return "";
+  try {
+    delete state.scribe_notice;
+    await writeState(state);
+  } catch {
+  }
+  if (currentSessionId && notice?.session_id && notice.session_id !== currentSessionId) {
+    return "";
+  }
+  return [
+    "<memlin-notice>",
+    "# Status line for the user \u2014 surface it, do not act on it.",
+    `Memlin auto-captured ${n} new proposal${n === 1 ? "" : "s"} \u2014 review and accept/reject with /memlin-inbox.`,
+    "</memlin-notice>",
+    ""
+  ].join("\n");
+}
+
+// apps/codex-plugin/src/hooks/user-prompt-submit.ts
+var HOOK_DIR = path7.dirname(fileURLToPath(import.meta.url));
+var RESOLVE_BIN = path7.resolve(HOOK_DIR, "../cli/resolve.js");
+function isTrivial(prompt) {
+  const trimmed = prompt.trim();
+  return !trimmed || trimmed.split(/\s+/).filter(Boolean).length < 4;
+}
+async function hasToken() {
+  try {
+    const raw = await fs6.readFile(
+      path7.join(os7.homedir(), ".config", "memlin", "token.json"),
+      "utf8"
+    );
+    return Boolean(JSON.parse(raw).access_token);
+  } catch {
+    return false;
+  }
+}
+function runResolve(task, cwd, sessionId) {
+  return new Promise((resolve) => {
+    execFile(
+      process.execPath,
+      [RESOLVE_BIN, task],
+      {
+        cwd,
+        // Forward the agent's session id so the resolve's usage_event is
+        // attributable to this session (concurrent-work awareness).
+        env: {
+          ...process.env,
+          MEMLIN_HOST: "codex",
+          ...sessionId ? { MEMLIN_SESSION_ID: sessionId } : {}
+        },
+        timeout: 6e3,
+        maxBuffer: 8 * 1024 * 1024,
+        encoding: "utf8"
+      },
+      (err, stdout) => resolve(err ? null : (stdout || "").trim() || null)
+    );
+  });
+}
+function emitAdditionalContext(additionalContext) {
+  process.stdout.write(
+    JSON.stringify({
+      hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext }
+    })
+  );
+}
+async function main() {
+  const input = await readHookInput();
+  const prompt = input?.prompt ?? "";
+  const cwd = input?.cwd ?? process.cwd();
+  await recordCodexActivity(cwd, "user-prompt-submit");
+  if (isTrivial(prompt) || !await hasToken()) {
+    process.exit(0);
+  }
+  const scribeNotice = await takeScribeNotice();
+  try {
+    const state = await readState();
+    if (state.last_resolve && isContinuation(prompt, cwd, "codex", state.last_resolve)) {
+      emitAdditionalContext(scribeNotice + buildContinuityMarker(state.last_resolve.audit_id));
+      return;
+    }
+  } catch {
+  }
+  const rendered = await runResolve(prompt, cwd, input?.session_id);
+  if (!rendered) {
+    if (scribeNotice) emitAdditionalContext(scribeNotice);
+    process.exit(0);
+  }
+  const block = [
+    "<memlin-resolved-context>",
+    "# Auto-resolved by Memlin for the prompt below. Authoritative project",
+    "# context \u2014 apply skills, honor goals, validate schemas, cite sources.",
+    "",
+    rendered,
+    "</memlin-resolved-context>"
+  ].join("\n");
+  emitAdditionalContext(scribeNotice + block);
+}
+main().catch(() => process.exit(0));

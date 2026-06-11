@@ -1,0 +1,16 @@
+{
+  "name": "memlin",
+  "version": "0.2.0",
+  "description": "One memory. Every model. — the Memlin plugin for Codex: the memlin MCP server, the Memlin skill, and lifecycle hooks.",
+  "author": {
+    "name": "Memlin",
+    "email": "support@memlin.ai"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks.json",
+  "interface": {
+    "displayName": "Memlin",
+    "category": "Productivity"
+  }
+}
