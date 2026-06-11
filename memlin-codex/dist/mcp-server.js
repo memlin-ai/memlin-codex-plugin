@@ -59146,6 +59146,10 @@ var ActionExecuteError = class extends Error {
 };
 async function executeAction(args) {
   const { client: client2, accountId, actionId, input, userId } = args;
+  const dispatchOpts = {
+    providerKeys: args.providerKeys,
+    allowPlatformProviderKey: args.allowPlatformProviderKey !== false
+  };
   const { data: row, error: rowErr } = await client2.from("documents").select("id, account_id, kind, metadata, title").eq("id", actionId).maybeSingle();
   if (rowErr) {
     throw new ActionExecuteError(`document lookup failed: ${rowErr.message}`, "server");
@@ -59181,12 +59185,13 @@ async function executeAction(args) {
   const start = Date.now();
   let dispatched;
   try {
-    dispatched = await dispatch(parsed.ok, input);
+    dispatched = await dispatch(parsed.ok, input, dispatchOpts);
   } catch (e2) {
     if (e2 instanceof ActionExecuteError) throw e2;
     throw new ActionExecuteError(e2 instanceof Error ? e2.message : String(e2), "provider_error");
   }
   const latency_ms = Date.now() - start;
+  const cost_usd = dispatched.input_tokens !== void 0 && dispatched.output_tokens !== void 0 ? costUsdFor(modelOf(parsed.ok.implementation) ?? "", dispatched.input_tokens, dispatched.output_tokens) : null;
   let audit_id = "";
   try {
     const { data: auditData, error: auditErr } = await client2.rpc("record_usage_event", {
@@ -59204,14 +59209,9 @@ async function executeAction(args) {
         input_keys: Object.keys(input),
         input_tokens: dispatched.input_tokens ?? null,
         output_tokens: dispatched.output_tokens ?? null,
-        // Real USD cost from the shared price sheet; null when the model
-        // isn't priced (tokens above keep the gap visible). action.invoke
-        // rows count toward the platform AI-spend rollup alongside ai.call.
-        cost_usd: dispatched.input_tokens !== void 0 && dispatched.output_tokens !== void 0 ? costUsdFor(
-          modelOf(parsed.ok.implementation) ?? "",
-          dispatched.input_tokens,
-          dispatched.output_tokens
-        ) : null
+        // action.invoke rows count toward the platform AI-spend rollup
+        // alongside ai.call (getAiSpendThisMonth sums both).
+        cost_usd
       }
     });
     if (!auditErr && typeof auditData === "string") audit_id = auditData;
@@ -59228,16 +59228,17 @@ async function executeAction(args) {
       model: modelOf(parsed.ok.implementation),
       latency_ms,
       ...dispatched.input_tokens !== void 0 ? { input_tokens: dispatched.input_tokens } : {},
-      ...dispatched.output_tokens !== void 0 ? { output_tokens: dispatched.output_tokens } : {}
+      ...dispatched.output_tokens !== void 0 ? { output_tokens: dispatched.output_tokens } : {},
+      cost_usd
     },
     audit_id
   };
 }
-async function dispatch(metadata, input) {
+async function dispatch(metadata, input, opts) {
   const impl = metadata.implementation;
   switch (impl.type) {
     case "provider_call":
-      return dispatchProviderCall(impl, input);
+      return dispatchProviderCall(impl, input, opts);
     case "http":
       return dispatchHttp(impl, input);
     case "connector":
@@ -59251,12 +59252,12 @@ async function dispatch(metadata, input) {
     }
   }
 }
-async function dispatchProviderCall(impl, input) {
+async function dispatchProviderCall(impl, input, opts) {
   if (impl.provider === "anthropic") {
-    const key = process4.env.ANTHROPIC_API_KEY;
+    const key = opts.providerKeys?.anthropic || (opts.allowPlatformProviderKey ? process4.env.ANTHROPIC_API_KEY : void 0);
     if (!key) {
       throw new ActionExecuteError(
-        "ANTHROPIC_API_KEY not set \u2014 cannot dispatch provider_call to anthropic",
+        "no Anthropic key available (BYOK or platform) \u2014 cannot dispatch provider_call to anthropic",
         "provider_unavailable"
       );
     }
@@ -59291,7 +59292,7 @@ async function dispatchProviderCall(impl, input) {
     };
   }
   if (impl.provider === "google") {
-    const key = process4.env.GEMINI_API_KEY || process4.env.GOOGLE_API_KEY;
+    const key = opts.allowPlatformProviderKey ? process4.env.GEMINI_API_KEY || process4.env.GOOGLE_API_KEY : void 0;
     if (!key) {
       throw new ActionExecuteError(
         "GEMINI_API_KEY or GOOGLE_API_KEY not set \u2014 cannot dispatch provider_call to google",
@@ -59327,7 +59328,7 @@ async function dispatchProviderCall(impl, input) {
     };
   }
   if (impl.provider === "xai") {
-    const key = process4.env.GROK_API_KEY || process4.env.XAI_API_KEY;
+    const key = opts.allowPlatformProviderKey ? process4.env.GROK_API_KEY || process4.env.XAI_API_KEY : void 0;
     if (!key) {
       throw new ActionExecuteError(
         "GROK_API_KEY or XAI_API_KEY not set \u2014 cannot dispatch provider_call to xai",
