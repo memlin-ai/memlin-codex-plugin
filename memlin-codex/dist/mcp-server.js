@@ -59182,7 +59182,10 @@ async function applyCanonicalMerge(ctx, args) {
       p_embedding: null,
       p_metadata: builtMetadata,
       p_commit_message: args.commitMessage,
-      p_yjs_state_b64: null
+      p_yjs_state_b64: null,
+      // buildCanonicalMetadata returns the FULL object — replace semantics
+      // (no merge flag). Attribution rides only on the service-token path.
+      ...ctx.serviceTokenId ? { p_author_id: ctx.userId ?? null, p_service_token_id: ctx.serviceTokenId } : {}
     });
     if (writeErr) {
       throw new CurationError("forbidden", `merge apply failed: ${writeErr.message}`);
@@ -60170,7 +60173,15 @@ async function writeMemory(ctx, rawArgs) {
     p_embedding: embedding,
     p_metadata: filterClientMetadata(args.metadata),
     p_commit_message: args.commit_message ?? null,
-    p_yjs_state_b64: null
+    p_yjs_state_b64: null,
+    // Client writes MERGE metadata: a re-version that omits keys must not
+    // wipe server-managed state (status, pinned, provenance, custom).
+    // Server-side writers that construct full metadata objects keep the
+    // replace default — this flag is the client-path fix.
+    p_metadata_merge: true,
+    // Service-token attribution — only sent on that auth path so the
+    // named-arg call stays compatible with pre-attribution databases.
+    ...ctx.serviceTokenId ? { p_author_id: ctx.userId ?? null, p_service_token_id: ctx.serviceTokenId } : {}
   });
   if (error2) throw new Error(`write_memory: ${error2.message}`);
   const row = Array.isArray(data) ? data[0] : data;
@@ -62823,7 +62834,8 @@ async function applyUpdateProposal(ctx, proposalId, doc, existing, actor, nowIso
         embedding_stale: true
       },
       p_commit_message: "apply update proposal from scribe capture",
-      p_yjs_state_b64: null
+      p_yjs_state_b64: null,
+      ...ctx.serviceTokenId ? { p_author_id: ctx.userId ?? null, p_service_token_id: ctx.serviceTokenId } : {}
     });
     if (writeErr) {
       throw new Error(`resolve_proposal: update apply failed: ${writeErr.message}`);
