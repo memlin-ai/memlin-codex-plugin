@@ -62430,8 +62430,51 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     collision_warnings: collisionWarnings,
     deploy_in_progress: deployInProgress,
     recent_file_edits: recentFileEdits,
-    open_threads: []
+    open_threads: [],
+    pack_context: []
   };
+  if (ctx.packCandidates) {
+    try {
+      const packKinds = ["skill", "decision", "schema"];
+      const candidates2 = await ctx.packCandidates(queryVec ?? null, packKinds);
+      if (Array.isArray(candidates2) && candidates2.length > 0) {
+        const PACK_MAX_TOKENS = Math.min(1200, Math.floor(maxTokens * 0.25));
+        const localTitles = new Set(
+          included.map((i2) => `${i2.kind}:${i2.title.trim().toLowerCase()}`)
+        );
+        let packTokens = 0;
+        for (const c2 of candidates2) {
+          if (bundle.pack_context.length >= 8) break;
+          if (localTitles.has(`${c2.kind}:${c2.title.trim().toLowerCase()}`)) continue;
+          const tokens = estimateTokens(c2.body);
+          if (packTokens + tokens > PACK_MAX_TOKENS && bundle.pack_context.length > 0) break;
+          packTokens += tokens;
+          bundle.pack_context.push({
+            id: c2.id,
+            kind: packKinds.includes(c2.kind) ? c2.kind : "skill",
+            title: c2.title,
+            body: c2.body,
+            similarity: c2.similarity,
+            citation: {
+              path: c2.path,
+              version_number: c2.version_number,
+              updated_at: "",
+              author_id: null
+            },
+            component_id: null,
+            component_name: null,
+            pack: {
+              slug: c2.pack.slug,
+              name: c2.pack.name,
+              version: c2.pack.version,
+              publisher_name: c2.pack.publisher_name
+            }
+          });
+        }
+      }
+    } catch {
+    }
+  }
   if (args.include_open_threads) {
     try {
       const { data: threadRows, error: threadErr } = await ctx.supabase.rpc(
@@ -62557,6 +62600,14 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       include_open_threads: true,
       thread_entities: args.entities ?? null,
       open_thread_ids: bundle.open_threads.map((t2) => t2.id)
+    } : {},
+    // Subscribed-pack lane — which packs/items fed this bundle, for audit
+    // replay attribution.
+    ...bundle.pack_context.length > 0 ? {
+      pack_item_ids: bundle.pack_context.map((p2) => p2.id),
+      packs_considered: [
+        ...new Set(bundle.pack_context.map((p2) => `${p2.pack?.slug}@v${p2.pack?.version}`))
+      ]
     } : {},
     // Task category — regex-based classifier (bug / feature / refactor /
     // migration / test / docs / review / infra / chore / unknown). Surfaced
