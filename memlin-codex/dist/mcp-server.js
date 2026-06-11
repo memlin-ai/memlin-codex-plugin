@@ -57676,7 +57676,7 @@ var DOCUMENT_STATUS_TRANSITIONS = {
   approved: ["draft", "archived"],
   archived: ["draft"]
 };
-var MEMORY_TYPES = ["correction", "preference", "fact", "reference"];
+var MEMORY_TYPES = ["correction", "preference", "fact", "reference", "episodic"];
 var DEFAULT_MEMORY_TYPE = "fact";
 var LEGACY_MEMORY_TYPE_MAP = {
   feedback: "correction",
@@ -58871,6 +58871,16 @@ var TOOLS = [
         hybrid: {
           type: "boolean",
           description: "Retrieval mode. Defaults to true (hybrid cosine + BM25). Set false only for pure-cosine diagnostics/evals."
+        },
+        include_open_threads: {
+          type: "boolean",
+          description: 'Additionally pull OPEN episodic threads (predictions / follow-ups) whose entities match \u2014 by entity + status, bypassing similarity. For serial-content tasks (episodes, newsletters, recaps): "last week we flagged NVDA" gets grounded in the actual prior claim.'
+        },
+        entities: {
+          type: "array",
+          items: { type: "string" },
+          maxItems: 16,
+          description: "Entities to match open threads against (tickers, people, products). Omit to infer by matching thread entities in the task text."
         }
       }
     }
@@ -60292,10 +60302,16 @@ var CLIENT_WRITABLE_METADATA_KEYS = /* @__PURE__ */ new Set([
   "anti-examples",
   "custom"
 ]);
-function filterClientMetadata(raw) {
+function filterClientMetadata(raw, kind2) {
   if (!raw) return {};
   const out = {};
   for (const k2 of Object.keys(raw)) {
+    if (k2 === "memory_type") {
+      if (kind2 === "memory" && typeof raw[k2] === "string" && MEMORY_TYPES.includes(raw[k2])) {
+        out[k2] = raw[k2];
+      }
+      continue;
+    }
     if (!CLIENT_WRITABLE_METADATA_KEYS.has(k2)) continue;
     if (k2 === "custom") {
       out[k2] = validateCustomMetadata(raw[k2]);
@@ -60326,7 +60342,7 @@ async function writeMemory(ctx, rawArgs) {
     p_path: args.path ?? null,
     p_content: args.content,
     p_embedding: embedding,
-    p_metadata: filterClientMetadata(args.metadata),
+    p_metadata: filterClientMetadata(args.metadata, args.kind),
     p_commit_message: args.commit_message ?? null,
     p_yjs_state_b64: null,
     // Client writes MERGE metadata: a re-version that omits keys must not
@@ -61059,7 +61075,15 @@ var AssembleBundleArgs = external_exports.object({
   skip_marginal_cutoff: external_exports.boolean().optional(),
   /** Explicit marginal-value cutoff fraction (0..1), overriding the account
    *  setting. For eval sweeps and diagnostics; 0 disables. */
-  marginal_cutoff: external_exports.number().min(0).max(1).optional()
+  marginal_cutoff: external_exports.number().min(0).max(1).optional(),
+  /** Additionally pull OPEN episodic threads (predictions / follow-ups)
+   *  whose entities match — by entity + status, deliberately bypassing the
+   *  similarity threshold. Serial-content agents set this so "last week we
+   *  flagged NVDA" is grounded in the actual prior claim. */
+  include_open_threads: external_exports.boolean().optional(),
+  /** Entities to match open threads against. When omitted, entities are
+   *  inferred by word-boundary matching thread entities in the task text. */
+  entities: external_exports.array(external_exports.string().min(1).max(64)).max(16).optional()
 });
 var SEARCHABLE_KINDS = ["skill", "memory", "goal", "schema", "decision"];
 var BUDGET_MICRO_TOKENS = 1500;
@@ -61164,7 +61188,10 @@ var MEMORY_TYPE_WEIGHTS = {
   correction: 1.3,
   preference: 1.1,
   fact: 1,
-  reference: 1
+  reference: 1,
+  // Episodes are recalled by entity + time through the open-threads lane,
+  // not by similarity ranking — neutral weight in the semantic lane.
+  episodic: 1
 };
 var ACTIVE_COMPONENT_BOOST = 0.15;
 var ROLE_MATCH_BOOST = 0.12;
@@ -62402,8 +62429,68 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     concurrent_work: concurrentWork,
     collision_warnings: collisionWarnings,
     deploy_in_progress: deployInProgress,
-    recent_file_edits: recentFileEdits
+    recent_file_edits: recentFileEdits,
+    open_threads: []
   };
+  if (args.include_open_threads) {
+    try {
+      const { data: threadRows, error: threadErr } = await ctx.supabase.rpc(
+        "list_open_threads",
+        {
+          p_account_id: ctx.accountId,
+          p_entities: args.entities && args.entities.length > 0 ? args.entities : null,
+          p_status: "open",
+          p_project_id: projectId ?? null,
+          p_limit: 50
+        }
+      );
+      if (!threadErr && Array.isArray(threadRows)) {
+        const taskLower = ` ${args.task.toLowerCase()} `;
+        const includedMemoryIds = new Set(bundle.memory.map((m2) => m2.id));
+        const OPEN_THREADS_MAX = 5;
+        const OPEN_THREADS_MAX_TOKENS = 1e3;
+        let threadTokens = 0;
+        for (const raw of threadRows) {
+          if (bundle.open_threads.length >= OPEN_THREADS_MAX) break;
+          const id = raw.id;
+          if (includedMemoryIds.has(id)) continue;
+          const entities = Array.isArray(raw.entities) ? raw.entities.filter((e2) => typeof e2 === "string") : [];
+          if (!args.entities || args.entities.length === 0) {
+            const hit = entities.some((e2) => taskLower.includes(` ${e2.toLowerCase()}`));
+            if (!hit) continue;
+          }
+          const body = typeof raw.content === "string" ? raw.content : "";
+          const tokens = estimateTokens(body);
+          if (threadTokens + tokens > OPEN_THREADS_MAX_TOKENS && bundle.open_threads.length > 0) {
+            break;
+          }
+          threadTokens += tokens;
+          bundle.open_threads.push({
+            id,
+            kind: "memory",
+            title: raw.title ?? "",
+            body,
+            similarity: 0,
+            citation: {
+              path: raw.path ?? null,
+              version_number: raw.version_number ?? 1,
+              updated_at: raw.updated_at ?? "",
+              author_id: null
+            },
+            component_id: null,
+            component_name: null,
+            thread: {
+              status: "open",
+              occurred_at: raw.occurred_at ?? null,
+              entities,
+              resolves: raw.resolves ?? null
+            }
+          });
+        }
+      }
+    } catch {
+    }
+  }
   const decisionItems = [...bundle.decisions, ...bundle.pinned.filter((p2) => p2.kind === "decision")];
   if (decisionItems.length > 0) {
     try {
@@ -62464,6 +62551,13 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const empty_context_reason = contextCounts.total > 0 ? null : omittedCandidates.length > 0 ? "all_candidates_filtered" : "no_candidates_found";
   const auditMetadata = {
     task: args.task,
+    // Open-threads lane (include_open_threads) — which threads were pulled
+    // by entity, so audit replay shows the recall extension explicitly.
+    ...args.include_open_threads ? {
+      include_open_threads: true,
+      thread_entities: args.entities ?? null,
+      open_thread_ids: bundle.open_threads.map((t2) => t2.id)
+    } : {},
     // Task category — regex-based classifier (bug / feature / refactor /
     // migration / test / docs / review / infra / chore / unknown). Surfaced
     // on the Fleet table as a chip so a program manager can scan
