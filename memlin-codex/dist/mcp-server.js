@@ -61999,6 +61999,12 @@ var MergeArgs = external_exports.object({
   merged_content: external_exports.string().min(1).optional(),
   commit_message: external_exports.string().max(500).optional()
 });
+var SWEEP_KINDS = ["decision", "memory", "skill"];
+var SweepArgs = external_exports.object({
+  project_id: external_exports.string().uuid().optional(),
+  kinds: external_exports.array(external_exports.enum(SWEEP_KINDS)).min(1).optional(),
+  threshold: external_exports.number().min(0.8).max(0.99).optional()
+});
 
 // packages/mcp-tools/src/inbox.ts
 var ListArgs = external_exports.object({
