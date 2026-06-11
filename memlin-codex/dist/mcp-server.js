@@ -62169,6 +62169,12 @@ async function applyBrandPointer(ctx, projectId, accountId, proposalId) {
   }
 }
 
+// packages/mcp-tools/src/curation.ts
+var SetStatusArgs = external_exports.object({
+  document_id: external_exports.string().uuid(),
+  action: external_exports.enum(["approve", "archive", "unarchive"])
+});
+
 // packages/mcp-tools/src/handoffs.ts
 var AgentKindSchema2 = external_exports.enum(AGENT_KINDS);
 var ListHandoffsArgs = external_exports.object({
