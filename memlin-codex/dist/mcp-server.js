@@ -61927,6 +61927,79 @@ ${content.trim()}`);
   };
 }
 
+// packages/mcp-tools/src/curation.ts
+var CurationError = class extends Error {
+  code;
+  constructor(code, message) {
+    super(message);
+    this.name = "CurationError";
+    this.code = code;
+  }
+};
+var SetStatusArgs = external_exports.object({
+  document_id: external_exports.string().uuid(),
+  action: external_exports.enum(["approve", "archive", "unarchive"])
+});
+async function applyCanonicalMerge(ctx, args) {
+  const count = (m2) => m2 && typeof m2.corroboration_count === "number" ? m2.corroboration_count : 0;
+  const canonicalMeta = args.canonical.metadata ?? {};
+  const summedCorroboration = Math.max(count(canonicalMeta), 1) + args.twins.reduce((s2, t2) => s2 + Math.max(count(t2.metadata), 1), 0);
+  let newVersionNumber = null;
+  const builtMetadata = args.buildCanonicalMetadata(summedCorroboration);
+  if (args.content !== null) {
+    const { data, error: writeErr } = await ctx.supabase.rpc("write_document", {
+      p_document_id: args.canonical.id,
+      p_account_id: ctx.accountId,
+      p_project_id: args.canonical.project_id ?? null,
+      p_scope: args.canonical.scope,
+      p_kind: args.canonical.kind,
+      p_title: args.canonical.title,
+      p_path: args.canonical.path ?? null,
+      p_content: args.content,
+      p_embedding: null,
+      p_metadata: builtMetadata,
+      p_commit_message: args.commitMessage,
+      p_yjs_state_b64: null
+    });
+    if (writeErr) {
+      throw new CurationError("forbidden", `merge apply failed: ${writeErr.message}`);
+    }
+    const rows = data;
+    newVersionNumber = rows?.[0]?.version_number ?? null;
+  } else {
+    const { error: metaErr } = await ctx.supabase.from("documents").update({ metadata: builtMetadata }).eq("id", args.canonical.id).eq("account_id", ctx.accountId);
+    if (metaErr) {
+      throw new CurationError("forbidden", `merge metadata update failed: ${metaErr.message}`);
+    }
+  }
+  for (const twin of args.twins) {
+    const twinMeta = twin.metadata ?? {};
+    const { error: archiveErr } = await ctx.supabase.from("documents").update({
+      status: "archived",
+      metadata: {
+        ...twinMeta,
+        status: "superseded",
+        superseded_by: args.canonical.id,
+        superseded_at: args.nowIso,
+        superseded_reason: args.supersededReason
+      }
+    }).eq("id", twin.id).eq("account_id", ctx.accountId);
+    if (archiveErr) {
+      throw new CurationError("forbidden", `twin archive failed: ${archiveErr.message}`);
+    }
+  }
+  return { newVersionNumber, summedCorroboration };
+}
+var MergeArgs = external_exports.object({
+  canonical_id: external_exports.string().uuid(),
+  duplicate_ids: external_exports.array(external_exports.string().uuid()).min(1).max(50),
+  /** Optional canonical body replacing the keeper's content (new version).
+   *  Omit when the keeper's existing body already is the merged truth —
+   *  the merge is then metadata-only and creates no version. */
+  merged_content: external_exports.string().min(1).optional(),
+  commit_message: external_exports.string().max(500).optional()
+});
+
 // packages/mcp-tools/src/inbox.ts
 var ListArgs = external_exports.object({
   limit: external_exports.number().int().min(1).max(200).optional(),
@@ -62084,19 +62157,19 @@ async function applyMergeProposal(ctx, proposalId, doc, existing, actor, nowIso)
       throw new Error(`resolve_proposal: twin read failed: ${twinReadErr.message}`);
     }
     const twins = twinRows ?? [];
-    const count = (m2) => m2 && typeof m2.corroboration_count === "number" ? m2.corroboration_count : 0;
-    const summedCorroboration = Math.max(count(survivorMeta), 1) + twins.reduce((s2, t2) => s2 + Math.max(count(t2.metadata), 1), 0);
-    const { error: writeErr } = await ctx.supabase.rpc("write_document", {
-      p_document_id: survivorId,
-      p_account_id: ctx.accountId,
-      p_project_id: survivor.project_id ?? null,
-      p_scope: survivor.scope,
-      p_kind: survivor.kind,
-      p_title: survivor.title,
-      p_path: survivor.path ?? null,
-      p_content: canonicalBody,
-      p_embedding: null,
-      p_metadata: {
+    await applyCanonicalMerge(ctx, {
+      canonical: {
+        id: survivorId,
+        project_id: survivor.project_id ?? null,
+        scope: survivor.scope,
+        kind: survivor.kind,
+        title: survivor.title,
+        path: survivor.path ?? null,
+        metadata: survivorMeta
+      },
+      twins,
+      content: canonicalBody,
+      buildCanonicalMetadata: (summedCorroboration) => ({
         ...survivorMeta,
         status: "active",
         consolidated_from: mergedIds,
@@ -62107,29 +62180,11 @@ async function applyMergeProposal(ctx, proposalId, doc, existing, actor, nowIso)
         // close enough for retrieval (the twins were >= 0.95 cosine), but
         // flagged so the memory-quality repair pass can re-embed.
         embedding_stale: true
-      },
-      p_commit_message: `consolidate ${mergedIds.length + 1} duplicate memories`,
-      p_yjs_state_b64: null
+      }),
+      commitMessage: `consolidate ${mergedIds.length + 1} duplicate memories`,
+      supersededReason: "consolidated",
+      nowIso
     });
-    if (writeErr) {
-      throw new Error(`resolve_proposal: merge apply failed: ${writeErr.message}`);
-    }
-    for (const twin of twins) {
-      const twinMeta = twin.metadata ?? {};
-      const { error: archiveErr } = await ctx.supabase.from("documents").update({
-        status: "archived",
-        metadata: {
-          ...twinMeta,
-          status: "superseded",
-          superseded_by: survivorId,
-          superseded_at: nowIso,
-          superseded_reason: "consolidated"
-        }
-      }).eq("id", twin.id);
-      if (archiveErr) {
-        throw new Error(`resolve_proposal: twin archive failed: ${archiveErr.message}`);
-      }
-    }
   }
   const { error: flipErr } = await ctx.supabase.from("documents").update({
     metadata: {
@@ -62168,12 +62223,6 @@ async function applyBrandPointer(ctx, projectId, accountId, proposalId) {
     }
   }
 }
-
-// packages/mcp-tools/src/curation.ts
-var SetStatusArgs = external_exports.object({
-  document_id: external_exports.string().uuid(),
-  action: external_exports.enum(["approve", "archive", "unarchive"])
-});
 
 // packages/mcp-tools/src/handoffs.ts
 var AgentKindSchema2 = external_exports.enum(AGENT_KINDS);
