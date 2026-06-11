@@ -60473,6 +60473,7 @@ var MEMORY_TYPE_WEIGHTS = {
 };
 var ACTIVE_COMPONENT_BOOST = 0.15;
 var ROLE_MATCH_BOOST = 0.12;
+var APPROVED_STATUS_BOOST = 0.1;
 function estimateTokens(text) {
   return Math.ceil(text.length / 4);
 }
@@ -60977,6 +60978,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     }
   }
   const metadataById = /* @__PURE__ */ new Map();
+  const approvedColumnIds = /* @__PURE__ */ new Set();
   if (candidateIdsNeedingStatus.length > 0) {
     const { data: statusRows, error: statusErr } = await ctx.supabase.from("documents").select("id, status, metadata, project_id, scope").in("id", candidateIdsNeedingStatus);
     if (statusErr) {
@@ -61107,6 +61109,10 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
             path: c2.citation.path
           });
           candidates.splice(i2, 1);
+          continue;
+        }
+        if ((c2.kind === "memory" || c2.kind === "decision") && status === "approved") {
+          approvedColumnIds.add(c2.id);
         }
       }
       const replacementIds = projectBrainPolicy.overridePairs.map((p2) => p2.replacement_document_id).filter((id) => !candidates.some((c2) => c2.id === id));
@@ -61380,6 +61386,13 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       const docRoles = rolesByDoc.get(c2.id) ?? [];
       if (docRoles.some((r2) => userRoles.includes(r2))) {
         c2.score += ROLE_MATCH_BOOST * KIND_WEIGHTS[c2.kind];
+      }
+    }
+  }
+  if (approvedColumnIds.size > 0) {
+    for (const c2 of candidates) {
+      if (approvedColumnIds.has(c2.id)) {
+        c2.score += APPROVED_STATUS_BOOST * KIND_WEIGHTS[c2.kind];
       }
     }
   }
@@ -61701,7 +61714,11 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     component_id: i2.component_id,
     component_name: i2.component_name,
     version_tag: i2.version_tag,
-    collapsed_duplicates: i2.collapsed_duplicates
+    collapsed_duplicates: i2.collapsed_duplicates,
+    // Curation state at resolve time — drives the explain page's
+    // "approved canonical" annotation. Omitted (not false) when absent
+    // to keep pre-existing audit rows byte-identical in shape.
+    ...approvedColumnIds.has(i2.id) ? { approved: true } : {}
   }));
   const contextCounts = {
     memory: bundle.memory.length,
