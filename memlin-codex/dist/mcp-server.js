@@ -60291,7 +60291,12 @@ var AssembleBundleArgs = external_exports.object({
   skip_rerank: external_exports.boolean().optional(),
   /** Skip the resolve-time redundancy collapse (near-duplicate clustering).
    *  For diagnostics and eval comparisons, like skip_rerank. */
-  skip_dedupe: external_exports.boolean().optional()
+  skip_dedupe: external_exports.boolean().optional(),
+  /** Skip the marginal-value cutoff (weak-tail trim). Diagnostics/evals. */
+  skip_marginal_cutoff: external_exports.boolean().optional(),
+  /** Explicit marginal-value cutoff fraction (0..1), overriding the account
+   *  setting. For eval sweeps and diagnostics; 0 disables. */
+  marginal_cutoff: external_exports.number().min(0).max(1).optional()
 });
 var SEARCHABLE_KINDS = ["skill", "memory", "goal", "schema", "decision"];
 var BUDGET_MICRO_TOKENS = 1500;
@@ -60378,6 +60383,13 @@ var REDUNDANCY_COLLAPSE_KINDS = /* @__PURE__ */ new Set([
   "skill"
 ]);
 var DEDUPE_AUDIT_MAX_CLUSTERS = 20;
+var MARGINAL_CUTOFF_OFF = 0;
+var MARGINAL_CUTOFF_MAX = 0.95;
+var MARGINAL_CUTOFF_MIN_KEEP = 5;
+function resolveMarginalCutoff(raw) {
+  if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return MARGINAL_CUTOFF_OFF;
+  return Math.min(raw, MARGINAL_CUTOFF_MAX);
+}
 var KIND_WEIGHTS = {
   skill: 1,
   goal: 0.85,
@@ -61414,7 +61426,39 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const primarySkill = skillCands[0] ?? null;
   const budgetOrder = [];
   if (primarySkill) budgetOrder.push(primarySkill);
-  const rest = candidates.filter((c2) => !primarySkill || c2.id !== primarySkill.id).sort((a2, b2) => effectiveScore(b2) - effectiveScore(a2));
+  let rest = candidates.filter((c2) => !primarySkill || c2.id !== primarySkill.id).sort((a2, b2) => effectiveScore(b2) - effectiveScore(a2));
+  let marginalDroppedCount = 0;
+  let marginalTokensSaved = 0;
+  const marginalFraction = args.skip_marginal_cutoff ? MARGINAL_CUTOFF_OFF : resolveMarginalCutoff(args.marginal_cutoff ?? customThresholds?.marginal_cutoff);
+  if (marginalFraction > MARGINAL_CUTOFF_OFF && rest.length > MARGINAL_CUTOFF_MIN_KEEP) {
+    const kindTop = /* @__PURE__ */ new Map();
+    for (const c2 of rest) {
+      const s2 = effectiveScore(c2);
+      if (s2 > (kindTop.get(c2.kind) ?? -Infinity)) kindTop.set(c2.kind, s2);
+    }
+    const protectedIds = new Set(rest.slice(0, MARGINAL_CUTOFF_MIN_KEEP).map((c2) => c2.id));
+    const kept = [];
+    for (const c2 of rest) {
+      const ref = kindTop.get(c2.kind) ?? 0;
+      const isMarginal = !protectedIds.has(c2.id) && ref > 0 && effectiveScore(c2) < marginalFraction * ref;
+      if (!isMarginal) {
+        kept.push(c2);
+        continue;
+      }
+      marginalDroppedCount += 1;
+      marginalTokensSaved += estimateTokens(bodyMap.get(c2.id) ?? "");
+      omittedCandidates.push({
+        id: c2.id,
+        kind: c2.kind,
+        title: c2.title,
+        similarity: c2.similarity,
+        reason: "marginal_value",
+        detail: `effective score ${effectiveScore(c2).toFixed(3)} below ${(marginalFraction * 100).toFixed(0)}% of the best ${c2.kind} (${ref.toFixed(3)}) \u2014 trimmed as low marginal value`,
+        path: c2.citation.path
+      });
+    }
+    rest = kept;
+  }
   budgetOrder.push(...rest);
   const included = [];
   const excluded = /* @__PURE__ */ new Set();
@@ -61707,6 +61751,14 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       dropped_count: dedupeDroppedCount,
       est_tokens_saved: dedupeTokensSaved,
       clusters: dedupeClusters.slice(0, DEDUPE_AUDIT_MAX_CLUSTERS)
+    } : null,
+    // Marginal-value cutoff telemetry — present when the weak tail was
+    // trimmed. Like dedupe, est_tokens_saved is the budget NOT spent (these
+    // items were dropped before the budget loop, not refilled).
+    marginal_cutoff: marginalDroppedCount > 0 ? {
+      fraction: marginalFraction,
+      dropped_count: marginalDroppedCount,
+      est_tokens_saved: marginalTokensSaved
     } : null
   };
   const baseArgs = {
