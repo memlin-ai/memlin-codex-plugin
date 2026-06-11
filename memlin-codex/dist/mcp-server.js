@@ -62556,6 +62556,12 @@ async function listProposals(ctx, rawArgs) {
       if (!id || !title || similarity === null) return null;
       return { id, title, similarity };
     }).filter((c2) => c2 !== null) : [];
+    const updateRaw = meta.update;
+    const updateTarget = meta.proposal_action === "update" && updateRaw && typeof updateRaw.target_id === "string" ? {
+      id: updateRaw.target_id,
+      title: typeof updateRaw.target_title === "string" ? updateRaw.target_title : null,
+      similarity: typeof updateRaw.similarity === "number" ? updateRaw.similarity : null
+    } : null;
     return {
       id: row.id,
       kind: row.kind,
@@ -62568,7 +62574,8 @@ async function listProposals(ctx, rawArgs) {
       created_at: row.created_at,
       memory_type: typeof meta.memory_type === "string" ? meta.memory_type : null,
       overlap_candidates: overlapCandidates,
-      promotion_blocked_by: typeof meta.promotion_blocked_by === "string" ? meta.promotion_blocked_by : null
+      promotion_blocked_by: typeof meta.promotion_blocked_by === "string" ? meta.promotion_blocked_by : null,
+      update_target: updateTarget
     };
   });
   return { proposals, count: proposals.length };
@@ -62628,6 +62635,9 @@ async function resolveProposal(ctx, rawArgs) {
   }
   if (existing.proposal_action === "merge") {
     return applyMergeProposal(ctx, args.proposal_id, doc, existing, actor, nowIso);
+  }
+  if (existing.proposal_action === "update") {
+    return applyUpdateProposal(ctx, args.proposal_id, doc, existing, actor, nowIso);
   }
   const { error: error2 } = await ctx.supabase.from("documents").update({
     metadata: {
@@ -62727,6 +62737,75 @@ async function applyMergeProposal(ctx, proposalId, doc, existing, actor, nowIso)
     } catch {
     }
   }
+  return {
+    status: "merged",
+    kind: doc.kind,
+    title: doc.title
+  };
+}
+async function applyUpdateProposal(ctx, proposalId, doc, existing, actor, nowIso) {
+  const update = existing.update ?? {};
+  const targetId = typeof update.target_id === "string" ? update.target_id : null;
+  if (!targetId) {
+    throw new Error("resolve_proposal: update proposal is malformed (missing target id)");
+  }
+  const { data: proposalRow, error: bodyErr } = await ctx.supabase.from("documents").select(`id, document_versions!documents_current_version_fk ( content )`).eq("id", proposalId).maybeSingle();
+  if (bodyErr) throw new Error(`resolve_proposal: update body read failed: ${bodyErr.message}`);
+  const versions = proposalRow?.document_versions;
+  const newBody = (Array.isArray(versions) ? versions[0]?.content : versions?.content)?.trim();
+  if (!newBody) {
+    throw new Error("resolve_proposal: update proposal has no body to apply");
+  }
+  const { data: target, error: targetErr } = await ctx.supabase.from("documents").select("id, account_id, project_id, scope, kind, title, path, status, metadata").eq("id", targetId).maybeSingle();
+  if (targetErr) throw new Error(`resolve_proposal: update target read failed: ${targetErr.message}`);
+  if (!target || target.account_id !== ctx.accountId) {
+    throw new Error("resolve_proposal: update target not found in this account");
+  }
+  if (target.status === "archived") {
+    throw new Error(
+      "resolve_proposal: update target is archived \u2014 unarchive it first, or reject this proposal"
+    );
+  }
+  const targetMeta = target.metadata ?? {};
+  const alreadyApplied = targetMeta.updated_from_proposal === proposalId;
+  if (!alreadyApplied) {
+    const corroboration = typeof targetMeta.corroboration_count === "number" ? Math.max(targetMeta.corroboration_count, 1) + 1 : 2;
+    const { error: writeErr } = await ctx.supabase.rpc("write_document", {
+      p_document_id: targetId,
+      p_account_id: ctx.accountId,
+      p_project_id: target.project_id ?? null,
+      p_scope: target.scope,
+      p_kind: target.kind,
+      p_title: target.title,
+      p_path: target.path ?? null,
+      p_content: newBody,
+      p_embedding: null,
+      p_metadata: {
+        ...targetMeta,
+        updated_from_proposal: proposalId,
+        last_seen_at: nowIso,
+        corroboration_count: corroboration,
+        // The stored embedding describes the old body; flagged so the
+        // memory-quality repair pass re-embeds.
+        embedding_stale: true
+      },
+      p_commit_message: "apply update proposal from scribe capture",
+      p_yjs_state_b64: null
+    });
+    if (writeErr) {
+      throw new Error(`resolve_proposal: update apply failed: ${writeErr.message}`);
+    }
+  }
+  const { error: flipErr } = await ctx.supabase.from("documents").update({
+    metadata: {
+      ...existing,
+      status: "merged",
+      merged_into: targetId,
+      accepted_at: nowIso,
+      accepted_by_user_sub: actor
+    }
+  }).eq("id", proposalId);
+  if (flipErr) throw new Error(`resolve_proposal: update flip failed: ${flipErr.message}`);
   return {
     status: "merged",
     kind: doc.kind,
