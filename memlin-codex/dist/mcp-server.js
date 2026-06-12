@@ -59162,7 +59162,7 @@ async function setDocumentStatus(ctx, rawArgs) {
     meta.lifecycle_action = "unarchived";
     meta.lifecycle_unarchived_at = nowIso;
     meta.lifecycle_unarchived_by_user_sub = actor;
-    if (meta.status === "superseded") {
+    if (meta.status === "superseded" || meta.status === "archived") {
       meta.status = "active";
       metadataStatusActivated = true;
     }
@@ -61532,6 +61532,40 @@ async function assembleApiCalls(ctx, projectId, component, componentNameById) {
   }
   return out;
 }
+var REACTIVATION_MIN_SIMILARITY = 0.5;
+var REACTIVATION_LIMIT = 5;
+async function maybeReactivateColdMatches(ctx, accountId, queryVec) {
+  if (REACTIVATION_LIMIT <= 0) return 0;
+  const rpcArgs = {
+    p_account_id: accountId,
+    p_query_embedding: queryVec,
+    p_threshold: REACTIVATION_MIN_SIMILARITY,
+    p_limit: REACTIVATION_LIMIT
+  };
+  try {
+    let { data, error: error2 } = await ctx.supabase.rpc("reactivate_unused_archive_matches", rpcArgs);
+    if (error2 && /permission denied/i.test(error2.message) && ctx.privilegedSupabase) {
+      ({ data, error: error2 } = await ctx.privilegedSupabase.rpc(
+        "reactivate_unused_archive_matches",
+        rpcArgs
+      ));
+    }
+    if (error2) {
+      console.warn(`[resolver] reactivation lane skipped: ${error2.message}`);
+      return 0;
+    }
+    const revived = Array.isArray(data) ? data.length : 0;
+    if (revived > 0) {
+      console.warn(`[resolver] reactivated ${revived} cold doc(s) matching this task`);
+    }
+    return revived;
+  } catch (e2) {
+    console.warn(
+      `[resolver] reactivation lane error: ${e2 instanceof Error ? e2.message : String(e2)}`
+    );
+    return 0;
+  }
+}
 async function assembleBundle(ctx, rawArgs, audit = {}) {
   const args = AssembleBundleArgs.parse(rawArgs);
   const kPerKind = args.k_per_kind ?? DEFAULT_K_PER_KIND;
@@ -61585,6 +61619,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       );
     }
   }
+  const reactivationDone = maybeReactivateColdMatches(ctx, ctx.accountId, queryVec);
   let maxTokens;
   let budgetTier;
   let budgetSource;
@@ -62796,6 +62831,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       );
     }
   }
+  await reactivationDone;
   return {
     bundle,
     token_budget: { limit: maxTokens, used, truncated },
