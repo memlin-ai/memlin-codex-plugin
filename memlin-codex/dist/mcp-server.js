@@ -61073,6 +61073,12 @@ var AssembleBundleArgs = external_exports.object({
    *  exact-token matching in addition to semantic similarity. Set false to
    *  force the older pure-cosine path for diagnostics or eval comparisons. */
   hybrid: external_exports.boolean().optional(),
+  /** Search the `functions` catalog NATIVELY (search_functions_hybrid) and
+   *  swap out the per-function `documents` mirrors, instead of relying on those
+   *  mirror docs. Off by default — flip per-request (the recall bench does this
+   *  to validate the swap) or globally via the route once the bench confirms
+   *  recall is neutral-or-better. See migration 20260612190628. */
+  native_functions: external_exports.boolean().optional(),
   interactive: external_exports.boolean().optional(),
   skip_rerank: external_exports.boolean().optional(),
   /** Skip the resolve-time redundancy collapse (near-duplicate clustering).
@@ -61704,6 +61710,40 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       return { kind: kind2, rows: [...merged.values()] };
     })
   );
+  const nativeFunctions = args.native_functions === true && !!projectId && requestedKinds.includes("memory");
+  const functionBodyById = /* @__PURE__ */ new Map();
+  const functionComponentById = /* @__PURE__ */ new Map();
+  if (nativeFunctions) {
+    const { data: fnData, error: fnErr } = await ctx.supabase.rpc("search_functions_hybrid", {
+      p_account_id: ctx.accountId,
+      p_project_id: projectId,
+      p_query_embedding: queryVec,
+      p_query_text: args.task,
+      p_limit: kPerKind
+    });
+    if (fnErr) {
+      console.warn(`[resolver] search_functions_hybrid failed: ${fnErr.message}`);
+    } else {
+      const memEntry = kindResults.find((k2) => k2.kind === "memory");
+      for (const r2 of fnData ?? []) {
+        functionBodyById.set(r2.id, r2.purpose ?? "");
+        functionComponentById.set(r2.id, r2.component_id);
+        const label = r2.kind === "api_route" ? "Route" : r2.kind === "page" ? "Page" : r2.kind === "hook" ? "Hook" : "Function";
+        memEntry?.rows.push({
+          id: r2.id,
+          title: `${label}: ${r2.name}`.slice(0, 200),
+          kind: "memory",
+          scope: "project",
+          similarity: r2.rrf_score * RRF_TO_SIMILARITY_SCALE,
+          path: r2.file_path,
+          version_number: 1,
+          updated_at: r2.updated_at,
+          created_at: r2.updated_at,
+          author_id: null
+        });
+      }
+    }
+  }
   const candidates = [];
   const omittedCandidates = [];
   const candidateIdsNeedingStatus = [];
@@ -61778,6 +61818,19 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         const status = statusById.get(c2.id) ?? null;
         const meta = metadataById.get(c2.id);
         const scopeRow = scopeRowById.get(c2.id);
+        if (nativeFunctions && meta?.source === "repo:function") {
+          omittedCandidates.push({
+            id: c2.id,
+            kind: c2.kind,
+            title: c2.title,
+            similarity: c2.similarity,
+            reason: "status_filtered",
+            detail: "function mirror superseded by native function search",
+            path: c2.citation.path
+          });
+          candidates.splice(i2, 1);
+          continue;
+        }
         if (c2.kind === "memory" && typeof meta?.memory_type === "string") {
           c2.memory_type = normalizeMemoryType(meta.memory_type);
         }
@@ -61941,6 +61994,9 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
         if (v2?.content) bodyById.set(r2.id, v2.content);
       }
+      for (const [id, body] of functionBodyById) {
+        if (body && !bodyById.has(id)) bodyById.set(id, body);
+      }
       const rerankInputs = candidates.map((c2) => ({
         id: c2.id,
         kind: c2.kind,
@@ -62100,6 +62156,14 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         componentScopedByDoc.set(r2.id, m2?.component_scoped === true);
         if (m2?.canary_version_id && typeof m2.canary_version_id === "string") {
           canaryVersionIds.push(m2.canary_version_id);
+        }
+      }
+      for (const [id, body] of functionBodyById) {
+        if (!bodyMap.has(id)) {
+          bodyMap.set(id, body);
+          componentIdByDoc.set(id, functionComponentById.get(id) ?? null);
+          rolesByDoc.set(id, []);
+          componentScopedByDoc.set(id, false);
         }
       }
       if (canaryVersionIds.length > 0) {
