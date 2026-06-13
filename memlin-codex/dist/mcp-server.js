@@ -61079,6 +61079,11 @@ var AssembleBundleArgs = external_exports.object({
    *  to validate the swap) or globally via the route once the bench confirms
    *  recall is neutral-or-better. See migration 20260612190628. */
   native_functions: external_exports.boolean().optional(),
+  /** Deep/thorough resolve: also search the BACKGROUND memory tier (the cold
+   *  pool of mid-confidence captures), not just the hot 'active' set. A normal
+   *  resolve stays active-only so it's sharp; a deep one can reach the long
+   *  tail. Explicit search sets this too. Default false. */
+  deep: external_exports.boolean().optional(),
   interactive: external_exports.boolean().optional(),
   skip_rerank: external_exports.boolean().optional(),
   /** Skip the resolve-time redundancy collapse (near-duplicate clustering).
@@ -61659,7 +61664,10 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         p_scopes: null,
         p_limit: kPerKind
       };
-      if (useHybrid) rpcArgs.p_query_text = args.task;
+      if (useHybrid) {
+        rpcArgs.p_query_text = args.task;
+        rpcArgs.p_include_background = args.deep === true;
+      }
       const { data, error: error2 } = await ctx.supabase.rpc(rpcName, rpcArgs);
       if (error2) {
         console.warn(`[resolver] ${rpcName} failed for kind=${kind2}: ${error2.message}`);
