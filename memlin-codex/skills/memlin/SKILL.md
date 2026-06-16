@@ -27,15 +27,37 @@ validate against schemas, and cite sources by path + version. To explore
 beyond the task, use `memlin_search`, `memlin_read_memory`, or
 `memlin_get_document` directly.
 
+## Status — use the `memlin_status` MCP tool
+
+To report whether Memlin is wired up and current (auth/expiry, bound account +
+project, MCP routing, last sync, pending local changes) call the
+**`memlin_status`** MCP tool (no arguments) and relay its `summary` field. Do
+NOT run a `memlin status` terminal command — the Codex plugin ships no `memlin`
+binary on PATH; the bundled stdio MCP server answers status locally instead.
+
 ## The `memlin` CLI
 
-Codex has no custom slash commands, so Memlin's workspace operations run
-through the `memlin` CLI in the terminal:
+Codex has no custom slash commands, so Memlin's other workspace operations run
+through the bundled `memlin` CLI. **The plugin does not put `memlin` on your
+PATH** — it ships the CLI inside the installed plugin bundle. Invoke it with
+`node` and the bundled dispatcher (the same cache path the MCP server and hooks
+use):
+
+```bash
+node "$HOME/.codex/plugins/cache/memlin/memlin/0.1.0/dist/cli/main.js" <command>
+```
+
+For convenience, define a one-time shell alias (add to `~/.zshrc` / `~/.bashrc`):
+
+```bash
+alias memlin='node "$HOME/.codex/plugins/cache/memlin/memlin/0.1.0/dist/cli/main.js"'
+```
+
+With the alias in place (or substituting the full `node …` form), the commands are:
 
 | Command                                         | Purpose                                          |
 | ----------------------------------------------- | ------------------------------------------------ |
 | `memlin login`                                  | OAuth device-flow sign-in (run once per machine) |
-| `memlin status`                                 | auth, bound account + project, sync state        |
 | `memlin sync`                                   | full bidirectional sync (pull + push)            |
 | `memlin pull` / `memlin push`                   | one-way memory/skill sync                        |
 | `memlin ask "<question>"`                       | natural-language query with citations            |
@@ -45,5 +67,6 @@ through the `memlin` CLI in the terminal:
 | `memlin add-project` / `memlin link`            | bind workspace to a project/account              |
 | `memlin doctor`                                 | diagnose auth / connectivity / config            |
 
-When the user asks to sync, sign in, query the workspace, or check Memlin
-status, run the matching command and relay the result.
+When the user asks to sync, sign in, or query the workspace, run the matching
+command and relay the result. For status, prefer the `memlin_status` MCP tool
+above.

@@ -1069,10 +1069,10 @@ var require_util = __commonJS({
     var codegen_1 = require_codegen();
     var code_1 = require_code();
     function toHash(arr) {
-      const hash = {};
+      const hash2 = {};
       for (const item of arr)
-        hash[item] = true;
-      return hash;
+        hash2[item] = true;
+      return hash2;
     }
     exports2.toHash = toHash;
     function alwaysValidSchema(it2, schema) {
@@ -3237,8 +3237,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path9) {
-      let input = path9;
+    function removeDotSegments(path11) {
+      let input = path11;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -3490,8 +3490,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path9, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path9 && path9 !== "/" ? path9 : void 0;
+        const [path11, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path11 && path11 !== "/" ? path11 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -6884,12 +6884,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f2;
     };
-    function addFormats(ajv, list, fs6, exportName) {
+    function addFormats(ajv, list, fs8, exportName) {
       var _a2;
       var _b;
       (_a2 = (_b = ajv.opts.code).formats) !== null && _a2 !== void 0 ? _a2 : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f2 of list)
-        ajv.addFormat(f2, fs6[f2]);
+        ajv.addFormat(f2, fs8[f2]);
     }
     module2.exports = exports2 = formatsPlugin;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -7326,13 +7326,13 @@ function __disposeResources(env) {
   }
   return next();
 }
-function __rewriteRelativeImportExtension(path9, preserveJsx) {
-  if (typeof path9 === "string" && /^\.\.?\//.test(path9)) {
-    return path9.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m2, tsx, d2, ext, cm) {
+function __rewriteRelativeImportExtension(path11, preserveJsx) {
+  if (typeof path11 === "string" && /^\.\.?\//.test(path11)) {
+    return path11.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m2, tsx, d2, ext, cm) {
       return tsx ? preserveJsx ? ".jsx" : ".js" : d2 && (!ext || !cm) ? m2 : d2 + ext + "." + cm.toLowerCase() + "js";
     });
   }
-  return path9;
+  return path11;
 }
 var extendStatics, __assign, __createBinding, __setModuleDefault, ownKeys, _SuppressedError, tslib_es6_default;
 var init_tslib_es6 = __esm({
@@ -12480,8 +12480,8 @@ var require_helpers = __commonJS({
     async function sha256(randomString2) {
       const encoder = new TextEncoder();
       const encodedData = encoder.encode(randomString2);
-      const hash = await crypto.subtle.digest("SHA-256", encodedData);
-      const bytes = new Uint8Array(hash);
+      const hash2 = await crypto.subtle.digest("SHA-256", encodedData);
+      const bytes = new Uint8Array(hash2);
       return Array.from(bytes).map((c2) => String.fromCharCode(c2)).join("");
     }
     async function generatePKCEChallenge(verifier) {
@@ -20630,14 +20630,14 @@ var require_url_state_machine = __commonJS({
       return url.replace(/\u0009|\u000A|\u000D/g, "");
     }
     function shortenPath(url) {
-      const path9 = url.path;
-      if (path9.length === 0) {
+      const path11 = url.path;
+      if (path11.length === 0) {
         return;
       }
-      if (url.scheme === "file" && path9.length === 1 && isNormalizedWindowsDriveLetter(path9[0])) {
+      if (url.scheme === "file" && path11.length === 1 && isNormalizedWindowsDriveLetter(path11[0])) {
         return;
       }
-      path9.pop();
+      path11.pop();
     }
     function includesCredentials(url) {
       return url.username !== "" || url.password !== "";
@@ -26218,14 +26218,14 @@ __export(fileFromPath_exports, {
 });
 import { statSync, createReadStream, promises as fs } from "fs";
 import { basename } from "path";
-function createFileFromPath(path9, { mtimeMs, size }, filenameOrOptions, options2 = {}) {
+function createFileFromPath(path11, { mtimeMs, size }, filenameOrOptions, options2 = {}) {
   let filename;
   if (isPlainObject_default2(filenameOrOptions)) {
     [options2, filename] = [filenameOrOptions, void 0];
   } else {
     filename = filenameOrOptions;
   }
-  const file = new FileFromPath({ path: path9, size, lastModified: mtimeMs });
+  const file = new FileFromPath({ path: path11, size, lastModified: mtimeMs });
   if (!filename) {
     filename = file.name;
   }
@@ -26234,13 +26234,13 @@ function createFileFromPath(path9, { mtimeMs, size }, filenameOrOptions, options
     lastModified: file.lastModified
   });
 }
-function fileFromPathSync(path9, filenameOrOptions, options2 = {}) {
-  const stats = statSync(path9);
-  return createFileFromPath(path9, stats, filenameOrOptions, options2);
+function fileFromPathSync(path11, filenameOrOptions, options2 = {}) {
+  const stats = statSync(path11);
+  return createFileFromPath(path11, stats, filenameOrOptions, options2);
 }
-async function fileFromPath2(path9, filenameOrOptions, options2) {
-  const stats = await fs.stat(path9);
-  return createFileFromPath(path9, stats, filenameOrOptions, options2);
+async function fileFromPath2(path11, filenameOrOptions, options2) {
+  const stats = await fs.stat(path11);
+  return createFileFromPath(path11, stats, filenameOrOptions, options2);
 }
 var import_node_domexception, __classPrivateFieldSet5, __classPrivateFieldGet6, _FileFromPath_path, _FileFromPath_start, MESSAGE, FileFromPath;
 var init_fileFromPath = __esm({
@@ -29669,7 +29669,7 @@ var require_parse = __commonJS({
 var require_gray_matter = __commonJS({
   "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
-    var fs6 = __require("fs");
+    var fs8 = __require("fs");
     var sections = require_section_matter();
     var defaults2 = require_defaults2();
     var stringify2 = require_stringify();
@@ -29753,7 +29753,7 @@ var require_gray_matter = __commonJS({
       return stringify2(file, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str3 = fs6.readFileSync(filepath, "utf8");
+      const str3 = fs8.readFileSync(filepath, "utf8");
       const file = matter3(str3, options2);
       file.path = filepath;
       return file;
@@ -31242,10 +31242,10 @@ var require_diff_match_patch = __commonJS({
 });
 
 // apps/mcp-server/src/index.ts
-import { promises as fs5 } from "node:fs";
+import { promises as fs7 } from "node:fs";
 import { execSync as execSync4 } from "node:child_process";
-import path8 from "node:path";
-import os6 from "node:os";
+import path10 from "node:path";
+import os7 from "node:os";
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -31725,8 +31725,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path9, errorMaps, issueData } = params;
-  const fullPath = [...path9, ...issueData.path || []];
+  const { data, path: path11, errorMaps, issueData } = params;
+  const fullPath = [...path11, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -31842,11 +31842,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path9, key) {
+  constructor(parent, value, path11, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path9;
+    this._path = path11;
     this._key = key;
   }
   get path() {
@@ -35483,10 +35483,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path9) {
-  if (!path9)
+function getElementAtPath(obj, path11) {
+  if (!path11)
     return obj;
-  return path9.reduce((acc, key) => acc?.[key], obj);
+  return path11.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -35806,11 +35806,11 @@ function aborted(x2, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path9, issues) {
+function prefixIssues(path11, issues) {
   return issues.map((iss) => {
     var _a2;
     (_a2 = iss).path ?? (_a2.path = []);
-    iss.path.unshift(path9);
+    iss.path.unshift(path11);
     return iss;
   });
 }
@@ -47352,8 +47352,8 @@ var IcebergError = class extends Error {
     return this.status === 419;
   }
 };
-function buildUrl(baseUrl, path9, query) {
-  const url = new URL(path9, baseUrl);
+function buildUrl(baseUrl, path11, query) {
+  const url = new URL(path11, baseUrl);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value !== void 0) {
@@ -47383,12 +47383,12 @@ function createFetchClient(options2) {
   return {
     async request({
       method,
-      path: path9,
+      path: path11,
       query,
       body,
       headers
     }) {
-      const url = buildUrl(options2.baseUrl, path9, query);
+      const url = buildUrl(options2.baseUrl, path11, query);
       const authHeaders = await buildAuthHeaders(options2.auth);
       const res = await fetchFn(url, {
         method,
@@ -48236,7 +48236,7 @@ var StorageFileApi = class extends BaseApiClient {
   * @param path The relative file path. Should be of the format `folder/subfolder/filename.png`. The bucket must already exist before attempting to upload.
   * @param fileBody The body of the file to be stored in the bucket.
   */
-  async uploadOrUpdate(method, path9, fileBody, fileOptions) {
+  async uploadOrUpdate(method, path11, fileBody, fileOptions) {
     var _this = this;
     return _this.handleOperation(async () => {
       let body;
@@ -48260,7 +48260,7 @@ var StorageFileApi = class extends BaseApiClient {
         if ((typeof ReadableStream !== "undefined" && body instanceof ReadableStream || body && typeof body === "object" && "pipe" in body && typeof body.pipe === "function") && !options2.duplex) options2.duplex = "half";
       }
       if (fileOptions === null || fileOptions === void 0 ? void 0 : fileOptions.headers) for (const [key, value] of Object.entries(fileOptions.headers)) headers = setHeader(headers, key, value);
-      const cleanPath = _this._removeEmptyFolders(path9);
+      const cleanPath = _this._removeEmptyFolders(path11);
       const _path = _this._getFinalPath(cleanPath);
       const data = await (method == "PUT" ? put : post)(_this.fetch, `${_this.url}/object/${_path}`, body, _objectSpread22({ headers }, (options2 === null || options2 === void 0 ? void 0 : options2.duplex) ? { duplex: options2.duplex } : {}));
       return {
@@ -48322,8 +48322,8 @@ var StorageFileApi = class extends BaseApiClient {
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   * - For React Native, using either `Blob`, `File` or `FormData` does not work as intended. Upload file using `ArrayBuffer` from base64 file data instead, see example below.
   */
-  async upload(path9, fileBody, fileOptions) {
-    return this.uploadOrUpdate("POST", path9, fileBody, fileOptions);
+  async upload(path11, fileBody, fileOptions) {
+    return this.uploadOrUpdate("POST", path11, fileBody, fileOptions);
   }
   /**
   * Upload a file with a token generated from `createSignedUploadUrl`.
@@ -48363,9 +48363,9 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: none
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async uploadToSignedUrl(path9, token, fileBody, fileOptions) {
+  async uploadToSignedUrl(path11, token, fileBody, fileOptions) {
     var _this3 = this;
-    const cleanPath = _this3._removeEmptyFolders(path9);
+    const cleanPath = _this3._removeEmptyFolders(path11);
     const _path = _this3._getFinalPath(cleanPath);
     const url = new URL(_this3.url + `/object/upload/sign/${_path}`);
     url.searchParams.set("token", token);
@@ -48434,10 +48434,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `insert`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async createSignedUploadUrl(path9, options2) {
+  async createSignedUploadUrl(path11, options2) {
     var _this4 = this;
     return _this4.handleOperation(async () => {
-      let _path = _this4._getFinalPath(path9);
+      let _path = _this4._getFinalPath(path11);
       const headers = _objectSpread22({}, _this4.headers);
       if (options2 === null || options2 === void 0 ? void 0 : options2.upsert) headers["x-upsert"] = "true";
       const data = await post(_this4.fetch, `${_this4.url}/object/upload/sign/${_path}`, {}, { headers });
@@ -48446,7 +48446,7 @@ var StorageFileApi = class extends BaseApiClient {
       if (!token) throw new StorageError("No token returned by API");
       return {
         signedUrl: url.toString(),
-        path: path9,
+        path: path11,
         token
       };
     });
@@ -48506,8 +48506,8 @@ var StorageFileApi = class extends BaseApiClient {
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   * - For React Native, using either `Blob`, `File` or `FormData` does not work as intended. Update file using `ArrayBuffer` from base64 file data instead, see example below.
   */
-  async update(path9, fileBody, fileOptions) {
-    return this.uploadOrUpdate("PUT", path9, fileBody, fileOptions);
+  async update(path11, fileBody, fileOptions) {
+    return this.uploadOrUpdate("PUT", path11, fileBody, fileOptions);
   }
   /**
   * Moves an existing file to a new path in the same bucket.
@@ -48658,10 +48658,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async createSignedUrl(path9, expiresIn, options2) {
+  async createSignedUrl(path11, expiresIn, options2) {
     var _this8 = this;
     return _this8.handleOperation(async () => {
-      let _path = _this8._getFinalPath(path9);
+      let _path = _this8._getFinalPath(path11);
       const hasTransform = typeof (options2 === null || options2 === void 0 ? void 0 : options2.transform) === "object" && options2.transform !== null && Object.keys(options2.transform).length > 0;
       let data = await post(_this8.fetch, `${_this8.url}/object/sign/${_path}`, _objectSpread22({ expiresIn }, hasTransform ? { transform: options2.transform } : {}), { headers: _this8.headers });
       const query = new URLSearchParams();
@@ -48797,13 +48797,13 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  download(path9, options2, parameters) {
+  download(path11, options2, parameters) {
     const renderPath = typeof (options2 === null || options2 === void 0 ? void 0 : options2.transform) === "object" && options2.transform !== null && Object.keys(options2.transform).length > 0 ? "render/image/authenticated" : "object";
     const query = new URLSearchParams();
     if (options2 === null || options2 === void 0 ? void 0 : options2.transform) this.applyTransformOptsToQuery(query, options2.transform);
     if ((options2 === null || options2 === void 0 ? void 0 : options2.cacheNonce) != null) query.set("cacheNonce", String(options2.cacheNonce));
     const queryString = query.toString();
-    const _path = this._getFinalPath(path9);
+    const _path = this._getFinalPath(path11);
     const downloadFn = () => get(this.fetch, `${this.url}/${renderPath}/${_path}${queryString ? `?${queryString}` : ""}`, {
       headers: this.headers,
       noResolveJson: true
@@ -48834,9 +48834,9 @@ var StorageFileApi = class extends BaseApiClient {
   * }
   * ```
   */
-  async info(path9) {
+  async info(path11) {
     var _this10 = this;
-    const _path = _this10._getFinalPath(path9);
+    const _path = _this10._getFinalPath(path11);
     return _this10.handleOperation(async () => {
       return recursiveToCamel(await get(_this10.fetch, `${_this10.url}/object/info/${_path}`, { headers: _this10.headers }));
     });
@@ -48857,9 +48857,9 @@ var StorageFileApi = class extends BaseApiClient {
   *   .exists('folder/avatar1.png')
   * ```
   */
-  async exists(path9) {
+  async exists(path11) {
     var _this11 = this;
-    const _path = _this11._getFinalPath(path9);
+    const _path = _this11._getFinalPath(path11);
     try {
       await head(_this11.fetch, `${_this11.url}/object/${_path}`, { headers: _this11.headers });
       return {
@@ -48938,8 +48938,8 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: none
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  getPublicUrl(path9, options2) {
-    const _path = this._getFinalPath(path9);
+  getPublicUrl(path11, options2) {
+    const _path = this._getFinalPath(path11);
     const query = new URLSearchParams();
     if (options2 === null || options2 === void 0 ? void 0 : options2.download) query.set("download", options2.download === true ? "" : options2.download);
     if (options2 === null || options2 === void 0 ? void 0 : options2.transform) this.applyTransformOptsToQuery(query, options2.transform);
@@ -49078,10 +49078,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async list(path9, options2, parameters) {
+  async list(path11, options2, parameters) {
     var _this13 = this;
     return _this13.handleOperation(async () => {
-      const body = _objectSpread22(_objectSpread22(_objectSpread22({}, DEFAULT_SEARCH_OPTIONS), options2), {}, { prefix: path9 || "" });
+      const body = _objectSpread22(_objectSpread22(_objectSpread22({}, DEFAULT_SEARCH_OPTIONS), options2), {}, { prefix: path11 || "" });
       return await post(_this13.fetch, `${_this13.url}/object/list/${_this13.bucketId}`, body, { headers: _this13.headers }, parameters);
     });
   }
@@ -49146,11 +49146,11 @@ var StorageFileApi = class extends BaseApiClient {
     if (typeof Buffer !== "undefined") return Buffer.from(data).toString("base64");
     return btoa(data);
   }
-  _getFinalPath(path9) {
-    return `${this.bucketId}/${path9.replace(/^\/+/, "")}`;
+  _getFinalPath(path11) {
+    return `${this.bucketId}/${path11.replace(/^\/+/, "")}`;
   }
-  _removeEmptyFolders(path9) {
-    return path9.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
+  _removeEmptyFolders(path11) {
+    return path11.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
   }
   /** Modifies the `query`, appending values the from `transform` */
   applyTransformOptsToQuery(query, transform2) {
@@ -51806,13 +51806,13 @@ var MultipartBody = class {
 // node_modules/.pnpm/openai@4.104.0_ws@8.20.1_zod@3.25.76/node_modules/openai/_shims/node-runtime.mjs
 import { ReadableStream as ReadableStream4 } from "node:stream/web";
 var fileFromPathWarned = false;
-async function fileFromPath3(path9, ...args) {
+async function fileFromPath3(path11, ...args) {
   const { fileFromPath: _fileFromPath } = await Promise.resolve().then(() => (init_fileFromPath(), fileFromPath_exports));
   if (!fileFromPathWarned) {
-    console.warn(`fileFromPath is deprecated; use fs.createReadStream(${JSON.stringify(path9)}) instead`);
+    console.warn(`fileFromPath is deprecated; use fs.createReadStream(${JSON.stringify(path11)}) instead`);
     fileFromPathWarned = true;
   }
-  return await _fileFromPath(path9, ...args);
+  return await _fileFromPath(path11, ...args);
 }
 var defaultHttpAgent = new import_agentkeepalive.default({ keepAlive: true, timeout: 5 * 60 * 1e3 });
 var defaultHttpsAgent = new import_agentkeepalive.default.HttpsAgent({ keepAlive: true, timeout: 5 * 60 * 1e3 });
@@ -52596,29 +52596,29 @@ var APIClient = class {
   defaultIdempotencyKey() {
     return `stainless-node-retry-${uuid4()}`;
   }
-  get(path9, opts) {
-    return this.methodRequest("get", path9, opts);
+  get(path11, opts) {
+    return this.methodRequest("get", path11, opts);
   }
-  post(path9, opts) {
-    return this.methodRequest("post", path9, opts);
+  post(path11, opts) {
+    return this.methodRequest("post", path11, opts);
   }
-  patch(path9, opts) {
-    return this.methodRequest("patch", path9, opts);
+  patch(path11, opts) {
+    return this.methodRequest("patch", path11, opts);
   }
-  put(path9, opts) {
-    return this.methodRequest("put", path9, opts);
+  put(path11, opts) {
+    return this.methodRequest("put", path11, opts);
   }
-  delete(path9, opts) {
-    return this.methodRequest("delete", path9, opts);
+  delete(path11, opts) {
+    return this.methodRequest("delete", path11, opts);
   }
-  methodRequest(method, path9, opts) {
+  methodRequest(method, path11, opts) {
     return this.request(Promise.resolve(opts).then(async (opts2) => {
       const body = opts2 && isBlobLike(opts2?.body) ? new DataView(await opts2.body.arrayBuffer()) : opts2?.body instanceof DataView ? opts2.body : opts2?.body instanceof ArrayBuffer ? new DataView(opts2.body) : opts2 && ArrayBuffer.isView(opts2?.body) ? new DataView(opts2.body.buffer) : opts2?.body;
-      return { method, path: path9, ...opts2, body };
+      return { method, path: path11, ...opts2, body };
     }));
   }
-  getAPIList(path9, Page2, opts) {
-    return this.requestAPIList(Page2, { method: "get", path: path9, ...opts });
+  getAPIList(path11, Page2, opts) {
+    return this.requestAPIList(Page2, { method: "get", path: path11, ...opts });
   }
   calculateContentLength(body) {
     if (typeof body === "string") {
@@ -52637,10 +52637,10 @@ var APIClient = class {
   }
   buildRequest(inputOptions, { retryCount = 0 } = {}) {
     const options2 = { ...inputOptions };
-    const { method, path: path9, query, headers = {} } = options2;
+    const { method, path: path11, query, headers = {} } = options2;
     const body = ArrayBuffer.isView(options2.body) || options2.__binaryRequest && typeof options2.body === "string" ? options2.body : isMultipartBody(options2.body) ? options2.body.body : options2.body ? JSON.stringify(options2.body, null, 2) : null;
     const contentLength = this.calculateContentLength(body);
-    const url = this.buildURL(path9, query);
+    const url = this.buildURL(path11, query);
     if ("timeout" in options2)
       validatePositiveInteger("timeout", options2.timeout);
     options2.timeout = options2.timeout ?? this.timeout;
@@ -52756,8 +52756,8 @@ var APIClient = class {
     const request = this.makeRequest(options2, null);
     return new PagePromise(this, request, Page2);
   }
-  buildURL(path9, query) {
-    const url = isAbsoluteURL(path9) ? new URL(path9) : new URL(this.baseURL + (this.baseURL.endsWith("/") && path9.startsWith("/") ? path9.slice(1) : path9));
+  buildURL(path11, query) {
+    const url = isAbsoluteURL(path11) ? new URL(path11) : new URL(this.baseURL + (this.baseURL.endsWith("/") && path11.startsWith("/") ? path11.slice(1) : path11));
     const defaultQuery = this.defaultQuery();
     if (!isEmptyObj(defaultQuery)) {
       query = { ...defaultQuery, ...query };
@@ -58407,8 +58407,8 @@ function validateActionInput(input, schema) {
   return { valid: errors.length === 0, errors };
 }
 function renderPromptTemplate(template, input) {
-  return template.replace(/\{\{\s*input\.([a-zA-Z0-9_.]+)\s*\}\}/g, (_match, path9) => {
-    const parts = String(path9).split(".");
+  return template.replace(/\{\{\s*input\.([a-zA-Z0-9_.]+)\s*\}\}/g, (_match, path11) => {
+    const parts = String(path11).split(".");
     let cur = input;
     for (const p2 of parts) {
       if (cur && typeof cur === "object" && p2 in cur) {
@@ -62987,10 +62987,10 @@ async function assembleBrandGuidelines(ctx, args) {
       ["primary_dark", logos.primary_dark?.storage_path],
       ["favicon", logos.favicon?.storage_path]
     ];
-    for (const [slot, path9] of slots) {
-      if (!path9) continue;
+    for (const [slot, path11] of slots) {
+      if (!path11) continue;
       try {
-        const { data, error: error2 } = await ctx.supabase.storage.from("brand-guidelines-assets").createSignedUrl(path9, BRAND_GUIDELINES_LOGO_SIGNED_URL_TTL_SECONDS);
+        const { data, error: error2 } = await ctx.supabase.storage.from("brand-guidelines-assets").createSignedUrl(path11, BRAND_GUIDELINES_LOGO_SIGNED_URL_TTL_SECONDS);
         if (error2) {
           console.warn(`[resolver] brand-guidelines: sign ${slot} failed: ${error2.message}`);
         } else if (data?.signedUrl) {
@@ -64500,13 +64500,107 @@ async function runPreToolUseHandler(payload) {
   };
 }
 
+// packages/plugin-core/dist/state.js
+import { promises as fs5 } from "node:fs";
+import path8 from "node:path";
+import os6 from "node:os";
+import crypto2 from "node:crypto";
+var STATE_FILE = path8.join(os6.homedir(), ".config", "memlin", "state.json");
+var EMPTY = { documents: {} };
+async function readState() {
+  try {
+    const raw = await fs5.readFile(STATE_FILE, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return { ...EMPTY };
+  }
+}
+function hash(content) {
+  return crypto2.createHash("sha256").update(content).digest("hex");
+}
+function diffStates(prev, current) {
+  const currentByPath = new Map(current.map((c2) => [c2.path, c2.hash]));
+  const prevByPath = new Map(Object.entries(prev.documents).map(([p2, s2]) => [p2, s2.content_hash]));
+  const added = [];
+  const modified = [];
+  const deleted = [];
+  for (const [p2, h2] of currentByPath) {
+    const prevHash = prevByPath.get(p2);
+    if (!prevHash) added.push(p2);
+    else if (prevHash !== h2) modified.push(p2);
+  }
+  for (const p2 of prevByPath.keys()) {
+    if (!currentByPath.has(p2)) deleted.push(p2);
+  }
+  return { added, modified, deleted };
+}
+
+// packages/plugin-core/dist/local-scan.js
+import { promises as fs6 } from "node:fs";
+import { existsSync } from "node:fs";
+import path9 from "node:path";
+async function scanLocal(opts = {}) {
+  const out = [];
+  const root = opts.rootOverride ?? resolveHost().homeDir();
+  const memDir = path9.join(root, "memory");
+  if (existsSync(memDir)) {
+    for (const file of await fs6.readdir(memDir)) {
+      if (!file.endsWith(".md") || file === "MEMORY.md") continue;
+      const abs = path9.join(memDir, file);
+      const content = await fs6.readFile(abs, "utf8");
+      out.push({
+        path: `memory/${file}`,
+        abs_path: abs,
+        kind: "memory",
+        content,
+        hash: hash(content)
+      });
+    }
+  }
+  const skillsDir = path9.join(root, "skills");
+  if (existsSync(skillsDir)) {
+    const entries = await fs6.readdir(skillsDir, { withFileTypes: true });
+    for (const e2 of entries) {
+      if (!e2.isDirectory()) continue;
+      const skillMd = path9.join(skillsDir, e2.name, "SKILL.md");
+      if (!existsSync(skillMd)) continue;
+      const content = await fs6.readFile(skillMd, "utf8");
+      out.push({
+        path: `skills/${e2.name}/SKILL.md`,
+        abs_path: skillMd,
+        kind: "skill",
+        content,
+        hash: hash(content)
+      });
+    }
+  }
+  if (opts.includePlans) {
+    const plansDir = resolveHost().plansDir();
+    if (existsSync(plansDir)) {
+      for (const file of await fs6.readdir(plansDir)) {
+        if (!file.endsWith(".md")) continue;
+        const abs = path9.join(plansDir, file);
+        const content = await fs6.readFile(abs, "utf8");
+        out.push({
+          path: `plans/${file}`,
+          abs_path: abs,
+          kind: "plan",
+          content,
+          hash: hash(content)
+        });
+      }
+    }
+  }
+  return out;
+}
+
 // apps/mcp-server/src/index.ts
 var MEMLIN_PROD_SUPABASE_URL = "https://nsvqnmvummyxbzupxytl.supabase.co";
 var MEMLIN_PROD_SUPABASE_ANON_KEY = "sb_publishable_EDSbENKAPxGmvigUHqiKOg_l06zoSXG";
-var CONFIG_FILE2 = path8.join(os6.homedir(), ".config", "memlin", "config.json");
+var CONFIG_FILE2 = path10.join(os7.homedir(), ".config", "memlin", "config.json");
 async function readPersistedConfig() {
   try {
-    const raw = await fs5.readFile(CONFIG_FILE2, "utf8");
+    const raw = await fs7.readFile(CONFIG_FILE2, "utf8");
     return JSON.parse(raw);
   } catch {
     return null;
@@ -64555,7 +64649,7 @@ function runtimeCwd() {
     "INIT_CWD"
   ]) {
     const value = process.env[key]?.trim();
-    if (value && path8.isAbsolute(value)) return path8.resolve(value);
+    if (value && path10.isAbsolute(value)) return path10.resolve(value);
   }
   return process.cwd();
 }
@@ -64627,7 +64721,7 @@ function agentCapabilities2() {
   return process.env.MEMLIN_AGENT_CAPABILITIES || "mcp,cli,hooks,rules,scribe,resolve";
 }
 function agentDevice2() {
-  return process.env.MEMLIN_AGENT_DEVICE || os6.hostname() || "unknown device";
+  return process.env.MEMLIN_AGENT_DEVICE || os7.hostname() || "unknown device";
 }
 function agentHeaders(accessToken, accountId) {
   return {
@@ -64690,6 +64784,131 @@ function createToolContext(accessToken) {
     defaultGitRemote: cfg.gitRemote
   };
 }
+var STATUS_TOOL = {
+  name: "memlin_status",
+  description: 'Report the live Memlin plugin status for THIS workspace: auth (access-token presence, expiry, refresh state), the bound account and project, MCP routing/host, last sync, and pending local changes. Reads the same on-disk state the CLI and hooks use (~/.config/memlin/{token,config,state}.json). Use this to answer "is Memlin wired up and current?" \u2014 it is the in-editor replacement for a `memlin status` terminal command (no CLI is on PATH after a VSIX install). Returns a structured object plus a ready-to-relay `summary` string.',
+  annotations: { readOnlyHint: true, destructiveHint: false },
+  inputSchema: { type: "object", properties: {} }
+};
+function fmtDuration(absMs) {
+  const abs = Math.abs(absMs);
+  if (abs < 6e4) return `${Math.max(1, Math.round(abs / 1e3))}s`;
+  if (abs < 36e5) return `${Math.round(abs / 6e4)}m`;
+  if (abs < 864e5) return `${Math.round(abs / 36e5)}h`;
+  return `${Math.round(abs / 864e5)}d`;
+}
+async function buildStatus() {
+  const now = Date.now();
+  const lines = ["memlin status", "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"];
+  const token = await readPersistedToken().catch(() => null);
+  let auth;
+  lines.push("", "Auth");
+  if (!token) {
+    auth = {
+      signed_in: false,
+      detail: 'not signed in \u2014 run "Memlin: Sign In" (Command Palette) or /memlin-login'
+    };
+    lines.push('  not signed in \u2014 run "Memlin: Sign In" (Command Palette) or /memlin-login');
+  } else {
+    const hasExpiry = Number.isFinite(token.expires_at) && token.expires_at > 0;
+    const remaining = hasExpiry ? token.expires_at - now : null;
+    const expired = remaining != null ? remaining <= 0 : false;
+    auth = {
+      signed_in: true,
+      access_token: "present",
+      expires_at: hasExpiry ? new Date(token.expires_at).toISOString() : null,
+      expires_in_ms: remaining,
+      expired,
+      refresh_token: token.refresh_token ? "present" : "absent",
+      refresh_state: token.refresh_token ? "auto-rotates on next call" : "re-run sign in when the access token expires"
+    };
+    if (!hasExpiry) {
+      lines.push("  access token: present (no expiry recorded \u2014 legacy token)");
+    } else if (expired) {
+      lines.push(
+        `  access token: expired ${fmtDuration(-remaining)} ago (auto-refresh on next call)`
+      );
+    } else {
+      lines.push(
+        `  access token: valid for ${fmtDuration(remaining)} (until ${new Date(
+          token.expires_at
+        ).toLocaleString()})`
+      );
+    }
+    lines.push(
+      `  refresh token: ${token.refresh_token ? "present (auto-rotates)" : "absent (re-run sign in when token expires)"}`
+    );
+  }
+  lines.push("", "Account", `  account_id:  ${cfg.accountId || "(none)"}`);
+  lines.push("", "Project");
+  lines.push(`  cwd:         ${cfg.cwd}`);
+  if (cfg.projectId) lines.push(`  project:     ${cfg.projectId}`);
+  else lines.push("  project:     (none) \u2014 running against account-scope only");
+  if (cfg.gitRemote) lines.push(`  git remote:  ${cfg.gitRemote}`);
+  lines.push("", "Routing");
+  lines.push(`  host:        ${agentKind()}`);
+  lines.push(`  api:         ${cfg.apiUrl}`);
+  lines.push("  mcp:         local stdio (node ./dist/mcp-server.js)");
+  let sync = null;
+  let localChanges = null;
+  lines.push("", "Local state");
+  try {
+    const state = await readState();
+    const allLocal = await scanLocal({ includePlans: true });
+    const local = allLocal.filter((d2) => d2.kind !== "plan");
+    const trackedDocs = {
+      ...state,
+      documents: Object.fromEntries(
+        Object.entries(state.documents).filter(([p2]) => !p2.startsWith("plans/"))
+      )
+    };
+    const { added, modified, deleted } = diffStates(
+      trackedDocs,
+      local.map((l2) => ({ path: l2.path, hash: l2.hash }))
+    );
+    const trackedCount = Object.keys(trackedDocs.documents).length;
+    let lastSyncMs = 0;
+    for (const doc of Object.values(state.documents)) {
+      const t2 = Date.parse(doc.last_synced_at);
+      if (!Number.isNaN(t2) && t2 > lastSyncMs) lastSyncMs = t2;
+    }
+    sync = {
+      tracked_documents: trackedCount,
+      last_sync: lastSyncMs > 0 ? new Date(lastSyncMs).toISOString() : null,
+      last_sync_age_ms: lastSyncMs > 0 ? now - lastSyncMs : null
+    };
+    const clean = added.length + modified.length + deleted.length === 0;
+    localChanges = { added, modified, deleted, clean };
+    lines.push(`  tracked:     ${trackedCount} document${trackedCount === 1 ? "" : "s"}`);
+    lines.push(
+      lastSyncMs > 0 ? `  last sync:   ${fmtDuration(now - lastSyncMs)} ago (${new Date(lastSyncMs).toLocaleString()})` : "  last sync:   never"
+    );
+    lines.push(
+      `  changes:     ${added.length} added, ${modified.length} modified, ${deleted.length} deleted`
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    sync = { error: message };
+    lines.push(`  (could not read local sync state: ${message})`);
+  }
+  return {
+    auth,
+    account: { account_id: cfg.accountId || null },
+    project: {
+      project_id: cfg.projectId ?? null,
+      cwd: cfg.cwd,
+      git_remote: cfg.gitRemote
+    },
+    routing: {
+      host: agentKind(),
+      api_url: cfg.apiUrl,
+      mcp_transport: "local stdio (node ./dist/mcp-server.js)"
+    },
+    sync,
+    local_changes: localChanges,
+    summary: lines.join("\n")
+  };
+}
 var cfg = await resolveConfig().catch((err) => {
   process.stderr.write(`${err instanceof Error ? err.message : String(err)}
 `);
@@ -64699,7 +64918,9 @@ var server = new Server(
   { name: "memlin", version: "0.2.5" },
   { capabilities: { tools: {} } }
 );
-server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: [...TOOLS, STATUS_TOOL]
+}));
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
   const name = req.params.name;
   const args = req.params.arguments ?? {};
@@ -64725,7 +64946,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   } catch {
   }
   try {
-    const result = name === "memlin_resolve_task" ? await resolveViaApi(args) : await callTool(createToolContext(await currentAccessToken()), name, args);
+    const result = name === "memlin_status" ? await buildStatus() : name === "memlin_resolve_task" ? await resolveViaApi(args) : await callTool(createToolContext(await currentAccessToken()), name, args);
     return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
   } catch (err) {
     return {

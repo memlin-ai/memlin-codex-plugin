@@ -44,8 +44,15 @@ Install from the generated Codex marketplace:
 ```bash
 bash scripts/build-codex-plugin.sh
 codex plugin add memlin@memlin
-memlin login
+# The plugin does NOT put `memlin` on PATH — sign in via the bundled CLI:
+node "$HOME/.codex/plugins/cache/memlin/memlin/0.1.0/dist/cli/login.js"
 ```
+
+The plugin ships the `memlin` CLI inside the installed bundle rather than on
+PATH. For routine status checks, prefer the `memlin_status` MCP tool; for other
+CLI commands, invoke `node "$HOME/.codex/plugins/cache/memlin/memlin/0.1.0/dist/cli/main.js" <command>`
+or define `alias memlin='node "$HOME/.codex/plugins/cache/memlin/memlin/0.1.0/dist/cli/main.js"'`
+(see `skills/memlin/SKILL.md`).
 
 Enable Codex hooks in `~/.codex/config.toml`:
 
