@@ -59086,6 +59086,88 @@ var TOOLS = [
         action: { type: "string", enum: ["accept", "complete", "cancel"] }
       }
     }
+  },
+  {
+    name: "memlin_verify_outcome",
+    description: 'Record a measured outcome on a past decision. Verdict is "held" (the decision worked), "broke" (it did not), or "inconclusive" (data unclear). Use this from a scheduled or follow-up run once the real-world result is knowable. Append-only \u2014 re-verify over time, history is retained. Carries measured numbers, optional evidence artifacts (paths or urls), and model attribution so the workspace knows who/what produced the verdict.',
+    inputSchema: {
+      type: "object",
+      required: ["document_id", "verdict"],
+      properties: {
+        document_id: {
+          type: "string",
+          description: "Decision document id (uuid). The decision must already exist in this account."
+        },
+        verdict: {
+          type: "string",
+          enum: ["held", "broke", "inconclusive"]
+        },
+        measured: {
+          type: "object",
+          description: "Free-shape measured outcome \u2014 the numbers the verdict was based on. Capped at 8 KB; store larger payloads externally and reference them via evidence_artifacts."
+        },
+        evidence_artifacts: {
+          type: "array",
+          maxItems: 20,
+          description: "Supporting artifacts (backtests, CSV exports, dashboard URLs, etc.). Each carries `kind` plus `path` or `url`, optional `sha`.",
+          items: {
+            type: "object",
+            required: ["kind"],
+            properties: {
+              path: { type: "string" },
+              url: { type: "string" },
+              kind: { type: "string" },
+              sha: { type: "string" }
+            }
+          }
+        },
+        observed_at: {
+          type: "string",
+          description: 'ISO 8601 timestamp (with offset) for when the outcome became knowable. Defaults to "now" when omitted.'
+        },
+        model_attribution: {
+          type: "object",
+          description: 'Who/what produced the verdict \u2014 provider, model, role ("decision_maker" | "verifier" | "panel_member" | "reviewer"), agent name, and any models compared. At least one of provider/model/agent/agent_kind/compared_models is required.',
+          properties: {
+            provider: { type: "string" },
+            model: { type: "string" },
+            role: {
+              type: "string",
+              enum: ["decision_maker", "verifier", "panel_member", "reviewer"]
+            },
+            agent: { type: "string" },
+            agent_kind: { type: "string" },
+            compared_models: {
+              type: "array",
+              maxItems: 16,
+              items: {
+                type: "object",
+                required: ["model"],
+                properties: {
+                  provider: { type: "string" },
+                  model: { type: "string" },
+                  role: { type: "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    name: "memlin_list_review_due",
+    description: 'List decisions whose `review_by` date has arrived but have no recorded verdict yet \u2014 the "outcomes coming due" queue. Poll from a scheduled agent, measure each one, then post a verdict with memlin_verify_outcome. Returns decision id, title, path, project_id, review_by, and updated_at.',
+    annotations: { readOnlyHint: true, destructiveHint: false },
+    inputSchema: {
+      type: "object",
+      properties: {
+        project_id: {
+          type: "string",
+          description: "Optional project id (uuid). Defaults to the bound project if the agent has one."
+        }
+      }
+    }
   }
 ];
 
@@ -63365,6 +63447,85 @@ async function updateHandoff(ctx, rawArgs) {
   return data;
 }
 
+// packages/mcp-tools/src/outcomes.ts
+var VERDICTS = ["held", "broke", "inconclusive"];
+var ArtifactSchema2 = external_exports.object({
+  path: external_exports.string().min(1).max(512).optional(),
+  url: external_exports.string().url().max(2048).optional(),
+  kind: external_exports.string().min(1).max(64),
+  sha: external_exports.string().max(128).optional()
+}).refine((a2) => a2.path || a2.url, { message: "artifact needs a path or a url" });
+var ModelRefSchema = external_exports.object({
+  provider: external_exports.string().min(1).max(64).optional(),
+  model: external_exports.string().min(1).max(128),
+  role: external_exports.string().min(1).max(64).optional()
+});
+var ModelAttributionSchema = external_exports.object({
+  provider: external_exports.string().min(1).max(64).optional(),
+  model: external_exports.string().min(1).max(128).optional(),
+  role: external_exports.enum(["decision_maker", "verifier", "panel_member", "reviewer"]).optional(),
+  agent: external_exports.string().min(1).max(128).optional(),
+  agent_kind: external_exports.string().min(1).max(64).optional(),
+  compared_models: external_exports.array(ModelRefSchema).max(16).optional()
+}).refine(
+  (v2) => Boolean(v2.provider || v2.model || v2.agent || v2.agent_kind || v2.compared_models?.length),
+  { message: "model_attribution needs provider, model, agent, or compared_models" }
+);
+var VerifyOutcomeArgs = external_exports.object({
+  document_id: external_exports.string().uuid(),
+  verdict: external_exports.enum(VERDICTS),
+  measured: external_exports.record(external_exports.string(), external_exports.unknown()).optional(),
+  evidence_artifacts: external_exports.array(ArtifactSchema2).max(20).optional(),
+  observed_at: external_exports.string().datetime({ offset: true }).optional(),
+  model_attribution: ModelAttributionSchema.optional()
+});
+var ListReviewDueArgs = external_exports.object({
+  project_id: external_exports.string().uuid().nullable().optional()
+});
+async function verifyOutcome(ctx, rawArgs) {
+  const args = VerifyOutcomeArgs.parse(rawArgs);
+  const { data, error: error2 } = await ctx.supabase.rpc("record_decision_verification", {
+    p_account_id: ctx.accountId,
+    p_document_id: args.document_id,
+    p_verdict: args.verdict,
+    p_measured: args.measured ?? {},
+    p_evidence: args.evidence_artifacts ?? [],
+    p_observed_at: args.observed_at ?? null,
+    p_created_by: ctx.userId ?? null,
+    p_token_id: ctx.serviceTokenId ?? null,
+    p_model_attribution: args.model_attribution ?? null
+  });
+  if (error2) {
+    if (/decision not found/i.test(error2.message)) {
+      throw new Error("decision not found in this account");
+    }
+    if (/record_decision_verification|PGRST202|function .* does not exist/i.test(error2.message)) {
+      throw new Error("outcome verification is rolling out \u2014 try again shortly");
+    }
+    throw new Error(`verify failed: ${error2.message}`);
+  }
+  return {
+    id: typeof data === "string" ? data : null,
+    verdict: args.verdict
+  };
+}
+async function listReviewDue(ctx, rawArgs) {
+  const args = ListReviewDueArgs.parse(rawArgs ?? {});
+  const projectId = args.project_id ?? ctx.projectId ?? null;
+  const { data, error: error2 } = await ctx.supabase.rpc("decisions_review_due", {
+    p_account_id: ctx.accountId,
+    p_project_id: projectId
+  });
+  if (error2) {
+    if (/decisions_review_due|PGRST202|does not exist/i.test(error2.message)) {
+      throw new Error("the review-due queue is rolling out \u2014 try again shortly");
+    }
+    throw new Error(`queue read failed: ${error2.message}`);
+  }
+  const due = data ?? [];
+  return { due };
+}
+
 // packages/mcp-tools/src/dispatch.ts
 async function callTool(ctx, name, args) {
   switch (name) {
@@ -63400,6 +63561,10 @@ async function callTool(ctx, name, args) {
       return listHandoffs(ctx, args);
     case "memlin_update_handoff":
       return updateHandoff(ctx, args);
+    case "memlin_verify_outcome":
+      return verifyOutcome(ctx, args);
+    case "memlin_list_review_due":
+      return listReviewDue(ctx, args);
     case "memlin_resolve_task":
       return assembleBundle(ctx, withResolverDefaults(ctx, args), {
         agentKind: ctx.agentKind ?? null,
