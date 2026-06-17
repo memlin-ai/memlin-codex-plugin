@@ -66,7 +66,14 @@ With the alias in place (or substituting the full `node …` form), the commands
 | `memlin pull-plans` / `memlin push-plan <file>` | plan sync                                        |
 | `memlin add-project` / `memlin link`            | bind workspace to a project/account              |
 | `memlin doctor`                                 | diagnose auth / connectivity / config            |
+| `memlin revert <doc> [version]`                 | restore a memory/skill to an earlier version     |
+| `memlin actions-list` / `memlin actions-execute`| list and invoke callable workspace tools         |
+| `memlin audit-replay <id>` / `memlin audit-explain <id>` | bundle replay + per-item ranking arithmetic |
+| `memlin handoffs`                               | pass work between agents (create/accept/complete)|
+| `memlin role`                                   | assign roles to workspace members or docs        |
+| `memlin help`                                   | full categorized command list                    |
 
 When the user asks to sync, sign in, or query the workspace, run the matching
-command and relay the result. For status, prefer the `memlin_status` MCP tool
+command and relay the result. If the user asks "what can Memlin do" or which
+commands exist, run `memlin help` and relay the categorized list. For status, prefer the `memlin_status` MCP tool
 above.
