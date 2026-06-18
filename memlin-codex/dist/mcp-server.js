@@ -62778,6 +62778,45 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     } catch {
     }
   }
+  const enrichableItems = [
+    ...bundle.primary_skill ? [bundle.primary_skill] : [],
+    ...bundle.supporting_skills,
+    ...bundle.decisions,
+    ...bundle.memory,
+    ...bundle.schemas,
+    ...bundle.goals,
+    ...bundle.pinned
+  ];
+  if (enrichableItems.length > 0) {
+    try {
+      const { data: contractRows, error: contractErr } = await ctx.supabase.rpc(
+        "contract_verifications_for_documents",
+        {
+          p_account_id: ctx.accountId,
+          p_document_ids: enrichableItems.map((d2) => d2.id)
+        }
+      );
+      if (!contractErr && Array.isArray(contractRows)) {
+        const byDoc = /* @__PURE__ */ new Map();
+        for (const r2 of contractRows) {
+          if (r2.status !== "verified" && r2.status !== "drifted") continue;
+          const gt2 = r2.ground_truth && typeof r2.ground_truth.kind === "string" && typeof r2.ground_truth.ref === "string" ? { kind: r2.ground_truth.kind, ref: r2.ground_truth.ref } : null;
+          byDoc.set(r2.document_id, {
+            status: r2.status,
+            observed_at: r2.observed_at,
+            document_version: r2.document_version,
+            drift_count: r2.drift_count ?? null,
+            ground_truth: gt2
+          });
+        }
+        for (const item of enrichableItems) {
+          const c2 = byDoc.get(item.id);
+          if (c2) item.contract = c2;
+        }
+      }
+    } catch {
+    }
+  }
   const resolvedAt = (/* @__PURE__ */ new Date()).toISOString();
   let auditId = "";
   const taskEmbedding = queryVec ?? null;
@@ -63944,6 +63983,15 @@ var MemlinApiClient = class {
   /** GET /documents/{id} — fetch one doc with body + metadata. */
   async getDocument(documentId) {
     return this.request("GET", `/documents/${encodeURIComponent(documentId)}`);
+  }
+  /** POST /documents/{id}/contract-verification — H12. Record a contract
+   *  check. Used by `memlin diff --record`. */
+  async recordContractVerification(documentId, body) {
+    return this.request(
+      "POST",
+      `/documents/${encodeURIComponent(documentId)}/contract-verification`,
+      body
+    );
   }
   /** GET /documents/{id}/versions — history. */
   async listVersions(documentId) {
