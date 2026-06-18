@@ -58718,6 +58718,11 @@ function costUsdFor(model, inputTokens, outputTokens) {
 var SONNET_INPUT_USD_PER_MTOK = MODEL_PRICES["claude-sonnet-4-6"].inputUsdPerMTok;
 var SONNET_OUTPUT_USD_PER_MTOK = MODEL_PRICES["claude-sonnet-4-6"].outputUsdPerMTok;
 
+// packages/shared/dist/memlin-contract.js
+function hasMemlinContract(body) {
+  return /```memlin-contract\s*\n[\s\S]*?\n```/.test(body);
+}
+
 // packages/sync-core/src/embeddings.ts
 var client = null;
 function getClient() {
@@ -60814,6 +60819,11 @@ async function rerankCandidates(task, candidates, chat) {
 }
 
 // packages/mcp-tools/src/resolver.ts
+function ageDaysSince(observedAt, nowMs) {
+  const then = Date.parse(observedAt);
+  if (Number.isNaN(then)) return 0;
+  return Math.max(0, Math.floor((nowMs - then) / 864e5));
+}
 var CONCURRENT_WINDOW_MS = 20 * 6e4;
 var CONCURRENT_MAX = 5;
 var DEPLOY_WINDOW_MS = 12 * 6e4;
@@ -62787,17 +62797,18 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     ...bundle.goals,
     ...bundle.pinned
   ];
-  if (enrichableItems.length > 0) {
+  const contractBearing = enrichableItems.filter((d2) => hasMemlinContract(d2.body));
+  if (contractBearing.length > 0) {
     try {
       const { data: contractRows, error: contractErr } = await ctx.supabase.rpc(
         "contract_verifications_for_documents",
         {
           p_account_id: ctx.accountId,
-          p_document_ids: enrichableItems.map((d2) => d2.id)
+          p_document_ids: contractBearing.map((d2) => d2.id)
         }
       );
+      const byDoc = /* @__PURE__ */ new Map();
       if (!contractErr && Array.isArray(contractRows)) {
-        const byDoc = /* @__PURE__ */ new Map();
         for (const r2 of contractRows) {
           if (r2.status !== "verified" && r2.status !== "drifted") continue;
           const gt2 = r2.ground_truth && typeof r2.ground_truth.kind === "string" && typeof r2.ground_truth.ref === "string" ? { kind: r2.ground_truth.kind, ref: r2.ground_truth.ref } : null;
@@ -62809,9 +62820,28 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
             ground_truth: gt2
           });
         }
-        for (const item of enrichableItems) {
-          const c2 = byDoc.get(item.id);
-          if (c2) item.contract = c2;
+      }
+      const nowMs = Date.now();
+      for (const item of contractBearing) {
+        const c2 = byDoc.get(item.id);
+        if (c2) {
+          item.contract = {
+            status: c2.status,
+            observed_at: c2.observed_at,
+            age_days: ageDaysSince(c2.observed_at, nowMs),
+            document_version: c2.document_version,
+            drift_count: c2.drift_count,
+            ground_truth: c2.ground_truth
+          };
+        } else {
+          item.contract = {
+            status: "unverified",
+            observed_at: null,
+            age_days: null,
+            document_version: null,
+            drift_count: null,
+            ground_truth: null
+          };
         }
       }
     } catch {
