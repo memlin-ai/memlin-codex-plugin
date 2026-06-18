@@ -63834,6 +63834,24 @@ function shortId(id) {
   if (/^[0-9a-f]{8}-/.test(id)) return id.slice(0, 8);
   return id.length > 32 ? `${id.slice(0, 29)}\u2026` : id;
 }
+function generateStatusToken() {
+  const bytes = new Uint8Array(33);
+  const g2 = globalThis.crypto;
+  if (!g2 || typeof g2.getRandomValues !== "function") {
+    throw new Error("crypto.getRandomValues not available \u2014 cannot mint status_token");
+  }
+  g2.getRandomValues(bytes);
+  const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let n2 = 0n;
+  for (const b2 of bytes) n2 = n2 << 8n | BigInt(b2);
+  if (n2 === 0n) return alpha[0];
+  let out = "";
+  while (n2 > 0n) {
+    out = alpha[Number(n2 % 62n)] + out;
+    n2 /= 62n;
+  }
+  return out;
+}
 async function captureFeedback(ctx, rawArgs) {
   const args = FeedbackCaptureInputSchema.parse(rawArgs ?? {});
   const projectId = args.project_id ?? ctx.projectId ?? null;
@@ -63851,6 +63869,7 @@ async function captureFeedback(ctx, rawArgs) {
       embedding = null;
     }
   }
+  const statusToken = generateStatusToken();
   const metadata = {
     // Lifecycle tier — mirrors the documents metadata.status contract
     // (see packages/shared/src/constants.ts status-model comment). Feedback
@@ -63868,7 +63887,12 @@ async function captureFeedback(ctx, rawArgs) {
     // promotion lifecycle (filled by the clusterer + inbox promote
     // action — Phase 4). Stamped on every row so readers can branch on
     // shape without nullity gymnastics.
-    promotion: { state: null, suggested_target_document_id: null }
+    promotion: { state: null, suggested_target_document_id: null },
+    // Magic-link token so the reporter can revisit /r/<token> later and
+    // see public replies. Long-lived but per-row — revoke by clearing
+    // the field on the documents row. SDK + HTTP responses return it
+    // so widget code can stash it in localStorage.
+    status_token: statusToken
   };
   const title = deriveFeedbackTitle({
     body,
@@ -63903,7 +63927,8 @@ async function captureFeedback(ctx, rawArgs) {
     document_id: row.document_id,
     version_id: row.version_id,
     version_number: row.version_number,
-    tier
+    tier,
+    status_token: statusToken
   };
 }
 var FeedbackSearchArgs = external_exports.object({
