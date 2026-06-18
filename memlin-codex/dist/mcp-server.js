@@ -57680,7 +57680,18 @@ var DOCUMENT_KINDS = [
   // body is a GFM task list. Like 'file', it's ISOLATED from the resolver/
   // scribe/inbox/export until promoted up a tier. Reuses the shared
   // goal-criteria checklist helpers (parseGoalCriteria / toggleGoalCriterionInBody).
-  "todo"
+  "todo",
+  // Structured feedback (a thumb / rating / freeform comment) about something —
+  // a memory, an answer, a skill, an audit, or a customer-product surface
+  // identified by an external id. Captured first-party (rate-this-answer
+  // buttons in the UI) AND third-party (customers embed @memlin/feedback-sdk
+  // in their app; signed mlt_ token authorizes the write). Like 'file' and
+  // 'todo', feedback is ISOLATED from the default resolver / scribe / inbox /
+  // Documents browser so low-signal noise never silently rides into agent
+  // bundles — it surfaces via dedicated query paths (memlin_feedback_search,
+  // /api/v1/feedback, the support-role resolver overlay) and via the
+  // clusterer that proposes promotion to a memory when N similar items land.
+  "feedback"
 ];
 var DOCUMENT_SCOPES = ["personal", "project", "team"];
 var DOCUMENT_STATUSES = ["draft", "in_review", "approved", "archived"];
@@ -59089,6 +59100,105 @@ var TOOLS = [
       properties: {
         handoff_id: { type: "string", description: "Handoff uuid from memlin_list_handoffs." },
         action: { type: "string", enum: ["accept", "complete", "cancel"] }
+      }
+    }
+  },
+  {
+    name: "memlin_feedback_capture",
+    description: "Capture structured feedback (rating, comment, or both) about a memory, an answer, a skill, an audit, or a customer-product surface. Stored as a kind='feedback' document (isolated from the default resolver bundle \u2014 query via memlin_feedback_search or the support-role overlay). High-signal feedback (any text + negative rating, freeform \u2265 ~24 chars, or \u22654-star with text) lands tier='active' and is immediately visible; bare thumbs land tier='background' and aggregate via the clusterer. Use this any time a user (or your own agent) signals 'this was helpful', 'this was wrong', or 'this is stale'.",
+    inputSchema: {
+      type: "object",
+      required: ["source"],
+      properties: {
+        body: {
+          type: "string",
+          description: "Free-text comment. Optional but strongly recommended \u2014 bare ratings carry less signal individually."
+        },
+        rating: {
+          type: "number",
+          minimum: -1,
+          maximum: 5,
+          description: "-1/0/1 for thumbs (down/neutral/up), or 0-5 for stars. Pick one scale per source and stay consistent."
+        },
+        sentiment: {
+          type: "string",
+          enum: ["positive", "neutral", "negative"],
+          description: "Explicit sentiment. Optional \u2014 usually derived from rating + body."
+        },
+        source: {
+          type: "string",
+          enum: ["first_party_ui", "mcp_tool", "widget_sdk", "http_api", "slack", "email"],
+          description: "Where the feedback came from. MCP agents always pass 'mcp_tool'."
+        },
+        target: {
+          type: "object",
+          required: ["kind", "id"],
+          properties: {
+            kind: { type: "string", enum: ["document", "audit", "answer", "session", "external"] },
+            id: { type: "string" },
+            snapshot: {
+              description: "Optional frozen excerpt of what the feedback is about, so the row still reads right after the target changes."
+            }
+          }
+        },
+        reporter: {
+          type: "object",
+          required: ["type"],
+          properties: {
+            type: { type: "string", enum: ["member", "service_token", "end_user"] },
+            id: { type: "string" },
+            email: { type: "string" },
+            display_name: { type: "string" }
+          }
+        },
+        context: {
+          type: "object",
+          properties: {
+            url: { type: "string" },
+            user_agent: { type: "string" },
+            custom: { type: "object", additionalProperties: true }
+          }
+        },
+        project_id: { type: "string" }
+      }
+    }
+  },
+  {
+    name: "memlin_feedback_search",
+    description: "Search feedback rows in this workspace. The companion to memlin_feedback_capture for agents (especially support-role agents) that need to know 'what have users said about X recently?'. Returns feedback items with rating, sentiment, source, target linkage, cluster id, and the body text. Optionally filter to a single target_id (every piece of feedback ever left about one memory/skill/audit) or one source (only widget feedback, only MCP, etc.). Ranked by semantic similarity when an embedder is wired, else by title match.",
+    annotations: { readOnlyHint: true, destructiveHint: false },
+    inputSchema: {
+      type: "object",
+      required: ["query"],
+      properties: {
+        query: { type: "string" },
+        limit: { type: "number", minimum: 1, maximum: 100 },
+        project_id: { type: "string" },
+        target_id: {
+          type: "string",
+          description: "Filter to feedback whose metadata.target.id matches. Use when reading every piece of feedback about one memory/skill/audit."
+        },
+        source: {
+          type: "string",
+          enum: ["first_party_ui", "mcp_tool", "widget_sdk", "http_api", "slack", "email"]
+        }
+      }
+    }
+  },
+  {
+    name: "memlin_feedback_list_clusters",
+    description: 'List feedback clusters \u2014 groups of similar feedback rows discovered by the periodic clusterer. Each cluster carries its size, a representative example, first/last-seen timestamps, and an optional promotion state (suggested = the inbox should prompt to promote, promoted = already became a memory, declined = a curator rejected promotion). Use to surface "5 customers reported X" without having to roll your own grouping.',
+    annotations: { readOnlyHint: true, destructiveHint: false },
+    inputSchema: {
+      type: "object",
+      properties: {
+        project_id: { type: "string" },
+        limit: { type: "number", minimum: 1, maximum: 100 },
+        promotion_state: {
+          type: "string",
+          enum: ["suggested", "promoted", "declined"],
+          description: "Filter to clusters with a specific promotion state."
+        }
       }
     }
   },
@@ -60816,6 +60926,92 @@ async function rerankCandidates(task, candidates, chat) {
   const raw = await chat(SYSTEM_PROMPT, user, { max_tokens: maxTokens });
   const scores = parseScores(raw, candidates);
   return { scores, latency_ms: Date.now() - startedAt };
+}
+
+// packages/mcp-tools/src/feedback-overlay.ts
+async function assembleFeedbackOverlay(args) {
+  const perLane = args.perLaneLimit ?? 6;
+  const windowDays = args.windowDays ?? 30;
+  const threshold = args.similarityThreshold ?? 0.6;
+  const sinceIso = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1e3).toISOString();
+  const [semantic, byTarget] = await Promise.all([
+    fetchSemanticLane(args, threshold, perLane, sinceIso),
+    fetchTargetLane(args, perLane, sinceIso)
+  ]);
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const lane of [semantic, byTarget]) {
+    for (const item of lane) {
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      out.push(item);
+    }
+  }
+  return out.sort((a2, b2) => b2.similarity - a2.similarity).slice(0, perLane * 2);
+}
+async function fetchSemanticLane(args, threshold, perLane, sinceIso) {
+  if (!args.taskEmbedding || args.taskEmbedding.length === 0) return [];
+  const { data, error: error2 } = await args.supabase.from("documents").select(
+    `id, title, metadata, embedding, created_at,
+       document_versions!documents_current_version_fk ( content )`
+  ).eq("account_id", args.accountId).eq("kind", "feedback").eq("metadata->>status", "active").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(Math.max(perLane * 4, 50));
+  if (error2) {
+    console.warn(`[feedback-overlay] semantic load failed: ${error2.message}`);
+    return [];
+  }
+  const rows = data ?? [];
+  const scored = rows.map((r2) => ({ row: r2, score: cosine(args.taskEmbedding, r2.embedding) })).filter((s2) => s2.score >= threshold).sort((a2, b2) => b2.score - a2.score).slice(0, perLane);
+  return scored.map((s2) => rowToItem(s2.row, "semantic", s2.score));
+}
+async function fetchTargetLane(args, perLane, sinceIso) {
+  if (args.bundleMemoryIds.length === 0) return [];
+  const { data, error: error2 } = await args.supabase.from("documents").select(
+    `id, title, metadata, created_at,
+       document_versions!documents_current_version_fk ( content )`
+  ).eq("account_id", args.accountId).eq("kind", "feedback").in("metadata->target->>id", args.bundleMemoryIds).gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(perLane);
+  if (error2) {
+    console.warn(`[feedback-overlay] target lane failed: ${error2.message}`);
+    return [];
+  }
+  const rows = data ?? [];
+  return rows.map((r2) => rowToItem(r2, "target_link", 1));
+}
+function rowToItem(row, lane, similarity) {
+  const v2 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+  const meta = row.metadata ?? {};
+  const reporter = meta.reporter ?? null;
+  const target = meta.target ?? null;
+  const sentiment = meta.sentiment === "positive" || meta.sentiment === "neutral" || meta.sentiment === "negative" ? meta.sentiment : null;
+  return {
+    id: row.id,
+    title: row.title,
+    body: v2?.content ?? "",
+    rating: typeof meta.rating === "number" ? meta.rating : null,
+    sentiment,
+    source: typeof meta.source === "string" ? meta.source : "unknown",
+    reporter_display_name: reporter?.display_name ?? null,
+    target_kind: target?.kind ?? null,
+    target_id: target?.id ?? null,
+    cluster_id: typeof meta.cluster_id === "string" ? meta.cluster_id : null,
+    similarity,
+    source_lane: lane,
+    created_at: row.created_at
+  };
+}
+function cosine(a2, b2) {
+  if (!b2 || a2.length !== b2.length) return 0;
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  for (let i2 = 0; i2 < a2.length; i2++) {
+    const ai = a2[i2] ?? 0;
+    const bi = b2[i2] ?? 0;
+    dot += ai * bi;
+    na += ai * ai;
+    nb += bi * bi;
+  }
+  const denom = Math.sqrt(na) * Math.sqrt(nb);
+  return denom === 0 ? 0 : dot / denom;
 }
 
 // packages/mcp-tools/src/resolver.ts
@@ -62651,7 +62847,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     deploy_in_progress: deployInProgress,
     recent_file_edits: recentFileEdits,
     open_threads: [],
-    pack_context: []
+    pack_context: [],
+    recent_feedback: []
   };
   if (ctx.packCandidates) {
     try {
@@ -62786,6 +62983,22 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         }
       }
     } catch {
+    }
+  }
+  if (userRoles.includes("support")) {
+    try {
+      const overlay = await assembleFeedbackOverlay({
+        supabase: ctx.supabase,
+        accountId: ctx.accountId,
+        taskEmbedding: queryVec ?? null,
+        bundleMemoryIds: bundle.memory.map((m2) => m2.id),
+        ...ctx.embed ? { embed: ctx.embed } : {}
+      });
+      bundle.recent_feedback = overlay;
+    } catch (e2) {
+      console.warn(
+        `[resolver] feedback overlay failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without it`
+      );
     }
   }
   const enrichableItems = [
@@ -63516,6 +63729,327 @@ async function updateHandoff(ctx, rawArgs) {
   return data;
 }
 
+// packages/mcp-tools/src/feedback.ts
+var FeedbackRatingSchema = external_exports.number().int().min(-1).max(5).describe(
+  "Numeric rating. -1/0/1 read as a thumbs scale (down/neutral/up); 0-5 read as a star scale. Pick one convention per source and stay consistent \u2014 the clusterer + dashboards don't mix scales across the same target."
+);
+var FeedbackSentimentSchema = external_exports.enum(["positive", "neutral", "negative"]);
+var FeedbackSourceSchema = external_exports.enum([
+  // The web UI (rate-this-answer button, FeedbackPanel on a memory page).
+  "first_party_ui",
+  // memlin_feedback_capture tool, called from a Claude/Codex/MCP agent.
+  "mcp_tool",
+  // @memlin/feedback-sdk in a customer's product (browser widget).
+  "widget_sdk",
+  // Direct HTTP POST to /api/v1/feedback from a customer's server.
+  "http_api",
+  // Future ingest paths — declared now so the schema is stable but no
+  // writer plumbing exists yet.
+  "slack",
+  "email"
+]);
+var FeedbackTargetKindSchema = external_exports.enum([
+  // A specific document — pass document_id in `target.id`.
+  "document",
+  // A resolve/ask audit row — pass audit_id in `target.id`.
+  "audit",
+  // A specific answer text (e.g. one Ask response). `target.id` can be
+  // any stable string the caller controls (request id, answer hash).
+  "answer",
+  // A conversation/session, e.g. a Slack thread or chat session.
+  "session",
+  // A customer-owned id (a help-article slug, a ticket number) that
+  // means nothing to Memlin but lets the customer pivot later.
+  "external"
+]);
+var FeedbackReporterSchema = external_exports.object({
+  type: external_exports.enum(["member", "service_token", "end_user"]),
+  // member uuid, token id, or customer-supplied end-user id. Free-form
+  // so customers can pass their own user id system without remapping.
+  id: external_exports.string().min(1).max(256).nullable().optional(),
+  email: external_exports.string().email().max(320).nullable().optional(),
+  display_name: external_exports.string().min(1).max(120).nullable().optional()
+});
+var FeedbackTargetSchema = external_exports.object({
+  kind: FeedbackTargetKindSchema,
+  // Document_id when kind='document'; audit_id when kind='audit'; any
+  // stable string otherwise. We don't enforce uuid here — customer
+  // external ids are deliberately free-form.
+  id: external_exports.string().min(1).max(256),
+  // Frozen excerpt at time of capture — survives later doc edits so the
+  // feedback row still reads "what they were reacting to". Caller is
+  // responsible for keeping it small (we cap at 4 KiB to defend
+  // metadata bloat); we DON'T re-fetch the target to populate it.
+  snapshot: external_exports.unknown().optional()
+});
+var FeedbackContextSchema = external_exports.object({
+  // Page URL (for widget-sourced feedback). Stored as-is; not parsed.
+  url: external_exports.string().max(2048).nullable().optional(),
+  // Browser UA (widget) or agent identity (MCP). Free-form, ≤512 chars.
+  user_agent: external_exports.string().max(512).nullable().optional(),
+  // Customer-owned context blob (page title, customer's internal route,
+  // their user id, etc.). Capped to defend metadata bloat — anything
+  // shaped is fine.
+  custom: external_exports.record(external_exports.string(), external_exports.unknown()).optional()
+});
+var FeedbackCaptureInputSchema = external_exports.object({
+  // Free-text body — the comment. Required even when a rating is given
+  // (a bare thumb with no text still passes content='' through to the
+  // write_document RPC; we treat null/missing as ''). Cap is large but
+  // we tier on length: long text + negative rating → active.
+  body: external_exports.string().max(16384).optional().default(""),
+  rating: FeedbackRatingSchema.nullable().optional(),
+  sentiment: FeedbackSentimentSchema.nullable().optional(),
+  source: FeedbackSourceSchema,
+  target: FeedbackTargetSchema.optional(),
+  reporter: FeedbackReporterSchema.optional(),
+  context: FeedbackContextSchema.optional(),
+  // project_id binds the feedback row to a project (so /feedback pages
+  // can filter and the clusterer can scope clusters per project). Optional
+  // — defaults to the ctx project.
+  project_id: external_exports.string().uuid().nullable().optional()
+});
+var MIN_ACTIVE_TEXT_LEN = 24;
+function decideFeedbackTier(input) {
+  const body = (input.body ?? "").trim();
+  const rating = input.rating ?? null;
+  const sentiment = input.sentiment ?? null;
+  const hasNegativeRating = rating !== null && rating <= 0;
+  const hasNegativeSentiment = sentiment === "negative";
+  const hasHighPositive = rating !== null && rating >= 4;
+  if (body.length > 0 && (hasNegativeRating || hasNegativeSentiment)) return "active";
+  if (body.length > 0 && hasHighPositive) return "active";
+  if (body.length >= MIN_ACTIVE_TEXT_LEN) return "active";
+  return "background";
+}
+function deriveFeedbackTitle(input) {
+  const rating = input.rating ?? null;
+  const tag = rating !== null ? rating <= 0 ? "[neg]" : rating >= 4 ? "[pos]" : `[${rating}]` : "[note]";
+  const target = input.target ? `${input.target.kind}:${shortId(input.target.id)}` : input.source;
+  const excerpt = (input.body ?? "").trim().replace(/\s+/g, " ").slice(0, 60);
+  const tail = excerpt ? ` \u2014 ${excerpt}` : "";
+  return `${tag} ${target}${tail}`.slice(0, 96);
+}
+function shortId(id) {
+  if (/^[0-9a-f]{8}-/.test(id)) return id.slice(0, 8);
+  return id.length > 32 ? `${id.slice(0, 29)}\u2026` : id;
+}
+async function captureFeedback(ctx, rawArgs) {
+  const args = FeedbackCaptureInputSchema.parse(rawArgs ?? {});
+  const projectId = args.project_id ?? ctx.projectId ?? null;
+  const body = (args.body ?? "").trim();
+  const tier = decideFeedbackTier({
+    body,
+    rating: args.rating ?? null,
+    sentiment: args.sentiment ?? null
+  });
+  let embedding = null;
+  if (ctx.embed && body.length > 0) {
+    try {
+      embedding = await ctx.embed(body);
+    } catch {
+      embedding = null;
+    }
+  }
+  const metadata = {
+    // Lifecycle tier — mirrors the documents metadata.status contract
+    // (see packages/shared/src/constants.ts status-model comment). Feedback
+    // never lands 'proposed' on its own — captured feedback is signal data,
+    // not a memory proposal. Promotion-to-memory clusters land 'proposed'
+    // on a separate kind='memory' row (Phase 4).
+    status: tier,
+    source: args.source,
+    proposed_by: `feedback:${args.source}`,
+    ...args.rating != null ? { rating: args.rating } : {},
+    ...args.sentiment != null ? { sentiment: args.sentiment } : {},
+    ...args.target ? { target: args.target } : {},
+    ...args.reporter ? { reporter: args.reporter } : {},
+    ...args.context ? { context: args.context } : {},
+    // promotion lifecycle (filled by the clusterer + inbox promote
+    // action — Phase 4). Stamped on every row so readers can branch on
+    // shape without nullity gymnastics.
+    promotion: { state: null, suggested_target_document_id: null }
+  };
+  const title = deriveFeedbackTitle({
+    body,
+    rating: args.rating ?? null,
+    target: args.target,
+    source: args.source
+  });
+  const { data, error: error2 } = await ctx.supabase.rpc("write_document", {
+    p_document_id: null,
+    p_account_id: ctx.accountId,
+    p_project_id: projectId,
+    // Personal scope keeps individual feedback rows out of team-wide
+    // resolves until promoted; the /feedback surface and the support
+    // overlay query by kind, not by scope, so visibility isn't affected.
+    p_scope: "personal",
+    p_kind: "feedback",
+    p_title: title,
+    p_path: null,
+    p_content: body,
+    p_embedding: embedding,
+    p_metadata: metadata,
+    p_commit_message: null,
+    p_yjs_state_b64: null,
+    p_metadata_merge: false,
+    ...ctx.serviceTokenId ? { p_author_id: ctx.userId ?? null, p_service_token_id: ctx.serviceTokenId } : {}
+  });
+  if (error2) throw new Error(`feedback_capture: ${error2.message}`);
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error("feedback_capture: RPC returned no row");
+  return {
+    feedback_id: row.document_id,
+    document_id: row.document_id,
+    version_id: row.version_id,
+    version_number: row.version_number,
+    tier
+  };
+}
+var FeedbackSearchArgs = external_exports.object({
+  query: external_exports.string().min(1).max(2048),
+  limit: external_exports.number().int().min(1).max(100).optional(),
+  project_id: external_exports.string().uuid().nullable().optional(),
+  // Filter to feedback whose metadata.target.id matches this string.
+  // Useful for "show me everything left about memory <uuid>" from a
+  // support agent's perspective.
+  target_id: external_exports.string().min(1).max(256).optional(),
+  // Optional source filter — show only widget feedback, only MCP, etc.
+  source: FeedbackSourceSchema.optional()
+});
+async function searchFeedback(ctx, rawArgs) {
+  const args = FeedbackSearchArgs.parse(rawArgs ?? {});
+  const projectId = args.project_id ?? ctx.projectId ?? null;
+  const limit2 = args.limit ?? 20;
+  let embedding = null;
+  if (ctx.embed && args.query.length > 0) {
+    try {
+      embedding = await ctx.embed(args.query);
+    } catch {
+      embedding = null;
+    }
+  }
+  let query = ctx.supabase.from("documents").select(
+    `id, title, kind, metadata, created_at, updated_at,
+       document_versions!documents_current_version_fk ( content )`
+  ).eq("account_id", ctx.accountId).eq("kind", "feedback");
+  if (projectId !== null) query = query.eq("project_id", projectId);
+  if (args.source) query = query.eq("metadata->>source", args.source);
+  if (args.target_id) query = query.eq("metadata->target->>id", args.target_id);
+  if (!embedding) {
+    const safe = args.query.replace(/[,():*%_]/g, " ");
+    query = query.ilike("title", `%${safe}%`).limit(limit2);
+  } else {
+    query = query.order("updated_at", { ascending: false }).limit(Math.max(limit2 * 5, 100));
+  }
+  const { data, error: error2 } = await query;
+  if (error2) throw new Error(`feedback_search: ${error2.message}`);
+  const rows = data ?? [];
+  let ranked = rows;
+  if (embedding && rows.length > 0) {
+    const ids = rows.map((r2) => r2.id);
+    const { data: vecRows, error: vecErr } = await ctx.supabase.from("documents").select("id, embedding").in("id", ids);
+    if (!vecErr && vecRows) {
+      const vecMap = /* @__PURE__ */ new Map();
+      for (const v2 of vecRows) {
+        vecMap.set(v2.id, v2.embedding ?? null);
+      }
+      const scored = rows.map((r2) => ({
+        row: r2,
+        score: cosine2(embedding, vecMap.get(r2.id) ?? null)
+      }));
+      scored.sort((a2, b2) => b2.score - a2.score);
+      ranked = scored.slice(0, limit2).map((s2) => s2.row);
+    }
+  }
+  return ranked.map((r2) => {
+    const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
+    const meta = r2.metadata ?? {};
+    return {
+      id: r2.id,
+      title: r2.title,
+      similarity: 0,
+      // placeholder; clients can rely on order, not value
+      body: v2?.content ?? "",
+      rating: typeof meta.rating === "number" ? meta.rating : null,
+      sentiment: meta.sentiment === "positive" || meta.sentiment === "neutral" || meta.sentiment === "negative" ? meta.sentiment : null,
+      source: typeof meta.source === "string" ? meta.source : "unknown",
+      target: meta.target ?? null,
+      reporter: meta.reporter ?? null,
+      cluster_id: typeof meta.cluster_id === "string" ? meta.cluster_id : null,
+      status: meta.status === "active" || meta.status === "background" || meta.status === "proposed" || meta.status === "archived" ? meta.status : null,
+      created_at: r2.created_at,
+      updated_at: r2.updated_at
+    };
+  });
+}
+function cosine2(a2, b2) {
+  if (!b2 || a2.length !== b2.length) return 0;
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  for (let i2 = 0; i2 < a2.length; i2++) {
+    const ai = a2[i2] ?? 0;
+    const bi = b2[i2] ?? 0;
+    dot += ai * bi;
+    na += ai * ai;
+    nb += bi * bi;
+  }
+  const denom = Math.sqrt(na) * Math.sqrt(nb);
+  return denom === 0 ? 0 : dot / denom;
+}
+var FeedbackClustersArgs = external_exports.object({
+  project_id: external_exports.string().uuid().nullable().optional(),
+  // Limit returned clusters. Defaults to 20; the clusterer rarely produces
+  // more than a few dozen open clusters per account.
+  limit: external_exports.number().int().min(1).max(100).optional(),
+  // Filter to clusters whose promotion state matches. 'suggested' is the
+  // workhorse — clusters the inbox should prompt on.
+  promotion_state: external_exports.enum(["suggested", "promoted", "declined"]).optional()
+});
+async function listFeedbackClusters(ctx, rawArgs) {
+  const args = FeedbackClustersArgs.parse(rawArgs ?? {});
+  const projectId = args.project_id ?? ctx.projectId ?? null;
+  const limit2 = args.limit ?? 20;
+  let query = ctx.supabase.from("documents").select("id, title, metadata, created_at, updated_at").eq("account_id", ctx.accountId).eq("kind", "feedback").not("metadata->>cluster_id", "is", null);
+  if (projectId !== null) query = query.eq("project_id", projectId);
+  const { data, error: error2 } = await query.order("updated_at", { ascending: false }).limit(500);
+  if (error2) throw new Error(`feedback_clusters: ${error2.message}`);
+  const rows = data ?? [];
+  const clusters = /* @__PURE__ */ new Map();
+  for (const r2 of rows) {
+    const cid = typeof r2.metadata?.cluster_id === "string" ? r2.metadata.cluster_id : null;
+    if (!cid) continue;
+    const promotion = r2.metadata?.promotion;
+    const promotionState = promotion?.state === "suggested" || promotion?.state === "promoted" || promotion?.state === "declined" ? promotion.state : null;
+    if (args.promotion_state && promotionState !== args.promotion_state) continue;
+    const existing = clusters.get(cid) ?? {
+      cluster_id: cid,
+      members: [],
+      promotion_state: promotionState,
+      suggested_target_document_id: promotion?.suggested_target_document_id ?? null
+    };
+    existing.members.push(r2);
+    if (promotionState) existing.promotion_state = promotionState;
+    clusters.set(cid, existing);
+  }
+  return Array.from(clusters.values()).map((c2) => {
+    const sorted = [...c2.members].sort(
+      (a2, b2) => a2.created_at < b2.created_at ? -1 : a2.created_at > b2.created_at ? 1 : 0
+    );
+    return {
+      cluster_id: c2.cluster_id,
+      size: c2.members.length,
+      promotion_state: c2.promotion_state,
+      suggested_target_document_id: c2.suggested_target_document_id,
+      example_title: sorted[0]?.title ?? "",
+      example_id: sorted[0]?.id ?? "",
+      first_seen: sorted[0]?.created_at ?? "",
+      last_seen: sorted[sorted.length - 1]?.updated_at ?? ""
+    };
+  }).sort((a2, b2) => b2.size - a2.size).slice(0, limit2);
+}
+
 // packages/mcp-tools/src/outcomes.ts
 var VERDICTS = ["held", "broke", "inconclusive"];
 var ArtifactSchema2 = external_exports.object({
@@ -63640,6 +64174,12 @@ async function callTool(ctx, name, args) {
         agentInstallationId: ctx.agentInstallationId ?? null,
         sessionId: ctx.sessionId ?? null
       });
+    case "memlin_feedback_capture":
+      return captureFeedback(ctx, args);
+    case "memlin_feedback_search":
+      return searchFeedback(ctx, args);
+    case "memlin_feedback_list_clusters":
+      return listFeedbackClusters(ctx, args);
     default:
       throw new Error(`unknown tool: ${name}`);
   }
