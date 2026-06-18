@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);
 var __create = Object.create;
 var __defProp = Object.defineProperty;
@@ -3407,7 +3406,7 @@ var require_parse = __commonJS({
 var require_gray_matter = __commonJS({
   "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
-    var fs4 = __require("fs");
+    var fs = __require("fs");
     var sections = require_section_matter();
     var defaults = require_defaults();
     var stringify = require_stringify();
@@ -3491,7 +3490,7 @@ var require_gray_matter = __commonJS({
       return stringify(file, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str2 = fs4.readFileSync(filepath, "utf8");
+      const str2 = fs.readFileSync(filepath, "utf8");
       const file = matter3(str2, options2);
       file.path = filepath;
       return file;
@@ -3518,10 +3517,6 @@ var require_gray_matter = __commonJS({
     module2.exports = matter3;
   }
 });
-
-// packages/plugin-core/dist/pre-tool-use-handler.js
-import { execSync as execSync3 } from "node:child_process";
-import path7 from "node:path";
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4001,8 +3996,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path8, errorMaps, issueData } = params;
-  const fullPath = [...path8, ...issueData.path || []];
+  const { data, path: path2, errorMaps, issueData } = params;
+  const fullPath = [...path2, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -4118,11 +4113,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path8, key) {
+  constructor(parent, value, path2, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path8;
+    this._path = path2;
     this._key = key;
   }
   get path() {
@@ -7857,80 +7852,6 @@ for (const p of REDACTION_PATTERNS) {
   }
 }
 
-// packages/shared/dist/guardrails.js
-function compileGuardrailPattern(raw) {
-  const escaped = raw.replace(/\\/g, "\\\\").replace(/[.+^${}()|[\]/]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".");
-  return new RegExp(escaped, "i");
-}
-function serializeToolInput(input) {
-  if (!input) return "";
-  const sortedKeys = Object.keys(input).sort();
-  const ordered = {};
-  for (const k of sortedKeys) ordered[k] = input[k];
-  return JSON.stringify(ordered);
-}
-function inScope(decision, ctx) {
-  const scope = decision.enforce.scope;
-  if (!scope) return true;
-  if (scope.projects && scope.projects.length > 0) {
-    if (!ctx.project_id || !scope.projects.includes(ctx.project_id)) return false;
-  }
-  if (scope.components && scope.components.length > 0) {
-    if (!ctx.component_id || !scope.components.includes(ctx.component_id)) return false;
-  }
-  if (scope.env && scope.env.length > 0) {
-    if (!ctx.env || !scope.env.includes(ctx.env)) return false;
-  }
-  return true;
-}
-function isExpired(decision, now = /* @__PURE__ */ new Date()) {
-  const exp = decision.enforce.expires_at;
-  if (!exp) return false;
-  const t = Date.parse(exp);
-  if (Number.isNaN(t)) return false;
-  return t < now.getTime();
-}
-function evaluateGuardrails(ctx, decisions, options2 = {}) {
-  const hits = [];
-  const input = serializeToolInput(ctx.tool_input);
-  for (const decision of decisions) {
-    if (isExpired(decision, options2.now)) continue;
-    if (!inScope(decision, ctx)) continue;
-    for (const matcher of decision.enforce.matchers) {
-      if (matcher.tool !== ctx.tool_name) continue;
-      for (const pattern of matcher.patterns) {
-        let regex;
-        try {
-          regex = compileGuardrailPattern(pattern);
-        } catch (e) {
-          console.warn(
-            `[guardrails] skip malformed pattern "${pattern}" on decision ${decision.id}: ${e instanceof Error ? e.message : String(e)}`
-          );
-          continue;
-        }
-        if (regex.test(input)) {
-          hits.push({
-            decision_id: decision.id,
-            decision_title: decision.title,
-            mode: decision.enforce.mode,
-            matched_pattern: pattern,
-            matched_tool: matcher.tool,
-            reason: decision.enforce.reason ?? null
-          });
-          break;
-        }
-      }
-    }
-  }
-  return hits;
-}
-function strongestVerdict(hits) {
-  if (hits.length === 0) return null;
-  if (hits.some((h) => h.mode === "block")) return "block";
-  if (hits.some((h) => h.mode === "require_approval")) return "require_approval";
-  return "advisory";
-}
-
 // packages/shared/dist/action-metadata.js
 var ActionNameSchema = external_exports.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9._-]*$/, {
   message: "action name must be lowercase alphanumeric + dot/underscore/hyphen, 1-64 chars"
@@ -8022,15 +7943,6 @@ var ActionMetadataSchema = external_exports.object({
   implementation: ActionImplementationSchema
 });
 
-// packages/shared/dist/task-classifier.js
-var DEPLOY_TOOL_RE = /\b(?:vercel\s+(?:deploy|--?prod\w*)|fly(?:ctl)?\s+deploy|wrangler\s+(?:deploy|publish)|sst\s+deploy|serverless\s+deploy|sls\s+deploy|(?:npm|pnpm|yarn)\s+(?:run\s+)?deploy|make\s+deploy|git\s+push\s+\S*(?:deploy|prod|production|heroku))\b/i;
-var DEPLOY_CMD_RE = /(?:^|;|&&|\|\||&|\|)\s*(?:[\w./-]*\/)?deploy(?:\.[a-z]+)?(?=\s|$)/i;
-var DEPLOY_TRIGGER_CMD_RE = /\bgh\s+pr\s+merge\b|\bgh\s+workflow\s+run\b[^;&|]*\b(?:deploy|prod|production|release)\b|\bgit\s+push\b[^;&|]*?[\s:](?:main|master|prod|production|release\/\S+)(?=\s|$)/i;
-function isDeployCommand(command) {
-  if (!command) return false;
-  return DEPLOY_TOOL_RE.test(command) || DEPLOY_CMD_RE.test(command) || DEPLOY_TRIGGER_CMD_RE.test(command);
-}
-
 // packages/shared/dist/skill-frontmatter.js
 var import_gray_matter2 = __toESM(require_gray_matter(), 1);
 
@@ -8048,167 +7960,148 @@ var MODEL_PRICES = {
 var SONNET_INPUT_USD_PER_MTOK = MODEL_PRICES["claude-sonnet-4-6"].inputUsdPerMTok;
 var SONNET_OUTPUT_USD_PER_MTOK = MODEL_PRICES["claude-sonnet-4-6"].outputUsdPerMTok;
 
-// packages/plugin-core/dist/client.js
-import { promises as fs3 } from "node:fs";
-import path4 from "node:path";
-import os4 from "node:os";
-
-// packages/plugin-core/dist/auth.js
-import { promises as fs } from "node:fs";
-import path from "node:path";
-import os from "node:os";
-var MEMLIN_PROD_AUTH0_DOMAIN = "memlin.us.auth0.com";
-var MEMLIN_PROD_AUTH0_CLIENT_ID = "fyYMQ4Cxc6Nu5juVwL8Ihqq4fgAFecG9";
-var AUTH0_DOMAIN = process.env.MEMLIN_AUTH0_DOMAIN || MEMLIN_PROD_AUTH0_DOMAIN;
-var AUTH0_CLIENT_ID = process.env.MEMLIN_AUTH0_CLIENT_ID || MEMLIN_PROD_AUTH0_CLIENT_ID;
-var AUTH0_AUDIENCE = process.env.MEMLIN_AUTH0_AUDIENCE ?? "https://api.memlin.ai";
-function tokenFilePath() {
-  return process.env.MEMLIN_TOKEN_FILE || path.join(os.homedir(), ".config", "memlin", "token.json");
-}
-async function readPersistedToken() {
-  try {
-    const raw = await fs.readFile(tokenFilePath(), "utf8");
-    return JSON.parse(raw);
-  } catch {
-    return null;
+// packages/shared/dist/memlin-commands.js
+var MEMLIN_COMMANDS = [
+  {
+    section: "Discovery",
+    cmd: "ask",
+    blurb: "ask your workspace anything",
+    details: "Run a natural-language question against your team's shared memory, skills, approved goals, and schemas. The resolver assembles a cited answer pulling from across documents \u2014 each citation shows a path and version so you can click through to the source."
+  },
+  {
+    section: "",
+    cmd: "inbox",
+    blurb: "review scribe proposals",
+    details: "Lists captures the scribe surfaced but didn't auto-accept (typically because confidence was below the activation threshold, or a similar item already exists). Accept individually to promote a proposal into the active corpus, or reject to drop it."
+  },
+  {
+    section: "",
+    cmd: "scribe",
+    blurb: "extract from this session",
+    details: 'Runs the session scribe over the current transcript and proposes decisions, memories, and skills that emerged \u2014 things like "we picked X over Y because Z" or new rules-of-thumb. High-confidence captures activate immediately; the rest queue in the inbox for review.'
+  },
+  {
+    section: "Sync",
+    cmd: "sync",
+    blurb: "pull + push in one shot",
+    details: "Pulls the latest memory, skills, approved goals, and schemas from the server for the current project, then pushes any local edits as new versions. This is the daily driver \u2014 use `pull` or `push` only when you want a one-way move."
+  },
+  {
+    section: "",
+    cmd: "pull",
+    blurb: "server \u2192 local",
+    details: "Server-to-local only. Refreshes the on-disk copy of memory and skills for the current project to whatever the server says is latest. Does not push your local edits."
+  },
+  {
+    section: "",
+    cmd: "push",
+    blurb: "local \u2192 server",
+    details: "Local-to-server only. Uploads every modified memory and skill file in your tracked project tree as a new version. Does not pull team updates first \u2014 combine with `pull` (or just use `sync`) when you want both."
+  },
+  {
+    section: "",
+    cmd: "revert",
+    blurb: "roll a doc back a version",
+    details: "Restore a memory or skill to an earlier version. Pass the document name and optionally a version number \u2014 if omitted, reverts to the immediately previous version. Creates a new version (non-destructive) rather than deleting intermediate ones, so the audit trail stays intact."
+  },
+  {
+    section: "Plans",
+    cmd: "push-plan",
+    blurb: "upload a Claude Code plan",
+    hosts: ["claude-code"],
+    details: "Uploads a Claude Code plan file from `~/.claude/plans/` to Memlin as a versioned plan document. Auto-resolves the active project, attaches the resolver bundle for replay, and prints a URL where the plan can be reviewed in your workspace."
+  },
+  {
+    section: "",
+    cmd: "pull-plans",
+    blurb: "refresh local plans",
+    hosts: ["claude-code"],
+    details: "Refreshes `~/.claude/plans/` from Memlin. Pulls the delta since the last sync by default; pass `--full` for everything, or a plan id to fetch just one. Useful when picking up a plan another agent or teammate uploaded."
+  },
+  {
+    section: "",
+    cmd: "bind-plans",
+    blurb: "assign unbound local plans",
+    hosts: ["claude-code"],
+    details: "`~/.claude/plans/` spans every repo you work in, so plans created before the sync hooks landed have no known project. This command lists locally-stored plans that aren't tied to a Memlin project and walks you through assigning each one \u2014 they then sync on every future run."
+  },
+  {
+    section: "",
+    cmd: "archive-plans",
+    blurb: "archive duplicate local plan files (never deletes)",
+    details: "Folds duplicate plan files in your local plans directory by moving older copies of the same slug into `.archived/<date>/`. Default is dry-run; pass `--apply` to execute. Always reversible \u2014 files move, never delete; recover by moving them back. Useful after a server-side plan-dedup sweep when your disk still holds orphan copies from before the fix."
+  },
+  {
+    section: "Actions",
+    cmd: "actions-list",
+    blurb: "callable workspace tools",
+    details: 'Lists actions registered in the workspace \u2014 typed, callable tools your team has defined (e.g. "create a Linear ticket", "run a saved query"). Returns id, input schema, and invoke URL so you know exactly how to call each.'
+  },
+  {
+    section: "",
+    cmd: "actions-execute",
+    blurb: "invoke one by id",
+    details: "Invokes a workspace action by id with a JSON input payload. Validates against the action's registered schema before dispatch. Use this to replay actions in scripts or chain them with `memlin ask` output."
+  },
+  {
+    section: "Outcomes",
+    cmd: "verify",
+    blurb: "turn a decision into a verdict",
+    details: "Close the feedback loop on a past decision \u2014 `held`, `broke`, or `inconclusive` \u2014 with whatever evidence and measurements you have. Run `memlin verify --due` first to see decisions whose review_by date has arrived. Each verdict becomes reusable knowledge for the next decision: it shows on the decision, in Agent Experience, and rides along on future resolves so your agents build experience from what actually worked."
+  },
+  {
+    section: "Audit",
+    cmd: "audit-replay",
+    blurb: "see the bundle an agent saw",
+    details: "Re-renders the exact resolved bundle an agent saw for a past resolve. Version-pinned, so even if memory has changed since, you get the original context. Pass the audit id from any prior resolve output."
+  },
+  {
+    section: "",
+    cmd: "audit-explain",
+    blurb: "why each item ranked there",
+    details: `Shows the per-item ranking arithmetic for a resolved bundle \u2014 score breakdown, the reasons each item ranked where it did, and which boosts or penalties applied. Use this to debug "why didn't Memlin surface skill X?"`
+  },
+  {
+    section: "Coordination",
+    cmd: "handoffs",
+    blurb: "pass work between agents",
+    details: 'Create, list, accept, complete, or cancel cross-agent handoff packets. A handoff is a structured task brief targeted at a specific agent kind (claude-code, cursor, codex, etc.). `handoffs list` shows what\'s queued for you; `handoffs create <target> "<task>"` hands work to another agent.'
+  },
+  {
+    section: "",
+    cmd: "role",
+    blurb: "assign roles to members/docs",
+    details: "Assigns functional roles (backend, sre, design, etc.) to workspace members, or tags documents with roles. Roles boost the resolver's relevance for people who hold them \u2014 a backend engineer gets backend-tagged memory ranked higher."
+  },
+  {
+    section: "Setup & health",
+    cmd: "status",
+    blurb: "auth, account, project, sync state",
+    details: "One-shot dashboard. Shows your auth state (token expiry, refresh state), the bound account and project, MCP routing (direct Supabase or hosted), the last sync time, and how many tracked docs are pending push or pull."
+  },
+  {
+    section: "",
+    cmd: "doctor",
+    blurb: "diagnose why status is broken",
+    details: 'Runs a checklist when something\'s wrong \u2014 config readable, token refreshable, Supabase and MCP reachable, project auto-resolves, filesystem permissions. `status` answers "what\'s the state right now"; `doctor` answers "why is the state broken."'
+  },
+  {
+    section: "",
+    cmd: "add-project",
+    blurb: "register this workspace",
+    details: "Registers the current workspace as a Memlin project. Auto-detects the git remote and local paths, writes a workspace pin, and makes sure every future session in this directory binds to the project automatically."
+  },
+  {
+    section: "",
+    cmd: "link",
+    blurb: "pin a different account",
+    details: "Pins this workspace to a specific Memlin account. Use when you switch between accounts (employer / client / personal) \u2014 the pin makes sure the resolver and scribe target the correct workspace for this directory."
   }
-}
-async function writePersistedToken(t) {
-  const file = tokenFilePath();
-  await fs.mkdir(path.dirname(file), { recursive: true });
-  const tmp = path.join(path.dirname(file), `token.json.tmp-${process.pid}`);
-  await fs.writeFile(tmp, JSON.stringify(t, null, 2), { mode: 384 });
-  await fs.chmod(tmp, 384).catch(() => {
-  });
-  await fs.rename(tmp, file);
-}
-async function refreshAccessToken(refreshToken) {
-  requireClientId();
-  const body = new URLSearchParams({
-    grant_type: "refresh_token",
-    refresh_token: refreshToken,
-    client_id: AUTH0_CLIENT_ID
-  });
-  const res = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString()
-  });
-  if (!res.ok) {
-    throw new Error(`refresh: ${res.status} ${await res.text()}`);
-  }
-  const json = await res.json();
-  return toPersisted(json, refreshToken);
-}
-var refreshInFlight = null;
-async function getValidAccessToken() {
-  const persisted = await readPersistedToken();
-  if (!persisted) throw new Error("not signed in \u2014 run `memlin login`");
-  if (Date.now() < persisted.expires_at - 6e4) return persisted.access_token;
-  if (refreshInFlight) return refreshInFlight;
-  refreshInFlight = doRefresh(persisted).finally(() => {
-    refreshInFlight = null;
-  });
-  return refreshInFlight;
-}
-async function doRefresh(stale) {
-  const latest = await readPersistedToken();
-  if (latest && Date.now() < latest.expires_at - 6e4) return latest.access_token;
-  const refreshToken = latest?.refresh_token ?? stale.refresh_token;
-  if (!refreshToken) {
-    throw new Error("access token expired and no refresh token saved \u2014 run `memlin login`");
-  }
-  try {
-    const fresh = await refreshAccessToken(refreshToken);
-    await writePersistedToken(fresh);
-    return fresh.access_token;
-  } catch (err) {
-    const after = await readPersistedToken();
-    if (after && after.access_token !== stale.access_token && Date.now() < after.expires_at - 6e4) {
-      return after.access_token;
-    }
-    throw new Error(
-      `access token refresh failed (${err instanceof Error ? err.message : String(err)}) \u2014 run \`memlin login\``
-    );
-  }
-}
-function toPersisted(json, fallbackRefresh) {
-  return {
-    access_token: json.access_token,
-    refresh_token: json.refresh_token ?? fallbackRefresh,
-    expires_at: Date.now() + json.expires_in * 1e3
-  };
-}
-function requireClientId() {
-  if (!AUTH0_CLIENT_ID) {
-    throw new Error(
-      "Auth0 client id not configured. Set MEMLIN_AUTH0_CLIENT_ID env var (and optionally MEMLIN_AUTH0_DOMAIN / MEMLIN_AUTH0_AUDIENCE for self-hosted setups)."
-    );
-  }
-}
-
-// packages/plugin-core/dist/memlin-api-client.js
-import os3 from "node:os";
-
-// packages/plugin-core/dist/runtime-shared.js
-var AGENT_KIND_HEADER = "Memlin-Agent-Kind";
-var AGENT_DEVICE_HEADER = "Memlin-Agent-Device";
-var AGENT_VERSION_HEADER = "Memlin-Agent-Version";
-var AGENT_CAPABILITIES_HEADER = "Memlin-Agent-Capabilities";
-var AGENT_EXPECTED_CAPABILITIES = {
-  "claude-code": ["cli", "commands", "hooks", "sync", "scribe", "resolve"],
-  cursor: ["mcp", "commands", "hooks", "rules", "scribe", "resolve"],
-  codex: ["mcp", "cli", "hooks", "rules", "scribe", "resolve"],
-  windsurf: ["mcp", "cli", "hooks", "rules", "scribe", "resolve"],
-  // VS Code (apps/vscode-extension): MCP + CLI + copilot-instructions; plain
-  // VS Code has no lifecycle-hook or slash-command surface.
-  vscode: ["mcp", "cli", "rules", "resolve"],
-  gemini: ["mcp", "rules", "resolve"],
-  grok: ["mcp", "rules", "resolve"],
-  hermes: ["mcp", "resolve"],
-  openclaw: ["mcp", "rules", "resolve"],
-  antigravity: ["mcp", "cli", "hooks", "commands", "rules", "sync", "scribe", "resolve"],
-  mcp: ["mcp", "resolve"],
-  "claude-ai": ["mcp", "resolve"]
-};
-var PROVIDER_HOSTS = [
-  "github.com",
-  "gitlab.com",
-  "bitbucket.org",
-  "dev.azure.com",
-  "ssh.dev.azure.com",
-  "codeberg.org",
-  "sr.ht",
-  "git.sr.ht"
 ];
-function normalizeGitRemote(raw) {
-  if (!raw) return null;
-  let s = raw.trim();
-  if (!s) return null;
-  s = s.replace(/^git@([^:]+):/, "https://$1/");
-  s = s.replace(/^ssh:\/\//, "");
-  s = s.replace(/^https?:\/\//, "");
-  s = s.replace(/^git@/, "");
-  s = s.replace(/\.git$/, "");
-  s = s.replace(/\/$/, "");
-  const slash = s.indexOf("/");
-  if (slash > 0) {
-    const host = s.slice(0, slash);
-    const rest = s.slice(slash);
-    for (const provider of PROVIDER_HOSTS) {
-      if (host === provider) break;
-      if (host.startsWith(provider + "-")) {
-        s = provider + rest;
-        break;
-      }
-    }
-  }
-  return s || null;
-}
 
-// packages/plugin-core/dist/host.js
-import os2 from "node:os";
-import path2 from "node:path";
+// packages/plugin-core/src/host.ts
+import os from "node:os";
+import path from "node:path";
 var BaseHost = class {
   constructor(kind, home) {
     this.kind = kind;
@@ -8220,32 +8113,32 @@ var BaseHost = class {
     return this.home;
   }
   plansDir() {
-    return path2.join(this.home, "plans");
+    return path.join(this.home, "plans");
   }
 };
 var ClaudeCodeHost = class extends BaseHost {
   constructor() {
-    super("claude-code", path2.join(os2.homedir(), ".claude"));
+    super("claude-code", path.join(os.homedir(), ".claude"));
   }
 };
 var CursorHost = class extends BaseHost {
   constructor() {
-    super("cursor", path2.join(os2.homedir(), ".config", "memlin"));
+    super("cursor", path.join(os.homedir(), ".config", "memlin"));
   }
 };
 var CodexHost = class extends BaseHost {
   constructor() {
-    super("codex", path2.join(os2.homedir(), ".config", "memlin"));
+    super("codex", path.join(os.homedir(), ".config", "memlin"));
   }
 };
 var WindsurfHost = class extends BaseHost {
   constructor() {
-    super("windsurf", path2.join(os2.homedir(), ".config", "memlin"));
+    super("windsurf", path.join(os.homedir(), ".config", "memlin"));
   }
 };
 var AntigravityHost = class extends BaseHost {
   constructor() {
-    super("antigravity", path2.join(os2.homedir(), ".config", "memlin"));
+    super("antigravity", path.join(os.homedir(), ".config", "memlin"));
   }
 };
 var HOSTS = {
@@ -8261,935 +8154,31 @@ function resolveHost() {
   return (make ?? HOSTS["claude-code"])();
 }
 
-// packages/plugin-core/dist/memlin-api-client.js
-var DEFAULT_API_URL = "https://memlin.ai/api/v1";
-function agentDevice() {
-  return process.env.MEMLIN_AGENT_DEVICE || os3.hostname() || "unknown";
+// packages/plugin-core/src/cli/command-guide.ts
+function printCommandGuide(opts = {}) {
+  const write = opts.write ?? ((line) => console.log(line));
+  const host = resolveHost().kind;
+  const isSlashHost = host === "claude-code" || host === "cursor";
+  const fmt = (cmd) => isSlashHost ? `/memlin-${cmd}` : `memlin ${cmd}`;
+  const helpRef = isSlashHost ? "`/memlin-help`" : "`memlin help`";
+  const cmdCol = Math.max(...MEMLIN_COMMANDS.map((c) => fmt(c.cmd).length));
+  if (opts.intro) {
+    write("");
+    write(`  What you can do from here (run ${helpRef} for this list anytime):`);
+    write("");
+  } else {
+    write("memlin \u2014 Memlin commands");
+    write("");
+  }
+  for (const { section, cmd, blurb } of MEMLIN_COMMANDS) {
+    const sectionCol = section.padEnd(16);
+    const cmdStr = fmt(cmd).padEnd(cmdCol);
+    write(`    ${sectionCol} ${cmdStr}  ${blurb}`);
+  }
 }
-function agentVersion() {
-  return "0.2.7";
-}
-function agentCapabilities() {
-  return AGENT_EXPECTED_CAPABILITIES[resolveHost().kind] ?? ["api", "resolve"];
-}
-var MemlinApiClient = class {
-  constructor(cfg) {
-    this.cfg = cfg;
-  }
-  cfg;
-  // ---------- low-level ----------
-  async authHeaders(includeAccount = true) {
-    const token = await this.cfg.getAccessToken();
-    const h = {
-      Authorization: `Bearer ${token}`,
-      [AGENT_KIND_HEADER]: resolveHost().kind,
-      [AGENT_DEVICE_HEADER]: agentDevice(),
-      [AGENT_VERSION_HEADER]: agentVersion(),
-      [AGENT_CAPABILITIES_HEADER]: agentCapabilities().join(",")
-    };
-    if (includeAccount && this.cfg.accountId) {
-      h["Memlin-Account-Id"] = this.cfg.accountId;
-    }
-    return h;
-  }
-  async request(method, pathAndQuery, body, opts = {}) {
-    const url = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
-    const baseHeaders = await this.authHeaders(opts.includeAccount ?? true);
-    if (opts.accountId) {
-      baseHeaders["Memlin-Account-Id"] = opts.accountId;
-    }
-    const headers = {
-      ...baseHeaders,
-      Accept: "application/json"
-    };
-    if (body !== void 0) headers["Content-Type"] = "application/json";
-    const res = await fetch(url, {
-      method,
-      headers,
-      ...body !== void 0 ? { body: JSON.stringify(body) } : {}
-    });
-    const text = await res.text();
-    let parsed = null;
-    if (text) {
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-      }
-    }
-    if (!res.ok) {
-      const errMsg = parsed?.error ?? text ?? `HTTP ${res.status}`;
-      throw new Error(`${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`);
-    }
-    return parsed;
-  }
-  // ---------- endpoints ----------
-  /** GET /me — identity + account list. No account header sent (this is the discovery call). */
-  async me() {
-    return this.request("GET", "/me", void 0, { includeAccount: false });
-  }
-  /**
-   * POST /roles/assign — set a member's functional roles (backend, sre,
-   * ...). Defaults to the caller; pass user_id to assign another member
-   * (owner/admin only). Replaces the member's set wholesale.
-   */
-  async assignRoles(input, opts = {}) {
-    return this.request("POST", "/roles/assign", input, {
-      accountId: opts.accountId
-    });
-  }
-  /**
-   * POST /roles/tag — tag a document into one or more role packs. The
-   * resolver boosts the document for members holding a matching role.
-   * Replaces the document's role tags wholesale.
-   */
-  async tagDocumentRoles(input, opts = {}) {
-    return this.request("POST", "/roles/tag", input, {
-      accountId: opts.accountId
-    });
-  }
-  /**
-   * POST /documents/pin — force-include ("pin") a document, or unpin it.
-   * A pinned doc is fetched out-of-band by the resolver on every resolve in
-   * scope (no similarity threshold) and reserved budget off the top — a
-   * standing directive, not a similarity hit. Owner/admin-only server-side.
-   */
-  async setDocumentPinned(input, opts = {}) {
-    return this.request("POST", "/documents/pin", input, {
-      accountId: opts.accountId
-    });
-  }
-  /** GET /decisions/enforce — pull the guardrail rules currently
-   *  in effect for the caller's account (and optionally a project).
-   *  Returns kind='decision' docs whose `metadata.enforce` is set —
-   *  the PreToolUse handler in plugin-core's pre-tool-use-handler
-   *  module is the primary caller. */
-  async listEnforceDecisions(opts = {}) {
-    const qs = new URLSearchParams();
-    if (opts.project_id !== void 0) {
-      qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
-    }
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.request("GET", `/decisions/enforce${suffix}`);
-  }
-  /** POST /usage/event — write a usage_events row from the client.
-   *  Server-side enforces an allowlist of event_types (today:
-   *  tool.guardrail, action.invoke, resolve.outcome, edit.activity) and
-   *  re-derives account_id and user_id from the auth context so callers
-   *  can't forge rows for other workspaces. `opts.accountId` routes the
-   *  write to a non-default account (multi-account workspaces). */
-  async writeUsageEvent(input, opts = {}) {
-    return this.request("POST", "/usage/event", input, { accountId: opts.accountId });
-  }
-  /** GET /documents — list, filtered. */
-  async listDocuments(opts = {}) {
-    const qs = new URLSearchParams();
-    if (opts.kinds) for (const k of opts.kinds) qs.append("kind", k);
-    if (opts.scopes) for (const s of opts.scopes) qs.append("scope", s);
-    if (opts.statuses) for (const s of opts.statuses) qs.append("status", s);
-    if (opts.project_id !== void 0) {
-      qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
-    }
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    const res = await this.request("GET", `/documents${suffix}`);
-    return res.documents.map((d) => {
-      const { status, ...rest } = d;
-      return status == null ? rest : { ...rest, status };
-    });
-  }
-  /** POST /documents — create or update a document. */
-  async writeDocument(input) {
-    return this.request("POST", "/documents", input);
-  }
-  /** GET /documents/{id}/versions — history. */
-  async listVersions(documentId) {
-    const res = await this.request(
-      "GET",
-      `/documents/${encodeURIComponent(documentId)}/versions`
-    );
-    return res.versions;
-  }
-  /** POST /documents/{id}/revert — non-destructive revert to an older version. */
-  async revertDocument(documentId, targetVersionId, commitMessage) {
-    const res = await this.request(
-      "POST",
-      `/documents/${encodeURIComponent(documentId)}/revert`,
-      {
-        target_version_id: targetVersionId,
-        ...commitMessage ? { commit_message: commitMessage } : {}
-      }
-    );
-    return res.new_version_id;
-  }
-  /** GET /inbox — pending scribe proposals (newest first), plus recently
-   *  auto-activated correction rules (so the user can see what stuck + undo).
-   *  Pass `opts.accountId` to read a different account's inbox than the pinned
-   *  one (e.g. `memlin status` showing the resolver-effective account). */
-  async listInbox(opts = {}) {
-    return this.request("GET", "/inbox", void 0, { accountId: opts.accountId });
-  }
-  /** GET /insights — pending derived insights, including auto-memory proposals. */
-  async listInsights(params = {}, opts = {}) {
-    const search = new URLSearchParams();
-    if (params.kind) search.set("kind", params.kind);
-    if (params.status) search.set("status", params.status);
-    if (params.limit) search.set("limit", String(params.limit));
-    const qs = search.toString();
-    return this.request(
-      "GET",
-      `/insights${qs ? `?${qs}` : ""}`,
-      void 0,
-      { accountId: opts.accountId }
-    );
-  }
-  async resolveInsight(insightId, action) {
-    return this.request("POST", `/insights/${encodeURIComponent(insightId)}/resolve`, { action });
-  }
-  /** POST /inbox/{id} — accept or reject a proposal. */
-  async resolveProposal(proposalId, action) {
-    return this.request("POST", `/inbox/${encodeURIComponent(proposalId)}`, {
-      action
-    });
-  }
-  async listHandoffs(opts = {}) {
-    const qs = new URLSearchParams();
-    if (opts.project_id) qs.set("project_id", opts.project_id);
-    if (opts.target_agent_kind) qs.set("target_agent_kind", opts.target_agent_kind);
-    if (opts.status) qs.set("status", opts.status);
-    if (opts.limit) qs.set("limit", String(opts.limit));
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.request("GET", `/handoffs${suffix}`);
-  }
-  async updateHandoff(handoffId, action) {
-    return this.request("PATCH", `/handoffs/${encodeURIComponent(handoffId)}`, {
-      action
-    });
-  }
-  async createHandoff(input) {
-    return this.request("POST", "/handoffs", input);
-  }
-  /** POST /documents/search — semantic + text. */
-  async search(query, opts = {}) {
-    const res = await this.request("POST", "/documents/search", {
-      query,
-      ...opts
-    });
-    return res.hits;
-  }
-  /** GET /documents?q=... — fuzzy title/path lookup. Used by `memlin revert`. */
-  async findDocumentsByName(needle, limit = 10) {
-    const qs = new URLSearchParams({ q: needle, limit: String(limit) });
-    const res = await this.request("GET", `/documents?${qs.toString()}`);
-    return res.documents;
-  }
-  /**
-   * POST /resolve — the marquee context-assembly endpoint.
-   *
-   * `cwd` and `git_remote` let the server infer the caller's active component
-   * (when the project has any defined) and apply a soft +0.15 boost to
-   * docs tagged to that component. Both are optional; omitting them yields
-   * the same project-wide ranking we used pre-component-awareness.
-   */
-  async resolve(args, opts = {}) {
-    return this.request("POST", "/resolve", args, {
-      accountId: opts.accountId
-    });
-  }
-  /**
-   * GET /account — name/tier/kind for the current account.
-   *
-   * Pass `opts.accountId` to target an account other than the pinned one.
-   * `memlin status` uses this to show the resolver-effective account in a
-   * multi-account workspace, so the returned `id` and `name` always describe
-   * the same account (no global-default/pinned-name mismatch).
-   */
-  async getAccount(opts = {}) {
-    return this.request("GET", "/account", void 0, { accountId: opts.accountId });
-  }
-  /**
-   * POST /projects/resolve — server-side project resolution.
-   *
-   * Returns `account_id` when a project matches in any account the user
-   * has access to (via the JWT's memlin_account_ids claim) — not just the
-   * one pinned in config. Callers use the returned account_id to retarget
-   * the actual resolve / write call to the right backend.
-   */
-  async resolveProject(input) {
-    return this.request("POST", "/projects/resolve", input);
-  }
-  /**
-   * POST /deploy-guard — acquire or release the per-project deploy lease.
-   *
-   * The PreToolUse deploy hook calls `acquire` before a deploy command runs;
-   * the PostToolUse hook calls `release` after. `acquired: false` means another
-   * session already holds an active lease (the hook then warns or blocks).
-   * project_id is passed explicitly — the hook resolves it from cwd first.
-   */
-  async deployGuard(input, opts = {}) {
-    return this.request("POST", "/deploy-guard", input, { accountId: opts.accountId });
-  }
-  /**
-   * POST /edit-guard — real-time, pre-edit file-collision check.
-   *
-   * The PreToolUse hook calls this before an Edit/Write/MultiEdit, passing the
-   * repo-relative path(s) about to change. The server reads the same
-   * `edit.activity` feed the resolver's recent_file_edits uses and returns any
-   * LIVE collisions — other sessions that edited the same path within the last
-   * ~10 min — so the hook can warn or block. Read-only; never mutates.
-   * project_id is passed explicitly (the hook resolves it from cwd first).
-   */
-  async editGuard(input, opts = {}) {
-    return this.request("POST", "/edit-guard", input, { accountId: opts.accountId });
-  }
-  /** GET /audit/<id>/replay — reconstruct a past resolve's exact bundle. */
-  async replayAudit(auditId) {
-    return this.request("GET", `/audit/${auditId}/replay`);
-  }
-  /** GET /audit/<id>/explain — per-item decomposition of a past resolve's
-   *  ranking arithmetic (similarity, kind weight, component boost, rerank,
-   *  decay) plus human-readable reasons. The "homework, shown" companion
-   *  to /replay. */
-  async explainAudit(auditId) {
-    return this.request("GET", `/audit/${auditId}/explain`);
-  }
-  /** GET /actions — list approved actions in the workspace. Same shape
-   *  the memlin_actions_list MCP tool returns. */
-  async listActions(opts = {}) {
-    const q = [];
-    if (opts.filter) q.push(`filter=${encodeURIComponent(opts.filter)}`);
-    if (opts.limit !== void 0) q.push(`limit=${opts.limit}`);
-    const qs = q.length > 0 ? `?${q.join("&")}` : "";
-    const { actions } = await this.request("GET", `/actions${qs}`);
-    return actions;
-  }
-  /** POST /actions/<id>/execute — invoke a callable action by id with
-   *  validated input. Returns the result + audit_id. */
-  async executeAction(actionId, input) {
-    return this.request("POST", `/actions/${actionId}/execute`, { input });
-  }
-  /** POST /prompt-ci — run Prompt CI regression tests for a skill. */
-  async runPromptCi(skillId, content) {
-    return this.request("POST", "/prompt-ci", { skill_id: skillId, content });
-  }
-  /**
-   * POST /memory/propose — extract memory candidates from a recent agent
-   * turn and queue them for user accept/dismiss. Fire-and-forget from the
-   * Stop hook's perspective; the server runs a cheap Haiku extraction and
-   * silently no-ops if it finds nothing worth remembering.
-   */
-  async proposeMemory(input, opts = {}) {
-    return this.request("POST", "/memory/propose", input, { accountId: opts.accountId });
-  }
-  /**
-   * POST /scribe/diff — Phase 2 auto-capture from a single git commit.
-   *
-   * Called by the PostToolUse hook after the agent runs `git commit`.
-   * The server reads the commit message + diff, asks Haiku to extract
-   * any decision/memory/skill baked into the change, and persists
-   * results as documents with metadata.status='proposed'. They appear
-   * in the user's inbox until accepted.
-   */
-  async scribeDiff(input, opts = {}) {
-    return this.request("POST", "/scribe/diff", input, { accountId: opts.accountId });
-  }
-  /**
-   * POST /scribe/session — Phase 1 auto-capture from a Claude Code
-   * session transcript. Server slices the transcript (tail-biased
-   * when too large), runs Haiku extraction, persists proposals.
-   *
-   * Triggered manually by /memlin-scribe today; an auto-triggered
-   * variant on Stop with a 15-min debounce is a fast follow-up.
-   */
-  async scribeSession(input, opts = {}) {
-    return this.request("POST", "/scribe/session", input, { accountId: opts.accountId });
-  }
-  /**
-   * POST /plans — upload a Claude Code plan as a first-class plan document.
-   *
-   * Server resolves project from cwd/git_remote (when not pinned), writes
-   * the document via writeDocument (auto-embedding), and inserts a
-   * companion plans row with status='drafted'. Returns the document_id
-   * + version metadata for downstream URL construction.
-   */
-  async pushPlan(input) {
-    return this.request("POST", "/plans", input);
-  }
-  /**
-   * GET /plans — list plans for the account, optionally filtered by
-   * `updated_after` (epoch ms) for cheap delta polling. Used by the
-   * UserPromptSubmit + SessionStart hooks to keep ~/.claude/plans/ in
-   * sync with the server.
-   */
-  async listPlans(opts = {}) {
-    const qs = new URLSearchParams();
-    if (opts.status) qs.set("status", opts.status);
-    if (opts.project_id !== void 0) {
-      qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
-    }
-    if (opts.updated_after) qs.set("updated_after", opts.updated_after);
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    const res = await this.request(
-      "GET",
-      `/plans${suffix}`
-    );
-    return res.plans;
-  }
-  /** GET /plans/<id> — full plan detail (status + body + bundle ref). */
-  async getPlan(id) {
-    return this.request("GET", `/plans/${encodeURIComponent(id)}`);
-  }
-  /**
-   * PATCH /plans/<id> — replace the plan's body (creates a new
-   * document_version, auto-embeds). Used by the PostToolUse hook to push
-   * Claude Code edits back up to Memlin.
-   */
-  async updatePlan(id, input) {
-    return this.request("PATCH", `/plans/${encodeURIComponent(id)}`, input);
-  }
-  /**
-   * POST /projects — create a project in the caller's current account.
-   * Used by `memlin init` to register a Claude Code workspace.
-   */
-  async createProject(input, opts = {}) {
-    return this.request("POST", "/projects", input, { accountId: opts.accountId });
-  }
-  /**
-   * PATCH /projects/{id} — attach/detach local paths, set/clear the git
-   * remote, or rename. Owner/admin only; 409 when a path or remote is
-   * already attached to another project in the account. Backs
-   * `memlin attach-path` and add-project's attach-instead-of-fork offer.
-   */
-  async patchProject(projectId, input, opts = {}) {
-    return this.request("PATCH", `/projects/${encodeURIComponent(projectId)}`, input, {
-      accountId: opts.accountId
-    });
-  }
-  /** POST /decisions/{id}/verify — record an outcome on the decision
-   *  ledger. Verdicts surface on every future resolve of the decision. */
-  async verifyDecision(decisionId, input, opts = {}) {
-    return this.request("POST", `/decisions/${encodeURIComponent(decisionId)}/verify`, input, {
-      accountId: opts.accountId
-    });
-  }
-  /** GET /decisions/review-due — decisions whose review date arrived. */
-  async listReviewDueDecisions(opts = {}) {
-    const qs = opts.projectId ? `?project_id=${encodeURIComponent(opts.projectId)}` : "";
-    return this.request("GET", `/decisions/review-due${qs}`, void 0, {
-      accountId: opts.accountId
-    });
-  }
-  /**
-   * POST /ask — natural-language Q&A over the team's workspace memory.
-   * Server resolves a bundle, sends it to Claude, returns answer +
-   * citations + audit_id. Used by `memlin ask` CLI and the web /ask
-   * panel.
-   */
-  async ask(input, opts = {}) {
-    return this.request("POST", "/ask", input, { accountId: opts.accountId });
-  }
-  /** GET /projects — list every project in the current account. */
-  async listProjects(opts = {}) {
-    const res = await this.request("GET", "/projects", void 0, { accountId: opts.accountId });
-    return res.projects;
-  }
+export {
+  printCommandGuide
 };
-function resolveApiUrl() {
-  return process.env.MEMLIN_API_URL?.trim() || DEFAULT_API_URL;
-}
-
-// packages/plugin-core/dist/workspace-binding.js
-import { promises as fs2 } from "node:fs";
-import path3 from "node:path";
-var WORKSPACE_DIR_NAME = ".memlin";
-var WORKSPACE_BINDING_FILE = "config.json";
-async function findWorkspaceBinding(startDir) {
-  let dir = path3.resolve(startDir);
-  for (let i = 0; i < 64; i++) {
-    const candidate = path3.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE);
-    try {
-      const raw = await fs2.readFile(candidate, "utf8");
-      const parsed = JSON.parse(raw);
-      if (typeof parsed.account_id === "string" && parsed.account_id) {
-        return {
-          binding: {
-            account_id: parsed.account_id,
-            project_id: parsed.project_id ?? null,
-            account_name: parsed.account_name
-          },
-          workspaceRoot: dir
-        };
-      }
-    } catch {
-    }
-    const parent = path3.dirname(dir);
-    if (parent === dir) return null;
-    dir = parent;
-  }
-  return null;
-}
-
-// packages/plugin-core/dist/client.js
-var CONFIG_DIR = path4.join(os4.homedir(), ".config", "memlin");
-var CONFIG_FILE = path4.join(CONFIG_DIR, "config.json");
-var TOKEN_FILE = path4.join(CONFIG_DIR, "token.json");
-async function readConfig() {
-  try {
-    const raw = await fs3.readFile(CONFIG_FILE, "utf8");
-    const parsed = JSON.parse(raw);
-    if (!parsed.account_id || !parsed.user_id) return null;
-    return {
-      api_url: parsed.api_url ?? DEFAULT_API_URL,
-      account_id: parsed.account_id,
-      user_id: parsed.user_id,
-      project_id: parsed.project_id ?? null
-    };
-  } catch {
-    return null;
-  }
-}
-async function getApi(opts = {}) {
-  const config = await readConfig();
-  if (!config) return null;
-  try {
-    await getValidAccessToken();
-  } catch {
-    return null;
-  }
-  const cwd = opts.cwd ?? process.cwd();
-  const overlay = await findWorkspaceBinding(cwd);
-  const { workspaceBound, workspaceRoot } = applyWorkspaceOverlay(config, overlay);
-  const apiUrl = process.env.MEMLIN_API_URL?.trim() || config.api_url || resolveApiUrl();
-  const api = new MemlinApiClient({
-    baseUrl: apiUrl,
-    getAccessToken: getValidAccessToken,
-    accountId: config.account_id
-  });
-  return { api, config, workspaceBound, workspaceRoot };
-}
-function applyWorkspaceOverlay(config, overlay) {
-  if (!overlay) return { workspaceBound: false, workspaceRoot: null };
-  config.account_id = overlay.binding.account_id;
-  if (overlay.binding.project_id !== void 0) {
-    config.project_id = overlay.binding.project_id;
-  }
-  return { workspaceBound: true, workspaceRoot: overlay.workspaceRoot };
-}
-function log(msg) {
-  if (process.env.MEMLIN_DEBUG) {
-    process.stderr.write(`[memlin] ${msg}
-`);
-  }
-}
-
-// packages/plugin-core/dist/project-resolver.js
-import { execSync } from "node:child_process";
-import path5 from "node:path";
-async function resolveProject(api, cwd, configProjectId) {
-  const absCwd = path5.resolve(cwd);
-  const remote = readGitRemote(cwd);
-  try {
-    const result = await api.resolveProject({
-      git_remote: remote,
-      cwd: absCwd
-    });
-    if (result.project_id) {
-      return {
-        project_id: result.project_id,
-        project_name: result.name,
-        account_id: result.account_id,
-        reason: result.reason === "none" ? "config" : result.reason
-      };
-    }
-  } catch {
-  }
-  if (configProjectId) {
-    return {
-      project_id: configProjectId,
-      project_name: null,
-      account_id: null,
-      reason: "config"
-    };
-  }
-  return { project_id: null, project_name: null, account_id: null, reason: "none" };
-}
-function readGitRemote(cwd) {
-  try {
-    const url = execSync("git remote get-url origin", {
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8"
-    }).trim();
-    return normalizeGitRemote(url);
-  } catch {
-    return null;
-  }
-}
-
-// packages/plugin-core/dist/edit-activity.js
-import { execSync as execSync2 } from "node:child_process";
-import path6 from "node:path";
-import os5 from "node:os";
-var EDIT_TOOLS = /* @__PURE__ */ new Set(["Edit", "Write", "MultiEdit", "NotebookEdit"]);
-function editedPathsFromHook(toolName, toolInput) {
-  if (!toolName || !EDIT_TOOLS.has(toolName) || !toolInput) return [];
-  const p = typeof toolInput.file_path === "string" && toolInput.file_path || typeof toolInput.notebook_path === "string" && toolInput.notebook_path || null;
-  return p ? [p] : [];
-}
-function repoRelativePath(absPath, cwd) {
-  try {
-    const top = execSync2("git rev-parse --show-toplevel", {
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8",
-      timeout: 250
-    }).trim();
-    if (top) {
-      const rel = path6.relative(top, absPath);
-      if (rel && !rel.startsWith("..") && !path6.isAbsolute(rel)) return rel;
-    }
-  } catch {
-  }
-  return path6.basename(absPath);
-}
-
-// packages/plugin-core/dist/pre-tool-use-handler.js
-var ENV_CACHE_TTL_MS = 6e4;
-var envCache = /* @__PURE__ */ new Map();
-function inferEnvFromBranch(branch) {
-  const b = branch.toLowerCase().trim();
-  if (b === "main" || b === "master" || b === "prod" || b.startsWith("release/")) {
-    return "prod";
-  }
-  if (b === "staging" || b === "stage") return "staging";
-  if (b === "develop" || b === "dev") return "dev";
-  return null;
-}
-function getRawBranchName(cwd) {
-  try {
-    return execSync3("git rev-parse --abbrev-ref HEAD", {
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8",
-      timeout: 250
-    }).trim();
-  } catch {
-    return null;
-  }
-}
-function shouldApplyAdaptiveFriction(branch) {
-  if (!branch) return false;
-  const b = branch.toLowerCase().trim();
-  return b.startsWith("scratch/") || b.startsWith("test/") || b.startsWith("tmp/") || b === "sandbox" || b.includes("-scratch") || b.includes("draft");
-}
-function detectEnv(cwd) {
-  if (process.env.MEMLIN_ENV) return process.env.MEMLIN_ENV;
-  const cached = envCache.get(cwd);
-  if (cached && Date.now() - cached.at < ENV_CACHE_TTL_MS) return cached.env;
-  let env = null;
-  try {
-    const branch = execSync3("git rev-parse --abbrev-ref HEAD", {
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8",
-      // Bound the subprocess to avoid stalling the hook on a corrupt repo.
-      timeout: 250
-    }).trim();
-    env = inferEnvFromBranch(branch);
-  } catch {
-    env = null;
-  }
-  envCache.set(cwd, { at: Date.now(), env });
-  return env;
-}
-var CACHE_TTL_MS = 5e3;
-var decisionCache = /* @__PURE__ */ new Map();
-function cacheKey(accountId, projectId) {
-  return `${accountId}::${projectId ?? "none"}`;
-}
-async function loadEnforcementDecisions(ctx, projectId) {
-  const key = cacheKey(ctx.config.account_id, projectId);
-  const cached = decisionCache.get(key);
-  if (cached && Date.now() - cached.at < CACHE_TTL_MS) return cached.decisions;
-  try {
-    const { decisions: rows } = await ctx.api.listEnforceDecisions({
-      project_id: projectId
-    });
-    const decisions = rows.map((r) => ({
-      id: r.id,
-      title: r.title,
-      enforce: r.enforce
-    }));
-    decisionCache.set(key, { at: Date.now(), decisions });
-    return decisions;
-  } catch (err) {
-    log(
-      `pre-tool-use: decision fetch failed (fail-open): ${err instanceof Error ? err.message : String(err)}`
-    );
-    return [];
-  }
-}
-async function recordGuardrailEvent(ctx, args) {
-  const metadata = {
-    tool: args.payload.tool_name,
-    project_id: args.projectId,
-    session_id: args.payload.session_id ?? null,
-    enforcement_on: args.enforcementOn,
-    outcome: args.outcome,
-    matched_decisions: args.hits.map((h) => ({
-      id: h.decision_id,
-      title: h.decision_title,
-      mode: h.mode,
-      pattern: h.matched_pattern
-    }))
-  };
-  try {
-    await ctx.api.writeUsageEvent({
-      event_type: "tool.guardrail",
-      metadata
-    });
-  } catch (err) {
-    log(
-      `pre-tool-use: audit write failed (continuing): ${err instanceof Error ? err.message : String(err)}`
-    );
-    log(`pre-tool-use audit (local only): ${JSON.stringify(metadata)}`);
-  }
-}
-function deployGuardMode() {
-  const raw = (process.env.MEMLIN_DEPLOY_GUARD ?? "").toLowerCase().trim();
-  if (raw === "off" || raw === "warn" || raw === "block") return raw;
-  return "warn";
-}
-function deployCommandOf(payload) {
-  if (payload.tool_name !== "Bash") return null;
-  const cmd = payload.tool_input?.command;
-  if (typeof cmd !== "string" || !cmd.trim()) return null;
-  return isDeployCommand(cmd) ? cmd : null;
-}
-async function evaluateDeployGuard(ctx, payload, projectId, projectAccountId) {
-  const command = deployCommandOf(payload);
-  if (!command) return null;
-  if (deployGuardMode() === "off") return null;
-  if (!projectId || !payload.session_id) return null;
-  let res;
-  try {
-    res = await ctx.api.deployGuard(
-      {
-        action: "acquire",
-        project_id: projectId,
-        session_id: payload.session_id,
-        task: command.slice(0, 200)
-      },
-      projectAccountId ? { accountId: projectAccountId } : {}
-    );
-  } catch (err) {
-    log(
-      `deploy-guard: acquire failed (fail-open): ${err instanceof Error ? err.message : String(err)}`
-    );
-    return null;
-  }
-  if (res.acquired !== false) return null;
-  const who = res.holder_session ? `agent ${res.holder_session.slice(0, 6)}` : "another agent";
-  const ago = typeof res.minutes_ago === "number" ? `${res.minutes_ago}m ago` : "just now";
-  const what = res.holder_task ? ` (task: ${String(res.holder_task).slice(0, 80)})` : "";
-  return {
-    decision: deployGuardMode() === "block" ? "block" : "ask",
-    reason: `Memlin deploy-guard \xB7 ${who} is already mid-deploy on this project${what}, started ${ago}. Concurrent deploys can clobber each other \u2014 wait for it to finish, then retry.`,
-    matched_decisions: []
-  };
-}
-function editGuardMode() {
-  const raw = (process.env.MEMLIN_EDIT_GUARD ?? "").toLowerCase().trim();
-  if (raw === "off" || raw === "warn" || raw === "block") return raw;
-  return "warn";
-}
-var EDIT_GUARD_TIMEOUT_MS = 2500;
-async function evaluateEditCollision(ctx, payload, projectId, projectAccountId) {
-  if (editGuardMode() === "off") return null;
-  if (!projectId || !payload.session_id) return null;
-  const rawPaths = editedPathsFromHook(payload.tool_name, payload.tool_input);
-  if (rawPaths.length === 0) return null;
-  const cwd = payload.cwd ?? process.cwd();
-  const relPaths = [
-    ...new Set(rawPaths.map((p) => repoRelativePath(path7.resolve(cwd, p), cwd)))
-  ];
-  if (relPaths.length === 0) return null;
-  let res;
-  try {
-    const call = ctx.api.editGuard(
-      { project_id: projectId, session_id: payload.session_id, paths: relPaths },
-      projectAccountId ? { accountId: projectAccountId } : {}
-    );
-    const timeout = new Promise(
-      (resolve) => setTimeout(() => resolve({ collisions: [] }), EDIT_GUARD_TIMEOUT_MS)
-    );
-    res = await Promise.race([call, timeout]);
-  } catch (err) {
-    log(
-      `edit-guard: check failed (fail-open): ${err instanceof Error ? err.message : String(err)}`
-    );
-    return null;
-  }
-  const collisions = Array.isArray(res.collisions) ? res.collisions : [];
-  if (collisions.length === 0) return null;
-  const top = collisions[0];
-  const who = top.same_user ? "your own other session" : top.holder_session ? `agent ${top.holder_session}${top.holder_agent_kind ? ` (${top.holder_agent_kind})` : ""}` : "another agent";
-  const fileList = collisions.length === 1 ? `\`${top.path}\`` : `${collisions.length} files (incl. \`${top.path}\`)`;
-  const ago = top.minutes_ago <= 0 ? "just now" : `${top.minutes_ago}m ago`;
-  return {
-    decision: editGuardMode() === "block" ? "block" : "ask",
-    reason: `Memlin edit-guard \xB7 ${who} edited ${fileList} ${ago}. Two agents writing the same file can clobber each other \u2014 pull their change or coordinate before overwriting.`,
-    matched_decisions: []
-  };
-}
-async function runPreToolUseHandler(payload) {
-  if (!payload.tool_name) {
-    return { decision: "allow", reason: null, matched_decisions: [] };
-  }
-  let ctx;
-  try {
-    ctx = await getApi();
-  } catch {
-    return { decision: "allow", reason: null, matched_decisions: [] };
-  }
-  if (!ctx) return { decision: "allow", reason: null, matched_decisions: [] };
-  let projectId = null;
-  let projectAccountId = null;
-  try {
-    const resolved = await resolveProject(
-      ctx.api,
-      payload.cwd ?? process.cwd(),
-      ctx.config.project_id
-    );
-    projectId = resolved.project_id;
-    projectAccountId = resolved.account_id;
-  } catch {
-  }
-  const deployVerdict = await evaluateDeployGuard(ctx, payload, projectId, projectAccountId);
-  if (deployVerdict) return deployVerdict;
-  const editVerdict = await evaluateEditCollision(ctx, payload, projectId, projectAccountId);
-  if (editVerdict) return editVerdict;
-  const decisions = await loadEnforcementDecisions(ctx, projectId);
-  if (decisions.length === 0) {
-    return { decision: "allow", reason: null, matched_decisions: [] };
-  }
-  const hits = evaluateGuardrails(
-    {
-      tool_name: payload.tool_name,
-      tool_input: payload.tool_input,
-      project_id: projectId,
-      component_id: null,
-      env: detectEnv(payload.cwd ?? process.cwd())
-    },
-    decisions
-  );
-  const verdict = strongestVerdict(hits);
-  let outcome = "allow";
-  let enforcementOn = false;
-  try {
-    const account = await ctx.api.getAccount();
-    const flag = account.controller_enforcement_enabled;
-    enforcementOn = flag === true;
-  } catch {
-    enforcementOn = false;
-  }
-  if (enforcementOn) {
-    const rawBranch = getRawBranchName(payload.cwd ?? process.cwd());
-    if (shouldApplyAdaptiveFriction(rawBranch)) {
-      enforcementOn = false;
-      log(
-        `[memlin] adaptive friction: enforcement downgraded to advisory mode on branch "${rawBranch}"`
-      );
-    }
-  }
-  if (verdict === "block") {
-    outcome = enforcementOn ? "blocked" : "would_block";
-  } else if (verdict === "require_approval") {
-    outcome = enforcementOn ? "asked" : "would_ask";
-  }
-  await recordGuardrailEvent(ctx, {
-    payload,
-    hits,
-    outcome,
-    projectId,
-    enforcementOn
-  });
-  if (!enforcementOn || verdict === null || verdict === "advisory") {
-    return { decision: "allow", reason: null, matched_decisions: [] };
-  }
-  const firstHit = hits[0];
-  const matchedIds = [...new Set(hits.map((h) => h.decision_id))];
-  return {
-    decision: verdict === "block" ? "block" : "ask",
-    reason: firstHit.reason ?? `Memlin guardrail \xB7 ${firstHit.decision_title}`,
-    matched_decisions: matchedIds
-  };
-}
-
-// apps/codex-plugin/src/hook-io.ts
-function readHookInput() {
-  return new Promise((resolve) => {
-    let data = "";
-    const done = () => {
-      try {
-        resolve(data.trim() ? JSON.parse(data) : null);
-      } catch {
-        resolve(null);
-      }
-    };
-    const timer = setTimeout(done, 1e3);
-    process.stdin.setEncoding("utf8");
-    process.stdin.on("data", (chunk) => {
-      data += chunk;
-    });
-    process.stdin.on("end", () => {
-      clearTimeout(timer);
-      done();
-    });
-    process.stdin.on("error", () => {
-      clearTimeout(timer);
-      done();
-    });
-  });
-}
-
-// apps/codex-plugin/src/hooks/pre-tool-use.ts
-function emitAllow() {
-  process.exit(0);
-}
-function emit(decision, reason) {
-  const payload = {
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: decision,
-      permissionDecisionReason: reason
-    }
-  };
-  process.stdout.write(JSON.stringify(payload) + "\n");
-  process.exit(0);
-}
-async function main() {
-  process.env.MEMLIN_HOST = "codex";
-  const payload = await readHookInput() ?? {};
-  if (!payload.tool_name) return emitAllow();
-  let verdict;
-  try {
-    verdict = await runPreToolUseHandler({
-      tool_name: payload.tool_name,
-      tool_input: payload.tool_input ?? {},
-      cwd: payload.cwd ?? process.cwd(),
-      ...payload.session_id !== void 0 ? { session_id: payload.session_id } : {}
-    });
-  } catch (err) {
-    log(
-      `codex pre-tool-use: handler threw (fail-open): ${err instanceof Error ? err.message : String(err)}`
-    );
-    return emitAllow();
-  }
-  if (verdict.decision === "allow") return emitAllow();
-  const ccDecision = verdict.decision === "block" ? "deny" : "ask";
-  const idsSuffix = verdict.matched_decisions.length > 0 ? ` (matched ${verdict.matched_decisions.length} Memlin decision${verdict.matched_decisions.length === 1 ? "" : "s"})` : "";
-  return emit(ccDecision, `${verdict.reason}${idsSuffix}`);
-}
-void main();
 /*! Bundled license information:
 
 is-extendable/index.js:
