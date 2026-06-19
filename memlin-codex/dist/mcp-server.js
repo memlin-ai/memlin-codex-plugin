@@ -64442,7 +64442,7 @@ function agentDevice() {
   return process.env.MEMLIN_AGENT_DEVICE || os3.hostname() || "unknown";
 }
 function agentVersion() {
-  return "0.2.8";
+  return "0.2.9";
 }
 function agentCapabilities() {
   return AGENT_EXPECTED_CAPABILITIES[resolveHost().kind] ?? ["api", "resolve"];
@@ -64975,6 +64975,7 @@ import path5 from "node:path";
 async function resolveProject(api, cwd, configProjectId) {
   const absCwd = path5.resolve(cwd);
   const remotes = detectGitRemotes(cwd);
+  const hasGitRemote = remotes.length > 0;
   try {
     const result = await api.resolveProject({
       // Primary remote (back-compat with the single-remote server path).
@@ -64989,7 +64990,8 @@ async function resolveProject(api, cwd, configProjectId) {
         project_id: result.project_id,
         project_name: result.name,
         account_id: result.account_id,
-        reason: result.reason === "none" ? "config" : result.reason
+        reason: result.reason === "none" ? "config" : result.reason,
+        hasGitRemote
       };
     }
   } catch {
@@ -64999,10 +65001,11 @@ async function resolveProject(api, cwd, configProjectId) {
       project_id: configProjectId,
       project_name: null,
       account_id: null,
-      reason: "config"
+      reason: "config",
+      hasGitRemote
     };
   }
-  return { project_id: null, project_name: null, account_id: null, reason: "none" };
+  return { project_id: null, project_name: null, account_id: null, reason: "none", hasGitRemote };
 }
 function readGitRemote(cwd) {
   try {
@@ -65568,7 +65571,7 @@ function agentHeaders(accessToken, accountId) {
     "Memlin-Account-Id": accountId,
     "Memlin-Agent-Kind": agentKind(),
     "Memlin-Agent-Device": agentDevice2(),
-    "Memlin-Agent-Version": "0.2.8",
+    "Memlin-Agent-Version": "0.2.9",
     "Memlin-Agent-Capabilities": agentCapabilities2(),
     "Content-Type": "application/json"
   };
@@ -65754,7 +65757,7 @@ var cfg = await resolveConfig().catch((err) => {
   process.exit(1);
 });
 var server = new Server(
-  { name: "memlin", version: "0.2.8" },
+  { name: "memlin", version: "0.2.9" },
   { capabilities: { tools: {} } }
 );
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
