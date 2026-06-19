@@ -64442,7 +64442,7 @@ function agentDevice() {
   return process.env.MEMLIN_AGENT_DEVICE || os3.hostname() || "unknown";
 }
 function agentVersion() {
-  return "0.2.7";
+  return "0.2.8";
 }
 function agentCapabilities() {
   return AGENT_EXPECTED_CAPABILITIES[resolveHost().kind] ?? ["api", "resolve"];
@@ -64970,13 +64970,18 @@ function log(msg) {
 
 // packages/plugin-core/dist/project-resolver.js
 import { execSync } from "node:child_process";
+import { existsSync, readdirSync } from "node:fs";
 import path5 from "node:path";
 async function resolveProject(api, cwd, configProjectId) {
   const absCwd = path5.resolve(cwd);
-  const remote = readGitRemote(cwd);
+  const remotes = detectGitRemotes(cwd);
   try {
     const result = await api.resolveProject({
-      git_remote: remote,
+      // Primary remote (back-compat with the single-remote server path).
+      git_remote: remotes[0] ?? null,
+      // All detected remotes — for the workspace-root-of-repos case, this is
+      // every sibling repo so the server resolves to the owning project.
+      git_remotes: remotes,
       cwd: absCwd
     });
     if (result.project_id) {
@@ -65010,6 +65015,28 @@ function readGitRemote(cwd) {
   } catch {
     return null;
   }
+}
+var MAX_WORKSPACE_SCAN = 64;
+function detectGitRemotes(cwd) {
+  const enclosing = readGitRemote(cwd);
+  if (enclosing) return [enclosing];
+  const out = [];
+  try {
+    let scanned = 0;
+    for (const entry of readdirSync(cwd, { withFileTypes: true })) {
+      if (scanned >= MAX_WORKSPACE_SCAN) break;
+      if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") {
+        continue;
+      }
+      scanned++;
+      const child = path5.join(cwd, entry.name);
+      if (!existsSync(path5.join(child, ".git"))) continue;
+      const remote = readGitRemote(child);
+      if (remote && !out.includes(remote)) out.push(remote);
+    }
+  } catch {
+  }
+  return out;
 }
 
 // packages/plugin-core/dist/edit-activity.js
@@ -65349,13 +65376,13 @@ function diffStates(prev, current) {
 
 // packages/plugin-core/dist/local-scan.js
 import { promises as fs6 } from "node:fs";
-import { existsSync } from "node:fs";
+import { existsSync as existsSync2 } from "node:fs";
 import path9 from "node:path";
 async function scanLocal(opts = {}) {
   const out = [];
   const root = opts.rootOverride ?? resolveHost().homeDir();
   const memDir = path9.join(root, "memory");
-  if (existsSync(memDir)) {
+  if (existsSync2(memDir)) {
     for (const file of await fs6.readdir(memDir)) {
       if (!file.endsWith(".md") || file === "MEMORY.md") continue;
       const abs = path9.join(memDir, file);
@@ -65370,12 +65397,12 @@ async function scanLocal(opts = {}) {
     }
   }
   const skillsDir = path9.join(root, "skills");
-  if (existsSync(skillsDir)) {
+  if (existsSync2(skillsDir)) {
     const entries = await fs6.readdir(skillsDir, { withFileTypes: true });
     for (const e2 of entries) {
       if (!e2.isDirectory()) continue;
       const skillMd = path9.join(skillsDir, e2.name, "SKILL.md");
-      if (!existsSync(skillMd)) continue;
+      if (!existsSync2(skillMd)) continue;
       const content = await fs6.readFile(skillMd, "utf8");
       out.push({
         path: `skills/${e2.name}/SKILL.md`,
@@ -65388,7 +65415,7 @@ async function scanLocal(opts = {}) {
   }
   if (opts.includePlans) {
     const plansDir = resolveHost().plansDir();
-    if (existsSync(plansDir)) {
+    if (existsSync2(plansDir)) {
       for (const file of await fs6.readdir(plansDir)) {
         if (!file.endsWith(".md")) continue;
         const abs = path9.join(plansDir, file);
@@ -65541,7 +65568,7 @@ function agentHeaders(accessToken, accountId) {
     "Memlin-Account-Id": accountId,
     "Memlin-Agent-Kind": agentKind(),
     "Memlin-Agent-Device": agentDevice2(),
-    "Memlin-Agent-Version": "0.2.7",
+    "Memlin-Agent-Version": "0.2.8",
     "Memlin-Agent-Capabilities": agentCapabilities2(),
     "Content-Type": "application/json"
   };
@@ -65727,7 +65754,7 @@ var cfg = await resolveConfig().catch((err) => {
   process.exit(1);
 });
 var server = new Server(
-  { name: "memlin", version: "0.2.7" },
+  { name: "memlin", version: "0.2.8" },
   { capabilities: { tools: {} } }
 );
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
