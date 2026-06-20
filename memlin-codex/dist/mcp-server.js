@@ -58937,7 +58937,7 @@ var TOOLS = [
   },
   {
     name: "memlin_resolve_task",
-    description: "The Memlin resolver \u2014 one call returns a pre-assembled, scope-correct, citation-bearing context bundle for a specific engineering task. Use this BEFORE doing specialized work (code review, security audit, API design, debugging, etc.) instead of loading every skill and memory snippet into context. The server runs hybrid retrieval (semantic cosine + BM25) across skills, memory, approved goals, and schemas in parallel, applies per-kind similarity thresholds and a kind-priority weighting, enforces a token budget, and returns a single composed bundle with full provenance on every item. Apply the primary skill's framework; treat goals as constraints; validate against any schemas; use memory facts as ground truth. Always cite sources by path + version.",
+    description: "The Memlin resolver \u2014 one call returns a pre-assembled, scope-correct, citation-bearing context bundle for a specific engineering task. Use this BEFORE doing specialized work (code review, security audit, API design, debugging, etc.) instead of loading every skill and memory snippet into context. The server runs hybrid retrieval (semantic cosine + BM25) across skills, memory, approved goals, and schemas in parallel, applies per-kind similarity thresholds and a kind-priority weighting, enforces a token budget, and returns a single composed bundle with full provenance on every item. Apply the primary skill's framework; treat goals as constraints; validate against any schemas; use memory facts as ground truth. Always cite sources by path + version. In a host without a pre-task hook (e.g. Claude Desktop, or any plain MCP client), nothing resolves automatically \u2014 call this yourself at the start of any non-trivial task so you work from the team's context instead of guessing.",
     annotations: { readOnlyHint: true, destructiveHint: false },
     inputSchema: {
       type: "object",
@@ -59337,6 +59337,63 @@ var TOOLS = [
               }
             }
           }
+        }
+      }
+    }
+  },
+  {
+    name: "memlin_capture_session",
+    description: "Capture a conversation into the workspace \u2014 the manual, on-demand stand-in for the session scribe that editor plugins (Claude Code, Cursor, \u2026) run automatically on their Stop hook. Hosts like Claude Desktop have no lifecycle hook and no transcript file, so YOU supply the conversation as `transcript` text (alternating '### user' / '### assistant' turns) and the server runs the exact same extraction: it proposes the durable decisions, facts, and reusable skills into the user's inbox for review. Overwrites nothing; nothing is auto-approved. Returns how many proposals were captured (or a `skipped` flag with a `reason` when the account's AI mode is off). Pair with the `memlin-capture` prompt.",
+    inputSchema: {
+      type: "object",
+      required: ["transcript"],
+      properties: {
+        transcript: {
+          type: "string",
+          description: "The conversation to capture, as markdown with '### user' / '### assistant' turn markers. Verbatim enough to extract decisions from. 50 chars to 2 MB."
+        },
+        session_id: {
+          type: "string",
+          description: "Optional stable id for this capture. Omit to auto-generate one."
+        },
+        project_id: {
+          type: "string",
+          description: "Optional project (uuid) to scope the captured proposals. Defaults to the connection's bound project, else team scope."
+        }
+      }
+    }
+  },
+  {
+    name: "memlin_create_decision",
+    description: "Record a decision into the workspace with the Outcomes contract \u2014 a kind='decision' doc carrying what you expect to happen (`expected_outcome`) and when you'd know (`review_by`), so a later run can measure it and post a verdict with memlin_verify_outcome. This is the only way an MCP client can create a decision: memlin_write_memory advertises memory/skill/goal/schema only. The write goes through the same web route a person uses (POST /api/v1/documents), so it shares ai-mode gating, embedding, and the guardrail check \u2014 nothing is auto-approved, nothing overwritten. Set `review_by` (YYYY-MM-DD) to make it show up in the outcomes-due queue (memlin_list_review_due). Pair with the `memlin-save-decision` prompt.",
+    inputSchema: {
+      type: "object",
+      required: ["title"],
+      properties: {
+        title: {
+          type: "string",
+          description: "The decision \u2014 the call being made, in one line. Becomes the decision title."
+        },
+        expected_outcome: {
+          description: "What would prove the decision right \u2014 a free-text expectation, or a structured target object (e.g. { metric, direction, magnitude, window_days }). Stored in metadata.custom; keep it shallow (max 3 levels / 8 KB).",
+          oneOf: [{ type: "string" }, { type: "object" }]
+        },
+        review_by: {
+          type: "string",
+          description: "When the outcome becomes knowable, as a calendar date (YYYY-MM-DD). Drives the outcomes-due queue \u2014 omit it and the decision is recorded but never surfaces for review."
+        },
+        content: {
+          type: "string",
+          description: "Optional body \u2014 the rationale, alternatives weighed, and context behind the decision."
+        },
+        scope: {
+          type: "string",
+          enum: ["personal", "project", "team"],
+          description: "Visibility scope. Defaults to 'team' (account-wide)."
+        },
+        project_id: {
+          type: "string",
+          description: "Optional project (uuid) to attach the decision to. Defaults to the connection's bound project."
         }
       }
     }
@@ -64276,6 +64333,441 @@ async function listReviewDue(ctx, rawArgs) {
   return { due };
 }
 
+// packages/mcp-tools/src/prompts.ts
+function argError(message) {
+  const e2 = new Error(message);
+  e2.mcpCode = -32602;
+  return e2;
+}
+function notFoundError(message) {
+  const e2 = new Error(message);
+  e2.mcpCode = -32601;
+  return e2;
+}
+var PROMPTS = [
+  {
+    name: "memlin-resolve",
+    description: "Load the right Memlin context for a task into this chat \u2014 the most relevant memory, skills, goals, schemas, and open threads, already scoped to your workspace. Use before non-trivial work. (No lifecycle hook here, so this is the one-click stand-in for resolve-before-work.)",
+    arguments: [
+      {
+        name: "task",
+        description: 'What you are about to do, specifically. "review this code for auth bugs", not "help with auth".',
+        required: true
+      },
+      {
+        name: "project_id",
+        description: "Optional project (uuid) to scope the bundle. Omit for account-scope.",
+        required: false
+      }
+    ]
+  },
+  {
+    name: "memlin-ask",
+    description: "Answer a question from your Memlin workspace, with citations. Pulls the relevant memory, skills, goals, and decisions first, then answers from them.",
+    arguments: [
+      {
+        name: "question",
+        description: "The question to answer from workspace knowledge.",
+        required: true
+      }
+    ]
+  },
+  {
+    name: "memlin-capture",
+    description: "Capture this conversation into your Memlin workspace. The same extraction the editor plugins run on session end pulls out decisions, durable facts, and reusable skills and files them in your inbox for review \u2014 nothing is overwritten.",
+    arguments: [
+      {
+        name: "focus",
+        description: 'Optional: narrow what to capture (e.g. "just the API decisions").',
+        required: false
+      }
+    ]
+  },
+  {
+    name: "memlin-save-decision",
+    description: "Record a decision in your Memlin workspace with what you expect to happen and when you'd know \u2014 so its outcome can be verified later (the held / broke / inconclusive loop). The starting point of the Outcomes loop.",
+    arguments: [
+      {
+        name: "decision",
+        description: "The call you are making, in one line. Becomes the decision title.",
+        required: true
+      },
+      {
+        name: "expected_outcome",
+        description: "Optional: what would prove it right \u2014 a target metric or a plain-language expectation.",
+        required: false
+      },
+      {
+        name: "review_by",
+        description: "Optional: when you'd know (YYYY-MM-DD). Drives the outcomes-due queue.",
+        required: false
+      }
+    ]
+  },
+  {
+    name: "memlin-review-due",
+    description: 'List the decisions whose review date has arrived but have no recorded outcome yet \u2014 your "outcomes coming due" queue.',
+    arguments: [
+      {
+        name: "project_id",
+        description: "Optional project (uuid) to scope to.",
+        required: false
+      }
+    ]
+  },
+  {
+    name: "memlin-verify",
+    description: "Record a measured outcome (held / broke / inconclusive) on a past decision, so the workspace learns what actually worked.",
+    arguments: [
+      {
+        name: "decision",
+        description: "The decision \u2014 its document id (uuid), or words to find it by.",
+        required: true
+      },
+      {
+        name: "verdict",
+        description: "Optional: held | broke | inconclusive.",
+        required: false
+      }
+    ]
+  }
+];
+function listPrompts() {
+  return PROMPTS.map((p2) => ({ ...p2, arguments: [...p2.arguments] }));
+}
+async function getPrompt(ctx, name, args, resolveFn) {
+  const a2 = args ?? {};
+  switch (name) {
+    case "memlin-resolve": {
+      const task = typeof a2.task === "string" ? a2.task.trim() : "";
+      if (!task) throw argError('memlin-resolve requires a non-empty "task" argument.');
+      const projectId = typeof a2.project_id === "string" && a2.project_id.trim() ? a2.project_id.trim() : null;
+      let text;
+      if (!resolveFn) {
+        text = `# Memlin context for: ${task}
+
+_Direct resolve is unavailable on this connection \u2014 call the \`memlin_resolve_task\` tool with this task to pull workspace context._`;
+      } else {
+        try {
+          const result = await resolveFn({ task, project_id: projectId });
+          text = renderBundleText(result, task);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          text = `# Memlin context for: ${task}
+
+_Could not resolve workspace context (${msg}). Proceeding without it; retry memlin-resolve, or call memlin_resolve_task directly._`;
+        }
+      }
+      return {
+        description: `Memlin context for: ${task}`,
+        messages: [{ role: "user", content: { type: "text", text } }]
+      };
+    }
+    case "memlin-ask": {
+      const question = typeof a2.question === "string" ? a2.question.trim() : "";
+      if (!question) throw argError('memlin-ask requires a non-empty "question" argument.');
+      const text = `Answer this question using my Memlin workspace as the source of truth:
+
+> ${question}
+
+First call \`memlin_resolve_task\` (or \`memlin_search\`) to pull the relevant memory, skills, goals, and decisions, then answer concisely. Cite every claim by its document path + version. If the workspace has nothing relevant, say so plainly rather than guessing.`;
+      return {
+        description: `Ask Memlin: ${question}`,
+        messages: [{ role: "user", content: { type: "text", text } }]
+      };
+    }
+    case "memlin-capture": {
+      const focus = typeof a2.focus === "string" && a2.focus.trim() ? a2.focus.trim() : null;
+      const focusLine = focus ? ` Focus on: ${focus}.` : "";
+      const text = `Capture this conversation into my Memlin workspace.${focusLine}
+
+Reconstruct our exchange so far as a transcript \u2014 alternating "### user" and "### assistant" turns, verbatim enough to extract decisions from \u2014 then call the \`memlin_capture_session\` tool with that transcript as its \`transcript\` argument. The server runs the same extraction the editor plugins use on session end: it files durable decisions, facts, and reusable skills in my inbox for review and overwrites nothing. After it returns, tell me how many proposals it captured.`;
+      return {
+        description: "Capture this session into Memlin",
+        messages: [{ role: "user", content: { type: "text", text } }]
+      };
+    }
+    case "memlin-save-decision": {
+      const decision = typeof a2.decision === "string" ? a2.decision.trim() : "";
+      if (!decision)
+        throw argError(
+          'memlin-save-decision requires a "decision" argument (the call you are making).'
+        );
+      const expected = typeof a2.expected_outcome === "string" && a2.expected_outcome.trim() ? a2.expected_outcome.trim() : null;
+      const reviewBy = typeof a2.review_by === "string" && a2.review_by.trim() ? a2.review_by.trim() : null;
+      const expectedLine = expected ? ` I expect: ${expected}.` : "";
+      const reviewLine = reviewBy ? ` I'd know by ${reviewBy}.` : "";
+      const text = `Record this decision in my Memlin workspace: "${decision}".${expectedLine}${reviewLine}
+
+Call the \`memlin_create_decision\` tool with \`title\` set to the decision. If I gave an expected outcome, pass it as \`expected_outcome\` (a measurable target or a plain-language expectation); if I gave a review date (YYYY-MM-DD), pass it as \`review_by\` so the decision surfaces in the outcomes-due queue when it comes due. Put any rationale in \`content\`. If I didn't give an expected outcome or a review date, ask me for them before saving \u2014 a decision without them can't be verified later. After it returns, confirm the decision id so I can record the outcome down the line (the memlin-verify prompt).`;
+      return {
+        description: `Save decision: ${decision}`,
+        messages: [{ role: "user", content: { type: "text", text } }]
+      };
+    }
+    case "memlin-review-due": {
+      const projectId = typeof a2.project_id === "string" && a2.project_id.trim() ? a2.project_id.trim() : null;
+      const scope = projectId ? ` for project ${projectId}` : "";
+      const arg = projectId ? ` with project_id "${projectId}"` : "";
+      const text = `Show me which Memlin decisions are due for a verdict${scope}. Call \`memlin_list_review_due\`${arg}, then list each due decision \u2014 its title, when it was due, and its id \u2014 so I can pick one to record an outcome on (the memlin-verify prompt).`;
+      return {
+        description: "Decisions due for a verdict",
+        messages: [{ role: "user", content: { type: "text", text } }]
+      };
+    }
+    case "memlin-verify": {
+      const decision = typeof a2.decision === "string" ? a2.decision.trim() : "";
+      if (!decision)
+        throw argError('memlin-verify requires a "decision" argument (an id, or words to find it).');
+      const verdict = typeof a2.verdict === "string" && a2.verdict.trim() ? a2.verdict.trim() : null;
+      const verdictLine = verdict ? ` I think the verdict is "${verdict}".` : "";
+      const text = `Record a measured outcome on this past decision: "${decision}".${verdictLine}
+
+If that already looks like a document id (uuid), use it directly; otherwise call \`memlin_search\` with kind "decision" to find it and confirm the match with me. Then ask me for the measured numbers and any evidence, and call \`memlin_verify_outcome\` with the decision id, the verdict (held / broke / inconclusive), the measured values, and model attribution. Append-only \u2014 it never erases a prior verdict.`;
+      return {
+        description: `Verify outcome: ${decision}`,
+        messages: [{ role: "user", content: { type: "text", text } }]
+      };
+    }
+    default:
+      throw notFoundError(`unknown prompt: ${name}`);
+  }
+}
+function renderBundleText(result, task) {
+  const b2 = result?.bundle;
+  const lines = [];
+  lines.push(task ? `# Memlin context for: ${task}` : "# Memlin context");
+  lines.push("");
+  const sections = [];
+  if (b2) {
+    if (b2.pinned?.length) sections.push(["Pinned directives", b2.pinned]);
+    const skills = [b2.primary_skill, ...b2.supporting_skills ?? []].filter(
+      (s2) => Boolean(s2)
+    );
+    if (skills.length) sections.push(["Skills", skills]);
+    if (b2.goals?.length) sections.push(["Goals", b2.goals]);
+    if (b2.decisions?.length) sections.push(["Decisions", b2.decisions]);
+    if (b2.memory?.length) sections.push(["Memory", b2.memory]);
+    if (b2.schemas?.length) sections.push(["Schemas", b2.schemas]);
+    if (b2.open_threads?.length) sections.push(["Open threads", b2.open_threads]);
+  }
+  if (sections.length === 0) {
+    lines.push(
+      "_No matching workspace context for this task. Proceed from first principles, and capture anything durable with the memlin-capture prompt when you're done._"
+    );
+    return lines.join("\n");
+  }
+  for (const [heading, items] of sections) {
+    lines.push(`## ${heading}`);
+    lines.push("");
+    for (const it2 of items) {
+      const cite = renderCitation(it2);
+      lines.push(`### ${it2.title}${cite ? ` ${cite}` : ""}`);
+      const body = (it2.body ?? "").trim();
+      if (body) {
+        lines.push("");
+        lines.push(body);
+      }
+      lines.push("");
+    }
+  }
+  lines.push("---");
+  lines.push(
+    "Treat the above as authoritative workspace context: memory facts are ground truth, apply any skill framework, honor goals as constraints, and cite what you use by path + version."
+  );
+  if (result?.token_budget?.truncated) {
+    lines.push("");
+    lines.push(
+      "_(Context was truncated to fit the token budget \u2014 call memlin_search for anything missing.)_"
+    );
+  }
+  return lines.join("\n");
+}
+function renderCitation(it2) {
+  const path11 = it2.citation?.path;
+  const v2 = it2.citation?.version_number;
+  if (path11 && v2 != null) return `\u2014 \`${path11}\` v${v2}`;
+  if (path11) return `\u2014 \`${path11}\``;
+  return "";
+}
+
+// packages/mcp-tools/src/capture.ts
+var CaptureArgs = external_exports.object({
+  transcript: external_exports.string().min(50).max(2e6),
+  session_id: external_exports.string().min(1).max(128).optional(),
+  project_id: external_exports.string().uuid().nullish()
+});
+async function captureSession(ctx, rawArgs) {
+  const args = CaptureArgs.parse(rawArgs);
+  if (!ctx.accessToken) {
+    throw new Error(
+      "memlin_capture_session is unavailable on this connection (no access token to call the scribe)."
+    );
+  }
+  const base = (ctx.apiBaseUrl || "https://memlin.ai/api/v1").replace(/\/+$/, "");
+  const sessionId = args.session_id ?? `mcp-capture-${Date.now()}`;
+  const projectId = args.project_id ?? ctx.projectId ?? null;
+  const headers = {
+    Authorization: `Bearer ${ctx.accessToken}`,
+    "Content-Type": "application/json"
+  };
+  if (ctx.accountId) headers["Memlin-Account-Id"] = ctx.accountId;
+  const res = await fetch(`${base}/scribe/session`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      session_id: sessionId,
+      transcript: args.transcript,
+      project_id: projectId
+    })
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`scribe HTTP ${res.status}: ${text.slice(0, 500)}`);
+  }
+  let body;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    throw new Error(`scribe returned non-JSON response: ${text.slice(0, 200)}`);
+  }
+  return {
+    run_id: body.run_id ?? null,
+    proposals_persisted: Number(body.proposals_persisted ?? 0),
+    proposal_ids: Array.isArray(body.proposal_ids) ? body.proposal_ids : [],
+    proposals_corroborated: Number(body.proposals_corroborated ?? 0),
+    proposals_auto_activated: Number(body.proposals_auto_activated ?? 0),
+    ai_mode: body.ai_mode ?? null,
+    ...body.skipped ? { skipped: true } : {},
+    ...typeof body.reason === "string" ? { reason: body.reason } : {}
+  };
+}
+
+// packages/mcp-tools/src/create-decision.ts
+var ISO_DATE_PREFIX = /^\d{4}-\d{2}-\d{2}/;
+var ExpectedOutcomeSchema = external_exports.union([
+  external_exports.string().min(1).max(4e3),
+  external_exports.record(external_exports.string(), external_exports.unknown())
+]);
+var CreateDecisionArgs = external_exports.object({
+  title: external_exports.string().min(1).max(256),
+  expected_outcome: ExpectedOutcomeSchema.optional(),
+  review_by: external_exports.string().regex(ISO_DATE_PREFIX, "review_by must start with an ISO date (YYYY-MM-DD)").optional(),
+  content: external_exports.string().max(1e5).optional(),
+  // A decision is scoped like any other doc. Defaults to team (account-wide,
+  // always visible to the scheduled agent that later verifies it) — a
+  // hook-less host usually has no bound project to attach it to.
+  scope: external_exports.enum(["personal", "project", "team"]).optional(),
+  project_id: external_exports.string().uuid().nullish()
+});
+async function createDecision(ctx, rawArgs) {
+  const args = CreateDecisionArgs.parse(rawArgs);
+  if (!ctx.accessToken) {
+    throw new Error(
+      "memlin_create_decision is unavailable on this connection (no access token to reach the documents API)."
+    );
+  }
+  const base = (ctx.apiBaseUrl || "https://memlin.ai/api/v1").replace(/\/+$/, "");
+  const scope = args.scope ?? "team";
+  const projectId = args.project_id ?? ctx.projectId ?? null;
+  const custom3 = {};
+  if (args.expected_outcome !== void 0) custom3.expected_outcome = args.expected_outcome;
+  if (args.review_by) custom3.review_by = args.review_by;
+  const hasCustom = Object.keys(custom3).length > 0;
+  const headers = {
+    Authorization: `Bearer ${ctx.accessToken}`,
+    "Content-Type": "application/json"
+  };
+  if (ctx.accountId) headers["Memlin-Account-Id"] = ctx.accountId;
+  const res = await fetch(`${base}/documents`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      kind: "decision",
+      scope,
+      title: args.title,
+      content: args.content ?? "",
+      ...projectId ? { project_id: projectId } : {},
+      ...hasCustom ? { metadata: { custom: custom3 } } : {}
+    })
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    let msg = text.slice(0, 500);
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed.error) msg = parsed.error;
+    } catch {
+    }
+    throw new Error(`create_decision HTTP ${res.status}: ${msg}`);
+  }
+  let body;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    throw new Error(`documents route returned non-JSON response: ${text.slice(0, 200)}`);
+  }
+  return {
+    document_id: body.document_id ?? "",
+    version_id: body.version_id ?? "",
+    version_number: Number(body.version_number ?? 1),
+    review_by: args.review_by ?? null
+  };
+}
+
+// packages/mcp-tools/src/resources.ts
+var RESOURCE_KINDS = ["memory", "skill", "goal", "schema", "decision"];
+var LIST_LIMIT = 50;
+var MIME = "text/markdown";
+function resourceError(message) {
+  const e2 = new Error(message);
+  e2.mcpCode = -32602;
+  return e2;
+}
+function resourceTemplates() {
+  return [
+    {
+      uriTemplate: "memlin://{kind}/{id}",
+      name: "Memlin document",
+      description: "Any workspace document by kind (memory | skill | goal | schema | decision) and id (uuid).",
+      mimeType: MIME
+    }
+  ];
+}
+async function listResources(ctx) {
+  let q2 = ctx.supabase.from("documents").select("id, kind, title, path, status, project_id, updated_at").eq("account_id", ctx.accountId).in("kind", RESOURCE_KINDS).order("updated_at", { ascending: false }).limit(LIST_LIMIT);
+  if (ctx.projectId) {
+    q2 = q2.or(`project_id.eq.${ctx.projectId},project_id.is.null`);
+  }
+  const { data, error: error2 } = await q2;
+  if (error2) throw new Error(`list_resources: ${error2.message}`);
+  const rows = data ?? [];
+  return rows.filter((r2) => r2.status !== "archived").map((r2) => ({
+    uri: `memlin://${r2.kind}/${r2.id}`,
+    name: r2.title,
+    description: r2.path ? `${r2.kind} \xB7 ${r2.path}` : r2.kind,
+    mimeType: MIME
+  }));
+}
+async function readResource(ctx, uri) {
+  const parsed = parseUri(uri);
+  if (!parsed) throw resourceError(`unsupported resource uri (expected memlin://<kind>/<id>): ${uri}`);
+  const row = await getDocument(ctx, { document_id: parsed.id });
+  const title = typeof row.title === "string" ? row.title : parsed.id;
+  const version4 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+  const content = typeof version4?.content === "string" ? version4.content : "";
+  return {
+    contents: [{ uri, mimeType: MIME, text: `# ${title}
+
+${content}` }]
+  };
+}
+function parseUri(uri) {
+  const m2 = /^memlin:\/\/([^/]+)\/([^/]+)$/.exec(uri.trim());
+  if (!m2) return null;
+  return { kind: m2[1], id: m2[2] };
+}
+
 // packages/mcp-tools/src/dispatch.ts
 async function callTool(ctx, name, args) {
   switch (name) {
@@ -64327,6 +64819,10 @@ async function callTool(ctx, name, args) {
       return searchFeedback(ctx, args);
     case "memlin_feedback_list_clusters":
       return listFeedbackClusters(ctx, args);
+    case "memlin_capture_session":
+      return captureSession(ctx, args);
+    case "memlin_create_decision":
+      return createDecision(ctx, args);
     default:
       throw new Error(`unknown tool: ${name}`);
   }
@@ -65759,7 +66255,11 @@ function createToolContext(accessToken) {
     agentKind: agentKind(),
     sessionId: process.env.MEMLIN_SESSION_ID || null,
     defaultCwd: cfg.cwd,
-    defaultGitRemote: cfg.gitRemote
+    defaultGitRemote: cfg.gitRemote,
+    // For tools that call back into the REST API (memlin_capture_session →
+    // /api/v1/scribe/session) rather than going straight to Supabase.
+    accessToken,
+    apiBaseUrl: cfg.apiUrl
   };
 }
 var STATUS_TOOL = {
@@ -65894,11 +66394,35 @@ var cfg = await resolveConfig().catch((err) => {
 });
 var server = new Server(
   { name: "memlin", version: "0.2.14" },
-  { capabilities: { tools: {} } }
+  { capabilities: { tools: {}, prompts: {}, resources: {} } }
 );
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [...TOOLS, STATUS_TOOL]
 }));
+server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+  prompts: listPrompts()
+}));
+server.setRequestHandler(GetPromptRequestSchema, async (req) => {
+  const name = req.params.name;
+  const args = req.params.arguments ?? {};
+  const token = await currentAccessToken();
+  const resolveFn = async ({ task, project_id }) => await resolveViaApi({
+    task,
+    ...project_id ? { project_id } : {}
+  });
+  const result = await getPrompt(createToolContext(token), name, args, resolveFn);
+  return result;
+});
+server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+  resources: await listResources(createToolContext(await currentAccessToken()))
+}));
+server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
+  resourceTemplates: resourceTemplates()
+}));
+server.setRequestHandler(ReadResourceRequestSchema, async (req) => {
+  const result = await readResource(createToolContext(await currentAccessToken()), req.params.uri);
+  return result;
+});
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
   const name = req.params.name;
   const args = req.params.arguments ?? {};
