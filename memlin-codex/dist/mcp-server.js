@@ -62167,7 +62167,12 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         },
         componentId: null,
         componentName: null,
-        decayMultiplier: decayMultiplierForKind(kind2, r2.updated_at)
+        // Decay off created_at, not updated_at: a corpus-wide maintenance write
+        // (e.g. a backfill) bumps updated_at and would silently reset every
+        // doc's decay clock to "fresh" — exactly what neutralized decay
+        // fleet-wide. created_at is the doc's true age. citation.updated_at
+        // above stays as the "last modified" provenance shown to users.
+        decayMultiplier: decayMultiplierForKind(kind2, r2.created_at)
       });
     }
   }
@@ -62325,7 +62330,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       const replacementIds = projectBrainPolicy.overridePairs.map((p2) => p2.replacement_document_id).filter((id) => !candidates.some((c2) => c2.id === id));
       if (replacementIds.length > 0) {
         const { data: replacementRows, error: replacementErr } = await ctx.supabase.from("documents").select(
-          `id, title, kind, path, status, updated_at,
+          `id, title, kind, path, status, updated_at, created_at,
              document_versions!documents_current_version_fk ( version_number, author_id )`
         ).in("id", replacementIds);
         if (replacementErr) {
@@ -62351,7 +62356,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
               },
               componentId: null,
               componentName: null,
-              decayMultiplier: decayMultiplierForKind(row.kind, row.updated_at)
+              // created_at, not updated_at — see the search-candidate build.
+              decayMultiplier: decayMultiplierForKind(row.kind, row.created_at)
             });
           }
         }
@@ -63258,11 +63264,12 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     brand_guidelines_updated_at: brandGuidelines?.updated_at ?? null,
     cwd: args.cwd ?? null,
     git_remote: args.git_remote ?? null,
-    // Task vector — kept in metadata as a fallback for older readers and
-    // for the brief window between deploy and migration apply. Authoritative
-    // storage (once 0039 lands) is the indexed task_embedding column on
-    // usage_events.
-    task_embedding: taskEmbedding,
+    // task_embedding is deliberately NOT mirrored into metadata: it's a 1536-
+    // float vector — ~86% of each audit row's JSON (~31KB) — and the
+    // authoritative copy is the indexed usage_events.task_embedding COLUMN
+    // (migration 0039, written via p_task_embedding below). Readers
+    // (search_past_resolves, the usage aggregator) use the column; the old
+    // metadata mirror was transitional dead weight on every resolve.
     // Reranker telemetry — present when the 2-stage retrieval ran. Powers
     // offline precision-at-K analysis + future learned-threshold tuning.
     // null entries when the reranker wasn't wired or fell back to cosine.
