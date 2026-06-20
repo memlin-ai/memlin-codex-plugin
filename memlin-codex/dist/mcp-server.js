@@ -61504,6 +61504,13 @@ function inferBudget(task) {
   }
   return { tokens: BUDGET_STANDARD_TOKENS, tier: "standard" };
 }
+function tierForTokens(tokens) {
+  const midMicroStandard = Math.round((BUDGET_MICRO_TOKENS + BUDGET_STANDARD_TOKENS) / 2);
+  const midStandardDeep = Math.round((BUDGET_STANDARD_TOKENS + BUDGET_DEEP_TOKENS) / 2);
+  if (tokens < midMicroStandard) return "micro";
+  if (tokens < midStandardDeep) return "standard";
+  return "deep";
+}
 async function inferBudgetFromCorpus(ctx, queryVec) {
   if (!queryVec) return null;
   const limit2 = Math.max(BUDGET_CORPUS_MIN_HISTORY, BUDGET_CORPUS_K * 2);
@@ -61534,13 +61541,7 @@ async function inferBudgetFromCorpus(ctx, queryVec) {
   if (!Number.isFinite(avg) || avg <= 0) return null;
   const target = Math.round(avg * 1.25);
   const tokens = Math.min(BUDGET_CEILING, Math.max(BUDGET_FLOOR, target));
-  const midMicroStandard = Math.round((BUDGET_MICRO_TOKENS + BUDGET_STANDARD_TOKENS) / 2);
-  const midStandardDeep = Math.round((BUDGET_STANDARD_TOKENS + BUDGET_DEEP_TOKENS) / 2);
-  let tier;
-  if (tokens < midMicroStandard) tier = "micro";
-  else if (tokens < midStandardDeep) tier = "standard";
-  else tier = "deep";
-  return { tokens, tier };
+  return { tokens, tier: tierForTokens(tokens) };
 }
 var DEFAULT_K_PER_KIND = 20;
 var MIN_CANDIDATES_FOR_RERANK = 4;
@@ -62011,6 +62012,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   let maxTokens;
   let budgetTier;
   let budgetSource;
+  let budgetFloorApplied = false;
   if (args.max_tokens !== void 0) {
     maxTokens = args.max_tokens;
     budgetTier = "explicit";
@@ -62018,8 +62020,11 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   } else {
     const fromCorpus = await inferBudgetFromCorpus(ctx, queryVec);
     if (fromCorpus) {
-      maxTokens = fromCorpus.tokens;
-      budgetTier = fromCorpus.tier;
+      const heuristicTokens = inferBudget(args.task).tokens;
+      const floored = Math.max(fromCorpus.tokens, Math.round(heuristicTokens * 0.75));
+      maxTokens = Math.min(BUDGET_CEILING, floored);
+      budgetFloorApplied = maxTokens > fromCorpus.tokens;
+      budgetTier = tierForTokens(maxTokens);
       budgetSource = "corpus";
     } else {
       const fromHeuristic = inferBudget(args.task);
@@ -63286,6 +63291,9 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     // tier distribution.
     budget_tier: budgetTier,
     budget_source: budgetSource,
+    // True when the corpus estimate was raised by the task-shape floor (so the
+    // fleet-wide bundle-token cost of the de-collapse is measurable).
+    budget_floor_applied: budgetFloorApplied,
     // Which ranker drove the search legs. 'semantic' = pure cosine via
     // search_documents (when explicitly requested with hybrid=false);
     // 'hybrid' = cosine + BM25 RRF via search_documents_hybrid. Dashboards can
