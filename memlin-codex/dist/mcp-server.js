@@ -61642,10 +61642,14 @@ async function loadFitnessMultipliers(ctx, candidateIds) {
     for (const inv of invocations) {
       const meta = inv.metadata;
       const items = meta?.items;
+      const itemIds = meta?.item_ids;
+      let ids = [];
       if (Array.isArray(items)) {
-        const ids = items.map((i2) => i2?.id).filter((id) => typeof id === "string");
-        auditToItems.set(inv.id, ids);
+        ids = items.map((i2) => i2?.id).filter((id) => typeof id === "string");
+      } else if (Array.isArray(itemIds)) {
+        ids = itemIds.filter((id) => typeof id === "string");
       }
+      if (ids.length > 0) auditToItems.set(inv.id, ids);
     }
     const posCounts = /* @__PURE__ */ new Map();
     const negCounts = /* @__PURE__ */ new Map();
