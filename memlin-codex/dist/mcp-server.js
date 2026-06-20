@@ -58501,7 +58501,26 @@ var RULES = [
       "config file",
       "next.config",
       "webpack",
-      "esbuild config"
+      "esbuild config",
+      // Install / tooling-setup ops — a recurring live theme for a product
+      // whose users install agent plugins/extensions ("do we have to
+      // reinstall it", "full install", pasted `.vsix` install sessions).
+      // Kept SPECIFIC (no bare "install") so "ship the v2 onboarding"
+      // stays a feature and "fix the install button" stays a bug.
+      "reinstall",
+      "re-install",
+      "uninstall",
+      "un-install",
+      "full install",
+      "fresh install",
+      "clean install",
+      "install the extension",
+      "install-extension",
+      "install the plugin",
+      "install the cli",
+      "install cursor",
+      ".vsix",
+      "vsix"
     ]
   },
   // Docs before feature — "add README" is docs.
@@ -58549,7 +58568,15 @@ var RULES = [
       "too much friction",
       "doesn't feel right",
       "reword",
-      "rephrase"
+      "rephrase",
+      // Taste / preference feedback on something that already exists.
+      "don't like",
+      "dont like",
+      "don't love",
+      "dont love",
+      "not a fan",
+      "looks off",
+      "looks wrong"
     ]
   },
   // Refactor before bug — "refactor auth.ts" is refactor, not bug.
@@ -58574,7 +58601,12 @@ var RULES = [
     ]
   },
   // Bug — explicit bug words. Comes after refactor + test so
-  // "fix test" lands in test not bug.
+  // "fix test" lands in test not bug. The "still …" / "doesn't work" /
+  // "is it fixed" / "did you fix" phrasings were the single biggest
+  // bucket of live UNKNOWN tasks (bare-fix imperatives + state-check
+  // follow-ups like "is it fixed" / "still says … wrong" / "merge it and
+  // fix it"). They're unambiguous fix-intent — the user is reporting or
+  // chasing a defect — so they belong here even without the word "bug".
   {
     category: "bug",
     patterns: [
@@ -58594,10 +58626,49 @@ var RULES = [
       "off-by-one",
       "null pointer",
       "segfault",
-      "panic"
+      "panic",
+      // State-check follow-ups — "is it fixed?", "did you fix it",
+      // "still broken". These dominate real conversational task text.
+      "is it fixed",
+      "is this fixed",
+      "is that fixed",
+      "is it fully fixed",
+      "fully fixed",
+      "did you fix",
+      "did u fix",
+      "didn't fix",
+      "didnt fix",
+      "didn't you fix",
+      "didnt you fix",
+      "not fixed yet",
+      "still not fixed",
+      "still broken",
+      "still failing",
+      "still fails",
+      "still doesn't work",
+      "still doesnt work",
+      "still says",
+      "still shows",
+      // Failure reports without the word "bug".
+      "doesn't work",
+      "does not work",
+      "doesnt work",
+      "not working",
+      "isn't working",
+      "isnt working",
+      "no longer works",
+      "stopped working",
+      "won't work",
+      "wont work"
     ],
-    // "fix X" alone is bug only when X looks like a problem.
-    regex: [/\bfix\b.*\b(crash|error|broken|failure|leak)\b/]
+    // "fix X" alone is bug only when X looks like a problem, OR when the
+    // object is a pronoun ("fix it / this / them / everything") — a bare
+    // fix imperative is always defect work. Word boundary on the pronoun
+    // so "fix iteration" / "fix item" don't false-match.
+    regex: [
+      /\bfix\b.*\b(crash|error|broken|failure|leak)\b/,
+      /\bfix(?:es|ed|ing)?\s+(?:it|this|that|them|these|those|all|everything)\b/
+    ]
   },
   // Chore — dependency / housekeeping. Before feature.
   // Informal-phrasing patterns ("knock off", "close gaps", "keep
