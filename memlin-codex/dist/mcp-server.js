@@ -61195,7 +61195,8 @@ async function assembleConcurrentWork(ctx, projectId, ownSessionId, componentNam
     if (meta.project_id !== projectId) continue;
     const sid = typeof meta.session_id === "string" ? meta.session_id : null;
     if (!sid || sid === ownSessionId) continue;
-    if (!latest.has(sid)) latest.set(sid, { meta, at: row.created_at, userId: row.user_id ?? null });
+    if (!latest.has(sid))
+      latest.set(sid, { meta, at: row.created_at, userId: row.user_id ?? null });
   }
   const now = Date.now();
   const entries = [];
@@ -61333,7 +61334,14 @@ function wantsClaimGuardrails(task) {
   );
 }
 var BRAND_VOCAB = /\b(brand|branding|copy|copywriting|tagline|slogan|tone|voice|logo|colou?rs?|palette|typography|font|design|microcopy|headline|blog|email|newsletter|announcement|social|tweet|post|deck|slides?|website|homepage|hero|empty state|ui text|user[- ]facing)\b/i;
-var BRAND_DEMOTABLE_CATEGORIES = /* @__PURE__ */ new Set(["bug", "refactor", "test", "migration", "infra", "chore"]);
+var BRAND_DEMOTABLE_CATEGORIES = /* @__PURE__ */ new Set([
+  "bug",
+  "refactor",
+  "test",
+  "migration",
+  "infra",
+  "chore"
+]);
 function taskLooksBrandRelated(task) {
   if (wantsClaimGuardrails(task)) return true;
   if (BRAND_VOCAB.test(task)) return true;
@@ -61688,6 +61696,64 @@ async function loadFitnessMultipliers(ctx, candidateIds) {
   }
   return multipliers;
 }
+async function hydrateCandidateBodies(ctx, candidateIds, functionBodyById, functionComponentById) {
+  const bodyMap = /* @__PURE__ */ new Map();
+  const componentIdByDoc = /* @__PURE__ */ new Map();
+  const rolesByDoc = /* @__PURE__ */ new Map();
+  const componentScopedByDoc = /* @__PURE__ */ new Map();
+  const canaryContentMap = /* @__PURE__ */ new Map();
+  if (candidateIds.length > 0) {
+    const { data: docRows, error: docErr } = await ctx.supabase.from("documents").select(
+      `id, current_version_id, component_id, metadata,
+         document_versions!documents_current_version_fk ( content )`
+    ).in("id", candidateIds);
+    if (docErr) {
+      console.warn(
+        `[resolver] body fetch failed: ${docErr.message} \u2014 proceeding with empty bodies`
+      );
+    } else {
+      const canaryVersionIds = [];
+      for (const row of docRows ?? []) {
+        const r2 = row;
+        const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
+        bodyMap.set(r2.id, v2?.content ?? "");
+        componentIdByDoc.set(r2.id, r2.component_id ?? null);
+        const m2 = r2.metadata;
+        const metaRoles = m2?.roles;
+        rolesByDoc.set(
+          r2.id,
+          Array.isArray(metaRoles) ? metaRoles.filter((x2) => typeof x2 === "string") : []
+        );
+        componentScopedByDoc.set(r2.id, m2?.component_scoped === true);
+        if (m2?.canary_version_id && typeof m2.canary_version_id === "string") {
+          canaryVersionIds.push(m2.canary_version_id);
+        }
+      }
+      for (const [id, body] of functionBodyById) {
+        if (!bodyMap.has(id)) {
+          bodyMap.set(id, body);
+          componentIdByDoc.set(id, functionComponentById.get(id) ?? null);
+          rolesByDoc.set(id, []);
+          componentScopedByDoc.set(id, false);
+        }
+      }
+      if (canaryVersionIds.length > 0) {
+        const { data: vRows, error: vErr } = await ctx.supabase.from("document_versions").select("id, content, version_number").in("id", canaryVersionIds);
+        if (vErr) {
+          console.warn(`[resolver] canary version fetch failed: ${vErr.message}`);
+        } else {
+          for (const v2 of vRows ?? []) {
+            canaryContentMap.set(v2.id, {
+              content: v2.content,
+              version_number: v2.version_number
+            });
+          }
+        }
+      }
+    }
+  }
+  return { bodyMap, componentIdByDoc, rolesByDoc, componentScopedByDoc, canaryContentMap };
+}
 function matchPathPattern(cwd, pattern) {
   if (!cwd || !pattern) return null;
   const c2 = cwd.replace(/\/+$/, "");
@@ -61836,7 +61902,9 @@ async function assembleApiCalls(ctx, projectId, component, componentNameById) {
   }
   if (nodeIds.length === 0) return [];
   const { data: edgeRows } = await ctx.supabase.from("code_edges").select("dst_node_id").eq("project_id", projectId).eq("edge_kind", "calls_http").in("src_node_id", nodeIds).limit(500);
-  const dstIds = [...new Set((edgeRows ?? []).map((r2) => r2.dst_node_id))];
+  const dstIds = [
+    ...new Set((edgeRows ?? []).map((r2) => r2.dst_node_id))
+  ];
   if (dstIds.length === 0) return [];
   const { data: epRows } = await ctx.supabase.from("code_nodes").select("identifier, metadata").in("id", dstIds);
   const endpoints = (epRows ?? []).map((r2) => {
@@ -62382,87 +62450,79 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   let rerankAuditScores = null;
   let rerankLatencyMs = null;
   let rerankFallbackReason = null;
+  const { bodyMap, componentIdByDoc, rolesByDoc, componentScopedByDoc, canaryContentMap } = await hydrateCandidateBodies(
+    ctx,
+    candidates.map((c2) => c2.id),
+    functionBodyById,
+    functionComponentById
+  );
   const skipRerank = args.skip_rerank === true || args.interactive === true;
   const hasRerank = !!(ctx.hostedRerank || ctx.rerank);
   if (hasRerank && candidates.length >= MIN_CANDIDATES_FOR_RERANK && !skipRerank) {
-    const idsForExcerpt = candidates.map((c2) => c2.id);
-    const { data: bodyRows, error: bodyErr } = await ctx.supabase.from("documents").select("id, current_version_id, document_versions!documents_current_version_fk(content)").in("id", idsForExcerpt);
-    if (bodyErr) {
-      console.warn(`[resolver] rerank body fetch failed: ${bodyErr.message} \u2014 skipping rerank`);
-    } else {
-      const bodyById = /* @__PURE__ */ new Map();
-      for (const r2 of bodyRows ?? []) {
-        const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
-        if (v2?.content) bodyById.set(r2.id, v2.content);
+    const rerankInputs = candidates.map((c2) => ({
+      id: c2.id,
+      kind: c2.kind,
+      title: c2.title,
+      excerpt: (bodyMap.get(c2.id) ?? "").slice(0, RERANK_EXCERPT_CHARS)
+    }));
+    try {
+      let scores;
+      let latencyMs;
+      if (ctx.hostedRerank) {
+        const startedAt = Date.now();
+        scores = await Promise.race([
+          rerankHosted(args.task, rerankInputs, ctx.hostedRerank),
+          new Promise(
+            (_2, reject) => setTimeout(() => reject(new Error("hosted rerank timeout")), RERANK_TIMEOUT_MS)
+          )
+        ]);
+        latencyMs = Date.now() - startedAt;
+      } else {
+        const result = await Promise.race([
+          rerankCandidates(args.task, rerankInputs, ctx.rerank),
+          new Promise(
+            (_2, reject) => setTimeout(() => reject(new Error("llm rerank timeout")), RERANK_TIMEOUT_MS)
+          )
+        ]);
+        scores = result.scores;
+        latencyMs = result.latency_ms;
       }
-      for (const [id, body] of functionBodyById) {
-        if (body && !bodyById.has(id)) bodyById.set(id, body);
-      }
-      const rerankInputs = candidates.map((c2) => ({
-        id: c2.id,
-        kind: c2.kind,
-        title: c2.title,
-        excerpt: (bodyById.get(c2.id) ?? "").slice(0, RERANK_EXCERPT_CHARS)
-      }));
-      try {
-        let scores;
-        let latencyMs;
-        if (ctx.hostedRerank) {
-          const startedAt = Date.now();
-          scores = await Promise.race([
-            rerankHosted(args.task, rerankInputs, ctx.hostedRerank),
-            new Promise(
-              (_2, reject) => setTimeout(() => reject(new Error("hosted rerank timeout")), RERANK_TIMEOUT_MS)
-            )
-          ]);
-          latencyMs = Date.now() - startedAt;
-        } else {
-          const result = await Promise.race([
-            rerankCandidates(args.task, rerankInputs, ctx.rerank),
-            new Promise(
-              (_2, reject) => setTimeout(() => reject(new Error("llm rerank timeout")), RERANK_TIMEOUT_MS)
-            )
-          ]);
-          scores = result.scores;
-          latencyMs = result.latency_ms;
-        }
-        rerankLatencyMs = latencyMs;
-        const scoredCount = Object.keys(scores).length;
-        const coverage = candidates.length > 0 ? scoredCount / candidates.length : 0;
-        if (scoredCount === 0 || coverage < RERANK_MIN_COVERAGE) {
-          rerankFallbackReason = scoredCount === 0 ? "rerank_empty" : "rerank_partial";
-          console.warn(
-            `[resolver] rerank scored ${scoredCount}/${candidates.length} candidates (< quorum) \u2014 keeping cosine ordering`
-          );
-        } else {
-          rerankAuditScores = scores;
-          for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
-            const c2 = candidates[i2];
-            const newScore = scores[c2.id];
-            if (newScore === void 0 || newScore <= 0) {
-              omittedCandidates.push({
-                id: c2.id,
-                kind: c2.kind,
-                title: c2.title,
-                similarity: c2.similarity,
-                reason: "rerank_filtered",
-                detail: "reranker omitted or scored this candidate at 0",
-                path: c2.citation.path
-              });
-              candidates.splice(i2, 1);
-              continue;
-            }
-            c2.score = newScore * KIND_WEIGHTS[c2.kind];
-          }
-        }
-      } catch (e2) {
+      rerankLatencyMs = latencyMs;
+      const scoredCount = Object.keys(scores).length;
+      const coverage = candidates.length > 0 ? scoredCount / candidates.length : 0;
+      if (scoredCount === 0 || coverage < RERANK_MIN_COVERAGE) {
+        rerankFallbackReason = scoredCount === 0 ? "rerank_empty" : "rerank_partial";
         console.warn(
-          `[resolver] rerank failed (${e2 instanceof Error ? e2.message : String(e2)}) \u2014 falling back to cosine`
+          `[resolver] rerank scored ${scoredCount}/${candidates.length} candidates (< quorum) \u2014 keeping cosine ordering`
         );
-        rerankAuditScores = null;
-        rerankLatencyMs = null;
-        rerankFallbackReason = "rerank_error";
+      } else {
+        rerankAuditScores = scores;
+        for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
+          const c2 = candidates[i2];
+          const newScore = scores[c2.id];
+          if (newScore === void 0 || newScore <= 0) {
+            omittedCandidates.push({
+              id: c2.id,
+              kind: c2.kind,
+              title: c2.title,
+              similarity: c2.similarity,
+              reason: "rerank_filtered",
+              detail: "reranker omitted or scored this candidate at 0",
+              path: c2.citation.path
+            });
+            candidates.splice(i2, 1);
+            continue;
+          }
+          c2.score = newScore * KIND_WEIGHTS[c2.kind];
+        }
       }
+    } catch (e2) {
+      console.warn(
+        `[resolver] rerank failed (${e2 instanceof Error ? e2.message : String(e2)}) \u2014 falling back to cosine`
+      );
+      rerankAuditScores = null;
+      rerankLatencyMs = null;
+      rerankFallbackReason = "rerank_error";
     }
   }
   let activeComponentId = null;
@@ -62534,62 +62594,6 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         }
       }
       userRoles = [...merged];
-    }
-  }
-  const idsToFetch = candidates.map((c2) => c2.id);
-  const bodyMap = /* @__PURE__ */ new Map();
-  const componentIdByDoc = /* @__PURE__ */ new Map();
-  const rolesByDoc = /* @__PURE__ */ new Map();
-  const componentScopedByDoc = /* @__PURE__ */ new Map();
-  const canaryContentMap = /* @__PURE__ */ new Map();
-  if (idsToFetch.length > 0) {
-    const { data: docRows, error: docErr } = await ctx.supabase.from("documents").select(
-      `id, current_version_id, component_id, metadata,
-         document_versions!documents_current_version_fk ( content )`
-    ).in("id", idsToFetch);
-    if (docErr) {
-      console.warn(
-        `[resolver] body fetch failed: ${docErr.message} \u2014 proceeding with empty bodies`
-      );
-    } else {
-      const canaryVersionIds = [];
-      for (const row of docRows ?? []) {
-        const r2 = row;
-        const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
-        bodyMap.set(r2.id, v2?.content ?? "");
-        componentIdByDoc.set(r2.id, r2.component_id ?? null);
-        const m2 = r2.metadata;
-        const metaRoles = m2?.roles;
-        rolesByDoc.set(
-          r2.id,
-          Array.isArray(metaRoles) ? metaRoles.filter((x2) => typeof x2 === "string") : []
-        );
-        componentScopedByDoc.set(r2.id, m2?.component_scoped === true);
-        if (m2?.canary_version_id && typeof m2.canary_version_id === "string") {
-          canaryVersionIds.push(m2.canary_version_id);
-        }
-      }
-      for (const [id, body] of functionBodyById) {
-        if (!bodyMap.has(id)) {
-          bodyMap.set(id, body);
-          componentIdByDoc.set(id, functionComponentById.get(id) ?? null);
-          rolesByDoc.set(id, []);
-          componentScopedByDoc.set(id, false);
-        }
-      }
-      if (canaryVersionIds.length > 0) {
-        const { data: vRows, error: vErr } = await ctx.supabase.from("document_versions").select("id, content, version_number").in("id", canaryVersionIds);
-        if (vErr) {
-          console.warn(`[resolver] canary version fetch failed: ${vErr.message}`);
-        } else {
-          for (const v2 of vRows ?? []) {
-            canaryContentMap.set(v2.id, {
-              content: v2.content,
-              version_number: v2.version_number
-            });
-          }
-        }
-      }
     }
   }
   for (const c2 of candidates) {
@@ -62910,7 +62914,12 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const collisionWarnings = buildCollisionWarnings(concurrentWork, activeComponentName, args.task);
   let recentFileEdits = [];
   try {
-    recentFileEdits = await assembleFileActivity(ctx, projectId, audit.sessionId ?? null, ctx.userId ?? null);
+    recentFileEdits = await assembleFileActivity(
+      ctx,
+      projectId,
+      audit.sessionId ?? null,
+      ctx.userId ?? null
+    );
   } catch (e2) {
     console.warn(
       `[resolver] file-activity assembly failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without it`
@@ -62995,16 +63004,13 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   }
   if (args.include_open_threads) {
     try {
-      const { data: threadRows, error: threadErr } = await ctx.supabase.rpc(
-        "list_open_threads",
-        {
-          p_account_id: ctx.accountId,
-          p_entities: args.entities && args.entities.length > 0 ? args.entities : null,
-          p_status: "open",
-          p_project_id: projectId ?? null,
-          p_limit: 50
-        }
-      );
+      const { data: threadRows, error: threadErr } = await ctx.supabase.rpc("list_open_threads", {
+        p_account_id: ctx.accountId,
+        p_entities: args.entities && args.entities.length > 0 ? args.entities : null,
+        p_status: "open",
+        p_project_id: projectId ?? null,
+        p_limit: 50
+      });
       if (!threadErr && Array.isArray(threadRows)) {
         const taskLower = ` ${args.task.toLowerCase()} `;
         const includedMemoryIds = new Set(bundle.memory.map((m2) => m2.id));
@@ -63052,10 +63058,16 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     } catch {
     }
   }
-  const decisionItems = [...bundle.decisions, ...bundle.pinned.filter((p2) => p2.kind === "decision")];
+  const decisionItems = [
+    ...bundle.decisions,
+    ...bundle.pinned.filter((p2) => p2.kind === "decision")
+  ];
   if (decisionItems.length > 0) {
     try {
-      const { data: verRows, error: verErr } = await ctx.supabase.from("decision_verifications").select("document_id, verdict, observed_at, model_attribution").eq("account_id", ctx.accountId).in("document_id", decisionItems.map((d2) => d2.id)).order("observed_at", { ascending: false }).limit(200);
+      const { data: verRows, error: verErr } = await ctx.supabase.from("decision_verifications").select("document_id, verdict, observed_at, model_attribution").eq("account_id", ctx.accountId).in(
+        "document_id",
+        decisionItems.map((d2) => d2.id)
+      ).order("observed_at", { ascending: false }).limit(200);
       if (!verErr && Array.isArray(verRows)) {
         const latest = /* @__PURE__ */ new Map();
         for (const r2 of verRows) {
