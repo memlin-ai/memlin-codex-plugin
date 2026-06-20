@@ -60952,8 +60952,11 @@ Rules:
 - The agent shouldn't see surplus context; aggressively penalize off-topic items.`;
 function buildUserMessage(task, candidates) {
   const numbered = candidates.map(
+    // No .slice() here — the caller already sized the excerpt
+    // (RERANK_EXCERPT_CHARS). A second hard-coded 500-char slice made bumping
+    // that constant a silent no-op.
     (c2, i2) => `${i2 + 1}. [${c2.kind}] "${c2.title}"
-   ${c2.excerpt.replace(/\s+/g, " ").slice(0, 500)}`
+   ${c2.excerpt.replace(/\s+/g, " ")}`
   ).join("\n\n");
   return [
     "<task>",
@@ -61543,6 +61546,7 @@ var DEFAULT_K_PER_KIND = 20;
 var MIN_CANDIDATES_FOR_RERANK = 4;
 var RERANK_TIMEOUT_MS = 4e3;
 var RERANK_EXCERPT_CHARS = 500;
+var RERANK_MIN_COVERAGE = 0.5;
 var BRAND_GUIDELINES_LOGO_SIGNED_URL_TTL_SECONDS = 60 * 60;
 var KIND_THRESHOLDS = {
   skill: 0.5,
@@ -62362,6 +62366,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   }
   let rerankAuditScores = null;
   let rerankLatencyMs = null;
+  let rerankFallbackReason = null;
   const skipRerank = args.skip_rerank === true || args.interactive === true;
   const hasRerank = !!(ctx.hostedRerank || ctx.rerank);
   if (hasRerank && candidates.length >= MIN_CANDIDATES_FOR_RERANK && !skipRerank) {
@@ -62406,25 +62411,34 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
           scores = result.scores;
           latencyMs = result.latency_ms;
         }
-        rerankAuditScores = scores;
         rerankLatencyMs = latencyMs;
-        for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
-          const c2 = candidates[i2];
-          const newScore = scores[c2.id];
-          if (newScore === void 0 || newScore <= 0) {
-            omittedCandidates.push({
-              id: c2.id,
-              kind: c2.kind,
-              title: c2.title,
-              similarity: c2.similarity,
-              reason: "rerank_filtered",
-              detail: "reranker omitted or scored this candidate at 0",
-              path: c2.citation.path
-            });
-            candidates.splice(i2, 1);
-            continue;
+        const scoredCount = Object.keys(scores).length;
+        const coverage = candidates.length > 0 ? scoredCount / candidates.length : 0;
+        if (scoredCount === 0 || coverage < RERANK_MIN_COVERAGE) {
+          rerankFallbackReason = scoredCount === 0 ? "rerank_empty" : "rerank_partial";
+          console.warn(
+            `[resolver] rerank scored ${scoredCount}/${candidates.length} candidates (< quorum) \u2014 keeping cosine ordering`
+          );
+        } else {
+          rerankAuditScores = scores;
+          for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
+            const c2 = candidates[i2];
+            const newScore = scores[c2.id];
+            if (newScore === void 0 || newScore <= 0) {
+              omittedCandidates.push({
+                id: c2.id,
+                kind: c2.kind,
+                title: c2.title,
+                similarity: c2.similarity,
+                reason: "rerank_filtered",
+                detail: "reranker omitted or scored this candidate at 0",
+                path: c2.citation.path
+              });
+              candidates.splice(i2, 1);
+              continue;
+            }
+            c2.score = newScore * KIND_WEIGHTS[c2.kind];
           }
-          c2.score = newScore * KIND_WEIGHTS[c2.kind];
         }
       } catch (e2) {
         console.warn(
@@ -62432,6 +62446,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         );
         rerankAuditScores = null;
         rerankLatencyMs = null;
+        rerankFallbackReason = "rerank_error";
       }
     }
   }
@@ -63249,6 +63264,11 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     rerank_used: rerankAuditScores !== null,
     rerank_scores: rerankAuditScores,
     rerank_latency_ms: rerankLatencyMs,
+    // Non-null when rerank was attempted but did NOT drive ranking (empty /
+    // partial / errored). Surfaces the fail-open guard in prod so a spike in
+    // 'rerank_empty'/'rerank_partial' is visible rather than a silent quality
+    // dip. null = rerank scored a quorum, or was never wired/attempted.
+    rerank_fallback_reason: rerankFallbackReason,
     // Time-decay telemetry. Only candidates whose multiplier dipped below 1
     // are recorded — keeps audit row size bounded (most candidates are
     // fresh, especially in early-stage corpora). Empty array means no
