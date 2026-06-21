@@ -61154,6 +61154,7 @@ function ageDaysSince(observedAt, nowMs) {
 var CONCURRENT_WINDOW_MS = 20 * 6e4;
 var CONCURRENT_MAX = 5;
 var DEPLOY_WINDOW_MS = 12 * 6e4;
+var WORK_SIMILARITY_GATE = 0.62;
 var TASK_OVERLAP_PROMOTE = 0.34;
 var TASK_OVERLAP_MIN_SHARED = 2;
 var TASK_STOPWORDS = /* @__PURE__ */ new Set([
@@ -61361,6 +61362,41 @@ async function assembleDeployInProgress(ctx, projectId, ownSessionId, componentN
   }
   entries.sort((a2, b2) => a2.minutes_ago - b2.minutes_ago);
   return entries.slice(0, CONCURRENT_MAX);
+}
+async function assembleWorkInFlight(ctx, projectId, queryVec) {
+  if (!queryVec) return [];
+  const { data, error: error2 } = await ctx.supabase.rpc("search_work_items", {
+    p_account_id: ctx.accountId,
+    p_project_id: projectId,
+    p_query_embedding: queryVec,
+    p_limit: CONCURRENT_MAX
+  });
+  if (error2 || !data) {
+    if (error2) {
+      console.warn(`[resolver] work-in-flight query failed: ${error2.message} \u2014 proceeding without it`);
+    }
+    return [];
+  }
+  const now = Date.now();
+  const rows = data;
+  const entries = [];
+  for (const r2 of rows) {
+    if (typeof r2.similarity !== "number" || r2.similarity < WORK_SIMILARITY_GATE) continue;
+    const stamp = r2.state === "merged" ? r2.merged_at : r2.pr_updated_at;
+    const ageDays = stamp ? Math.max(0, Math.round((now - new Date(stamp).getTime()) / 864e5)) : 0;
+    entries.push({
+      state: r2.state === "merged" ? "merged" : "open",
+      number: r2.number,
+      title: typeof r2.title === "string" ? r2.title.slice(0, 140) : "",
+      url: r2.url ?? null,
+      author_login: r2.author_login ?? null,
+      head_ref: r2.head_ref ?? null,
+      repo_full_name: r2.repo_full_name,
+      similarity: Math.round(r2.similarity * 100) / 100,
+      age_days: ageDays
+    });
+  }
+  return entries;
 }
 async function recordDeployActivity(ctx, deploy) {
   try {
@@ -62995,6 +63031,14 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       `[resolver] deploy-in-progress assembly failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without it`
     );
   }
+  let workInFlight = [];
+  try {
+    workInFlight = await assembleWorkInFlight(ctx, projectId, queryVec ?? null);
+  } catch (e2) {
+    console.warn(
+      `[resolver] work-in-flight assembly failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without it`
+    );
+  }
   const bySkill = included.filter((i2) => i2.kind === "skill");
   const primary = primarySkill ? bySkill.find((i2) => i2.id === primarySkill.id) ?? null : null;
   const supportingSkills = bySkill.filter((i2) => i2.id !== primary?.id);
@@ -63013,6 +63057,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     collision_warnings: collisionWarnings,
     deploy_in_progress: deployInProgress,
     recent_file_edits: recentFileEdits,
+    work_in_flight: workInFlight,
     open_threads: [],
     pack_context: [],
     recent_feedback: []
