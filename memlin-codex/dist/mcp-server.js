@@ -47389,12 +47389,12 @@ function createFetchClient(options2) {
       headers
     }) {
       const url = buildUrl(options2.baseUrl, path11, query);
-      const authHeaders = await buildAuthHeaders(options2.auth);
+      const authHeaders2 = await buildAuthHeaders(options2.auth);
       const res = await fetchFn(url, {
         method,
         headers: {
           ...body ? { "Content-Type": "application/json" } : {},
-          ...authHeaders,
+          ...authHeaders2,
           ...headers
         },
         body: body ? JSON.stringify(body) : void 0
@@ -51001,13 +51001,13 @@ var SupabaseClient = class {
     return (_data$session$access_ = (_data$session = data.session) === null || _data$session === void 0 ? void 0 : _data$session.access_token) !== null && _data$session$access_ !== void 0 ? _data$session$access_ : _this.supabaseKey;
   }
   _initSupabaseAuthClient({ autoRefreshToken, persistSession, detectSessionInUrl, storage, userStorage, storageKey, flowType, lock, debug: debug2, throwOnError, experimental, lockAcquireTimeout, skipAutoInitialize }, headers, fetch$1) {
-    const authHeaders = {
+    const authHeaders2 = {
       Authorization: `Bearer ${this.supabaseKey}`,
       apikey: `${this.supabaseKey}`
     };
     return new SupabaseAuthClient({
       url: this.authUrl.href,
-      headers: _objectSpread23(_objectSpread23({}, authHeaders), headers),
+      headers: _objectSpread23(_objectSpread23({}, authHeaders2), headers),
       storageKey,
       autoRefreshToken,
       persistSession,
@@ -59399,6 +59399,57 @@ var TOOLS = [
     }
   },
   {
+    name: "memlin_create_feature",
+    description: `Create a Feature (a.k.a. "Workstream" on non-code projects) \u2014 a project-scoped UNIT OF WORK that gathers the thoughts, plans, goals, schemas, and shipped PRs behind one thing you're building, so a teammate or another agent can pick it up and see everything at once. Use this when you start a new piece of work and want to organize the brain around it. Project-scoped: pass project_id or rely on the connection's bound project. Then attach items with memlin_add_to_feature. The write goes through the same web route a person uses (POST /api/v1/features), sharing ai-mode gating, embedding, and the writer-role check. Returns the new feature id.`,
+    inputSchema: {
+      type: "object",
+      required: ["title"],
+      properties: {
+        title: {
+          type: "string",
+          description: "The feature / workstream \u2014 the unit of work, in one line. Becomes its title."
+        },
+        summary: {
+          type: "string",
+          description: "Optional one-line summary of what this feature is and why it exists."
+        },
+        project_id: {
+          type: "string",
+          description: "Project (uuid) the feature lives in. Defaults to the connection's bound project; required if there is none."
+        },
+        status: {
+          type: "string",
+          enum: ["proposed", "active", "shipped", "archived"],
+          description: "Lifecycle status. Defaults to 'active'."
+        }
+      }
+    }
+  },
+  {
+    name: "memlin_add_to_feature",
+    description: "Tag an existing brain item into a feature \u2014 write the belongs_to membership edge so it shows up on the Feature detail page's knowledge panel. Use this to attach the thought / memory / plan / goal / to-do / decision / schema / file you just worked on to the feature it belongs to. Idempotent (re-adding the same item is a no-op). Get the feature id from memlin_create_feature; get item ids from memlin_search / memlin_resolve_task.",
+    inputSchema: {
+      type: "object",
+      required: ["feature_id", "source"],
+      properties: {
+        feature_id: { type: "string", description: "Feature uuid (from memlin_create_feature)." },
+        source: {
+          type: "object",
+          required: ["kind", "id"],
+          description: "The item to attach.",
+          properties: {
+            kind: {
+              type: "string",
+              enum: ["thought", "file", "todo", "plan", "goal", "memory", "skill", "schema", "decision"],
+              description: "Entity kind of the item being attached."
+            },
+            id: { type: "string", description: "Entity uuid." }
+          }
+        }
+      }
+    }
+  },
+  {
     name: "memlin_list_review_due",
     description: 'List decisions whose `review_by` date has arrived but have no recorded verdict yet \u2014 the "outcomes coming due" queue. Poll from a scheduled agent, measure each one, then post a verdict with memlin_verify_outcome. Returns decision id, title, path, project_id, review_by, and updated_at.',
     annotations: { readOnlyHint: true, destructiveHint: false },
@@ -64760,6 +64811,99 @@ async function createDecision(ctx, rawArgs) {
   };
 }
 
+// packages/mcp-tools/src/features.ts
+var MEMBER_KINDS = [
+  "thought",
+  "file",
+  "todo",
+  "plan",
+  "goal",
+  "memory",
+  "skill",
+  "schema",
+  "decision"
+];
+var CreateFeatureArgs = external_exports.object({
+  title: external_exports.string().min(1).max(256),
+  summary: external_exports.string().max(4e3).optional(),
+  project_id: external_exports.string().uuid().nullish(),
+  status: external_exports.enum(["proposed", "active", "shipped", "archived"]).optional()
+});
+var AddToFeatureArgs = external_exports.object({
+  feature_id: external_exports.string().uuid(),
+  source: external_exports.object({ kind: external_exports.enum(MEMBER_KINDS), id: external_exports.string().uuid() })
+});
+function apiBase(ctx) {
+  return (ctx.apiBaseUrl || "https://memlin.ai/api/v1").replace(/\/+$/, "");
+}
+function authHeaders(ctx) {
+  const headers = {
+    Authorization: `Bearer ${ctx.accessToken}`,
+    "Content-Type": "application/json"
+  };
+  if (ctx.accountId) headers["Memlin-Account-Id"] = ctx.accountId;
+  return headers;
+}
+async function postJson(url, headers, body, label) {
+  const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
+  const text = await res.text();
+  if (!res.ok) {
+    let msg = text.slice(0, 500);
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed.error) msg = parsed.error;
+    } catch {
+    }
+    throw new Error(`${label} HTTP ${res.status}: ${msg}`);
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`${label} returned non-JSON response: ${text.slice(0, 200)}`);
+  }
+}
+async function createFeature(ctx, rawArgs) {
+  const args = CreateFeatureArgs.parse(rawArgs);
+  if (!ctx.accessToken) {
+    throw new Error(
+      "memlin_create_feature is unavailable on this connection (no access token to reach the features API)."
+    );
+  }
+  const projectId = args.project_id ?? ctx.projectId ?? null;
+  if (!projectId) {
+    throw new Error(
+      "a feature must belong to a project \u2014 pass project_id, or connect with a bound project."
+    );
+  }
+  const body = await postJson(
+    `${apiBase(ctx)}/features`,
+    authHeaders(ctx),
+    {
+      title: args.title,
+      ...args.summary ? { summary: args.summary } : {},
+      project_id: projectId,
+      ...args.status ? { status: args.status } : {}
+    },
+    "create_feature"
+  );
+  return { id: body.id ?? "" };
+}
+async function addToFeature(ctx, rawArgs) {
+  const args = AddToFeatureArgs.parse(rawArgs);
+  if (!ctx.accessToken) {
+    throw new Error(
+      "memlin_add_to_feature is unavailable on this connection (no access token to reach the features API)."
+    );
+  }
+  await postJson(
+    `${apiBase(ctx)}/features/${args.feature_id}/members`,
+    authHeaders(ctx),
+    { source: args.source },
+    "add_to_feature"
+  );
+  return { ok: true };
+}
+
 // packages/mcp-tools/src/resources.ts
 var RESOURCE_KINDS = ["memory", "skill", "goal", "schema", "decision"];
 var LIST_LIMIT = 50;
@@ -64868,6 +65012,10 @@ async function callTool(ctx, name, args) {
       return captureSession(ctx, args);
     case "memlin_create_decision":
       return createDecision(ctx, args);
+    case "memlin_create_feature":
+      return createFeature(ctx, args);
+    case "memlin_add_to_feature":
+      return addToFeature(ctx, args);
     default:
       throw new Error(`unknown tool: ${name}`);
   }
@@ -65331,6 +65479,18 @@ var MemlinApiClient = class {
   }
   async createHandoff(input) {
     return this.request("POST", "/handoffs", input);
+  }
+  async listFeatures(opts = {}) {
+    const qs = new URLSearchParams();
+    if (opts.project_id) qs.set("project_id", opts.project_id);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return this.request("GET", `/features${suffix}`);
+  }
+  async createFeature(input) {
+    return this.request("POST", "/features", input);
+  }
+  async addFeatureMember(featureId, source) {
+    return this.request("POST", `/features/${featureId}/members`, { source });
   }
   /** POST /documents/search — semantic + text. */
   async search(query, opts = {}) {
