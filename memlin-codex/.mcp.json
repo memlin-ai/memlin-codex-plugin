@@ -4,11 +4,11 @@
       "command": "/bin/sh",
       "args": [
         "-lc",
-        "exec node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.14/dist/mcp-server.js\""
+        "exec node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.15/dist/mcp-server.js\""
       ],
       "env": {
         "MEMLIN_HOST": "codex",
-        "MEMLIN_AGENT_VERSION": "0.2.14",
+        "MEMLIN_AGENT_VERSION": "0.2.15",
         "MEMLIN_AGENT_CAPABILITIES": "mcp,cli,hooks,rules,scribe,resolve"
       }
     }
