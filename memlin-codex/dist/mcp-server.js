@@ -58925,6 +58925,22 @@ var TOOLS = [
     }
   },
   {
+    name: "memlin_delete_memory",
+    description: "Permanently delete a document (memory/skill/goal/schema) and its entire version history. This is irreversible \u2014 use memlin_revert to roll back content instead, or reject a pending proposal with memlin_resolve_proposal. Owner/admin only for shared (project/team) documents; the author may delete their own personal-scope documents. Returns { deleted: true }, or { deleted: false } if the id was not found.",
+    annotations: { destructiveHint: true, idempotentHint: true },
+    inputSchema: {
+      type: "object",
+      required: ["document_id"],
+      properties: {
+        document_id: { type: "string", description: "UUID of the document to delete." },
+        reason: {
+          type: "string",
+          description: "Optional note recorded on the audit-log entry for the deletion."
+        }
+      }
+    }
+  },
+  {
     name: "memlin_search",
     description: "Search the current workspace across kinds, scoped by RLS. Three modes via the `mode` arg: `semantic` (default \u2014 cosine over text-embedding-3-small); `hybrid` (Reciprocal Rank Fusion over cosine + BM25, stronger on technical-jargon queries); `text` (ILIKE on title, no embeddings). Falls back to title ILIKE when no embedder is configured or the embedder errors.",
     annotations: { readOnlyHint: true, destructiveHint: false },
@@ -60809,6 +60825,20 @@ async function revertDocument(ctx, rawArgs) {
   if (error2) throw new Error(`revert: ${error2.message}`);
   if (!data) throw new Error("revert: RPC returned no id");
   return { new_version_id: data };
+}
+var DeleteArgs = external_exports.object({
+  document_id: external_exports.string().uuid(),
+  reason: external_exports.string().max(512).optional()
+});
+async function deleteMemory(ctx, rawArgs) {
+  const args = DeleteArgs.parse(rawArgs);
+  const { data, error: error2 } = await ctx.supabase.rpc("delete_document", {
+    p_document_id: args.document_id,
+    p_account_id: ctx.accountId,
+    p_reason: args.reason ?? null
+  });
+  if (error2) throw new Error(`delete_memory: ${error2.message}`);
+  return { document_id: args.document_id, deleted: data === true };
 }
 var SEARCH_MODES = ["semantic", "hybrid", "text"];
 var SearchArgs = external_exports.object({
@@ -63716,6 +63746,15 @@ async function listProposals(ctx, rawArgs) {
       if (!id || !title || similarity === null) return null;
       return { id, title, similarity };
     }).filter((c2) => c2 !== null) : [];
+    const redactionRaw = meta.redaction_hits;
+    const redactionHits = Array.isArray(redactionRaw) ? redactionRaw.map((h2) => {
+      if (!h2 || typeof h2 !== "object") return null;
+      const o2 = h2;
+      const name = typeof o2.name === "string" ? o2.name : null;
+      const count = typeof o2.count === "number" ? o2.count : null;
+      if (!name || count === null) return null;
+      return { name, count };
+    }).filter((h2) => h2 !== null) : [];
     const updateRaw = meta.update;
     const updateTarget = meta.proposal_action === "update" && updateRaw && typeof updateRaw.target_id === "string" ? {
       id: updateRaw.target_id,
@@ -63735,6 +63774,7 @@ async function listProposals(ctx, rawArgs) {
       memory_type: typeof meta.memory_type === "string" ? meta.memory_type : null,
       overlap_candidates: overlapCandidates,
       promotion_blocked_by: typeof meta.promotion_blocked_by === "string" ? meta.promotion_blocked_by : null,
+      redaction_hits: redactionHits,
       update_target: updateTarget
     };
   });
@@ -64990,6 +65030,8 @@ async function callTool(ctx, name, args) {
       return listVersions(ctx, args);
     case "memlin_revert":
       return revertDocument(ctx, args);
+    case "memlin_delete_memory":
+      return deleteMemory(ctx, args);
     case "memlin_search":
       return search(ctx, args);
     case "memlin_get_document":
