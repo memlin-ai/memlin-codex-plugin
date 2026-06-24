@@ -1,6 +1,6 @@
 {
   "name": "memlin",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "description": "One memory. Every model. — the Memlin plugin for Codex: the memlin MCP server, the Memlin skill, and lifecycle hooks.",
   "author": {
     "name": "Memlin",

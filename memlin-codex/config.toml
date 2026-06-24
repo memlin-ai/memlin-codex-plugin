@@ -16,10 +16,10 @@ hooks = true
 
 [mcp_servers.memlin]
 command = "/bin/sh"
-args = ["-lc", "exec node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.17/dist/mcp-server.js\""]
+args = ["-lc", "exec node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.18/dist/mcp-server.js\""]
 startup_timeout_sec = 20
 
 [mcp_servers.memlin.env]
 MEMLIN_HOST = "codex"
-MEMLIN_AGENT_VERSION = "0.2.17"
+MEMLIN_AGENT_VERSION = "0.2.18"
 MEMLIN_AGENT_CAPABILITIES = "mcp,cli,hooks,rules,scribe,resolve"

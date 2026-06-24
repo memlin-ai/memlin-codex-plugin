@@ -65295,7 +65295,7 @@ function agentDevice() {
   return process.env.MEMLIN_AGENT_DEVICE || os3.hostname() || "unknown";
 }
 function agentVersion() {
-  return "0.2.17";
+  return "0.2.18";
 }
 function agentCapabilities() {
   return AGENT_EXPECTED_CAPABILITIES[resolveHost().kind] ?? ["api", "resolve"];
@@ -66300,6 +66300,10 @@ async function scanLocal(opts = {}) {
   }
   return out;
 }
+function filterAbsentOnDisk(paths, rootOverride) {
+  const root = rootOverride ?? resolveHost().homeDir();
+  return paths.filter((p2) => !existsSync2(path9.join(root, p2)));
+}
 
 // apps/mcp-server/src/index.ts
 var MEMLIN_PROD_SUPABASE_URL = "https://nsvqnmvummyxbzupxytl.supabase.co";
@@ -66436,7 +66440,7 @@ function agentHeaders(accessToken, accountId) {
     "Memlin-Account-Id": accountId,
     "Memlin-Agent-Kind": agentKind(),
     "Memlin-Agent-Device": agentDevice2(),
-    "Memlin-Agent-Version": "0.2.17",
+    "Memlin-Agent-Version": "0.2.18",
     "Memlin-Agent-Capabilities": agentCapabilities2(),
     "Content-Type": "application/json"
   };
@@ -66573,10 +66577,11 @@ async function buildStatus() {
         Object.entries(state.documents).filter(([p2]) => !p2.startsWith("plans/"))
       )
     };
-    const { added, modified, deleted } = diffStates(
+    const { added, modified, deleted: flaggedDeleted } = diffStates(
       trackedDocs,
       local.map((l2) => ({ path: l2.path, hash: l2.hash }))
     );
+    const deleted = filterAbsentOnDisk(flaggedDeleted);
     const trackedCount = Object.keys(trackedDocs.documents).length;
     let lastSyncMs = 0;
     for (const doc of Object.values(state.documents)) {
@@ -66626,7 +66631,7 @@ var cfg = await resolveConfig().catch((err) => {
   process.exit(1);
 });
 var server = new Server(
-  { name: "memlin", version: "0.2.17" },
+  { name: "memlin", version: "0.2.18" },
   { capabilities: { tools: {}, prompts: {}, resources: {} } }
 );
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
