@@ -65295,7 +65295,7 @@ function agentDevice() {
   return process.env.MEMLIN_AGENT_DEVICE || os3.hostname() || "unknown";
 }
 function agentVersion() {
-  return "0.2.18";
+  return "0.2.19";
 }
 function agentCapabilities() {
   return AGENT_EXPECTED_CAPABILITIES[resolveHost().kind] ?? ["api", "resolve"];
@@ -66281,6 +66281,36 @@ async function scanLocal(opts = {}) {
       });
     }
   }
+  const goalsDir = path9.join(root, "goals");
+  if (existsSync2(goalsDir)) {
+    for (const file of await fs6.readdir(goalsDir)) {
+      if (!file.endsWith(".md")) continue;
+      const abs = path9.join(goalsDir, file);
+      const content = await fs6.readFile(abs, "utf8");
+      out.push({
+        path: `goals/${file}`,
+        abs_path: abs,
+        kind: "goal",
+        content,
+        hash: hash(content)
+      });
+    }
+  }
+  const schemasDir = path9.join(root, "schemas");
+  if (existsSync2(schemasDir)) {
+    for (const file of await fs6.readdir(schemasDir)) {
+      if (!file.endsWith(".json")) continue;
+      const abs = path9.join(schemasDir, file);
+      const content = await fs6.readFile(abs, "utf8");
+      out.push({
+        path: `schemas/${file}`,
+        abs_path: abs,
+        kind: "schema",
+        content,
+        hash: hash(content)
+      });
+    }
+  }
   if (opts.includePlans) {
     const plansDir = resolveHost().plansDir();
     if (existsSync2(plansDir)) {
@@ -66296,6 +66326,23 @@ async function scanLocal(opts = {}) {
           hash: hash(content)
         });
       }
+    }
+  }
+  if (opts.trackedDocs) {
+    const seen = new Set(out.map((d2) => d2.path));
+    for (const [relPath, meta] of Object.entries(opts.trackedDocs)) {
+      if (seen.has(relPath)) continue;
+      if (relPath.startsWith("plans/")) continue;
+      const abs = path9.join(root, relPath);
+      if (!existsSync2(abs)) continue;
+      const content = await fs6.readFile(abs, "utf8");
+      out.push({
+        path: relPath,
+        abs_path: abs,
+        kind: meta.kind,
+        content,
+        hash: hash(content)
+      });
     }
   }
   return out;
@@ -66440,7 +66487,7 @@ function agentHeaders(accessToken, accountId) {
     "Memlin-Account-Id": accountId,
     "Memlin-Agent-Kind": agentKind(),
     "Memlin-Agent-Device": agentDevice2(),
-    "Memlin-Agent-Version": "0.2.18",
+    "Memlin-Agent-Version": "0.2.19",
     "Memlin-Agent-Capabilities": agentCapabilities2(),
     "Content-Type": "application/json"
   };
@@ -66569,7 +66616,7 @@ async function buildStatus() {
   lines.push("", "Local state");
   try {
     const state = await readState();
-    const allLocal = await scanLocal({ includePlans: true });
+    const allLocal = await scanLocal({ includePlans: true, trackedDocs: state.documents });
     const local = allLocal.filter((d2) => d2.kind !== "plan");
     const trackedDocs = {
       ...state,
@@ -66631,7 +66678,7 @@ var cfg = await resolveConfig().catch((err) => {
   process.exit(1);
 });
 var server = new Server(
-  { name: "memlin", version: "0.2.18" },
+  { name: "memlin", version: "0.2.19" },
   { capabilities: { tools: {}, prompts: {}, resources: {} } }
 );
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
