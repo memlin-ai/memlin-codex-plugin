@@ -1,6 +1,15 @@
 ---
 name: memlin
 description: Use the team's Memlin workspace — resolve project context (skills, memory, approved goals, schemas) via the memlin_* MCP tools, and run the memlin CLI for sync, ask, status, and sign-in.
+examples:
+  - "A <memlin-resolved-context> block is present — apply the primary skill's framework and cite memory facts by path + version."
+  - "A resolved memory fact conflicts with your training data — treat the resolved fact as project ground truth."
+  - "A resolved goal states a constraint — honor it as a hard requirement on the change."
+  - "The user asks about something broader than the bundle — only then invoke memlin_search / memlin_read_memory to explore."
+anti-examples:
+  - "I don't have access to this project's conventions — can you paste them for me?"
+  - "Let me first gather context by resolving the task again before I answer."
+  - "Based on my general training the usual approach is X (disregarding the resolved memory that says otherwise)."
 ---
 
 # Memlin
