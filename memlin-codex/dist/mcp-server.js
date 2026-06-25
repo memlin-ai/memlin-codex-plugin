@@ -61265,6 +61265,30 @@ var CONCURRENT_WINDOW_MS = 20 * 6e4;
 var CONCURRENT_MAX = 5;
 var DEPLOY_WINDOW_MS = 12 * 6e4;
 var WORK_SIMILARITY_GATE = 0.62;
+var DUP_SIMILARITY_GATE = 0.86;
+function parsePgVector(v2) {
+  if (Array.isArray(v2)) return v2;
+  if (typeof v2 !== "string") return null;
+  try {
+    const arr = JSON.parse(v2);
+    return Array.isArray(arr) ? arr : null;
+  } catch {
+    return null;
+  }
+}
+function cosineSim(a2, b2) {
+  if (a2.length !== b2.length) return 0;
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  for (let i2 = 0; i2 < a2.length; i2++) {
+    dot += a2[i2] * b2[i2];
+    na += a2[i2] * a2[i2];
+    nb += b2[i2] * b2[i2];
+  }
+  if (na === 0 || nb === 0) return 0;
+  return dot / (Math.sqrt(na) * Math.sqrt(nb));
+}
 var TASK_OVERLAP_PROMOTE = 0.34;
 var TASK_OVERLAP_MIN_SHARED = 2;
 var TASK_STOPWORDS = /* @__PURE__ */ new Set([
@@ -61325,32 +61349,46 @@ function buildCollisionWarnings(concurrent, activeComponentName, currentTask) {
   const others = concurrent.filter((entry) => entry.same_user !== true);
   if (others.length === 0) return [];
   const currentArea = activeComponentName ?? null;
+  const warnings = [];
+  const dupes = others.filter(
+    (entry) => typeof entry.task_similarity === "number" && entry.task_similarity >= DUP_SIMILARITY_GATE
+  );
+  const dupeKeys = new Set(dupes.map((entry) => entry.session_short ?? entry.task));
+  if (dupes.length > 0) {
+    const pct = Math.round(Math.max(...dupes.map((entry) => entry.task_similarity)) * 100);
+    warnings.push({
+      component: currentArea,
+      guidance: `Likely DUPLICATE work: another live session is running a near-identical task (${pct}% match). Check what they're building before you continue \u2014 you may be redoing it. Coordinate, take their branch, or split off a non-overlapping slice.`,
+      entries: dupes
+    });
+  }
+  const rest = others.filter((entry) => !dupeKeys.has(entry.session_short ?? entry.task));
   let overlapping;
   let area;
   if (currentArea) {
-    overlapping = others.filter((entry) => (entry.component ?? null) === currentArea);
+    overlapping = rest.filter((entry) => (entry.component ?? null) === currentArea);
     area = `component "${currentArea}"`;
   } else {
-    overlapping = others.filter((entry) => {
+    overlapping = rest.filter((entry) => {
       if ((entry.component ?? null) !== null) return false;
       const { score, shared } = taskOverlap(currentTask, entry.task);
       return score >= TASK_OVERLAP_PROMOTE && shared >= TASK_OVERLAP_MIN_SHARED;
     });
     area = "the same work area";
   }
-  if (overlapping.length === 0) return [];
-  return [
-    {
+  if (overlapping.length > 0) {
+    warnings.push({
       component: currentArea,
       guidance: `Possible collision: another agent is active in ${area}. Route around their task, wait for it to finish, or split your work into a separate branch/worktree before editing the same files.`,
       entries: overlapping
-    }
-  ];
+    });
+  }
+  return warnings;
 }
-async function assembleConcurrentWork(ctx, projectId, ownSessionId, componentNameById) {
+async function assembleConcurrentWork(ctx, projectId, ownSessionId, componentNameById, queryVec) {
   if (!projectId) return [];
   const sinceIso = new Date(Date.now() - CONCURRENT_WINDOW_MS).toISOString();
-  const { data, error: error2 } = await ctx.supabase.from("usage_events").select("created_at, user_id, metadata").eq("account_id", ctx.accountId).eq("event_type", "resolve.invocation").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(300);
+  const { data, error: error2 } = await ctx.supabase.from("usage_events").select("id, created_at, user_id, metadata").eq("account_id", ctx.accountId).eq("event_type", "resolve.invocation").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(300);
   if (error2 || !data) {
     console.warn(
       `[resolver] concurrent-work query failed: ${error2?.message ?? "no rows"} \u2014 proceeding without it`
@@ -61364,18 +61402,36 @@ async function assembleConcurrentWork(ctx, projectId, ownSessionId, componentNam
     const sid = typeof meta.session_id === "string" ? meta.session_id : null;
     if (!sid || sid === ownSessionId) continue;
     if (!latest.has(sid))
-      latest.set(sid, { meta, at: row.created_at, userId: row.user_id ?? null });
+      latest.set(sid, { id: row.id, meta, at: row.created_at, userId: row.user_id ?? null });
+  }
+  const embById = /* @__PURE__ */ new Map();
+  if (queryVec && latest.size > 0) {
+    const ids = [...latest.values()].map((r2) => r2.id);
+    const { data: embRows, error: embErr } = await ctx.supabase.from("usage_events").select("id, task_embedding").in("id", ids);
+    if (embErr) {
+      console.warn(
+        `[resolver] concurrent-work embedding fetch failed: ${embErr.message} \u2014 proceeding without similarity`
+      );
+    } else {
+      for (const r2 of embRows ?? []) {
+        const v2 = parsePgVector(r2.task_embedding);
+        if (v2 && v2.length === queryVec.length) embById.set(String(r2.id), v2);
+      }
+    }
   }
   const now = Date.now();
   const entries = [];
-  for (const [sid, { meta, at: at2, userId }] of latest) {
+  for (const [sid, { id, meta, at: at2, userId }] of latest) {
     const compId = typeof meta.active_component_id === "string" ? meta.active_component_id : null;
     const component = compId ? componentNameById.get(compId)?.name ?? null : null;
     const task = typeof meta.task === "string" ? meta.task.slice(0, 140) : "";
+    const v2 = embById.get(String(id));
+    const task_similarity = queryVec && v2 ? Math.round(cosineSim(queryVec, v2) * 100) / 100 : void 0;
     entries.push({
       source: "resolve",
       component,
       task,
+      task_similarity,
       minutes_ago: Math.max(0, Math.round((now - new Date(at2).getTime()) / 6e4)),
       session_short: sid.slice(0, 8),
       agent_kind: typeof meta.agent_kind === "string" ? meta.agent_kind : null,
@@ -63107,7 +63163,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       ctx,
       projectId,
       audit.sessionId ?? null,
-      componentNameById
+      componentNameById,
+      queryVec ?? null
     );
   } catch (e2) {
     console.warn(
