@@ -60759,6 +60759,13 @@ function filterClientMetadata(raw, kind2) {
 async function writeMemory(ctx, rawArgs) {
   const args = WriteArgs.parse(rawArgs);
   const projectId = args.project_id ?? ctx.projectId ?? null;
+  if (args.document_id) {
+    const { data: existing, error: ownErr } = await ctx.supabase.from("documents").select("account_id").eq("id", args.document_id).maybeSingle();
+    if (ownErr) throw new Error(`write_memory: ${ownErr.message}`);
+    if (!existing || existing.account_id !== ctx.accountId) {
+      throw new Error("write_memory: document not found in this account");
+    }
+  }
   let embedding = null;
   if (ctx.embed && args.content.length > 0) {
     try {
