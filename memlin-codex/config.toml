@@ -1,16 +1,17 @@
-# Memlin — Codex config fragment for manual installs.
+# Memlin — Codex MCP fragment for the `codex plugin install` path.
 #
-# Merge this [mcp_servers.memlin] block into ~/.codex/config.toml (or a
-# project-level .codex/config.toml). Do NOT overwrite the file — Codex keeps
-# every server, model, and profile setting in this one file.
+# VERIFIED LIVE against Codex 0.142 (codex exec): Codex spawns a stdio MCP
+# `command` DIRECTLY — no shell, and it does NOT expand variables in
+# `command`/`args`. A node server pointed at "${PLUGIN_ROOT}/dist/mcp-server.js"
+# dies with MODULE_NOT_FOUND (Codex passes the literal string to node). So we go
+# through `/bin/sh -lc`, which expands $HOME at runtime. This works on
+# macOS/Linux. It does NOT work on Windows (there is no /bin/sh — "os error 3");
+# Windows users install with the no-git one-liner
+# (https://memlin.ai/install-codex.ps1), which writes an absolute-`node`
+# [mcp_servers.memlin] block straight into ~/.codex/config.toml instead.
 #
-# It enables Codex lifecycle hooks and registers the local stdio Memlin MCP
-# server bundled with the Codex plugin. Plugin installs use .mcp.json; this is
-# the equivalent manual MCP form, but the feature flag is still required for
-# hooks to fire.
-#
-# Auth: the server reads and refreshes the Auth0 token written by `memlin
-# login` to ~/.config/memlin/token.json.
+# 0.2.19 is replaced with the real version at build time so the path
+# matches the version-stamped dir Codex installs the plugin into.
 [features]
 hooks = true
 

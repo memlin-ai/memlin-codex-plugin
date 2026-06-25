@@ -1,0 +1,87 @@
+==============================================================
+ Memlin for the Codex CLI -- Install
+==============================================================
+
+This is the plugin for the Codex CLI: OpenAI's "codex" command-line
+agent that you run in a terminal. It is NOT a desktop app or the
+ChatGPT Codex web tool.
+
+Plain-text on purpose so it opens cleanly in Notepad. The full guide,
+with links, lives at: https://memlin.ai/docs/plugin-install-guide
+
+
+REQUIREMENTS
+--------------------------------------------------------------
+  - Node.js 18 or newer        (https://nodejs.org)
+  - The Codex CLI              (npm install -g @openai/codex)
+
+
+INSTALL (recommended -- no git, no bash, no build step)
+--------------------------------------------------------------
+Run ONE line in your terminal:
+
+  macOS / Linux (Terminal):
+
+    curl -fsSL https://memlin.ai/install-codex.sh | bash
+
+  Windows (Command Prompt -- not PowerShell):
+
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://memlin.ai/install-codex.ps1 | iex"
+
+The installer downloads this bundle, places it at Codex's plugin
+cache, then wires Codex for you (backing up each file first, never
+overwriting your other settings):
+  - the MCP server  -> ~/.codex/config.toml
+  - the lifecycle hooks -> ~/.codex/hooks.json
+(Codex only finds hooks next to its config files, not in the plugin
+cache, so the hooks must live in ~/.codex/hooks.json to fire.)
+
+
+AFTER INSTALLING
+--------------------------------------------------------------
+When it finishes, the installer prints your EXACT next commands --
+copy them. Unlike Claude Code, Codex has no slash commands and does
+not add "memlin" to your PATH, so each command runs the bundled CLI
+by path:  node "<cache>\dist\cli\main.js" <command>
+
+  1. Sign in:        run the printed  ... main.js login  line.
+                     A browser opens; approve the device code.
+
+  2. Restart Codex completely so it loads the MCP server and hooks.
+
+  3. Bind your repo: cd into the project folder, then run the
+                     printed  ... main.js add-project  line.
+
+  4. Verify:         ask Codex to run the memlin_resolve_task tool,
+                     or run the  ... main.js status  line.
+                     A healthy install shows  project: <name>
+                     (not  project: none).
+
+(On macOS/Linux the installer also drops a "memlin" shortcut in
+ ~/.local/bin, so "memlin login" works directly if that is on your
+ PATH. On Windows, use the printed node "..." lines.)
+
+Re-run the installer any time to update -- it also repairs an older
+config in place (including the legacy /bin/sh block).
+
+
+WINDOWS NOTE
+--------------------------------------------------------------
+The MCP server is launched as:  node "<path>\mcp-server.js"
+
+Older builds launched it through /bin/sh, which does not exist on
+Windows and failed with:
+    "The system cannot find the path specified. (os error 3)"
+
+The current installer resolves the config to a direct "node" call,
+so the server starts on Windows, macOS, and Linux.
+
+
+TROUBLE?
+--------------------------------------------------------------
+  - "bash is not recognized" on Windows: use the Windows one-liner
+    above (Command Prompt). You do not need bash or git.
+  - "memlin is not recognized": that's expected on Windows -- use the
+    node "...\main.js login" command the installer printed instead.
+  - Still stuck: https://memlin.ai/docs/plugin-install-guide
+==============================================================

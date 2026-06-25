@@ -35,14 +35,14 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Edit|Write|MultiEdit|Bash",
         "hooks": [
           {
             "type": "command",
             "command": "node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.19/dist/hooks/post-tool-use.js\"",
             "timeout": 10
           }
-        ],
-        "matcher": "Edit|Write|MultiEdit|Bash"
+        ]
       }
     ],
     "Stop": [
