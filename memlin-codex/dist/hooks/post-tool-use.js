@@ -3522,7 +3522,7 @@ var require_gray_matter = __commonJS({
 // apps/codex-plugin/src/hooks/post-tool-use.ts
 import { spawn } from "node:child_process";
 import path9 from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
 
 // packages/plugin-core/dist/client.js
 import { promises as fs3 } from "node:fs";
@@ -3624,7 +3624,10 @@ function requireClientId() {
 }
 
 // packages/plugin-core/dist/memlin-api-client.js
+import { readFileSync } from "node:fs";
 import os3 from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // packages/plugin-core/dist/runtime-shared.js
 var AGENT_KIND_HEADER = "Memlin-Agent-Kind";
@@ -3766,8 +3769,11 @@ var DEFAULT_API_URL = "https://memlin.ai/api/v1";
 function agentDevice() {
   return process.env.MEMLIN_AGENT_DEVICE || os3.hostname() || "unknown";
 }
+var cachedAgentVersion = null;
 function agentVersion() {
-  return "0.2.20";
+  if (cachedAgentVersion) return cachedAgentVersion;
+  cachedAgentVersion = "0.2.20";
+  return cachedAgentVersion;
 }
 function agentCapabilities() {
   return AGENT_EXPECTED_CAPABILITIES[resolveHost().kind] ?? ["api", "resolve"];
@@ -9074,7 +9080,7 @@ function readHookInput() {
 }
 
 // apps/codex-plugin/src/hooks/post-tool-use.ts
-var HOOK_DIR = path9.dirname(fileURLToPath(import.meta.url));
+var HOOK_DIR = path9.dirname(fileURLToPath2(import.meta.url));
 var PUSH_PLAN_BIN = path9.resolve(HOOK_DIR, "../cli/push-plan.js");
 function editedFile(input) {
   const ti = input?.tool_input;

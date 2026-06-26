@@ -6,7 +6,7 @@ import { execFile } from "node:child_process";
 import { promises as fs6 } from "node:fs";
 import os7 from "node:os";
 import path7 from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
 
 // apps/codex-plugin/src/hooks/heartbeat.ts
 import crypto from "node:crypto";
@@ -114,7 +114,10 @@ function requireClientId() {
 }
 
 // packages/plugin-core/dist/memlin-api-client.js
+import { readFileSync } from "node:fs";
 import os3 from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // packages/plugin-core/dist/runtime-shared.js
 var AGENT_KIND_HEADER = "Memlin-Agent-Kind";
@@ -204,8 +207,11 @@ var DEFAULT_API_URL = "https://memlin.ai/api/v1";
 function agentDevice() {
   return process.env.MEMLIN_AGENT_DEVICE || os3.hostname() || "unknown";
 }
+var cachedAgentVersion = null;
 function agentVersion() {
-  return "0.2.20";
+  if (cachedAgentVersion) return cachedAgentVersion;
+  cachedAgentVersion = "0.2.20";
+  return cachedAgentVersion;
 }
 function agentCapabilities() {
   return AGENT_EXPECTED_CAPABILITIES[resolveHost().kind] ?? ["api", "resolve"];
@@ -884,7 +890,7 @@ async function takeScribeNotice(currentSessionId) {
 }
 
 // apps/codex-plugin/src/hooks/user-prompt-submit.ts
-var HOOK_DIR = path7.dirname(fileURLToPath(import.meta.url));
+var HOOK_DIR = path7.dirname(fileURLToPath2(import.meta.url));
 var RESOLVE_BIN = path7.resolve(HOOK_DIR, "../cli/resolve.js");
 function isTrivial(prompt) {
   const trimmed = prompt.trim();
