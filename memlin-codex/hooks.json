@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.19/dist/hooks/session-start.js\"",
+            "command": "node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.20/dist/hooks/session-start.js\"",
             "timeout": 10
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.19/dist/hooks/user-prompt-submit.js\"",
+            "command": "node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.20/dist/hooks/user-prompt-submit.js\"",
             "timeout": 10
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.19/dist/hooks/pre-tool-use.js\"",
+            "command": "node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.20/dist/hooks/pre-tool-use.js\"",
             "timeout": 5
           }
         ]
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.19/dist/hooks/post-tool-use.js\"",
+            "command": "node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.20/dist/hooks/post-tool-use.js\"",
             "timeout": 10
           }
         ]
@@ -50,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.19/dist/hooks/stop.js\"",
+            "command": "node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.20/dist/hooks/stop.js\"",
             "timeout": 15
           }
         ]

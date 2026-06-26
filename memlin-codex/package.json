@@ -1,6 +1,6 @@
 {
   "name": "@memlin/codex-plugin-bundle",
-  "version": "0.2.19",
+  "version": "0.2.20",
   "type": "module",
   "private": true
 }
