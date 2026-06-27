@@ -61578,6 +61578,10 @@ async function recordDeployActivity(ctx, deploy) {
         active_component_id: deploy.activeComponentId,
         active_component_name: deploy.activeComponentName,
         agent_kind: deploy.agentKind,
+        // Carry the install id so the dashboard's liveness patch can attribute
+        // the deploy back to the agent that's deploying (it keys off
+        // agent_installation_id first, then agent_kind+user_id).
+        agent_installation_id: deploy.agentInstallationId,
         source: "resolve"
       }
     });
@@ -63647,8 +63651,18 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       task: args.task,
       activeComponentId,
       activeComponentName,
-      agentKind: audit.agentKind ?? null
+      agentKind: audit.agentKind ?? null,
+      agentInstallationId: audit.agentInstallationId ?? null
     });
+  }
+  if (audit.agentInstallationId) {
+    try {
+      await ctx.supabase.from("agent_installations").update({ last_sync_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", audit.agentInstallationId);
+    } catch (e2) {
+      console.warn(
+        `[resolver] last_sync_at stamp failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding`
+      );
+    }
   }
   if (auditId) {
     try {
