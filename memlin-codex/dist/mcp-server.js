@@ -62045,28 +62045,116 @@ function emptyProjectBrainPolicy() {
     blockedIds: [],
     overridePairs: [],
     inheritedDefaultIds: [],
-    requiredIds: []
+    requiredIds: [],
+    requiredChainIds: /* @__PURE__ */ new Set(),
+    optionalChainIds: /* @__PURE__ */ new Set()
   };
+}
+async function getProjectTeamId(ctx, projectId) {
+  if (!projectId) return null;
+  const { data, error: error2 } = await ctx.supabase.from("projects").select("team_id").eq("id", projectId).maybeSingle();
+  if (error2 || !data) return null;
+  return (data.team_id ?? null) || null;
 }
 function isProjectBrainInheritedDoc(projectId, candidate, row) {
   if (!projectId) return false;
   if (candidate.kind !== "memory" && candidate.kind !== "skill") return false;
   return (row?.project_id ?? null) === null && (row?.scope === "team" || row?.scope === "personal");
 }
-async function loadProjectBrainPolicy(ctx, projectId) {
+async function loadProjectBrainPolicy(ctx, projectId, teamId = null, userId = null) {
   const policy = emptyProjectBrainPolicy();
-  if (!projectId) return policy;
-  const { data, error: error2 } = await ctx.supabase.from("project_brain_overrides").select("source_document_id, action, replacement_document_id").eq("project_id", projectId);
-  if (error2) {
-    console.warn(
-      `[resolver] project brain overrides fetch failed: ${error2.message} \u2014 proceeding without overrides`
-    );
-    return policy;
+  if (projectId) {
+    const { data, error: error2 } = await ctx.supabase.from("project_brain_overrides").select("source_document_id, action, replacement_document_id").eq("project_id", projectId);
+    if (error2) {
+      console.warn(
+        `[resolver] project brain overrides fetch failed: ${error2.message} \u2014 proceeding without legacy overrides`
+      );
+    } else {
+      for (const row of data ?? []) {
+        policy.overridesBySource.set(row.source_document_id, row);
+      }
+    }
   }
-  for (const row of data ?? []) {
-    policy.overridesBySource.set(row.source_document_id, row);
+  const teamIds = /* @__PURE__ */ new Set();
+  if (teamId) teamIds.add(teamId);
+  if (userId) {
+    const { data: tm, error: tmErr } = await ctx.supabase.from("team_members").select("team_id").eq("user_id", userId);
+    if (!tmErr) {
+      for (const r2 of tm ?? []) teamIds.add(r2.team_id);
+    }
+  }
+  const { data: pols, error: polErr } = await ctx.supabase.from("governance_policies").select("governed_document_id, level, level_ref_id, requirement").eq("account_id", ctx.accountId).eq("active", true);
+  if (polErr) {
+    if (!/does not exist|relation|PGRST20\d/i.test(polErr.message)) {
+      console.warn(`[resolver] governance_policies fetch failed: ${polErr.message}`);
+    }
+  } else {
+    for (const row of pols ?? []) {
+      const applies = row.level === "org" || row.level === "team" && !!row.level_ref_id && teamIds.has(row.level_ref_id) || row.level === "project" && !!projectId && row.level_ref_id === projectId;
+      if (!applies) continue;
+      if (row.requirement === "required") policy.requiredChainIds.add(row.governed_document_id);
+      else policy.optionalChainIds.add(row.governed_document_id);
+    }
+    for (const id of policy.requiredChainIds) policy.optionalChainIds.delete(id);
+  }
+  const optoutScopes = [
+    ["team", teamId],
+    ["project", projectId],
+    ["individual", userId]
+  ];
+  for (const [lvl, ref] of optoutScopes) {
+    if (!ref) continue;
+    const { data, error: error2 } = await ctx.supabase.from("governance_optouts").select("source_document_id, action, replacement_document_id").eq("account_id", ctx.accountId).eq("scope_level", lvl).eq("scope_ref_id", ref);
+    if (error2) {
+      if (!/does not exist|relation|PGRST20\d/i.test(error2.message)) {
+        console.warn(`[resolver] governance_optouts (${lvl}) fetch failed: ${error2.message}`);
+      }
+      continue;
+    }
+    for (const row of data ?? []) {
+      if (policy.requiredChainIds.has(row.source_document_id)) continue;
+      policy.overridesBySource.set(row.source_document_id, row);
+    }
   }
   return policy;
+}
+async function assembleRequiredGoverned(ctx, requiredChainIds) {
+  if (requiredChainIds.size === 0) return [];
+  const ids = [...requiredChainIds];
+  const { data, error: error2 } = await ctx.supabase.from("documents").select(
+    `id, kind, title, path, status, metadata, updated_at,
+       document_versions!documents_current_version_fk ( content, version_number, author_id )`
+  ).eq("account_id", ctx.accountId).in("id", ids);
+  if (error2) {
+    console.warn(`[resolver] required-governed fetch failed: ${error2.message}`);
+    return [];
+  }
+  const out = [];
+  for (const row of data ?? []) {
+    if (row.status === "archived") continue;
+    const metadata = row.metadata ?? {};
+    const metaStatus = typeof metadata.status === "string" ? metadata.status : null;
+    if (metaStatus && metaStatus !== "active") continue;
+    if (!SEARCHABLE_KINDS.includes(row.kind)) continue;
+    const version4 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+    out.push({
+      id: row.id,
+      kind: row.kind,
+      title: row.title,
+      body: version4?.content ?? "",
+      similarity: 1,
+      citation: {
+        path: row.path ?? null,
+        version_number: version4?.version_number ?? 1,
+        updated_at: row.updated_at,
+        author_id: version4?.author_id ?? null
+      },
+      component_id: null,
+      component_name: null
+    });
+  }
+  out.sort((a2, b2) => a2.citation.updated_at < b2.citation.updated_at ? 1 : -1);
+  return out;
 }
 var ARCH_FUNCTION_CAP = 30;
 async function assembleArchitecture(ctx, projectId, component, componentNameById) {
@@ -62294,8 +62382,15 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const args = AssembleBundleArgs.parse(rawArgs);
   const kPerKind = args.k_per_kind ?? DEFAULT_K_PER_KIND;
   const projectId = args.project_id ?? ctx.projectId ?? null;
+  const governanceUserId = ctx.userId ?? null;
+  const teamId = await getProjectTeamId(ctx, projectId);
   const requestedKinds = args.kinds ? args.kinds.filter((k2) => SEARCHABLE_KINDS.includes(k2)) : [...SEARCHABLE_KINDS];
-  const projectBrainPolicy = await loadProjectBrainPolicy(ctx, projectId);
+  const projectBrainPolicy = await loadProjectBrainPolicy(
+    ctx,
+    projectId,
+    teamId,
+    governanceUserId
+  );
   let customThresholds = null;
   let thresholdsMode = "default";
   let brandContextMode = "always";
@@ -62565,8 +62660,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
           c2.memory_type = normalizeMemoryType(meta.memory_type);
         }
         const inherited = isProjectBrainInheritedDoc(projectId, c2, scopeRow);
-        const inheritedDefault = meta?.default_for_projects === true;
-        const inheritedRequired = meta?.required_for_projects === true;
+        const inheritedDefault = meta?.default_for_projects === true || projectBrainPolicy.optionalChainIds.has(c2.id);
+        const inheritedRequired = meta?.required_for_projects === true || projectBrainPolicy.requiredChainIds.has(c2.id);
         if (status === "archived") {
           omittedCandidates.push({
             id: c2.id,
@@ -62594,6 +62689,40 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
           candidates.splice(i2, 1);
           continue;
         }
+        const optout = projectBrainPolicy.overridesBySource.get(c2.id);
+        if (optout && !inheritedRequired) {
+          if (optout.action === "block") {
+            projectBrainPolicy.blockedIds.push(c2.id);
+            omittedCandidates.push({
+              id: c2.id,
+              kind: c2.kind,
+              title: c2.title,
+              similarity: c2.similarity,
+              reason: "status_filtered",
+              detail: "opted out by your team / project / you",
+              path: c2.citation.path
+            });
+            candidates.splice(i2, 1);
+            continue;
+          }
+          if (optout.action === "override" && optout.replacement_document_id) {
+            projectBrainPolicy.overridePairs.push({
+              source_document_id: c2.id,
+              replacement_document_id: optout.replacement_document_id
+            });
+            omittedCandidates.push({
+              id: c2.id,
+              kind: c2.kind,
+              title: c2.title,
+              similarity: c2.similarity,
+              reason: "status_filtered",
+              detail: `overridden by document ${optout.replacement_document_id}`,
+              path: c2.citation.path
+            });
+            candidates.splice(i2, 1);
+            continue;
+          }
+        }
         if (inherited && !inheritedDefault && !inheritedRequired) {
           omittedCandidates.push({
             id: c2.id,
@@ -62607,44 +62736,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
           candidates.splice(i2, 1);
           continue;
         }
-        if (inherited) {
-          if (inheritedDefault) projectBrainPolicy.inheritedDefaultIds.push(c2.id);
-          if (inheritedRequired) projectBrainPolicy.requiredIds.push(c2.id);
-          const override = projectBrainPolicy.overridesBySource.get(c2.id);
-          if (override && !inheritedRequired) {
-            if (override.action === "block") {
-              projectBrainPolicy.blockedIds.push(c2.id);
-              omittedCandidates.push({
-                id: c2.id,
-                kind: c2.kind,
-                title: c2.title,
-                similarity: c2.similarity,
-                reason: "status_filtered",
-                detail: "blocked by this project brain",
-                path: c2.citation.path
-              });
-              candidates.splice(i2, 1);
-              continue;
-            }
-            if (override.action === "override" && override.replacement_document_id) {
-              projectBrainPolicy.overridePairs.push({
-                source_document_id: c2.id,
-                replacement_document_id: override.replacement_document_id
-              });
-              omittedCandidates.push({
-                id: c2.id,
-                kind: c2.kind,
-                title: c2.title,
-                similarity: c2.similarity,
-                reason: "status_filtered",
-                detail: `overridden by project document ${override.replacement_document_id}`,
-                path: c2.citation.path
-              });
-              candidates.splice(i2, 1);
-              continue;
-            }
-          }
-        }
+        if (inheritedDefault) projectBrainPolicy.inheritedDefaultIds.push(c2.id);
+        if (inheritedRequired) projectBrainPolicy.requiredIds.push(c2.id);
         if ((c2.kind === "goal" || c2.kind === "skill") && status !== "approved") {
           omittedCandidates.push({
             id: c2.id,
@@ -62908,6 +63001,17 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   } catch (e2) {
     console.warn(
       `[resolver] pinned assembly failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without pins`
+    );
+  }
+  try {
+    const requiredItems = await assembleRequiredGoverned(ctx, projectBrainPolicy.requiredChainIds);
+    if (requiredItems.length > 0) {
+      const have = new Set(pinnedItems.map((p2) => p2.id));
+      pinnedItems = [...requiredItems.filter((r2) => !have.has(r2.id)), ...pinnedItems];
+    }
+  } catch (e2) {
+    console.warn(
+      `[resolver] required-governed force-include failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without it`
     );
   }
   if (pinnedItems.length > 0) {
