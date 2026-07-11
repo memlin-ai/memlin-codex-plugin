@@ -10,17 +10,17 @@
 # (https://memlin.ai/install-codex.ps1), which writes an absolute-`node`
 # [mcp_servers.memlin] block straight into ~/.codex/config.toml instead.
 #
-# 0.2.25 is replaced with the real version at build time so the path
+# 0.2.26 is replaced with the real version at build time so the path
 # matches the version-stamped dir Codex installs the plugin into.
 [features]
 hooks = true
 
 [mcp_servers.memlin]
 command = "/bin/sh"
-args = ["-lc", "exec node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.25/dist/mcp-server.js\""]
+args = ["-lc", "exec node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.26/dist/mcp-server.js\""]
 startup_timeout_sec = 20
 
 [mcp_servers.memlin.env]
 MEMLIN_HOST = "codex"
-MEMLIN_AGENT_VERSION = "0.2.25"
+MEMLIN_AGENT_VERSION = "0.2.26"
 MEMLIN_AGENT_CAPABILITIES = "mcp,cli,hooks,rules,scribe,resolve"
