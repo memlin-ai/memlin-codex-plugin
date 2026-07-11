@@ -408,7 +408,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.24";
+  cachedAgentVersion = "0.2.25";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -1094,7 +1094,7 @@ var PENDING_BUNDLE_MAX_AGE_MS = 10 * 60 * 1e3;
 function pendingBundlePath() {
   return process.env.MEMLIN_RESOLVE_OUT ?? path8.join(os8.homedir(), ".config", "memlin", "pending-bundle.json");
 }
-async function takePendingBundle(cwd, host) {
+async function takePendingBundle(cwd, host, match) {
   const file = pendingBundlePath();
   let bundle;
   try {
@@ -1114,6 +1114,12 @@ async function takePendingBundle(cwd, host) {
     return null;
   }
   if (bundle.cwd !== cwd || bundle.host !== host) {
+    return null;
+  }
+  if (match?.sessionId != null && bundle.session_id != null && bundle.session_id !== match.sessionId) {
+    return null;
+  }
+  if (match?.task !== void 0 && bundle.task !== match.task) {
     return null;
   }
   await fs6.rm(file, { force: true }).catch(() => {
@@ -1164,9 +1170,10 @@ function runResolveWithBudget(opts) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      void takePendingBundle(opts.cwd, opts.host).then(
-        (bundle) => resolve({ bundle, stillRunning: false })
-      );
+      void takePendingBundle(opts.cwd, opts.host, {
+        sessionId: opts.sessionId ?? null,
+        task: opts.task
+      }).then((bundle) => resolve({ bundle, stillRunning: false }));
     });
     child.on("error", () => {
       if (settled) return;
