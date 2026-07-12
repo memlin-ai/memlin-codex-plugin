@@ -66089,7 +66089,13 @@ async function correctMemory(ctx, rawArgs) {
   if (mode !== "revise" && mode !== "revoke" && mode !== "ignore_once") {
     throw new Error("mode must be 'revise', 'revoke', or 'ignore_once'");
   }
-  const targetIds = Array.isArray(args.target_document_ids) ? args.target_document_ids.filter((t2) => typeof t2 === "string" && t2.length > 0) : [];
+  const targetIds = Array.isArray(args.target_document_ids) ? [
+    ...new Set(
+      args.target_document_ids.filter(
+        (t2) => typeof t2 === "string" && t2.length > 0
+      )
+    )
+  ] : [];
   if (targetIds.length === 0) throw new Error("target_document_ids is required (non-empty)");
   if (mode === "ignore_once") {
     try {
@@ -66136,7 +66142,14 @@ async function correctMemory(ctx, rawArgs) {
     p_replacement_kind: repl && str3(repl.kind) || "memory",
     p_replacement_scope: repl && str3(repl.scope) || "project",
     p_replacement_project_id: repl && str3(repl.project_id) || ctx.projectId || null,
-    p_replacement_metadata: repl && repl.metadata && typeof repl.metadata === "object" ? repl.metadata : {},
+    // Default memory-kind heads to memory_type 'correction' so the replacement
+    // carries USER_CORRECTION authority from birth — an unstamped head is born
+    // HISTORICAL (tier 6) and loses to the very doc it corrects. The RPC also
+    // defaults this server-side; explicit caller metadata still wins.
+    p_replacement_metadata: {
+      ...(repl && str3(repl.kind) || "memory") === "memory" ? { memory_type: "correction" } : {},
+      ...repl && repl.metadata && typeof repl.metadata === "object" ? repl.metadata : {}
+    },
     p_source_audit_id: str3(args.source_audit_id),
     p_user_quote: str3(args.user_quote),
     p_scope: str3(args.scope),
