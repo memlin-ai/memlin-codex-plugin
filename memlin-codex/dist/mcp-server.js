@@ -63762,7 +63762,13 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const primarySkill = skillCands[0] ?? null;
   const budgetOrder = [];
   if (primarySkill) budgetOrder.push(primarySkill);
-  let rest = candidates.filter((c2) => !primarySkill || c2.id !== primarySkill.id).sort(byPrecedence);
+  const byScoreDesc = (a2, b2) => effectiveScore(b2) - effectiveScore(a2);
+  let rest = candidates.filter((c2) => !primarySkill || c2.id !== primarySkill.id).sort((a2, b2) => {
+    const aPriority = (a2.authorityTier ?? AUTHORITY_TIER.HISTORICAL) <= AUTHORITY_TIER.USER_CORRECTION;
+    const bPriority = (b2.authorityTier ?? AUTHORITY_TIER.HISTORICAL) <= AUTHORITY_TIER.USER_CORRECTION;
+    if (aPriority !== bPriority) return aPriority ? -1 : 1;
+    return byScoreDesc(a2, b2);
+  });
   let marginalDroppedCount = 0;
   let marginalTokensSaved = 0;
   const marginalFraction = args.skip_marginal_cutoff ? MARGINAL_CUTOFF_OFF : resolveMarginalCutoff(args.marginal_cutoff ?? customThresholds?.marginal_cutoff);
@@ -63772,7 +63778,14 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       const s2 = effectiveScore(c2);
       if (s2 > (kindTop.get(c2.kind) ?? -Infinity)) kindTop.set(c2.kind, s2);
     }
-    const protectedIds = new Set(rest.slice(0, MARGINAL_CUTOFF_MIN_KEEP).map((c2) => c2.id));
+    const protectedIds = new Set(
+      [...rest].sort(byScoreDesc).slice(0, MARGINAL_CUTOFF_MIN_KEEP).map((c2) => c2.id)
+    );
+    for (const c2 of rest) {
+      if ((c2.authorityTier ?? AUTHORITY_TIER.HISTORICAL) <= AUTHORITY_TIER.USER_CORRECTION) {
+        protectedIds.add(c2.id);
+      }
+    }
     const kept = [];
     for (const c2 of rest) {
       const ref = kindTop.get(c2.kind) ?? 0;
@@ -63876,6 +63889,15 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       authority_tier: c2.authorityTier
     });
     used += cost;
+  }
+  if (included.length > 1) {
+    const lead = primarySkill && included[0]?.id === primarySkill.id ? included.shift() : null;
+    included.sort((a2, b2) => {
+      const t2 = (a2.authority_tier ?? AUTHORITY_TIER.HISTORICAL) - (b2.authority_tier ?? AUTHORITY_TIER.HISTORICAL);
+      if (t2 !== 0) return t2;
+      return b2.similarity - a2.similarity;
+    });
+    if (lead) included.unshift(lead);
   }
   const feed = async (name, fallback, run) => {
     try {
