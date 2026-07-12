@@ -64900,6 +64900,18 @@ async function resolveProposal(ctx, rawArgs) {
     }
   }).eq("id", args.proposal_id);
   if (error2) throw new Error(`resolve_proposal: accept failed: ${error2.message}`);
+  if (doc.kind === "goal" || doc.kind === "skill") {
+    try {
+      await ctx.supabase.from("documents").update({ status: "approved" }).eq("id", args.proposal_id).eq("account_id", ctx.accountId);
+    } catch (e2) {
+      console.warn(
+        `resolve_proposal: goal/skill approval stamp failed (doc stays draft): ${e2 instanceof Error ? e2.message : String(e2)}`
+      );
+    }
+  }
+  if (existing.directive_hold === true) {
+    await runHeldDirectiveSupersede(ctx, args.proposal_id, doc.kind, nowIso);
+  }
   if (doc.kind === "brand_guidelines") {
     try {
       await applyBrandPointer(
@@ -64916,6 +64928,58 @@ async function resolveProposal(ctx, rawArgs) {
     kind: doc.kind,
     title: doc.title
   };
+}
+var HELD_DIRECTIVE_SUPERSEDE_THRESHOLD = 0.86;
+async function runHeldDirectiveSupersede(ctx, acceptedId, kind2, nowIso) {
+  try {
+    const { data: row } = await ctx.supabase.from("documents").select("id, embedding, metadata").eq("id", acceptedId).eq("account_id", ctx.accountId).maybeSingle();
+    const embedding = row?.embedding ?? null;
+    let retired = 0;
+    if (embedding) {
+      const { data: hits, error: searchErr } = await ctx.supabase.rpc(
+        "search_documents_for_dedup",
+        {
+          p_account_id: ctx.accountId,
+          p_query_embedding: embedding,
+          p_kind: kind2,
+          p_limit: 5,
+          p_include_suppressors: false
+        }
+      );
+      if (!searchErr && Array.isArray(hits)) {
+        for (const hit of hits) {
+          if (hit.id === acceptedId) continue;
+          if (hit.similarity < HELD_DIRECTIVE_SUPERSEDE_THRESHOLD) continue;
+          if (hit.status && hit.status !== "active") continue;
+          const { data: hitRow } = await ctx.supabase.from("documents").select("metadata").eq("id", hit.id).eq("account_id", ctx.accountId).maybeSingle();
+          if (!hitRow) continue;
+          const hitMeta = hitRow.metadata ?? {};
+          const liveStatus = typeof hitMeta.status === "string" && hitMeta.status ? hitMeta.status : "active";
+          if (liveStatus !== "active") continue;
+          const { error: retireErr } = await ctx.supabase.from("documents").update({
+            metadata: {
+              ...hitMeta,
+              status: "rejected",
+              rejected_reason: "superseded_by_directive",
+              superseded_by: acceptedId,
+              superseded_at: nowIso
+            },
+            updated_at: nowIso
+          }).eq("id", hit.id).eq("account_id", ctx.accountId);
+          if (!retireErr) retired += 1;
+        }
+      }
+    }
+    const meta = row?.metadata ?? {};
+    delete meta.directive_hold;
+    await ctx.supabase.from("documents").update({
+      metadata: { ...meta, directive_verified_at: nowIso, directive_superseded_count: retired }
+    }).eq("id", acceptedId).eq("account_id", ctx.accountId);
+  } catch (e2) {
+    console.warn(
+      `resolve_proposal: held-directive supersede failed (stale docs stay live): ${e2 instanceof Error ? e2.message : String(e2)}`
+    );
+  }
 }
 async function applyMergeProposal(ctx, proposalId, doc, existing, actor, nowIso) {
   const merge2 = existing.merge ?? {};
