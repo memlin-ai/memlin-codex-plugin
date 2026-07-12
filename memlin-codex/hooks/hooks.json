@@ -1,0 +1,65 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/dist/hooks/session-start.js\"",
+            "commandWindows": "node \"$env:PLUGIN_ROOT/dist/hooks/session-start.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/dist/hooks/user-prompt-submit.js\"",
+            "commandWindows": "node \"$env:PLUGIN_ROOT/dist/hooks/user-prompt-submit.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/dist/hooks/pre-tool-use.js\"",
+            "commandWindows": "node \"$env:PLUGIN_ROOT/dist/hooks/pre-tool-use.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|Bash|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/dist/hooks/post-tool-use.js\"",
+            "commandWindows": "node \"$env:PLUGIN_ROOT/dist/hooks/post-tool-use.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/dist/hooks/stop.js\"",
+            "commandWindows": "node \"$env:PLUGIN_ROOT/dist/hooks/stop.js\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

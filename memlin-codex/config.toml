@@ -1,14 +1,12 @@
-# Memlin — Codex MCP fragment for the `codex plugin install` path.
+# Memlin — Codex MCP fragment for the native `codex plugin add` path.
 #
-# VERIFIED LIVE against Codex 0.142 (codex exec): Codex spawns a stdio MCP
-# `command` DIRECTLY — no shell, and it does NOT expand variables in
-# `command`/`args`. A node server pointed at "${PLUGIN_ROOT}/dist/mcp-server.js"
-# dies with MODULE_NOT_FOUND (Codex passes the literal string to node). So we go
-# through `/bin/sh -lc`, which expands $HOME at runtime. This works on
-# macOS/Linux. It does NOT work on Windows (there is no /bin/sh — "os error 3");
-# Windows users install with the no-git one-liner
-# (https://memlin.ai/install-codex.ps1), which writes an absolute-`node`
-# [mcp_servers.memlin] block straight into ~/.codex/config.toml instead.
+# VERIFIED LIVE against Codex: Codex spawns a stdio MCP `command` directly and
+# does not expand variables in `command`/`args`. It also does not expose
+# PLUGIN_ROOT to MCP processes. The portable Node launcher below resolves the
+# effective Codex home from CODEX_HOME (falling back to the user's standard
+# ~/.codex directory), builds the versioned cache path with node:path, converts
+# it to a file URL, and imports the server. That works on Windows, macOS, and
+# Linux without relying on `/bin/sh` or shell variable expansion.
 #
 # 0.2.30 is replaced with the real version at build time so the path
 # matches the version-stamped dir Codex installs the plugin into.
@@ -16,8 +14,8 @@
 hooks = true
 
 [mcp_servers.memlin]
-command = "/bin/sh"
-args = ["-lc", "exec node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.30/dist/mcp-server.js\""]
+command = "node"
+args = ["-e", "const path=require('node:path'),os=require('node:os'),{pathToFileURL}=require('node:url'),codexHome=process.env.CODEX_HOME||path.join(os.homedir(),'.codex');import(pathToFileURL(path.join(codexHome,'plugins','cache','memlin','memlin','0.2.30','dist','mcp-server.js')).href)"]
 startup_timeout_sec = 20
 
 [mcp_servers.memlin.env]

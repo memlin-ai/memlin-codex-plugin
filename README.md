@@ -10,7 +10,7 @@ server, lifecycle hooks, an `AGENTS.md` section, and the `memlin` CLI.
 
 ## Install (recommended — no git required)
 
-You need **Node.js 18+** and the **Codex CLI** (`npm install -g @openai/codex`).
+You need **Node.js 20+** and the **Codex CLI** (`npm install -g @openai/codex`).
 Then run one line in your terminal:
 
 **macOS / Linux** (Terminal):
@@ -28,11 +28,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://memlin.ai/in
 The installer downloads this bundle over HTTPS, places it at Codex's plugin
 cache, and then wires Codex's real config layers (backing each up first, never
 clobbering them):
+
 - the MCP server → an absolute-`node` `[mcp_servers.memlin]` block in
   `~/.codex/config.toml`;
-- the five lifecycle hooks → `~/.codex/hooks.json` (Codex only discovers hooks
-  next to its config layers, **not** at the plugin cache path, so a manual
-  install must place them here for the scribe/resolver hooks to fire).
+- the five lifecycle hooks through the native plugin's `hooks/hooks.json`.
+  Codex asks the user to review and trust plugin hooks before they run. The
+  no-git fallback installer still merges equivalent hooks into
+  `~/.codex/hooks.json` because it bypasses native marketplace registration.
 
 **When it finishes, it prints your exact next commands — copy them.** Unlike
 Claude Code, Codex has no `/memlin-*` slash commands and the plugin is **not**
@@ -54,20 +56,20 @@ added to your PATH, so each command invokes the bundled CLI by path (e.g.
 Re-run the installer any time to update — it repairs an older config in place
 (including the legacy `/bin/sh` block) and re-points it at the current version.
 
-> **Windows note:** the MCP server is launched as `node "<path>/mcp-server.js"`
-> directly (an absolute `node` binary). Earlier builds launched it through
-> `/bin/sh`, which doesn't exist on Windows and failed with *"The system cannot
-> find the path specified (os error 3)"*. The installer now resolves the config
-> to a direct `node` call, so the server starts on Windows, macOS, and Linux
-> alike.
+> **Cross-platform note:** native plugin installs launch the MCP server with a
+> small `node -e` bootstrap. Node resolves the user's home directory, builds the
+> versioned plugin-cache path, converts it with `pathToFileURL`, and imports the
+> server. It does not depend on `/bin/sh`, `$HOME` expansion, or a POSIX path, so
+> the same bundle starts on Windows, macOS, and Linux. The no-git installer
+> writes an equivalent resolved `node` entry into Codex's config.
 
 ## What this bundle ships
 
 | File                     | Codex surface                                                      |
 | ------------------------ | ------------------------------------------------------------------ |
-| `.mcp.json`              | the bundled stdio MCP server (`/bin/sh -lc 'exec node "$HOME/…"'`) |
+| `.mcp.json`              | portable Node bootstrap for the bundled stdio MCP server           |
 | `config.toml`            | reference MCP block (the installer writes a resolved one for you)  |
-| `hooks.json`             | the five lifecycle hooks (run via shell; `$HOME` expands)          |
+| `hooks/hooks.json`       | lifecycle hooks discovered by Codex's native plugin loader         |
 | `AGENTS.md`              | a delimited Memlin section to merge into the project's `AGENTS.md` |
 | `skills/memlin/SKILL.md` | the Memlin skill (resolver guidance + CLI reference)               |
 | `dist/`                  | the bundled hooks, CLI commands, and MCP server                    |

@@ -12,7 +12,7 @@ with links, lives at: https://memlin.ai/docs/plugin-install-guide
 
 REQUIREMENTS
 --------------------------------------------------------------
-  - Node.js 18 or newer        (https://nodejs.org)
+  - Node.js 20 or newer        (https://nodejs.org)
   - The Codex CLI              (npm install -g @openai/codex)
 
 
@@ -33,8 +33,9 @@ cache, then wires Codex for you (backing up each file first, never
 overwriting your other settings):
   - the MCP server  -> ~/.codex/config.toml
   - the lifecycle hooks -> ~/.codex/hooks.json
-(Codex only finds hooks next to its config files, not in the plugin
-cache, so the hooks must live in ~/.codex/hooks.json to fire.)
+(This no-git fallback bypasses native marketplace registration. Native
+plugin installs discover the bundled hooks/hooks.json and ask you to
+review and trust it before the hooks run.)
 
 
 AFTER INSTALLING
@@ -67,14 +68,17 @@ config in place (including the legacy /bin/sh block).
 
 WINDOWS NOTE
 --------------------------------------------------------------
-The MCP server is launched as:  node "<path>\mcp-server.js"
+Native plugin installs launch the MCP server with a small "node -e"
+bootstrap. Node resolves your home directory, builds the versioned
+plugin-cache path, converts it to a file URL, and imports the server.
 
 Older builds launched it through /bin/sh, which does not exist on
 Windows and failed with:
     "The system cannot find the path specified. (os error 3)"
 
-The current installer resolves the config to a direct "node" call,
-so the server starts on Windows, macOS, and Linux.
+The native plugin no longer needs a shell or HOME-variable expansion.
+The no-git installer writes an equivalent resolved "node" config, so
+both install paths start on Windows, macOS, and Linux.
 
 
 TROUBLE?

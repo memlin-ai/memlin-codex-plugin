@@ -3,13 +3,13 @@ name: memlin
 description: Use the team's Memlin workspace — resolve project context (skills, memory, approved goals, schemas) via the memlin_* MCP tools, and run the memlin CLI for sync, ask, status, and sign-in.
 examples:
   - "A <memlin-resolved-context> block is present — apply the primary skill's framework and cite memory facts by path + version."
-  - "A resolved memory fact conflicts with your training data — treat the resolved fact as project ground truth."
-  - "A resolved goal states a constraint — honor it as a hard requirement on the change."
-  - "The user asks about something broader than the bundle — only then invoke memlin_search / memlin_read_memory to explore."
+  - 'A resolved memory fact conflicts with your training data — treat the resolved fact as project ground truth.'
+  - 'A resolved goal states a constraint — honor it as a hard requirement on the change.'
+  - 'The user asks about something broader than the bundle — only then invoke memlin_search / memlin_read_memory to explore.'
 anti-examples:
   - "I don't have access to this project's conventions — can you paste them for me?"
-  - "Let me first gather context by resolving the task again before I answer."
-  - "Based on my general training the usual approach is X (disregarding the resolved memory that says otherwise)."
+  - 'Let me first gather context by resolving the task again before I answer.'
+  - 'Based on my general training the usual approach is X (disregarding the resolved memory that says otherwise).'
 ---
 
 # Memlin
@@ -50,8 +50,10 @@ Codex has no custom slash commands, so Memlin's other workspace operations run
 through the bundled `memlin` CLI. **The marketplace install does not put
 `memlin` on your PATH** — it ships the CLI inside the installed plugin bundle.
 Resolve the currently installed version from Codex itself, then invoke the
-bundled dispatcher. Re-run this block after an upgrade; it deliberately has no
-baked version that can go stale:
+bundled dispatcher. These helpers query Codex on each call, follow upgrades
+automatically, and honor `CODEX_HOME`.
+
+macOS / Linux:
 
 ```bash
 MEMLIN_VERSION="$(codex plugin list --json | node -e '
@@ -66,7 +68,7 @@ process.stdin.on("end", () => {
   }
   process.stdout.write(plugin.version);
 });
-')" && node "$HOME/.codex/plugins/cache/memlin/memlin/$MEMLIN_VERSION/dist/cli/main.js" <command>
+')" && node "${CODEX_HOME:-$HOME/.codex}/plugins/cache/memlin/memlin/$MEMLIN_VERSION/dist/cli/main.js" <command>
 ```
 
 For convenience in an interactive zsh/bash session, define a helper that does
@@ -85,29 +87,43 @@ process.stdin.on("end", () => {
   process.stdout.write(plugin.version);
 });
 ')" || return
-  node "$HOME/.codex/plugins/cache/memlin/memlin/$version/dist/cli/main.js" "$@"
+  node "${CODEX_HOME:-$HOME/.codex}/plugins/cache/memlin/memlin/$version/dist/cli/main.js" "$@"
 }
 ```
 
-With the helper in place (or substituting the full `node …` form), the commands are:
+Windows PowerShell:
 
-| Command                                         | Purpose                                          |
-| ----------------------------------------------- | ------------------------------------------------ |
-| `memlin login`                                  | OAuth device-flow sign-in (run once per machine) |
-| `memlin sync`                                   | full bidirectional sync (pull + push)            |
-| `memlin pull` / `memlin push`                   | one-way memory/skill sync                        |
-| `memlin ask "<question>"`                       | natural-language query with citations            |
-| `memlin scribe`                                 | extract decisions/memories from this session     |
-| `memlin inbox`                                  | review scribe proposals (`accept`/`reject <id>`) |
-| `memlin pull-plans` / `memlin push-plan <file>` | plan sync                                        |
-| `memlin add-project` / `memlin link`            | bind workspace to a project/account              |
-| `memlin doctor`                                 | diagnose auth / connectivity / config            |
-| `memlin revert <doc> [version]`                 | restore a memory/skill to an earlier version     |
-| `memlin actions-list` / `memlin actions-execute`| list and invoke callable workspace tools         |
-| `memlin audit-replay <id>` / `memlin audit-explain <id>` | bundle replay + per-item ranking arithmetic |
-| `memlin handoffs`                               | pass work between agents (create/accept/complete)|
-| `memlin role`                                   | assign roles to workspace members or docs        |
-| `memlin help`                                   | full categorized command list                    |
+```powershell
+function memlin {
+  $plugin = (codex plugin list --json | ConvertFrom-Json).installed |
+    Where-Object { $_.pluginId -eq "memlin@memlin" } |
+    Select-Object -First 1
+  if (-not $plugin.version) { throw "Memlin is not installed. Run: codex plugin add memlin@memlin" }
+  $codexHome = $env:CODEX_HOME
+  if (-not $codexHome) { $codexHome = Join-Path $HOME ".codex" }
+  node (Join-Path $codexHome "plugins/cache/memlin/memlin/$($plugin.version)/dist/cli/main.js") @args
+}
+```
+
+With an alias/function in place (or substituting the full `node …` form), the commands are:
+
+| Command                                                  | Purpose                                           |
+| -------------------------------------------------------- | ------------------------------------------------- |
+| `memlin login`                                           | OAuth device-flow sign-in (run once per machine)  |
+| `memlin sync`                                            | full bidirectional sync (pull + push)             |
+| `memlin pull` / `memlin push`                            | one-way memory/skill sync                         |
+| `memlin ask "<question>"`                                | natural-language query with citations             |
+| `memlin scribe`                                          | extract decisions/memories from this session      |
+| `memlin inbox`                                           | review scribe proposals (`accept`/`reject <id>`)  |
+| `memlin pull-plans` / `memlin push-plan <file>`          | plan sync                                         |
+| `memlin add-project` / `memlin link`                     | bind workspace to a project/account               |
+| `memlin doctor`                                          | diagnose auth / connectivity / config             |
+| `memlin revert <doc> [version]`                          | restore a memory/skill to an earlier version      |
+| `memlin actions-list` / `memlin actions-execute`         | list and invoke callable workspace tools          |
+| `memlin audit-replay <id>` / `memlin audit-explain <id>` | bundle replay + per-item ranking arithmetic       |
+| `memlin handoffs`                                        | pass work between agents (create/accept/complete) |
+| `memlin role`                                            | assign roles to workspace members or docs         |
+| `memlin help`                                            | full categorized command list                     |
 
 When the user asks to sync, sign in, or query the workspace, run the matching
 command and relay the result. If the user asks "what can Memlin do" or which

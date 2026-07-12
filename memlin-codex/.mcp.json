@@ -1,10 +1,10 @@
 {
   "mcpServers": {
     "memlin": {
-      "command": "/bin/sh",
+      "command": "node",
       "args": [
-        "-lc",
-        "exec node \"$HOME/.codex/plugins/cache/memlin/memlin/0.2.30/dist/mcp-server.js\""
+        "-e",
+        "const path=require('node:path'),os=require('node:os'),{pathToFileURL}=require('node:url'),codexHome=process.env.CODEX_HOME||path.join(os.homedir(),'.codex');import(pathToFileURL(path.join(codexHome,'plugins','cache','memlin','memlin','0.2.30','dist','mcp-server.js')).href)"
       ],
       "env": {
         "MEMLIN_HOST": "codex",

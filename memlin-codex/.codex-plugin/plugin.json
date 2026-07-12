@@ -1,16 +1,32 @@
 {
   "name": "memlin",
   "version": "0.2.30",
-  "description": "One memory. Every model. — the Memlin plugin for Codex: the memlin MCP server, the Memlin skill, and lifecycle hooks.",
+  "description": "Shared project context, decisions, and experience for Codex and every coding agent.",
   "author": {
     "name": "Memlin",
-    "email": "support@memlin.ai"
+    "email": "support@memlin.ai",
+    "url": "https://memlin.ai"
   },
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
-  "hooks": "./hooks.json",
   "interface": {
     "displayName": "Memlin",
-    "category": "Productivity"
+    "shortDescription": "Shared project context and decisions across coding agents.",
+    "longDescription": "Memlin gives Codex the decisions, project context, and prior results it needs to work consistently across sessions and agents. It adds MCP tools, a guided skill, and lifecycle hooks for resolving and capturing context.",
+    "developerName": "Memlin",
+    "category": "Productivity",
+    "capabilities": [
+      "MCP tools",
+      "Skills",
+      "Lifecycle hooks"
+    ],
+    "websiteURL": "https://memlin.ai",
+    "privacyPolicyURL": "https://memlin.ai/privacy",
+    "termsOfServiceURL": "https://memlin.ai/terms",
+    "defaultPrompt": [
+      "Find the most relevant project context for this task.",
+      "Save this decision so every coding agent can reuse it.",
+      "Show recent project decisions and their outcomes."
+    ]
   }
 }
