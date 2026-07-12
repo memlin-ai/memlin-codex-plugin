@@ -63702,7 +63702,11 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         const byId = new Map(candidates.map((c2) => [c2.id, c2]));
         const claimed = /* @__PURE__ */ new Set();
         const dropInfo = /* @__PURE__ */ new Map();
-        const ranked = candidates.filter((c2) => neighbours.has(c2.id)).sort(byPrecedence);
+        const collapseTier = (c2) => {
+          const t2 = c2.authorityTier ?? AUTHORITY_TIER.HISTORICAL;
+          return t2 <= AUTHORITY_TIER.USER_CORRECTION ? t2 : AUTHORITY_TIER.HISTORICAL;
+        };
+        const ranked = candidates.filter((c2) => neighbours.has(c2.id)).sort(byAuthorityThenScore(collapseTier, effectiveScore));
         for (const keeper of ranked) {
           if (claimed.has(keeper.id)) continue;
           claimed.add(keeper.id);
