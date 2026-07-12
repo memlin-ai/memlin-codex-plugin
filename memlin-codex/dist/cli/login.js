@@ -3823,7 +3823,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.28";
+  cachedAgentVersion = "0.2.29";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
