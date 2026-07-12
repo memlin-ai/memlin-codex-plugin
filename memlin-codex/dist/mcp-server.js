@@ -61270,12 +61270,19 @@ async function searchRanked(ctx, args, limit2) {
     }
   }
   let q2 = ctx.supabase.from("documents").select(
-    `id, title, kind, scope, path, updated_at, created_at,
+    `id, status, title, kind, scope, path, updated_at, created_at, metadata,
        document_versions!documents_current_version_fk ( version_number, author_id )`
-  ).eq("account_id", ctx.accountId).ilike("title", `%${args.query}%`).limit(limit2);
+  ).eq("account_id", ctx.accountId).ilike("title", `%${args.query}%`).limit(Math.min(limit2 * 3, 100));
   if (args.kinds?.length) q2 = q2.in("kind", args.kinds);
   const { data } = await q2;
-  return (data ?? []).map((r2) => {
+  const eligibleRows = (data ?? []).filter(
+    (r2) => isEligibleForRecall({
+      status: r2.status ?? null,
+      metadataStatus: (r2.metadata ?? {}).status ?? null,
+      kind: r2.kind
+    })
+  ).slice(0, limit2);
+  return eligibleRows.map((r2) => {
     const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
     return {
       id: r2.id,
