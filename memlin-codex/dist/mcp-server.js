@@ -64076,8 +64076,9 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const pathRecallMs = Date.now() - pathRecallStartedAt;
   let floorIncludedId = null;
   if (included.length === 0) {
-    const best = omittedCandidates.filter((o2) => o2.reason === "below_threshold" && o2.similarity >= RECALL_FLOOR).sort((a2, b2) => b2.similarity - a2.similarity)[0];
-    if (best) {
+    const floorCandidates = omittedCandidates.filter((o2) => o2.reason === "below_threshold" && o2.similarity >= RECALL_FLOOR).sort((a2, b2) => b2.similarity - a2.similarity).slice(0, 3);
+    for (const best of floorCandidates) {
+      if (floorIncludedId) break;
       try {
         const { data: row } = await ctx.supabase.from("documents").select(
           `id, status, kind, title, path, updated_at, metadata,
@@ -64113,7 +64114,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         }
       } catch (e2) {
         console.warn(
-          `[resolver] recall-floor fetch failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 bundle stays empty`
+          `[resolver] recall-floor fetch failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 trying next near-miss`
         );
       }
     }
