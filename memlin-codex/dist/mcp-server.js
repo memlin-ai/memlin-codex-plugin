@@ -66111,6 +66111,14 @@ async function correctMemory(ctx, rawArgs) {
   if (mode === "revise" && (!repl || !str3(repl.title) || !str3(repl.content))) {
     throw new Error("revise requires replacement { title, content }");
   }
+  let replacementEmbedding = null;
+  if (mode === "revise" && ctx.embed && repl) {
+    try {
+      replacementEmbedding = await ctx.embed(String(repl.content));
+    } catch {
+      replacementEmbedding = null;
+    }
+  }
   const { data, error: error2 } = await ctx.supabase.rpc("correct_memory", {
     p_account_id: ctx.accountId,
     p_mode: mode,
@@ -66125,7 +66133,8 @@ async function correctMemory(ctx, rawArgs) {
     p_source_audit_id: str3(args.source_audit_id),
     p_user_quote: str3(args.user_quote),
     p_scope: str3(args.scope),
-    p_session_id: str3(args.session_id)
+    p_session_id: str3(args.session_id),
+    p_replacement_embedding: replacementEmbedding
   });
   if (error2) throw new Error(`correct_memory failed: ${error2.message}`);
   const row = Array.isArray(data) ? data[0] : data;
