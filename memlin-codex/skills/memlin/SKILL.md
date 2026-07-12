@@ -47,22 +47,49 @@ binary on PATH; the bundled stdio MCP server answers status locally instead.
 ## The `memlin` CLI
 
 Codex has no custom slash commands, so Memlin's other workspace operations run
-through the bundled `memlin` CLI. **The plugin does not put `memlin` on your
-PATH** — it ships the CLI inside the installed plugin bundle. Invoke it with
-`node` and the bundled dispatcher (the same cache path the MCP server and hooks
-use):
+through the bundled `memlin` CLI. **The marketplace install does not put
+`memlin` on your PATH** — it ships the CLI inside the installed plugin bundle.
+Resolve the currently installed version from Codex itself, then invoke the
+bundled dispatcher. Re-run this block after an upgrade; it deliberately has no
+baked version that can go stale:
 
 ```bash
-node "$HOME/.codex/plugins/cache/memlin/memlin/0.1.0/dist/cli/main.js" <command>
+MEMLIN_VERSION="$(codex plugin list --json | node -e '
+let raw = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => { raw += chunk; });
+process.stdin.on("end", () => {
+  const plugin = JSON.parse(raw).installed?.find((item) => item.pluginId === "memlin@memlin");
+  if (!plugin?.version) {
+    console.error("Memlin is not installed. Run: codex plugin add memlin@memlin");
+    process.exit(1);
+  }
+  process.stdout.write(plugin.version);
+});
+')" && node "$HOME/.codex/plugins/cache/memlin/memlin/$MEMLIN_VERSION/dist/cli/main.js" <command>
 ```
 
-For convenience, define a one-time shell alias (add to `~/.zshrc` / `~/.bashrc`):
+For convenience in an interactive zsh/bash session, define a helper that does
+the same lookup on every call, so it follows future upgrades automatically:
 
 ```bash
-alias memlin='node "$HOME/.codex/plugins/cache/memlin/memlin/0.1.0/dist/cli/main.js"'
+memlin() {
+  local version
+  version="$(codex plugin list --json | node -e '
+let raw = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => { raw += chunk; });
+process.stdin.on("end", () => {
+  const plugin = JSON.parse(raw).installed?.find((item) => item.pluginId === "memlin@memlin");
+  if (!plugin?.version) process.exit(1);
+  process.stdout.write(plugin.version);
+});
+')" || return
+  node "$HOME/.codex/plugins/cache/memlin/memlin/$version/dist/cli/main.js" "$@"
+}
 ```
 
-With the alias in place (or substituting the full `node …` form), the commands are:
+With the helper in place (or substituting the full `node …` form), the commands are:
 
 | Command                                         | Purpose                                          |
 | ----------------------------------------------- | ------------------------------------------------ |
