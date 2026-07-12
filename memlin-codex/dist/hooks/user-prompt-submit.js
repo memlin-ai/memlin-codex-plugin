@@ -410,7 +410,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.30";
+  cachedAgentVersion = "0.2.31";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -1390,7 +1390,8 @@ async function main() {
     const block = [
       "<memlin-resolved-context>",
       "# Auto-resolved by Memlin for the prompt below. Authoritative project",
-      "# context \u2014 apply skills, honor goals, validate schemas, cite sources.",
+      "# context \u2014 apply skills; honor approved goals and required/pinned decisions/directives;",
+      "# use other decisions as cited context; validate schemas; cite sources.",
       "",
       outcome.bundle.rendered,
       "</memlin-resolved-context>"

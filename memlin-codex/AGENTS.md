@@ -5,7 +5,7 @@
 This project is connected to a Memlin workspace. The `memlin` MCP server is
 configured in `~/.codex/config.toml` — its tools (`memlin_resolve_task`,
 `memlin_search`, `memlin_read_memory`, `memlin_get_document`, …) expose the
-team's shared memory, skills, approved goals, and schemas.
+team's shared memory, skills, approved goals, schemas, and decisions.
 
 Before non-trivial work, call `memlin_resolve_task` with a short task
 description to load this project's context. The Memlin `UserPromptSubmit`
@@ -19,7 +19,8 @@ call `memlin_update_handoff` with action `accept`, and use the packet as the
 task brief. Mark it `complete` when finished.
 
 Treat resolved memory as project ground truth (more authoritative than
-training data when they conflict), honor goals as constraints, validate
-against schemas, and cite sources by path + version.
+training data when they conflict), honor approved goals and required/pinned
+decisions as constraints, use other decisions as cited project context,
+validate against schemas, and cite sources by path + version.
 
 <!-- memlin:end -->

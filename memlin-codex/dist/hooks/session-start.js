@@ -437,7 +437,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.30";
+  cachedAgentVersion = "0.2.31";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -1258,7 +1258,7 @@ async function main() {
     "Memlin is active for this workspace. The `memlin` MCP server provides",
     "memlin_resolve_task, memlin_search, and memlin_read_memory. Call",
     "memlin_resolve_task with a short task description before non-trivial",
-    "work to load this project's skills, memory, approved goals, and schemas."
+    "work to load this project's skills, memory, approved goals, schemas, and decisions."
   ].join(" ");
   process.stdout.write(
     JSON.stringify({

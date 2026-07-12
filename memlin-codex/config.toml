@@ -8,17 +8,17 @@
 # it to a file URL, and imports the server. That works on Windows, macOS, and
 # Linux without relying on `/bin/sh` or shell variable expansion.
 #
-# 0.2.30 is replaced with the real version at build time so the path
+# 0.2.31 is replaced with the real version at build time so the path
 # matches the version-stamped dir Codex installs the plugin into.
 [features]
 hooks = true
 
 [mcp_servers.memlin]
 command = "node"
-args = ["-e", "const path=require('node:path'),os=require('node:os'),{pathToFileURL}=require('node:url'),codexHome=process.env.CODEX_HOME||path.join(os.homedir(),'.codex');import(pathToFileURL(path.join(codexHome,'plugins','cache','memlin','memlin','0.2.30','dist','mcp-server.js')).href)"]
+args = ["-e", "const path=require('node:path'),os=require('node:os'),{pathToFileURL}=require('node:url'),codexHome=process.env.CODEX_HOME||path.join(os.homedir(),'.codex');import(pathToFileURL(path.join(codexHome,'plugins','cache','memlin','memlin','0.2.31','dist','mcp-server.js')).href)"]
 startup_timeout_sec = 20
 
 [mcp_servers.memlin.env]
 MEMLIN_HOST = "codex"
-MEMLIN_AGENT_VERSION = "0.2.30"
+MEMLIN_AGENT_VERSION = "0.2.31"
 MEMLIN_AGENT_CAPABILITIES = "mcp,cli,hooks,rules,scribe,resolve"

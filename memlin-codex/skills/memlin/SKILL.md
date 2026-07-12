@@ -1,10 +1,11 @@
 ---
 name: memlin
-description: Use the team's Memlin workspace — resolve project context (skills, memory, approved goals, schemas) via the memlin_* MCP tools, and run the memlin CLI for sync, ask, status, and sign-in.
+description: Use the team's Memlin workspace — resolve project context (skills, memory, approved goals, schemas, decisions) via the memlin_* MCP tools, and run the memlin CLI for sync, ask, status, and sign-in.
 examples:
   - "A <memlin-resolved-context> block is present — apply the primary skill's framework and cite memory facts by path + version."
   - 'A resolved memory fact conflicts with your training data — treat the resolved fact as project ground truth.'
-  - 'A resolved goal states a constraint — honor it as a hard requirement on the change.'
+  - 'An approved goal or a REQUIRED/PINNED decision states a constraint — honor it as a hard requirement on the change.'
+  - 'A resolved decision describes a prior choice — use it as cited context unless it is REQUIRED or PINNED.'
   - 'The user asks about something broader than the bundle — only then invoke memlin_search / memlin_read_memory to explore.'
 anti-examples:
   - "I don't have access to this project's conventions — can you paste them for me?"
@@ -26,13 +27,14 @@ and use the packet as the task brief. Mark it `complete` when finished.
 
 Before non-trivial work, call the **`memlin_resolve_task`** MCP tool with a
 short description of the task. It returns a citation-bearing bundle: the top
-skills, memory facts, approved goals, and schemas for this project. The
+skills, memory facts, approved goals, schemas, and decisions for this project. The
 `UserPromptSubmit` hook also injects a `<memlin-resolved-context>` block —
 when present, treat it as already-resolved.
 
 Use the bundle as authoritative project context: apply the primary skill's
-framework, treat memory facts as ground truth, honor goals as constraints,
-validate against schemas, and cite sources by path + version. To explore
+framework, treat memory facts as ground truth, honor approved goals and REQUIRED
+or PINNED decisions/directives as constraints, use other decisions as cited
+context, validate against schemas, and cite sources by path + version. To explore
 beyond the task, use `memlin_search`, `memlin_read_memory`, or
 `memlin_get_document` directly.
 

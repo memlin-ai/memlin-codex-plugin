@@ -1,6 +1,6 @@
 {
   "name": "memlin",
-  "version": "0.2.30",
+  "version": "0.2.31",
   "description": "Shared project context, decisions, and experience for Codex and every coding agent.",
   "author": {
     "name": "Memlin",
@@ -9,6 +9,8 @@
   },
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
+  "homepage": "https://memlin.ai",
+  "repository": "https://github.com/memlin-ai/memlin",
   "interface": {
     "displayName": "Memlin",
     "shortDescription": "Shared project context and decisions across coding agents.",
@@ -18,6 +20,7 @@
     "capabilities": [
       "MCP tools",
       "Skills",
+      "Decisions",
       "Lifecycle hooks"
     ],
     "websiteURL": "https://memlin.ai",
