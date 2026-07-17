@@ -9583,15 +9583,15 @@ async function maybeScribeCommit(ctx, payload) {
   }
 }
 
-// apps/codex-plugin/src/hooks/heartbeat.ts
+// packages/plugin-core/dist/heartbeat.js
 import crypto from "node:crypto";
 import { promises as fs4 } from "node:fs";
 import os7 from "node:os";
 import path9 from "node:path";
 var DEFAULT_THROTTLE_MS = 6e4;
-function statePath(cwd) {
+function statePath(cwd, host) {
   const key = crypto.createHash("sha256").update(cwd).digest("hex").slice(0, 16);
-  return path9.join(os7.tmpdir(), `memlin-codex-heartbeat-${key}.json`);
+  return path9.join(os7.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
 }
 async function recentlySent(file, throttleMs) {
   try {
@@ -9602,19 +9602,25 @@ async function recentlySent(file, throttleMs) {
     return false;
   }
 }
-async function recordCodexActivity(cwd, reason, opts = {}) {
+async function recordInstallHeartbeat(cwd, reason, opts = {}) {
+  const host = opts.host ?? resolveHost().kind;
   const throttleMs = opts.throttleMs ?? DEFAULT_THROTTLE_MS;
-  const file = statePath(cwd);
+  const file = statePath(cwd, host);
   if (await recentlySent(file, throttleMs)) return;
   try {
     const ctx = await getApi({ cwd });
     if (!ctx) return;
     await ctx.api.getAccount();
-    await fs4.writeFile(file, JSON.stringify({ sent_at: Date.now(), reason }), "utf8");
-    log(`codex activity recorded: ${reason}`);
+    await fs4.writeFile(file, JSON.stringify({ sent_at: Date.now(), reason, host }), "utf8");
+    log(`${host} activity recorded: ${reason}`);
   } catch (err) {
-    log(`codex activity failed: ${err instanceof Error ? err.message : String(err)}`);
+    log(`${host} activity failed: ${err instanceof Error ? err.message : String(err)}`);
   }
+}
+
+// apps/codex-plugin/src/hooks/heartbeat.ts
+async function recordCodexActivity(cwd, reason, opts = {}) {
+  await recordInstallHeartbeat(cwd, reason, { ...opts, host: "codex" });
 }
 
 // apps/codex-plugin/src/hook-io.ts
