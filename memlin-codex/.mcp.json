@@ -4,11 +4,11 @@
       "command": "node",
       "args": [
         "-e",
-        "const path=require('node:path'),os=require('node:os'),{pathToFileURL}=require('node:url'),codexHome=process.env.CODEX_HOME||path.join(os.homedir(),'.codex');import(pathToFileURL(path.join(codexHome,'plugins','cache','memlin','memlin','0.2.33','dist','mcp-server.js')).href)"
+        "const path=require('node:path'),os=require('node:os'),{pathToFileURL}=require('node:url'),codexHome=process.env.CODEX_HOME||path.join(os.homedir(),'.codex');import(pathToFileURL(path.join(codexHome,'plugins','cache','memlin','memlin','0.2.34','dist','mcp-server.js')).href)"
       ],
       "env": {
         "MEMLIN_HOST": "codex",
-        "MEMLIN_AGENT_VERSION": "0.2.33",
+        "MEMLIN_AGENT_VERSION": "0.2.34",
         "MEMLIN_AGENT_CAPABILITIES": "mcp,cli,hooks,rules,scribe,resolve"
       }
     }
