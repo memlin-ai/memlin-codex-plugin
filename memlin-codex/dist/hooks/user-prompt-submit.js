@@ -1601,6 +1601,7 @@ function runResolveWithBudget(opts) {
     let child;
     try {
       child = spawn(process.execPath, [opts.resolveBin, opts.task], {
+        windowsHide: true,
         cwd: opts.cwd,
         env: {
           ...process.env,

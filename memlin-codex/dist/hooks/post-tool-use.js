@@ -9482,6 +9482,7 @@ async function resolveProject(api, cwd, configProjectId) {
 function readGitRemote(cwd) {
   try {
     const url = execSync("git remote get-url origin", {
+      windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
       encoding: "utf8"
@@ -9527,6 +9528,7 @@ function editedPathsFromHook(toolName, toolInput) {
 function repoRelativePath(absPath, cwd) {
   try {
     const top = execSync2("git rev-parse --show-toplevel", {
+      windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
       encoding: "utf8",
@@ -9543,6 +9545,7 @@ function repoRelativePath(absPath, cwd) {
 function readGitBranch(cwd) {
   try {
     const branch = execSync2("git rev-parse --abbrev-ref HEAD", {
+      windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
       encoding: "utf8",
@@ -9617,10 +9620,11 @@ async function maybeScribeCommit(ctx, payload) {
   let diffStat = "";
   let diffBody = "";
   try {
-    commitSha = execSync4("git rev-parse HEAD", { cwd, encoding: "utf8" }).trim();
-    commitMessage = execSync4("git log -1 --format=%B HEAD", { cwd, encoding: "utf8" }).trim();
-    diffStat = execSync4("git show --stat --format= HEAD", { cwd, encoding: "utf8" }).trim();
+    commitSha = execSync4("git rev-parse HEAD", { windowsHide: true, cwd, encoding: "utf8" }).trim();
+    commitMessage = execSync4("git log -1 --format=%B HEAD", { windowsHide: true, cwd, encoding: "utf8" }).trim();
+    diffStat = execSync4("git show --stat --format= HEAD", { windowsHide: true, cwd, encoding: "utf8" }).trim();
     const buf = execSync4("git show --format= HEAD", {
+      windowsHide: true,
       cwd,
       encoding: "utf8",
       maxBuffer: DIFF_MAX_BYTES * 2
@@ -9642,6 +9646,7 @@ async function maybeScribeCommit(ctx, payload) {
     }
     try {
       const remoteUrl = execSync4("git remote get-url origin", {
+        windowsHide: true,
         cwd,
         stdio: ["ignore", "pipe", "ignore"],
         encoding: "utf8"
