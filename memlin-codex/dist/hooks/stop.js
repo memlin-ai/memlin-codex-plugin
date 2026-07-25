@@ -4949,7 +4949,13 @@ import path7 from "node:path";
 var CLAIM = /\bit'?s (now )?(live|deployed|done|fixed|shipped)\b|\bnow live\b|\bis live\b|\bis deployed\b|\bdeployed to prod\b|\ball done\b|\bfully (fixed|working|deployed|shipped)\b|\bfix(ed)? (and|&) deployed\b|\bmerged (and|&) deployed\b|✅/i;
 var HARD = /(^|\n)\s*[-*✅•\s]*\s*(fixed|deployed|shipped|done)\b[.! ]*\s*$/im;
 var HONEST = /not (yet )?(live|merged|deployed|shipped)|isn'?t (live|merged|deployed|shipped)|remaining step|next step (is|to)|not on main|still on (the |a )?(feature )?branch|needs? (to be )?merg|to be merged|before (this|it) is live|to make (it|this) live|awaiting (merge|deploy)|hold(ing)? the merge/i;
+var OVERRIDE = /\[skip-done-gate\]|done-gate:\s*override/i;
+function isOff(v) {
+  const s = (v || "").trim().toLowerCase();
+  return s === "off" || s === "0" || s === "false" || s === "no";
+}
 async function readGateConfig(cwd) {
+  if (isOff(process.env.MEMLIN_DONE_GATE)) return null;
   const env = process.env.MEMLIN_DONE_MEANS_DEPLOYED;
   const envOn = env === "1" || env === "true";
   let dir = path7.resolve(cwd);
@@ -5035,6 +5041,7 @@ async function enforceDoneMeansDeployed(payload) {
     const text = await lastAssistantText(transcript);
     if (!text) return null;
     if (HONEST.test(text)) return null;
+    if (OVERRIDE.test(text)) return null;
     if (!CLAIM.test(text) && !HARD.test(text)) return null;
     if (!gitOk(`rev-parse --verify ${cfg.base}`, cwd)) return null;
     const branch = git("rev-parse --abbrev-ref HEAD", cwd) || "HEAD";
@@ -5050,7 +5057,8 @@ async function enforceDoneMeansDeployed(payload) {
     if (unpushed) why.push(`there are unpushed commits (${cfg.base}..HEAD)`);
     const reason = "HOLD \u2014 the last message claims the work is done/fixed/deployed, but it is NOT live: " + why.join("; ") + `. On this project "done" means merged into ${cfg.base} and deployed. Do ONE of:
   (1) Ship it: commit \u2192 merge \u2192 confirm the deploy succeeded \u2192 verify the change live, THEN report done; or
-  (2) If you cannot merge right now (a concurrent deploy is in flight, you need sign-off, CI is red), say so plainly and state the exact remaining step \u2014 but do NOT call it done, fixed, or deployed.`;
+  (2) If you cannot merge right now (a concurrent deploy is in flight, you need sign-off, CI is red), say so plainly and state the exact remaining step \u2014 but do NOT call it done, fixed, or deployed.
+Override (deliberate): include [skip-done-gate] in your message to ship-anyway this once, or disable the gate entirely with MEMLIN_DONE_GATE=off (or set "enabled": false in .memlin/enforce-done-deployed.json). The gate is opt-in and read-only \u2014 it never edits your files.`;
     return { decision: "block", reason };
   } catch {
     return null;
