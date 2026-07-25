@@ -9846,6 +9846,7 @@ async function main() {
   if (abs && abs.startsWith(plansDir + path11.sep) && abs.endsWith(".md")) {
     try {
       const child = spawn(process.execPath, [PUSH_PLAN_BIN, abs], {
+        windowsHide: true,
         env: { ...process.env, MEMLIN_HOST: "codex" },
         detached: true,
         stdio: "ignore"

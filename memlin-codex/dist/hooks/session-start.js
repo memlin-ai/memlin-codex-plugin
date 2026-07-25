@@ -1644,6 +1644,7 @@ var PULL_PLANS_BIN = path9.resolve(HOOK_DIR, "../cli/pull-plans.js");
 function firePlanSync(cwd) {
   try {
     const child = spawn(process.execPath, [PULL_PLANS_BIN], {
+      windowsHide: true,
       cwd,
       env: { ...process.env, MEMLIN_HOST: "codex" },
       detached: true,

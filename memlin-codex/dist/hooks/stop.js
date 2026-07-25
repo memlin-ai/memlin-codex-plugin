@@ -3580,7 +3580,7 @@ var require_parse = __commonJS({
 var require_gray_matter = __commonJS({
   "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
-    var fs8 = __require("fs");
+    var fs9 = __require("fs");
     var sections = require_section_matter();
     var defaults = require_defaults();
     var stringify = require_stringify();
@@ -3664,7 +3664,7 @@ var require_gray_matter = __commonJS({
       return stringify(file, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str2 = fs8.readFileSync(filepath, "utf8");
+      const str2 = fs9.readFileSync(filepath, "utf8");
       const file = matter3(str2, options2);
       file.path = filepath;
       return file;
@@ -3693,8 +3693,8 @@ var require_gray_matter = __commonJS({
 });
 
 // packages/plugin-core/dist/stop-handler.js
-import { execSync as execSync2 } from "node:child_process";
-import { promises as fs7 } from "node:fs";
+import { execSync as execSync3 } from "node:child_process";
+import { promises as fs8 } from "node:fs";
 
 // packages/plugin-core/dist/client.js
 import { promises as fs4 } from "node:fs";
@@ -4942,19 +4942,134 @@ function log(msg) {
   }
 }
 
+// packages/plugin-core/dist/done-gate.js
+import { execSync } from "node:child_process";
+import { promises as fs5 } from "node:fs";
+import path7 from "node:path";
+var CLAIM = /\bit'?s (now )?(live|deployed|done|fixed|shipped)\b|\bnow live\b|\bis live\b|\bis deployed\b|\bdeployed to prod\b|\ball done\b|\bfully (fixed|working|deployed|shipped)\b|\bfix(ed)? (and|&) deployed\b|\bmerged (and|&) deployed\b|✅/i;
+var HARD = /(^|\n)\s*[-*✅•\s]*\s*(fixed|deployed|shipped|done)\b[.! ]*\s*$/im;
+var HONEST = /not (yet )?(live|merged|deployed|shipped)|isn'?t (live|merged|deployed|shipped)|remaining step|next step (is|to)|not on main|still on (the |a )?(feature )?branch|needs? (to be )?merg|to be merged|before (this|it) is live|to make (it|this) live|awaiting (merge|deploy)|hold(ing)? the merge/i;
+async function readGateConfig(cwd) {
+  const env = process.env.MEMLIN_DONE_MEANS_DEPLOYED;
+  const envOn = env === "1" || env === "true";
+  let dir = path7.resolve(cwd);
+  for (let i = 0; i < 40; i += 1) {
+    const marker = path7.join(dir, ".memlin", "enforce-done-deployed.json");
+    try {
+      const raw = await fs5.readFile(marker, "utf8");
+      const parsed = JSON.parse(raw);
+      if (parsed.enabled === false) return null;
+      return { enabled: true, base: parsed.base || "origin/main" };
+    } catch {
+    }
+    const parent = path7.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return envOn ? { enabled: true, base: "origin/main" } : null;
+}
+async function lastAssistantText(transcriptPath) {
+  let raw;
+  try {
+    raw = await fs5.readFile(transcriptPath, "utf8");
+  } catch {
+    return "";
+  }
+  let text = "";
+  for (const line of raw.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    let ev;
+    try {
+      ev = JSON.parse(trimmed);
+    } catch {
+      continue;
+    }
+    const msg = ev.message;
+    if (!msg || msg.role !== "assistant") continue;
+    const content = msg.content;
+    let chunk = "";
+    if (typeof content === "string") {
+      chunk = content;
+    } else if (Array.isArray(content)) {
+      chunk = content.map(
+        (b) => b && typeof b === "object" && b.type === "text" ? String(b.text ?? "") : ""
+      ).join(" ");
+    }
+    if (chunk.trim()) text = chunk;
+  }
+  return text;
+}
+function git(args, cwd) {
+  try {
+    return execSync(`git ${args}`, {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 5e3
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+function gitOk(args, cwd) {
+  try {
+    execSync(`git ${args}`, {
+      cwd,
+      stdio: ["ignore", "ignore", "ignore"],
+      timeout: 5e3
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function enforceDoneMeansDeployed(payload) {
+  try {
+    if (payload.stop_hook_active) return null;
+    const cwd = payload.cwd || process.cwd();
+    const transcript = payload.transcript_path;
+    if (!transcript) return null;
+    const cfg = await readGateConfig(cwd);
+    if (!cfg) return null;
+    const text = await lastAssistantText(transcript);
+    if (!text) return null;
+    if (HONEST.test(text)) return null;
+    if (!CLAIM.test(text) && !HARD.test(text)) return null;
+    if (!gitOk(`rev-parse --verify ${cfg.base}`, cwd)) return null;
+    const branch = git("rev-parse --abbrev-ref HEAD", cwd) || "HEAD";
+    const dirty = Boolean(git("status --porcelain", cwd));
+    const merged = gitOk(`merge-base --is-ancestor HEAD ${cfg.base}`, cwd);
+    const onMain = branch === "main" || branch === "master";
+    const unpushed = onMain ? Boolean(git(`rev-list ${cfg.base}..HEAD`, cwd)) : false;
+    const live = merged && !dirty && !unpushed;
+    if (live) return null;
+    const why = [];
+    if (!merged) why.push(`HEAD (${branch}) is not merged into ${cfg.base}`);
+    if (dirty) why.push("the working tree has uncommitted changes");
+    if (unpushed) why.push(`there are unpushed commits (${cfg.base}..HEAD)`);
+    const reason = "HOLD \u2014 the last message claims the work is done/fixed/deployed, but it is NOT live: " + why.join("; ") + `. On this project "done" means merged into ${cfg.base} and deployed. Do ONE of:
+  (1) Ship it: commit \u2192 merge \u2192 confirm the deploy succeeded \u2192 verify the change live, THEN report done; or
+  (2) If you cannot merge right now (a concurrent deploy is in flight, you need sign-off, CI is red), say so plainly and state the exact remaining step \u2014 but do NOT call it done, fixed, or deployed.`;
+    return { decision: "block", reason };
+  } catch {
+    return null;
+  }
+}
+
 // packages/plugin-core/dist/heartbeat.js
 import crypto from "node:crypto";
-import { promises as fs5 } from "node:fs";
+import { promises as fs6 } from "node:fs";
 import os6 from "node:os";
-import path7 from "node:path";
+import path8 from "node:path";
 var DEFAULT_THROTTLE_MS = 6e4;
 function statePath(cwd, host) {
   const key = crypto.createHash("sha256").update(cwd).digest("hex").slice(0, 16);
-  return path7.join(os6.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
+  return path8.join(os6.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
 }
 async function recentlySent(file, throttleMs) {
   try {
-    const raw = await fs5.readFile(file, "utf8");
+    const raw = await fs6.readFile(file, "utf8");
     const parsed = JSON.parse(raw);
     return typeof parsed.sent_at === "number" && Date.now() - parsed.sent_at < throttleMs;
   } catch {
@@ -4970,7 +5085,7 @@ async function recordInstallHeartbeat(cwd, reason, opts = {}) {
     const ctx = await getApi({ cwd });
     if (!ctx) return;
     await ctx.api.getAccount();
-    await fs5.writeFile(file, JSON.stringify({ sent_at: Date.now(), reason, host }), "utf8");
+    await fs6.writeFile(file, JSON.stringify({ sent_at: Date.now(), reason, host }), "utf8");
     log(`${host} activity recorded: ${reason}`);
   } catch (err) {
     log(`${host} activity failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -5061,11 +5176,11 @@ function attributeAppliedItems(agentMessage, replay) {
   const titleIds = /* @__PURE__ */ new Map();
   const titleVersionIds = /* @__PURE__ */ new Map();
   for (const candidate of candidates) {
-    const path10 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
+    const path11 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
     const title = normalizeReference(candidate.title);
-    addReferenceKey(pathIds, path10, candidate.id);
-    if (path10) {
-      addReferenceKey(pathVersionIds, `${path10}\0${candidate.version_number}`, candidate.id);
+    addReferenceKey(pathIds, path11, candidate.id);
+    if (path11) {
+      addReferenceKey(pathVersionIds, `${path11}\0${candidate.version_number}`, candidate.id);
     }
     addReferenceKey(titleIds, title, candidate.id);
     if (title) {
@@ -5074,14 +5189,14 @@ function attributeAppliedItems(agentMessage, replay) {
   }
   const applied = [];
   for (const candidate of candidates) {
-    const path10 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
+    const path11 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
     const title = normalizeReference(candidate.title);
-    const pathPositions = unnegatedReferencePositions(message, path10);
-    const pathVersionKey = `${path10}\0${candidate.version_number}`;
-    const pathIsUnique = pathIds.get(path10)?.size === 1;
+    const pathPositions = unnegatedReferencePositions(message, path11);
+    const pathVersionKey = `${path11}\0${candidate.version_number}`;
+    const pathIsUnique = pathIds.get(path11)?.size === 1;
     const pathVersionIsUnique = pathVersionIds.get(pathVersionKey)?.size === 1;
     const pathMatch = pathPositions.length > 0 && (pathIsUnique || pathVersionIsUnique && pathPositions.some(
-      (position) => versionMentionNear(message, position, path10.length, candidate.version_number)
+      (position) => versionMentionNear(message, position, path11.length, candidate.version_number)
     ));
     const titlePositions = unnegatedReferencePositions(message, title);
     const titleVersionKey = `${title}\0${candidate.version_number}`;
@@ -5106,24 +5221,24 @@ function attributeAppliedItems(agentMessage, replay) {
 }
 
 // packages/plugin-core/dist/state.js
-import { promises as fs6 } from "node:fs";
-import path8 from "node:path";
+import { promises as fs7 } from "node:fs";
+import path9 from "node:path";
 import os7 from "node:os";
 import crypto2 from "node:crypto";
-var STATE_FILE = path8.join(os7.homedir(), ".config", "memlin", "state.json");
+var STATE_FILE = path9.join(os7.homedir(), ".config", "memlin", "state.json");
 var EMPTY = { documents: {} };
 async function readState() {
   try {
-    const raw = await fs6.readFile(STATE_FILE, "utf8");
+    const raw = await fs7.readFile(STATE_FILE, "utf8");
     return JSON.parse(raw);
   } catch {
     return { ...EMPTY };
   }
 }
 async function writeState(state) {
-  await fs6.mkdir(path8.dirname(STATE_FILE), { recursive: true });
+  await fs7.mkdir(path9.dirname(STATE_FILE), { recursive: true });
   const tmp = `${STATE_FILE}.${process.pid}.tmp`;
-  await fs6.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
+  await fs7.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
   await atomicRename(tmp, STATE_FILE);
 }
 var LOCK_DIR = `${STATE_FILE}.lock`;
@@ -5135,9 +5250,9 @@ function getLastResolveForSession(state, sessionId) {
 }
 
 // packages/plugin-core/dist/project-resolver.js
-import { execSync } from "node:child_process";
+import { execSync as execSync2 } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
-import path9 from "node:path";
+import path10 from "node:path";
 var ALLOW_ACCOUNT_MISMATCH_ENV = "MEMLIN_ALLOW_ACCOUNT_MISMATCH";
 function allowAccountMismatch(env = process.env) {
   const v = env[ALLOW_ACCOUNT_MISMATCH_ENV];
@@ -5150,7 +5265,7 @@ function accountBindingHazard(r, opts = {}) {
   return "none";
 }
 async function resolveProject(api, cwd, configProjectId) {
-  const absCwd = path9.resolve(cwd);
+  const absCwd = path10.resolve(cwd);
   const remotes = detectGitRemotes(cwd);
   const hasGitRemote = remotes.length > 0;
   try {
@@ -5186,7 +5301,7 @@ async function resolveProject(api, cwd, configProjectId) {
 }
 function readGitRemote(cwd) {
   try {
-    const url = execSync("git remote get-url origin", {
+    const url = execSync2("git remote get-url origin", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
@@ -5210,8 +5325,8 @@ function detectGitRemotes(cwd) {
         continue;
       }
       scanned++;
-      const child = path9.join(cwd, entry.name);
-      if (!existsSync(path9.join(child, ".git"))) continue;
+      const child = path10.join(cwd, entry.name);
+      if (!existsSync(path10.join(child, ".git"))) continue;
       const remote = readGitRemote(child);
       if (remote && !out.includes(remote)) out.push(remote);
     }
@@ -5740,8 +5855,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path10, errorMaps, issueData } = params;
-  const fullPath = [...path10, ...issueData.path || []];
+  const { data, path: path11, errorMaps, issueData } = params;
+  const fullPath = [...path11, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -5857,11 +5972,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path10, key) {
+  constructor(parent, value, path11, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path10;
+    this._path = path11;
     this._key = key;
   }
   get path() {
@@ -10247,7 +10362,7 @@ function flattenContent(c) {
 async function readLastExchange(transcriptPath) {
   let raw;
   try {
-    raw = await fs7.readFile(transcriptPath, "utf8");
+    raw = await fs8.readFile(transcriptPath, "utf8");
   } catch {
     return null;
   }
@@ -10289,7 +10404,7 @@ function nonNegativeInt(v) {
 async function readLastAssistantUsage(transcriptPath) {
   let raw;
   try {
-    raw = await fs7.readFile(transcriptPath, "utf8");
+    raw = await fs8.readFile(transcriptPath, "utf8");
   } catch {
     return null;
   }
@@ -10334,7 +10449,7 @@ async function heartbeat(cwd) {
 }
 function readGitRemote2(cwd) {
   try {
-    const url = execSync2("git remote get-url origin", {
+    const url = execSync3("git remote get-url origin", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
@@ -10570,7 +10685,7 @@ async function maybeScribeSession(ctx, payload) {
   if (!payload.transcript_path) return;
   let raw;
   try {
-    raw = await fs7.readFile(payload.transcript_path, "utf8");
+    raw = await fs8.readFile(payload.transcript_path, "utf8");
   } catch {
     return;
   }
@@ -10749,7 +10864,7 @@ async function maybeUpsertWorkingMemory(ctx, payload) {
     log("working memory: skipped \u2014 no resolve or exchange yet");
     return;
   }
-  const path10 = workingMemoryPath(sessionId);
+  const path11 = workingMemoryPath(sessionId);
   const callOpts = accountOverride ? { accountId: accountOverride } : {};
   let documentId = state.working_memory_ids?.[sessionId] ?? null;
   if (!documentId) {
@@ -10765,7 +10880,7 @@ async function maybeUpsertWorkingMemory(ctx, payload) {
         TIMEOUT_MS,
         []
       );
-      const hit = docs.find((d) => d.path === path10);
+      const hit = docs.find((d) => d.path === path11);
       if (hit) documentId = hit.id;
     } catch (err) {
       log(
@@ -10780,7 +10895,7 @@ async function maybeUpsertWorkingMemory(ctx, payload) {
         scope: resolvedProjectId ? "project" : "team",
         kind: "memory",
         title: `Working memory \u2014 ${sessionId.slice(0, 12)}`,
-        path: path10,
+        path: path11,
         content,
         commit_message: "session working memory",
         project_id: resolvedProjectId,
@@ -10806,13 +10921,18 @@ async function maybeUpsertWorkingMemory(ctx, payload) {
       next.working_memory_ids = Object.fromEntries(ids.slice(ids.length - 64));
     }
     await writeState(next);
-    log(`working memory: upserted ${path10} (v${result.version_number})`);
+    log(`working memory: upserted ${path11} (v${result.version_number})`);
   } catch (err) {
     log(`working memory failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 async function runStopHandler(payload) {
   const cwd = payload.cwd ?? process.cwd();
+  const gate = await enforceDoneMeansDeployed(payload);
+  if (gate) {
+    process.stdout.write(JSON.stringify(gate));
+    return;
+  }
   const ctx = await getApi({ cwd });
   if (!ctx) return;
   await Promise.allSettled([

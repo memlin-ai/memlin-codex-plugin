@@ -69831,6 +69831,7 @@ function runtimeCwd() {
 function readGitRemote2(cwd) {
   try {
     const raw = execSync4("git remote get-url origin", {
+      windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
       encoding: "utf8"
