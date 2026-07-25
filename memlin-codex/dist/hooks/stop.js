@@ -4943,6 +4943,7 @@ function log(msg) {
 }
 
 // packages/plugin-core/dist/done-gate.js
+init_companion_client();
 import { execSync } from "node:child_process";
 import { promises as fs5 } from "node:fs";
 import path7 from "node:path";
@@ -4954,25 +4955,41 @@ function isOff(v) {
   const s = (v || "").trim().toLowerCase();
   return s === "off" || s === "0" || s === "false" || s === "no";
 }
-async function readGateConfig(cwd) {
-  if (isOff(process.env.MEMLIN_DONE_GATE)) return null;
-  const env = process.env.MEMLIN_DONE_MEANS_DEPLOYED;
-  const envOn = env === "1" || env === "true";
+async function readMarker(cwd) {
   let dir = path7.resolve(cwd);
   for (let i = 0; i < 40; i += 1) {
-    const marker = path7.join(dir, ".memlin", "enforce-done-deployed.json");
+    const file = path7.join(dir, ".memlin", "enforce-done-deployed.json");
     try {
-      const raw = await fs5.readFile(marker, "utf8");
+      const raw = await fs5.readFile(file, "utf8");
       const parsed = JSON.parse(raw);
-      if (parsed.enabled === false) return null;
-      return { enabled: true, base: parsed.base || "origin/main" };
+      return { enabled: parsed.enabled !== false, base: parsed.base || "origin/main" };
     } catch {
     }
     const parent = path7.dirname(dir);
     if (parent === dir) break;
     dir = parent;
   }
-  return envOn ? { enabled: true, base: "origin/main" } : null;
+  return null;
+}
+async function readCompanionPolicy(cwd) {
+  try {
+    const ws = await companionRequest("workspace.resolve", { cwd });
+    const v = ws?.enforce_done_deployed;
+    return typeof v === "boolean" ? v : void 0;
+  } catch {
+    return void 0;
+  }
+}
+async function resolveGate(cwd) {
+  if (isOff(process.env.MEMLIN_DONE_GATE)) return null;
+  const marker = await readMarker(cwd);
+  if (marker && marker.enabled === false) return null;
+  const serverEnabled = await readCompanionPolicy(cwd);
+  const env = process.env.MEMLIN_DONE_MEANS_DEPLOYED;
+  const envOn = env === "1" || env === "true";
+  const enabled = serverEnabled === true || marker?.enabled === true || envOn;
+  if (!enabled) return null;
+  return { enabled: true, base: marker?.base || "origin/main" };
 }
 async function lastAssistantText(transcriptPath) {
   let raw;
@@ -5036,13 +5053,13 @@ async function enforceDoneMeansDeployed(payload) {
     const cwd = payload.cwd || process.cwd();
     const transcript = payload.transcript_path;
     if (!transcript) return null;
-    const cfg = await readGateConfig(cwd);
-    if (!cfg) return null;
     const text = await lastAssistantText(transcript);
     if (!text) return null;
     if (HONEST.test(text)) return null;
     if (OVERRIDE.test(text)) return null;
     if (!CLAIM.test(text) && !HARD.test(text)) return null;
+    const cfg = await resolveGate(cwd);
+    if (!cfg) return null;
     if (!gitOk(`rev-parse --verify ${cfg.base}`, cwd)) return null;
     const branch = git("rev-parse --abbrev-ref HEAD", cwd) || "HEAD";
     const dirty = Boolean(git("status --porcelain", cwd));
@@ -5291,7 +5308,8 @@ async function resolveProject(api, cwd, configProjectId) {
         project_name: result.name,
         account_id: result.account_id,
         reason: result.reason === "none" ? "config" : result.reason,
-        hasGitRemote
+        hasGitRemote,
+        enforce_done_deployed: result.enforce_done_deployed
       };
     }
   } catch {
