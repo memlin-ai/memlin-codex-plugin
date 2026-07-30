@@ -539,7 +539,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.35";
+  cachedAgentVersion = "0.2.36";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -623,8 +623,11 @@ var MemlinApiClient = class {
     };
     if (body !== void 0) headers["Content-Type"] = "application/json";
     const idempotent = method === "GET";
-    const maxAttempts = idempotent ? (this.cfg.maxRetries ?? DEFAULT_MAX_RETRIES) + 1 : 1;
-    const timeoutMs = this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    const maxAttempts = idempotent ? Math.max(0, opts.maxRetries ?? this.cfg.maxRetries ?? DEFAULT_MAX_RETRIES) + 1 : 1;
+    const timeoutMs = Math.max(
+      1,
+      opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
+    );
     for (let attempt = 1; ; attempt++) {
       let res;
       let text;
@@ -904,7 +907,11 @@ var MemlinApiClient = class {
    * the same account (no global-default/pinned-name mismatch).
    */
   async getAccount(opts = {}) {
-    return this.request("GET", "/account", void 0, { accountId: opts.accountId });
+    return this.request("GET", "/account", void 0, {
+      accountId: opts.accountId,
+      requestTimeoutMs: opts.requestTimeoutMs,
+      maxRetries: opts.maxRetries
+    });
   }
   /**
    * POST /projects/resolve — server-side project resolution.

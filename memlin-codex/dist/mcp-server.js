@@ -59650,7 +59650,7 @@ var TOOLS = [
   },
   {
     name: "memlin_resolve_task",
-    description: "The Memlin resolver \u2014 one call returns a pre-assembled, scope-correct, citation-bearing context bundle for a specific engineering task. Use this BEFORE doing specialized work (code review, security audit, API design, debugging, etc.) instead of loading every skill and memory snippet into context. The server runs hybrid retrieval (semantic cosine + BM25) across skills, memory, approved goals, schemas, and decisions in parallel, applies per-kind similarity thresholds and a kind-priority weighting, enforces a token budget, and returns a single composed bundle with full provenance on every item. Apply the primary skill's framework; treat approved goals and required/pinned decisions as constraints; use other decisions as cited project context; validate against any schemas; use memory facts as ground truth. Always cite sources by path + version. In a host without a pre-task hook (e.g. Claude Desktop, or any plain MCP client), nothing resolves automatically \u2014 call this yourself at the start of any non-trivial task so you work from the team's context instead of guessing.",
+    description: "The Memlin resolver \u2014 one call returns a pre-assembled, scope-correct, citation-bearing context bundle for a specific engineering task. Use this BEFORE doing specialized work (code review, security audit, API design, debugging, etc.) instead of loading every skill and memory snippet into context. The server runs hybrid retrieval (semantic cosine + BM25) across skills, memory, approved goals, schemas, and decisions in parallel, applies per-kind similarity thresholds and a kind-priority weighting, enforces a token budget, and returns a single composed bundle with full provenance on every item. Apply the primary skill's framework; treat approved goals and required/pinned decisions as constraints; use other decisions as cited project context; validate against any schemas; use memory facts as ground truth. Always cite sources by path + version. If you materially follow a delivered skill, append `<!-- memlin-applied: skill-document-id[, ...] -->` to the final response using only the ids of skills actually followed; reading or citing alone is not application, and omit the receipt when none were followed. In a host without a pre-task hook (e.g. Claude Desktop, or any plain MCP client), nothing resolves automatically \u2014 call this yourself at the start of any non-trivial task so you work from the team's context instead of guessing.",
     annotations: { readOnlyHint: true, destructiveHint: false },
     inputSchema: {
       type: "object",
@@ -60211,7 +60211,17 @@ var TOOLS = [
           properties: {
             kind: {
               type: "string",
-              enum: ["thought", "file", "todo", "plan", "goal", "memory", "skill", "schema", "decision"],
+              enum: [
+                "thought",
+                "file",
+                "todo",
+                "plan",
+                "goal",
+                "memory",
+                "skill",
+                "schema",
+                "decision"
+              ],
               description: "Entity kind of the item being attached."
             },
             id: { type: "string", description: "Entity uuid." }
@@ -63466,6 +63476,7 @@ var MIN_CANDIDATES_FOR_RERANK = 4;
 var RERANK_TIMEOUT_MS = 4e3;
 var RERANK_EXCERPT_CHARS = 500;
 var RERANK_MIN_COVERAGE = 0.5;
+var RERANK_SKILL_MIN_SCORE = 0.15;
 var BRAND_GUIDELINES_LOGO_SIGNED_URL_TTL_SECONDS = 60 * 60;
 var KIND_THRESHOLDS = {
   skill: 0.5,
@@ -64175,32 +64186,54 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const kPerKind = args.k_per_kind ?? DEFAULT_K_PER_KIND;
   const projectId = args.project_id ?? ctx.projectId ?? null;
   const governanceUserId = ctx.userId ?? null;
-  const projectTeam = await getProjectTeamId(ctx, projectId);
-  const teamId = projectTeam.teamId;
   const requestedKinds = args.kinds ? [...args.kinds] : [...SEARCHABLE_KINDS];
-  const projectBrainPolicy = await loadProjectBrainPolicy(
-    ctx,
-    projectId,
-    teamId,
-    governanceUserId,
-    projectTeam.error ? [projectTeam.error] : []
+  if (!ctx.embed) {
+    throw new EmbeddingUnavailableError(
+      "resolver requires server-side embeddings; set OPENAI_API_KEY"
+    );
+  }
+  const projectTeamPromise = getProjectTeamId(ctx, projectId);
+  const projectBrainPolicyPromise = projectTeamPromise.then(
+    (projectTeam) => loadProjectBrainPolicy(
+      ctx,
+      projectId,
+      projectTeam.teamId,
+      governanceUserId,
+      projectTeam.error ? [projectTeam.error] : []
+    )
   );
   let customThresholds = null;
   let thresholdsMode = "default";
   let brandContextMode = "always";
-  let accThresholds = null;
-  let accThresholdsErr = null;
-  {
+  const accountSettingsPromise = (async () => {
     const res = await ctx.supabase.from("accounts").select("similarity_thresholds, brand_context_mode").eq("id", ctx.accountId).maybeSingle();
     if (res.error && /brand_context_mode/i.test(res.error.message)) {
       const fallback = await ctx.supabase.from("accounts").select("similarity_thresholds").eq("id", ctx.accountId).maybeSingle();
-      accThresholds = fallback.data;
-      accThresholdsErr = fallback.error;
-    } else {
-      accThresholds = res.data;
-      accThresholdsErr = res.error;
+      return { accThresholds: fallback.data, accThresholdsErr: fallback.error };
     }
-  }
+    return { accThresholds: res.data, accThresholdsErr: res.error };
+  })();
+  const embeddingStartedAt = Date.now();
+  const cachedVec = getCachedEmbedding(args.task);
+  const embeddingPromise = cachedVec ? (() => {
+    embeddingCacheHit = true;
+    embeddingMs = Date.now() - embeddingStartedAt;
+    return Promise.resolve(cachedVec);
+  })() : ctx.embed(args.task).then((vec) => {
+    cacheEmbedding(args.task, vec);
+    return vec;
+  }).catch((e2) => {
+    throw new EmbeddingUnavailableError(
+      `embedding call failed: ${e2 instanceof Error ? e2.message : String(e2)}`
+    );
+  }).finally(() => {
+    embeddingMs = Date.now() - embeddingStartedAt;
+  });
+  const [{ accThresholds, accThresholdsErr }, projectBrainPolicy, queryVec] = await Promise.all([
+    accountSettingsPromise,
+    projectBrainPolicyPromise,
+    embeddingPromise
+  ]);
   if (accThresholdsErr) {
     console.warn(`[resolver] similarity-thresholds lookup failed: ${accThresholdsErr.message}`);
   } else if (accThresholds && accThresholds.similarity_thresholds) {
@@ -64213,28 +64246,6 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   if (accThresholds && accThresholds.brand_context_mode === "auto") {
     brandContextMode = "auto";
   }
-  if (!ctx.embed) {
-    throw new EmbeddingUnavailableError(
-      "resolver requires server-side embeddings; set OPENAI_API_KEY"
-    );
-  }
-  let queryVec;
-  const embeddingStartedAt = Date.now();
-  const cachedVec = getCachedEmbedding(args.task);
-  if (cachedVec) {
-    embeddingCacheHit = true;
-    queryVec = cachedVec;
-  } else {
-    try {
-      queryVec = await ctx.embed(args.task);
-      cacheEmbedding(args.task, queryVec);
-    } catch (e2) {
-      throw new EmbeddingUnavailableError(
-        `embedding call failed: ${e2 instanceof Error ? e2.message : String(e2)}`
-      );
-    }
-  }
-  embeddingMs = Date.now() - embeddingStartedAt;
   const reactivationDone = maybeReactivateColdMatches(ctx, ctx.accountId, queryVec);
   const corpusBudgetPromise = args.max_tokens === void 0 ? (() => {
     const startedAt = Date.now();
@@ -64786,14 +64797,15 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
           const c2 = candidates[i2];
           const newScore = scores[c2.id];
-          if (newScore === void 0 || newScore <= 0) {
+          const belowSkillAdmissionFloor = c2.kind === "skill" && !projectBrainPolicy.requiredChainIds.has(c2.id) && newScore !== void 0 && newScore < RERANK_SKILL_MIN_SCORE;
+          if (newScore === void 0 || newScore <= 0 || belowSkillAdmissionFloor) {
             omittedCandidates.push({
               id: c2.id,
               kind: c2.kind,
               title: c2.title,
               similarity: c2.similarity,
               reason: "rerank_filtered",
-              detail: "reranker omitted or scored this candidate at 0",
+              detail: belowSkillAdmissionFloor ? `skill rerank score ${newScore.toFixed(3)} is below the ${RERANK_SKILL_MIN_SCORE.toFixed(2)} application floor` : "reranker omitted or scored this candidate at 0",
               path: c2.citation.path
             });
             candidates.splice(i2, 1);
@@ -66251,51 +66263,62 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       `[resolver] audit log unexpected error: ${e2 instanceof Error ? e2.message : String(e2)}`
     );
   }
+  const postAssemblyTasks = [reactivationDone];
   if (projectId && isDeployTask(args.task)) {
-    await recordDeployActivity(ctx, {
-      projectId,
-      sessionId: audit.sessionId ?? null,
-      task: args.task,
-      activeComponentId,
-      activeComponentName,
-      agentKind: audit.agentKind ?? null,
-      agentInstallationId: audit.agentInstallationId ?? null
-    });
+    postAssemblyTasks.push(
+      recordDeployActivity(ctx, {
+        projectId,
+        sessionId: audit.sessionId ?? null,
+        task: args.task,
+        activeComponentId,
+        activeComponentName,
+        agentKind: audit.agentKind ?? null,
+        agentInstallationId: audit.agentInstallationId ?? null
+      })
+    );
   }
   if (audit.agentInstallationId) {
-    try {
-      await ctx.supabase.from("agent_installations").update({ last_sync_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", audit.agentInstallationId);
-    } catch (e2) {
-      console.warn(
-        `[resolver] last_sync_at stamp failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding`
-      );
-    }
+    postAssemblyTasks.push(
+      (async () => {
+        try {
+          await ctx.supabase.from("agent_installations").update({ last_sync_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", audit.agentInstallationId);
+        } catch (e2) {
+          console.warn(
+            `[resolver] last_sync_at stamp failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding`
+          );
+        }
+      })()
+    );
   }
   if (auditId) {
-    try {
-      const bundleHash = createHash("sha256").update(JSON.stringify(bundle)).digest("hex");
-      const surfacedDecisions = bundle.decisions.map((d2) => d2.id).filter((id) => typeof id === "string");
-      const { error: snapErr } = await ctx.supabase.rpc("record_bundle_snapshot", {
-        p_audit_id: auditId,
-        p_account_id: ctx.accountId,
-        p_project_id: projectId ?? null,
-        // Same membership RLS as usage_events (0074) — must carry the same
-        // sanitized preview, not the raw prompt.
-        p_task: auditTask.task,
-        p_bundle: bundle,
-        p_bundle_hash: bundleHash,
-        p_surfaced_decisions: surfacedDecisions
-      });
-      if (snapErr) {
-        console.warn(`[resolver] bundle snapshot write failed: ${snapErr.message}`);
-      }
-    } catch (e2) {
-      console.warn(
-        `[resolver] bundle snapshot unexpected error: ${e2 instanceof Error ? e2.message : String(e2)}`
-      );
-    }
+    postAssemblyTasks.push(
+      (async () => {
+        try {
+          const bundleHash = createHash("sha256").update(JSON.stringify(bundle)).digest("hex");
+          const surfacedDecisions = bundle.decisions.map((d2) => d2.id).filter((id) => typeof id === "string");
+          const { error: snapErr } = await ctx.supabase.rpc("record_bundle_snapshot", {
+            p_audit_id: auditId,
+            p_account_id: ctx.accountId,
+            p_project_id: projectId ?? null,
+            // Same membership RLS as usage_events (0074) — must carry the same
+            // sanitized preview, not the raw prompt.
+            p_task: auditTask.task,
+            p_bundle: bundle,
+            p_bundle_hash: bundleHash,
+            p_surfaced_decisions: surfacedDecisions
+          });
+          if (snapErr) {
+            console.warn(`[resolver] bundle snapshot write failed: ${snapErr.message}`);
+          }
+        } catch (e2) {
+          console.warn(
+            `[resolver] bundle snapshot unexpected error: ${e2 instanceof Error ? e2.message : String(e2)}`
+          );
+        }
+      })()
+    );
   }
-  await reactivationDone;
+  await Promise.all(postAssemblyTasks);
   return {
     bundle,
     token_budget: { limit: maxTokens, used, truncated },
@@ -67603,7 +67626,9 @@ Call the \`memlin_create_decision\` tool with \`title\` set to the decision. If 
     case "memlin-verify": {
       const decision = typeof a2.decision === "string" ? a2.decision.trim() : "";
       if (!decision)
-        throw argError('memlin-verify requires a "decision" argument (an id, or words to find it).');
+        throw argError(
+          'memlin-verify requires a "decision" argument (an id, or words to find it).'
+        );
       const verdict = typeof a2.verdict === "string" && a2.verdict.trim() ? a2.verdict.trim() : null;
       const verdictLine = verdict ? ` I think the verdict is "${verdict}".` : "";
       const text = `Record a measured outcome on this past decision: "${decision}".${verdictLine}
@@ -67640,7 +67665,16 @@ function renderBundleText(result, task) {
     const skills = [b2.primary_skill, ...b2.supporting_skills ?? []].filter(
       (s2) => Boolean(s2)
     );
-    if (skills.length) sections.push(["Skills", skills]);
+    const hasDeliveredSkill = skills.length > 0 || (b2.required_core ?? []).some((item) => item.kind === "skill") || (b2.pinned ?? []).some((item) => item.kind === "skill");
+    if (hasDeliveredSkill) {
+      lines.push(
+        "Application receipt: if you materially follow a resolved skill, append `<!-- memlin-applied: skill-document-id[, ...] -->` to the final response using only the ids of skills actually followed. Reading or citing alone is not application; omit the receipt when none were followed."
+      );
+      lines.push("");
+    }
+    if (skills.length) {
+      sections.push(["Skills", skills]);
+    }
     if (b2.goals?.length) sections.push(["Goals", b2.goals]);
     if (b2.decisions?.length) sections.push(["Decisions", b2.decisions]);
     if (b2.memory?.length) sections.push(["Memory", b2.memory]);
@@ -67665,6 +67699,7 @@ function renderBundleText(result, task) {
     for (const it2 of items) {
       const cite = renderCitation(it2);
       lines.push(`### ${it2.title}${cite ? ` ${cite}` : ""}`);
+      lines.push(`Document id: \`${it2.id}\``);
       if (it2.below_gate) {
         lines.push("");
         lines.push("_(closest match \u2014 BELOW the confidence gate; verify before trusting)_");
@@ -68560,7 +68595,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.35";
+  cachedAgentVersion = "0.2.36";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -68644,8 +68679,11 @@ var MemlinApiClient = class {
     };
     if (body !== void 0) headers["Content-Type"] = "application/json";
     const idempotent = method === "GET";
-    const maxAttempts = idempotent ? (this.cfg.maxRetries ?? DEFAULT_MAX_RETRIES2) + 1 : 1;
-    const timeoutMs = this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    const maxAttempts = idempotent ? Math.max(0, opts.maxRetries ?? this.cfg.maxRetries ?? DEFAULT_MAX_RETRIES2) + 1 : 1;
+    const timeoutMs = Math.max(
+      1,
+      opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
+    );
     for (let attempt = 1; ; attempt++) {
       let res;
       let text;
@@ -68925,7 +68963,11 @@ var MemlinApiClient = class {
    * the same account (no global-default/pinned-name mismatch).
    */
   async getAccount(opts = {}) {
-    return this.request("GET", "/account", void 0, { accountId: opts.accountId });
+    return this.request("GET", "/account", void 0, {
+      accountId: opts.accountId,
+      requestTimeoutMs: opts.requestTimeoutMs,
+      maxRetries: opts.maxRetries
+    });
   }
   /**
    * POST /projects/resolve — server-side project resolution.
@@ -69827,6 +69869,7 @@ import path10 from "node:path";
 import os7 from "node:os";
 import crypto2 from "node:crypto";
 var STATE_FILE = path10.join(os7.homedir(), ".config", "memlin", "state.json");
+var MAX_LAST_RESOLVE_SESSIONS = 32;
 var EMPTY = { documents: {} };
 async function readState() {
   try {
@@ -69836,9 +69879,74 @@ async function readState() {
     return { ...EMPTY };
   }
 }
+async function writeState(state) {
+  await fs6.mkdir(path10.dirname(STATE_FILE), { recursive: true });
+  const tmp = `${STATE_FILE}.${process.pid}.tmp`;
+  await fs6.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
+  await atomicRename(tmp, STATE_FILE);
+}
 var LOCK_DIR = `${STATE_FILE}.lock`;
+var LOCK_STALE_MS = 2e3;
+var LOCK_WAIT_MS = 2e3;
+var LOCK_RETRY_MS = 50;
+async function acquireStateLock() {
+  const deadline = Date.now() + LOCK_WAIT_MS;
+  for (; ; ) {
+    try {
+      await fs6.mkdir(LOCK_DIR);
+      return true;
+    } catch {
+      try {
+        const stat = await fs6.stat(LOCK_DIR);
+        if (Date.now() - stat.mtimeMs > LOCK_STALE_MS) {
+          await fs6.rmdir(LOCK_DIR).catch(() => {
+          });
+          continue;
+        }
+      } catch {
+        continue;
+      }
+      if (Date.now() >= deadline) return false;
+      await new Promise((r2) => setTimeout(r2, LOCK_RETRY_MS));
+    }
+  }
+}
+async function releaseStateLock() {
+  await fs6.rmdir(LOCK_DIR).catch(() => {
+  });
+}
+async function updateState(mutate) {
+  const locked = await acquireStateLock();
+  try {
+    const state = await readState();
+    await mutate(state);
+    await writeState(state);
+    return state;
+  } finally {
+    if (locked) await releaseStateLock();
+  }
+}
 function hash(content) {
   return crypto2.createHash("sha256").update(content).digest("hex");
+}
+function cacheLastResolve(state, entry) {
+  state.last_resolve = entry;
+  if (!entry.session_id) return;
+  state.last_resolves ??= {};
+  state.last_resolves[entry.session_id] = entry;
+  const entries = Object.entries(state.last_resolves);
+  if (entries.length <= MAX_LAST_RESOLVE_SESSIONS) return;
+  entries.sort(([, a2], [, b2]) => b2.resolved_at - a2.resolved_at).slice(MAX_LAST_RESOLVE_SESSIONS).forEach(([sessionId]) => {
+    delete state.last_resolves?.[sessionId];
+  });
+}
+async function recordLastResolve(entry) {
+  try {
+    await updateState((state) => {
+      cacheLastResolve(state, entry);
+    });
+  } catch {
+  }
 }
 function diffStates(prev, current) {
   const currentByPath = new Map(current.map((c2) => [c2.path, c2.hash]));
@@ -69855,6 +69963,13 @@ function diffStates(prev, current) {
     if (!currentByPath.has(p2)) deleted.push(p2);
   }
   return { added, modified, deleted };
+}
+
+// packages/plugin-core/dist/continuity.js
+var CONTINUITY_WINDOW_MS = 10 * 60 * 1e3;
+function bundleHasContinuityContent(bundle) {
+  const claims = bundle.claim_guardrails;
+  return Boolean(bundle.primary_skill) || bundle.supporting_skills.length > 0 || bundle.memory.length > 0 || bundle.goals.length > 0 || bundle.schemas.length > 0 || (bundle.decisions?.length ?? 0) > 0 || (bundle.required_core?.length ?? 0) > 0 || (bundle.pinned?.length ?? 0) > 0 || (bundle.session_working?.length ?? 0) > 0 || (bundle.open_threads?.length ?? 0) > 0 || (bundle.pack_context?.length ?? 0) > 0 || (claims?.approved.length ?? 0) > 0 || (claims?.blocked.length ?? 0) > 0 || (claims?.competitor_facts.length ?? 0) > 0;
 }
 
 // packages/plugin-core/dist/local-scan.js
@@ -70197,7 +70312,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.35"?.trim();
+  const env = "0.2.36"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }
@@ -70248,6 +70363,7 @@ async function resolveProjectCached(input) {
   return value;
 }
 async function resolveViaApi(args, requestCfg) {
+  const startedAt = Date.now();
   const accessToken = await currentAccessToken(requestCfg.authConfig);
   const routing = await resolveRequestRouting(
     args,
@@ -70284,7 +70400,21 @@ async function resolveViaApi(args, requestCfg) {
   });
   const body = await res.text();
   if (!res.ok) throw new Error(`resolve HTTP ${res.status}: ${body}`);
-  return JSON.parse(body);
+  const result = JSON.parse(body);
+  if (result.audit_id && typeof args.task === "string") {
+    await recordLastResolve({
+      task: args.task,
+      audit_id: result.audit_id,
+      resolved_at: Date.now(),
+      cwd: routing.cwd,
+      had_content: bundleHasContinuityContent(result.bundle),
+      host: agentKind(),
+      session_id: process.env.MEMLIN_SESSION_ID || null,
+      delivered: true,
+      turn_started_at: startedAt
+    });
+  }
+  return result;
 }
 function createToolContext(accessToken, requestCfg) {
   const supabase = createClient(requestCfg.supabaseUrl, requestCfg.supabaseAnon, {
@@ -70532,7 +70662,7 @@ server.setRequestHandler(GetPromptRequestSchema, async (req) => {
   const name = req.params.name;
   const args = req.params.arguments ?? {};
   const token = await currentAccessToken(requestCfg.authConfig);
-  const resolveFn = async ({ task, project_id }) => await resolveViaApi(
+  const resolveFn = async ({ task, project_id }) => resolveViaApi(
     {
       task,
       ...project_id ? { project_id } : {}

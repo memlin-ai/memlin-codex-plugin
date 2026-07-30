@@ -548,7 +548,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.35";
+  cachedAgentVersion = "0.2.36";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -632,8 +632,11 @@ var MemlinApiClient = class {
     };
     if (body !== void 0) headers["Content-Type"] = "application/json";
     const idempotent = method === "GET";
-    const maxAttempts = idempotent ? (this.cfg.maxRetries ?? DEFAULT_MAX_RETRIES) + 1 : 1;
-    const timeoutMs = this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    const maxAttempts = idempotent ? Math.max(0, opts.maxRetries ?? this.cfg.maxRetries ?? DEFAULT_MAX_RETRIES) + 1 : 1;
+    const timeoutMs = Math.max(
+      1,
+      opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
+    );
     for (let attempt = 1; ; attempt++) {
       let res;
       let text;
@@ -913,7 +916,11 @@ var MemlinApiClient = class {
    * the same account (no global-default/pinned-name mismatch).
    */
   async getAccount(opts = {}) {
-    return this.request("GET", "/account", void 0, { accountId: opts.accountId });
+    return this.request("GET", "/account", void 0, {
+      accountId: opts.accountId,
+      requestTimeoutMs: opts.requestTimeoutMs,
+      maxRetries: opts.maxRetries
+    });
   }
   /**
    * POST /projects/resolve — server-side project resolution.
@@ -1436,6 +1443,7 @@ function log(msg) {
 
 // packages/plugin-core/dist/heartbeat.js
 var DEFAULT_THROTTLE_MS = 6e4;
+var HEARTBEAT_REQUEST_TIMEOUT_MS = 750;
 function statePath(cwd, host) {
   const key = crypto.createHash("sha256").update(cwd).digest("hex").slice(0, 16);
   return path7.join(os6.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
@@ -1457,7 +1465,10 @@ async function recordInstallHeartbeat(cwd, reason, opts = {}) {
   try {
     const ctx = await getApi({ cwd });
     if (!ctx) return;
-    await ctx.api.getAccount();
+    await ctx.api.getAccount({
+      requestTimeoutMs: HEARTBEAT_REQUEST_TIMEOUT_MS,
+      maxRetries: 0
+    });
     await fs5.writeFile(file, JSON.stringify({ sent_at: Date.now(), reason, host }), "utf8");
     log(`${host} activity recorded: ${reason}`);
   } catch (err) {
@@ -1641,6 +1652,7 @@ function buildContinuityMarker(auditId) {
 
 // packages/plugin-core/dist/pending-bundle.js
 import { spawn } from "node:child_process";
+import crypto3 from "node:crypto";
 import { promises as fs7 } from "node:fs";
 import path9 from "node:path";
 import os8 from "node:os";
@@ -1648,37 +1660,73 @@ var PENDING_BUNDLE_MAX_AGE_MS = 10 * 60 * 1e3;
 function pendingBundlePath() {
   return process.env.MEMLIN_RESOLVE_OUT ?? path9.join(os8.homedir(), ".config", "memlin", "pending-bundle.json");
 }
+var PENDING_BUNDLE_DIR = "pending-bundles";
+function pendingBundleSpoolDir() {
+  return process.env.MEMLIN_PENDING_BUNDLE_DIR ?? path9.join(os8.homedir(), ".config", "memlin", PENDING_BUNDLE_DIR);
+}
+function pendingBundleKey(cwd, host, sessionId, task) {
+  return crypto3.createHash("sha256").update(JSON.stringify([cwd, host, sessionId ?? null, task])).digest("hex");
+}
+function pendingBundlePathFor(cwd, host, sessionId, task) {
+  return process.env.MEMLIN_RESOLVE_OUT ?? path9.join(pendingBundleSpoolDir(), `${pendingBundleKey(cwd, host, sessionId, task)}.json`);
+}
 async function takePendingBundle(cwd, host, match) {
-  const file = pendingBundlePath();
-  let bundle;
+  const explicitFile = process.env.MEMLIN_RESOLVE_OUT;
+  const spoolDir = pendingBundleSpoolDir();
+  let files;
+  if (explicitFile) {
+    files = [explicitFile];
+  } else {
+    try {
+      const names = await fs7.readdir(spoolDir);
+      files = names.filter((name) => name.endsWith(".json")).slice(0, 256).map((name) => path9.join(spoolDir, name));
+    } catch {
+      files = [];
+    }
+    files.push(pendingBundlePath());
+  }
+  const matches = [];
+  for (const file of [...new Set(files)]) {
+    let bundle;
+    try {
+      bundle = JSON.parse(await fs7.readFile(file, "utf8"));
+    } catch {
+      continue;
+    }
+    if (typeof bundle !== "object" || bundle === null || typeof bundle.rendered !== "string" || bundle.rendered.length === 0 || typeof bundle.completed_at !== "number") {
+      await fs7.rm(file, { force: true }).catch(() => {
+      });
+      continue;
+    }
+    if (Date.now() - bundle.completed_at > PENDING_BUNDLE_MAX_AGE_MS) {
+      await fs7.rm(file, { force: true }).catch(() => {
+      });
+      continue;
+    }
+    if (bundle.cwd !== cwd || bundle.host !== host) continue;
+    if (match?.sessionId != null && bundle.session_id != null && bundle.session_id !== match.sessionId) {
+      continue;
+    }
+    if (match?.task !== void 0 && bundle.task !== match.task) continue;
+    matches.push({ file, bundle });
+  }
+  matches.sort((a, b) => b.bundle.completed_at - a.bundle.completed_at);
+  const selected = matches[0];
+  if (!selected) return null;
+  const claimed = `${selected.file}.${process.pid}.${Date.now()}.claim`;
   try {
-    bundle = JSON.parse(await fs7.readFile(file, "utf8"));
+    await fs7.rename(selected.file, claimed);
   } catch {
     return null;
   }
-  if (typeof bundle !== "object" || bundle === null || typeof bundle.rendered !== "string" || bundle.rendered.length === 0) {
-    await fs7.rm(file, { force: true }).catch(() => {
-    });
-    return null;
+  if (match?.task === void 0) {
+    await Promise.all(
+      matches.slice(1).map(({ file }) => fs7.rm(file, { force: true }).catch(() => void 0))
+    );
   }
-  const expired = Date.now() - bundle.completed_at > PENDING_BUNDLE_MAX_AGE_MS;
-  if (expired) {
-    await fs7.rm(file, { force: true }).catch(() => {
-    });
-    return null;
-  }
-  if (bundle.cwd !== cwd || bundle.host !== host) {
-    return null;
-  }
-  if (match?.sessionId != null && bundle.session_id != null && bundle.session_id !== match.sessionId) {
-    return null;
-  }
-  if (match?.task !== void 0 && bundle.task !== match.task) {
-    return null;
-  }
-  await fs7.rm(file, { force: true }).catch(() => {
+  await fs7.rm(claimed, { force: true }).catch(() => {
   });
-  return bundle;
+  return selected.bundle;
 }
 var DEFAULT_RESOLVE_BUDGET_MS = 6e3;
 function resolveBudgetMs() {
@@ -1687,6 +1735,7 @@ function resolveBudgetMs() {
 }
 function runResolveWithBudget(opts) {
   const budget = opts.budgetMs ?? resolveBudgetMs();
+  const outputFile = pendingBundlePathFor(opts.cwd, opts.host, opts.sessionId ?? null, opts.task);
   return new Promise((resolve) => {
     let child;
     try {
@@ -1699,7 +1748,7 @@ function runResolveWithBudget(opts) {
           // Handoff contract with cli/resolve.ts: write the compiled bundle
           // to this file (atomic), and report a resolve.delivery telemetry
           // row when the deadline was missed.
-          MEMLIN_RESOLVE_OUT: pendingBundlePath(),
+          MEMLIN_RESOLVE_OUT: outputFile,
           MEMLIN_RESOLVE_DEADLINE_MS: String(budget),
           // Forward the agent's session id so the resolve's usage_event is
           // attributable to this session (concurrent-work awareness).
@@ -1849,11 +1898,11 @@ async function main() {
   const prompt = input?.prompt ?? "";
   const cwd = input?.cwd ?? process.cwd();
   const sessionId = input?.session_id ?? null;
-  await recordCodexActivity(cwd, "user-prompt-submit");
   if (isIgnorablePrompt(prompt) || !await hasToken()) {
     exitHook(0);
     return;
   }
+  void recordCodexActivity(cwd, "user-prompt-submit");
   const scribeNotice = await takeCorrectionNotice(sessionId ?? void 0) + await takeScribeNotice(sessionId ?? void 0);
   try {
     const state = await readState();

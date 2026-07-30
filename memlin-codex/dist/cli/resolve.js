@@ -8858,7 +8858,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.35";
+  cachedAgentVersion = "0.2.36";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -8942,8 +8942,11 @@ var MemlinApiClient = class {
     };
     if (body !== void 0) headers["Content-Type"] = "application/json";
     const idempotent = method === "GET";
-    const maxAttempts = idempotent ? (this.cfg.maxRetries ?? DEFAULT_MAX_RETRIES) + 1 : 1;
-    const timeoutMs = this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    const maxAttempts = idempotent ? Math.max(0, opts.maxRetries ?? this.cfg.maxRetries ?? DEFAULT_MAX_RETRIES) + 1 : 1;
+    const timeoutMs = Math.max(
+      1,
+      opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
+    );
     for (let attempt = 1; ; attempt++) {
       let res;
       let text;
@@ -9223,7 +9226,11 @@ var MemlinApiClient = class {
    * the same account (no global-default/pinned-name mismatch).
    */
   async getAccount(opts = {}) {
-    return this.request("GET", "/account", void 0, { accountId: opts.accountId });
+    return this.request("GET", "/account", void 0, {
+      accountId: opts.accountId,
+      requestTimeoutMs: opts.requestTimeoutMs,
+      maxRetries: opts.maxRetries
+    });
   }
   /**
    * POST /projects/resolve — server-side project resolution.
@@ -9944,15 +9951,23 @@ async function recordLastResolve(entry) {
 
 // packages/plugin-core/src/pending-bundle.ts
 import { spawn } from "node:child_process";
+import crypto2 from "node:crypto";
 import { promises as fs6 } from "node:fs";
 import path9 from "node:path";
 import os7 from "node:os";
 var PENDING_BUNDLE_MAX_AGE_MS = 10 * 60 * 1e3;
-function pendingBundlePath() {
-  return process.env.MEMLIN_RESOLVE_OUT ?? path9.join(os7.homedir(), ".config", "memlin", "pending-bundle.json");
+var PENDING_BUNDLE_DIR = "pending-bundles";
+function pendingBundleSpoolDir() {
+  return process.env.MEMLIN_PENDING_BUNDLE_DIR ?? path9.join(os7.homedir(), ".config", "memlin", PENDING_BUNDLE_DIR);
+}
+function pendingBundleKey(cwd, host, sessionId, task) {
+  return crypto2.createHash("sha256").update(JSON.stringify([cwd, host, sessionId ?? null, task])).digest("hex");
+}
+function pendingBundlePathFor(cwd, host, sessionId, task) {
+  return process.env.MEMLIN_RESOLVE_OUT ?? path9.join(pendingBundleSpoolDir(), `${pendingBundleKey(cwd, host, sessionId, task)}.json`);
 }
 async function writePendingBundle(bundle) {
-  const file = pendingBundlePath();
+  const file = pendingBundlePathFor(bundle.cwd, bundle.host, bundle.session_id, bundle.task);
   await fs6.mkdir(path9.dirname(file), { recursive: true });
   const tmp = `${file}.${process.pid}.tmp`;
   await fs6.writeFile(tmp, JSON.stringify(bundle), "utf8");
@@ -10083,7 +10098,7 @@ function renderItem(label, item, extra = []) {
   }
   if (item.component_name) metaParts.push(`component: ${item.component_name}`);
   lines.push(`## ${label}: ${item.title} (${metaParts.join(", ")})`);
-  lines.push(`# source: ${formatCitation(item)}`);
+  lines.push(`# document_id: ${item.id} \xB7 source: ${formatCitation(item)}`);
   lines.push("");
   lines.push(item.body.trimEnd());
   lines.push("");
@@ -10108,7 +10123,7 @@ function renderPinned(items) {
   lines.push("");
   for (const item of items) {
     lines.push(`### [${item.kind.toUpperCase()}] ${item.title}`);
-    lines.push(`# source: ${formatCitation(item)} \xB7 pinned`);
+    lines.push(`# document_id: ${item.id} \xB7 source: ${formatCitation(item)} \xB7 pinned`);
     lines.push("");
     lines.push(item.body.trimEnd());
     lines.push("");
@@ -10130,7 +10145,9 @@ function renderRequiredCore(items, status) {
   }
   if (status?.complete === false) {
     lines.push("# !!! REQUIRED CORE DEGRADED \u2014 MANDATORY GOVERNANCE CONTEXT IS INCOMPLETE !!!");
-    lines.push("# STOP: do not claim governance compliance or proceed as if the full core was read.");
+    lines.push(
+      "# STOP: do not claim governance compliance or proceed as if the full core was read."
+    );
     lines.push(`# missing required IDs: ${status.missing_ids.join(", ") || "(none reported)"}`);
     lines.push(`# resolver errors: ${status.errors.join(" | ") || "(none reported)"}`);
     lines.push("# Re-resolve or surface this degraded state before governed work continues.");
@@ -10138,7 +10155,9 @@ function renderRequiredCore(items, status) {
   lines.push("");
   for (const item of items) {
     lines.push(`### [${item.kind.toUpperCase()}] ${item.title}`);
-    lines.push(`# source: ${formatCitation(item)} \xB7 required-core \xB7 governance-required`);
+    lines.push(
+      `# document_id: ${item.id} \xB7 source: ${formatCitation(item)} \xB7 required-core \xB7 governance-required`
+    );
     lines.push("");
     lines.push(item.body.trimEnd());
     lines.push("");
@@ -10235,7 +10254,7 @@ function renderItemXml(tagName, item, attributes = {}) {
   const belowGate = item.below_gate ? ` below_gate="true"` : "";
   const lines = [];
   lines.push(
-    `<${tagName}${attrs} title="${item.title}" similarity="${item.similarity.toFixed(2)}"${corroborating}${verified}${verifiedModelAttr}${pathMatched}${authorMatched}${belowGate}>`
+    `<${tagName}${attrs} id="${xmlAttr(item.id)}" title="${xmlAttr(item.title)}" similarity="${item.similarity.toFixed(2)}"${corroborating}${verified}${verifiedModelAttr}${pathMatched}${authorMatched}${belowGate}>`
   );
   lines.push(
     `  <citation path="${item.citation.path ?? "(no path)"}" version="v${item.citation.version_number}" updated="${item.citation.updated_at}" />`
@@ -10264,12 +10283,22 @@ function attribution(e) {
   if (e.agent_kind) bits.push(e.agent_kind);
   return bits.length > 0 ? `${bits.join(" \xB7 ")} \xB7 ` : "";
 }
+function hasDeliveredSkill(bundle) {
+  return Boolean(
+    bundle.primary_skill || bundle.supporting_skills.length > 0 || bundle.required_core?.some((item) => item.kind === "skill") || bundle.pinned?.some((item) => item.kind === "skill")
+  );
+}
 function compileBundle(result, parsedTask, agent) {
   const b = result.bundle;
   const out = [];
   if (agent === "claude-code") {
     out.push(`<memlin_context task="${xmlAttr(truncateTask(parsedTask))}">`);
     out.push(`  <precedence>${READER_CONTRACT}</precedence>`);
+    if (hasDeliveredSkill(b)) {
+      out.push(
+        '  <application_receipt format="html-comment">&lt;!-- memlin-applied: skill-document-id[, ...] --&gt; \u2014 append to the final response only for resolved skills materially followed; citation or reading alone is not application; omit when none were followed.</application_receipt>'
+      );
+    }
     if (result.active_component) {
       out.push(`  <active_component name="${result.active_component.name}" boost="0.15" />`);
     }
@@ -10435,6 +10464,11 @@ function compileBundle(result, parsedTask, agent) {
     const tokenLine = `# tokens: ${tb.used.toLocaleString()} / ${tb.limit.toLocaleString()}` + (tb.truncated ? " (truncated \u2014 lower-priority items dropped)" : "");
     out.push(tokenLine);
     out.push(`# ${READER_CONTRACT}`);
+    if (hasDeliveredSkill(b)) {
+      out.push(
+        "# application receipt: append <!-- memlin-applied: skill-document-id[, ...] --> to the final response only for resolved skills materially followed; citation or reading alone is not application; omit when none were followed."
+      );
+    }
     out.push("");
     if (hasRequiredCoreLane(b)) {
       out.push(renderRequiredCore(b.required_core ?? [], b.required_core_status));

@@ -8407,7 +8407,7 @@ function renderItem(label, item, extra = []) {
   }
   if (item.component_name) metaParts.push(`component: ${item.component_name}`);
   lines.push(`## ${label}: ${item.title} (${metaParts.join(", ")})`);
-  lines.push(`# source: ${formatCitation(item)}`);
+  lines.push(`# document_id: ${item.id} \xB7 source: ${formatCitation(item)}`);
   lines.push("");
   lines.push(item.body.trimEnd());
   lines.push("");
@@ -8432,7 +8432,7 @@ function renderPinned(items) {
   lines.push("");
   for (const item of items) {
     lines.push(`### [${item.kind.toUpperCase()}] ${item.title}`);
-    lines.push(`# source: ${formatCitation(item)} \xB7 pinned`);
+    lines.push(`# document_id: ${item.id} \xB7 source: ${formatCitation(item)} \xB7 pinned`);
     lines.push("");
     lines.push(item.body.trimEnd());
     lines.push("");
@@ -8454,7 +8454,9 @@ function renderRequiredCore(items, status) {
   }
   if (status?.complete === false) {
     lines.push("# !!! REQUIRED CORE DEGRADED \u2014 MANDATORY GOVERNANCE CONTEXT IS INCOMPLETE !!!");
-    lines.push("# STOP: do not claim governance compliance or proceed as if the full core was read.");
+    lines.push(
+      "# STOP: do not claim governance compliance or proceed as if the full core was read."
+    );
     lines.push(`# missing required IDs: ${status.missing_ids.join(", ") || "(none reported)"}`);
     lines.push(`# resolver errors: ${status.errors.join(" | ") || "(none reported)"}`);
     lines.push("# Re-resolve or surface this degraded state before governed work continues.");
@@ -8462,7 +8464,9 @@ function renderRequiredCore(items, status) {
   lines.push("");
   for (const item of items) {
     lines.push(`### [${item.kind.toUpperCase()}] ${item.title}`);
-    lines.push(`# source: ${formatCitation(item)} \xB7 required-core \xB7 governance-required`);
+    lines.push(
+      `# document_id: ${item.id} \xB7 source: ${formatCitation(item)} \xB7 required-core \xB7 governance-required`
+    );
     lines.push("");
     lines.push(item.body.trimEnd());
     lines.push("");
@@ -8559,7 +8563,7 @@ function renderItemXml(tagName, item, attributes = {}) {
   const belowGate = item.below_gate ? ` below_gate="true"` : "";
   const lines = [];
   lines.push(
-    `<${tagName}${attrs} title="${item.title}" similarity="${item.similarity.toFixed(2)}"${corroborating}${verified}${verifiedModelAttr}${pathMatched}${authorMatched}${belowGate}>`
+    `<${tagName}${attrs} id="${xmlAttr(item.id)}" title="${xmlAttr(item.title)}" similarity="${item.similarity.toFixed(2)}"${corroborating}${verified}${verifiedModelAttr}${pathMatched}${authorMatched}${belowGate}>`
   );
   lines.push(
     `  <citation path="${item.citation.path ?? "(no path)"}" version="v${item.citation.version_number}" updated="${item.citation.updated_at}" />`
@@ -8588,12 +8592,22 @@ function attribution(e) {
   if (e.agent_kind) bits.push(e.agent_kind);
   return bits.length > 0 ? `${bits.join(" \xB7 ")} \xB7 ` : "";
 }
+function hasDeliveredSkill(bundle) {
+  return Boolean(
+    bundle.primary_skill || bundle.supporting_skills.length > 0 || bundle.required_core?.some((item) => item.kind === "skill") || bundle.pinned?.some((item) => item.kind === "skill")
+  );
+}
 function compileBundle(result, parsedTask, agent) {
   const b = result.bundle;
   const out = [];
   if (agent === "claude-code") {
     out.push(`<memlin_context task="${xmlAttr(truncateTask(parsedTask))}">`);
     out.push(`  <precedence>${READER_CONTRACT}</precedence>`);
+    if (hasDeliveredSkill(b)) {
+      out.push(
+        '  <application_receipt format="html-comment">&lt;!-- memlin-applied: skill-document-id[, ...] --&gt; \u2014 append to the final response only for resolved skills materially followed; citation or reading alone is not application; omit when none were followed.</application_receipt>'
+      );
+    }
     if (result.active_component) {
       out.push(`  <active_component name="${result.active_component.name}" boost="0.15" />`);
     }
@@ -8759,6 +8773,11 @@ function compileBundle(result, parsedTask, agent) {
     const tokenLine = `# tokens: ${tb.used.toLocaleString()} / ${tb.limit.toLocaleString()}` + (tb.truncated ? " (truncated \u2014 lower-priority items dropped)" : "");
     out.push(tokenLine);
     out.push(`# ${READER_CONTRACT}`);
+    if (hasDeliveredSkill(b)) {
+      out.push(
+        "# application receipt: append <!-- memlin-applied: skill-document-id[, ...] --> to the final response only for resolved skills materially followed; citation or reading alone is not application; omit when none were followed."
+      );
+    }
     out.push("");
     if (hasRequiredCoreLane(b)) {
       out.push(renderRequiredCore(b.required_core ?? [], b.required_core_status));

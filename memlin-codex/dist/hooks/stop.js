@@ -4102,7 +4102,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.35";
+  cachedAgentVersion = "0.2.36";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -4186,8 +4186,11 @@ var MemlinApiClient = class {
     };
     if (body !== void 0) headers["Content-Type"] = "application/json";
     const idempotent = method === "GET";
-    const maxAttempts = idempotent ? (this.cfg.maxRetries ?? DEFAULT_MAX_RETRIES) + 1 : 1;
-    const timeoutMs = this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    const maxAttempts = idempotent ? Math.max(0, opts.maxRetries ?? this.cfg.maxRetries ?? DEFAULT_MAX_RETRIES) + 1 : 1;
+    const timeoutMs = Math.max(
+      1,
+      opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
+    );
     for (let attempt = 1; ; attempt++) {
       let res;
       let text;
@@ -4467,7 +4470,11 @@ var MemlinApiClient = class {
    * the same account (no global-default/pinned-name mismatch).
    */
   async getAccount(opts = {}) {
-    return this.request("GET", "/account", void 0, { accountId: opts.accountId });
+    return this.request("GET", "/account", void 0, {
+      accountId: opts.accountId,
+      requestTimeoutMs: opts.requestTimeoutMs,
+      maxRetries: opts.maxRetries
+    });
   }
   /**
    * POST /projects/resolve — server-side project resolution.
@@ -5134,6 +5141,7 @@ import { promises as fs6 } from "node:fs";
 import os6 from "node:os";
 import path8 from "node:path";
 var DEFAULT_THROTTLE_MS = 6e4;
+var HEARTBEAT_REQUEST_TIMEOUT_MS = 750;
 function statePath(cwd, host) {
   const key = crypto.createHash("sha256").update(cwd).digest("hex").slice(0, 16);
   return path8.join(os6.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
@@ -5155,7 +5163,10 @@ async function recordInstallHeartbeat(cwd, reason, opts = {}) {
   try {
     const ctx = await getApi({ cwd });
     if (!ctx) return;
-    await ctx.api.getAccount();
+    await ctx.api.getAccount({
+      requestTimeoutMs: HEARTBEAT_REQUEST_TIMEOUT_MS,
+      maxRetries: 0
+    });
     await fs6.writeFile(file, JSON.stringify({ sent_at: Date.now(), reason, host }), "utf8");
     log(`${host} activity recorded: ${reason}`);
   } catch (err) {
@@ -5179,14 +5190,16 @@ function replayAttributionCandidates(replay) {
       id: row.document_id,
       title: row.title,
       path: typeof row.path === "string" ? row.path : null,
-      version_number: row.version_number
+      version_number: row.version_number,
+      kind: typeof row.kind === "string" ? row.kind : null
     };
   }).filter((item) => item !== null) : [];
   const candidates = Array.isArray(rawDelivered) && (rawDelivered.length === 0 || delivered.length > 0) ? delivered : [...replay.pinned ?? [], ...replay.items ?? []].map((item) => ({
     id: item.id,
     title: item.title,
     path: item.path,
-    version_number: item.version_number
+    version_number: item.version_number,
+    kind: item.kind
   }));
   return [...new Map(candidates.map((candidate) => [candidate.id, candidate])).values()];
 }
@@ -5239,8 +5252,24 @@ function titleReferenceIsExplicit(message, position, length) {
   );
   return delimited || appliedPrefix || referentialSuffix;
 }
+var APPLICATION_RECEIPT_RE = /<!--\s*memlin-applied\s*:\s*([\s\S]*?)-->/gi;
+function applicationReceiptIds(agentMessage, candidates) {
+  const deliveredSkills = new Set(
+    candidates.filter((candidate) => candidate.kind === "skill").map((candidate) => candidate.id)
+  );
+  const applied = [];
+  let match;
+  while ((match = APPLICATION_RECEIPT_RE.exec(agentMessage)) !== null) {
+    for (const rawId of (match[1] ?? "").split(",")) {
+      const id = rawId.trim();
+      if (deliveredSkills.has(id) && !applied.includes(id)) applied.push(id);
+    }
+  }
+  return applied;
+}
 function attributeAppliedItems(agentMessage, replay) {
   const candidates = replayAttributionCandidates(replay);
+  const applied = applicationReceiptIds(agentMessage, candidates);
   const message = normalizeReference(agentMessage);
   const pathIds = /* @__PURE__ */ new Map();
   const pathVersionIds = /* @__PURE__ */ new Map();
@@ -5258,7 +5287,7 @@ function attributeAppliedItems(agentMessage, replay) {
       addReferenceKey(titleVersionIds, `${title}\0${candidate.version_number}`, candidate.id);
     }
   }
-  const applied = [];
+  const referenced = [];
   for (const candidate of candidates) {
     const path11 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
     const title = normalizeReference(candidate.title);
@@ -5283,11 +5312,12 @@ function attributeAppliedItems(agentMessage, replay) {
       if (versioned && titleVersionIsUnique) return true;
       return titleIsUnique && titleReferenceIsExplicit(message, position, title.length);
     });
-    if (pathMatch || titleMatch) applied.push(candidate.id);
+    if (pathMatch || titleMatch) referenced.push(candidate.id);
   }
   return {
     applied_item_ids: applied,
-    attribution_mode: applied.length > 0 ? "explicit_final_message" : "no_explicit_reference"
+    referenced_item_ids: referenced,
+    attribution_mode: applied.length > 0 ? "structured_application_receipt" : referenced.length > 0 ? "explicit_reference" : "no_application_receipt"
   };
 }
 
@@ -10894,6 +10924,7 @@ async function maybeRecordOutcome(ctx, payload) {
   const taskCategory = classifyTask(lastResolve.task);
   let attribution = {
     applied_item_ids: [],
+    referenced_item_ids: [],
     attribution_mode: "replay_unavailable"
   };
   try {
@@ -10919,6 +10950,7 @@ async function maybeRecordOutcome(ctx, payload) {
         agent_apology: agentApology,
         task_category: taskCategory,
         applied_item_ids: attribution.applied_item_ids,
+        referenced_item_ids: attribution.referenced_item_ids,
         attribution_mode: attribution.attribution_mode
       }
     });
