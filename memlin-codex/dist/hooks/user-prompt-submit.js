@@ -454,6 +454,24 @@ var AGENT_EXPECTED_CAPABILITIES = {
   // of its own.
   companion: ["cli", "sync", "realtime", "resolve"]
 };
+async function closeHttpSockets() {
+  try {
+    const dispatcher = globalThis[/* @__PURE__ */ Symbol.for("undici.globalDispatcher.1")];
+    if (dispatcher && typeof dispatcher.close === "function") {
+      let timer;
+      await Promise.race([
+        dispatcher.close(),
+        new Promise((resolve) => {
+          timer = setTimeout(resolve, 250);
+          timer.unref?.();
+        })
+      ]).finally(() => {
+        if (timer !== void 0) clearTimeout(timer);
+      });
+    }
+  } catch {
+  }
+}
 
 // packages/plugin-core/dist/host.js
 import os3 from "node:os";
@@ -530,7 +548,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.34";
+  cachedAgentVersion = "0.2.35";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -908,6 +926,14 @@ var MemlinApiClient = class {
   async resolveProject(input) {
     return this.request("POST", "/projects/resolve", input);
   }
+  /** GET /account/enforce-done-deployed — the workspace done-deployed gate flag. */
+  async getEnforceDoneDeployed(opts = {}) {
+    return this.request("GET", "/account/enforce-done-deployed", void 0, opts);
+  }
+  /** PUT /account/enforce-done-deployed — owner/admin sets the workspace flag. */
+  async setEnforceDoneDeployed(enabled, opts = {}) {
+    return this.request("PUT", "/account/enforce-done-deployed", { enabled }, opts);
+  }
   /**
    * POST /deploy-guard — acquire or release the per-project deploy lease.
    *
@@ -976,9 +1002,9 @@ var MemlinApiClient = class {
    *
    * Called by the PostToolUse hook after the agent runs `git commit`.
    * The server reads the commit message + diff, asks Haiku to extract
-   * any decision/memory/skill baked into the change, and persists
-   * results as documents with metadata.status='proposed'. They appear
-   * in the user's inbox until accepted.
+   * any decision/memory/skill baked into the change, and persists the
+   * results. The server may activate or background captures automatically;
+   * only the post-processing `proposals_pending` subset needs inbox review.
    */
   async scribeDiff(input, opts = {}) {
     return this.request("POST", "/scribe/diff", input, { accountId: opts.accountId });
@@ -986,7 +1012,8 @@ var MemlinApiClient = class {
   /**
    * POST /scribe/session — Phase 1 auto-capture from a Claude Code
    * session transcript. Server slices the transcript (tail-biased
-   * when too large), runs Haiku extraction, persists proposals.
+   * when too large), runs Haiku extraction, persists proposals, and reports
+   * how many still need review after automatic handling.
    *
    * Triggered manually by /memlin-scribe today; an auto-triggered
    * variant on Stop with a 15-min debounce is a fast follow-up.
@@ -1311,6 +1338,23 @@ async function findWorkspaceBinding(startDir) {
 }
 function isFileNotFound(error) {
   return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
+}
+
+// packages/plugin-core/dist/hook-exit.js
+var HOOK_WATCHDOG_MS = 2e3;
+function releaseStdin() {
+  try {
+    const stdin = process.stdin;
+    stdin.pause();
+    stdin.unref?.();
+  } catch {
+  }
+}
+function exitHook(code) {
+  process.exitCode = code;
+  releaseStdin();
+  void closeHttpSockets();
+  setTimeout(() => process.exit(), HOOK_WATCHDOG_MS).unref();
 }
 
 // packages/plugin-core/dist/client.js
@@ -1707,6 +1751,32 @@ function buildLateDeliveryEnvelope(bundle) {
 }
 
 // packages/plugin-core/dist/scribe-notice.js
+function count(value) {
+  return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+}
+function buildScribeNotice(capturedValue, pendingValue) {
+  const captured = count(capturedValue);
+  if (captured === 0) return "";
+  const pending = Math.min(captured, count(pendingValue ?? captured));
+  const handled = captured - pending;
+  const proposalLabel = captured === 1 ? "proposal" : "proposals";
+  const reviewLabel = pending === 1 ? "needs" : "need";
+  let status;
+  if (pending === 0) {
+    status = `Memlin auto-captured ${captured} new ${proposalLabel} and handled ${captured === 1 ? "it" : "them"} automatically; no inbox review is needed for this batch.`;
+  } else if (handled === 0) {
+    status = `Memlin auto-captured ${captured} new ${proposalLabel}; ${pending} ${reviewLabel} review with /memlin-inbox.`;
+  } else {
+    status = `Memlin auto-captured ${captured} new ${proposalLabel}; ${handled} handled automatically and ${pending} ${reviewLabel} review with /memlin-inbox.`;
+  }
+  return [
+    "<memlin-notice>",
+    "# Status line for the user \u2014 surface it, do not act on it.",
+    status,
+    "</memlin-notice>",
+    ""
+  ].join("\n");
+}
 async function takeScribeNotice(currentSessionId) {
   let state;
   try {
@@ -1725,13 +1795,7 @@ async function takeScribeNotice(currentSessionId) {
   if (currentSessionId && notice?.session_id && notice.session_id !== currentSessionId) {
     return "";
   }
-  return [
-    "<memlin-notice>",
-    "# Status line for the user \u2014 surface it, do not act on it.",
-    `Memlin auto-captured ${n} new proposal${n === 1 ? "" : "s"} \u2014 review and accept/reject with /memlin-inbox.`,
-    "</memlin-notice>",
-    ""
-  ].join("\n");
+  return buildScribeNotice(n, notice?.pending);
 }
 async function takeCorrectionNotice(currentSessionId) {
   let state;
@@ -1787,7 +1851,8 @@ async function main() {
   const sessionId = input?.session_id ?? null;
   await recordCodexActivity(cwd, "user-prompt-submit");
   if (isIgnorablePrompt(prompt) || !await hasToken()) {
-    process.exit(0);
+    exitHook(0);
+    return;
   }
   const scribeNotice = await takeCorrectionNotice(sessionId ?? void 0) + await takeScribeNotice(sessionId ?? void 0);
   try {
@@ -1831,6 +1896,6 @@ async function main() {
     return;
   }
   if (scribeNotice) emitAdditionalContext(scribeNotice);
-  process.exit(0);
+  exitHook(0);
 }
-main().catch(() => process.exit(0));
+main().catch(() => exitHook(0));

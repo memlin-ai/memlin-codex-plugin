@@ -58314,16 +58314,18 @@ function normalizeGitRemote(raw) {
   if (!raw) return null;
   let s2 = raw.trim();
   if (!s2) return null;
-  s2 = s2.replace(/^git@([^:]+):/, "https://$1/");
-  s2 = s2.replace(/^ssh:\/\//, "");
-  s2 = s2.replace(/^https?:\/\//, "");
-  s2 = s2.replace(/^git@/, "");
+  if (!s2.includes("://")) {
+    s2 = s2.replace(/^(?:[^@/\s]+@)?([^:/\s]+):(?!\/)/, "https://$1/");
+  }
+  s2 = s2.replace(/^(?:ssh|git|https?):\/\//, "");
+  s2 = s2.replace(/^[^/@]+@/, "");
   s2 = s2.replace(/\.git$/, "");
   s2 = s2.replace(/\/$/, "");
   const slash = s2.indexOf("/");
   if (slash > 0) {
-    const host = s2.slice(0, slash);
+    const host = s2.slice(0, slash).toLowerCase();
     const rest = s2.slice(slash);
+    s2 = host + rest;
     for (const provider of PROVIDER_HOSTS) {
       if (host === provider) break;
       if (host.startsWith(provider + "-")) {
@@ -58341,6 +58343,67 @@ function remoteMatchesRepo(normalizedRemote, repoFullName) {
 }
 
 // packages/shared/dist/redact.js
+function luhnValid(digits) {
+  if (digits.length === 0) return false;
+  let sum = 0;
+  let double = false;
+  for (let i2 = digits.length - 1; i2 >= 0; i2--) {
+    const d2 = digits.charCodeAt(i2) - 48;
+    if (d2 < 0 || d2 > 9) return false;
+    let v2 = d2;
+    if (double) {
+      v2 *= 2;
+      if (v2 > 9) v2 -= 9;
+    }
+    sum += v2;
+    double = !double;
+  }
+  return sum % 10 === 0;
+}
+function isValidCardNumber(match) {
+  const digits = match.replace(/\D/g, "");
+  if (digits.length < 13 || digits.length > 19) return false;
+  if (!/^[2-6]/.test(digits)) return false;
+  return luhnValid(digits);
+}
+function isValidUsSsn(match) {
+  const m2 = /^(\d{3})-(\d{2})-(\d{4})$/.exec(match);
+  if (!m2) return false;
+  const area = Number(m2[1]);
+  const group = Number(m2[2]);
+  const serial = Number(m2[3]);
+  if (area === 0 || area === 666 || area >= 900) return false;
+  if (group === 0) return false;
+  if (serial === 0) return false;
+  return true;
+}
+function mod97(numeric) {
+  let remainder = 0;
+  for (let i2 = 0; i2 < numeric.length; i2++) {
+    remainder = (remainder * 10 + (numeric.charCodeAt(i2) - 48)) % 97;
+  }
+  return remainder;
+}
+function isValidIban(match) {
+  const compact = match.replace(/[\s-]/g, "").toUpperCase();
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(compact)) return false;
+  const rearranged = compact.slice(4) + compact.slice(0, 4);
+  let numeric = "";
+  for (let i2 = 0; i2 < rearranged.length; i2++) {
+    const c2 = rearranged.charCodeAt(i2);
+    numeric += c2 >= 65 && c2 <= 90 ? String(c2 - 55) : rearranged[i2];
+  }
+  return mod97(numeric) === 1;
+}
+function isValidAbaRouting(match) {
+  if (!/^\d{9}$/.test(match)) return false;
+  const prefix = Number(match.slice(0, 2));
+  const validPrefix = prefix <= 12 || prefix >= 21 && prefix <= 32 || prefix >= 61 && prefix <= 72 || prefix === 80;
+  if (!validPrefix) return false;
+  const d2 = (i2) => match.charCodeAt(i2) - 48;
+  const sum = 3 * (d2(0) + d2(3) + d2(6)) + 7 * (d2(1) + d2(4) + d2(7)) + (d2(2) + d2(5) + d2(8));
+  return sum % 10 === 0;
+}
 var REDACTION_PATTERNS = [
   // ---------- AI provider keys ----------
   {
@@ -58435,6 +58498,45 @@ var REDACTION_PATTERNS = [
     // unlikely to appear in legitimate prose. Conservative length floors
     // on each segment keep this from matching short fragments.
     regex: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g
+  },
+  // ---------- PII (checksum / range-validated) ----------
+  // Unlike the key patterns above, a digit run is not self-identifying — the
+  // regex only nominates a candidate and `validate` makes the call. Kept last
+  // so the secret rules redact first (a card regex never nibbles a JWT/token).
+  {
+    name: "credit-card",
+    description: "Payment card number (Luhn-valid, 13\u201319 digits)",
+    // Candidate: 13–19 digits with optional single space/dash separators.
+    // Luhn + length + leading-digit gate live in isValidCardNumber so this
+    // regex stays readable. \b anchors keep it off digits glued to letters
+    // (hex hashes, ids like abc1234…).
+    regex: /\b\d(?:[ -]?\d){12,18}\b/g,
+    validate: isValidCardNumber
+  },
+  {
+    name: "us-ssn",
+    description: "US Social Security number (AAA-GG-SSSS)",
+    // Dashed form only — bare 9-digit runs collide with too many legitimate
+    // IDs. isValidUsSsn drops the SSA's never-issued area/group/serial ranges.
+    regex: /\b\d{3}-\d{2}-\d{4}\b/g,
+    validate: isValidUsSsn
+  },
+  {
+    name: "iban",
+    description: "International Bank Account Number (mod-97-valid)",
+    // Country code + 2 check digits + BBAN as 4-char groups (space-optional)
+    // plus a final 1–3 char group. Matching the real group-of-four print
+    // format — rather than "any alnum-or-space run" — stops the candidate
+    // from bleeding into trailing prose. isValidIban runs the mod-97.
+    regex: /\b[A-Za-z]{2}\d{2}(?:[ ]?[A-Za-z0-9]{4})+(?:[ ]?[A-Za-z0-9]{1,3})?\b/g,
+    validate: isValidIban
+  },
+  {
+    name: "us-bank-routing",
+    description: "US bank routing / ABA number (checksum-valid)",
+    // Bare 9-digit candidate; isValidAbaRouting gates on checksum + prefix.
+    regex: /\b\d{9}\b/g,
+    validate: isValidAbaRouting
   }
 ];
 for (const p2 of REDACTION_PATTERNS) {
@@ -58452,7 +58554,8 @@ function redactSensitive(input, extraPatterns = []) {
   for (const p2 of all) {
     p2.regex.lastIndex = 0;
     let count = 0;
-    out = out.replaceAll(p2.regex, () => {
+    out = out.replaceAll(p2.regex, (match) => {
+      if (p2.validate && !p2.validate(match)) return match;
       count++;
       return `[REDACTED-${p2.name}]`;
     });
@@ -59264,6 +59367,125 @@ var FEATURE_DISCOVERY_SYSTEM = [
   "where each members entry is an id from the inventory. No prose outside the JSON."
 ].join("\n");
 
+// packages/shared/dist/memory-taxonomy.js
+var MEMORY_TAXONOMY = [
+  // ---------------------------------------------------------------- process --
+  { term: "standup", facet: "process", forms: ["standup", "stand-up", "daily standup", "daily scrum", "daily sync"] },
+  // Bare "retro" survives on the hyphen guard, not on luck: "retro-fit" and
+  // "retro-compatible" are compounds, and nothing else in this corpus is retro.
+  { term: "retro", facet: "process", forms: ["retro", "retrospective", "sprint retro"] },
+  // Bare "planning" is meaningless on its own ("planning to ship"), so only the
+  // ritual names count.
+  { term: "planning", facet: "process", forms: ["sprint planning", "iteration planning", "planning meeting", "refinement session"] },
+  // NOT the verbs "onboard"/"offboard" — "onboard the new repo" is not a hire.
+  { term: "onboarding", facet: "process", forms: ["onboarding", "new hire", "onboarding checklist"] },
+  { term: "offboarding", facet: "process", forms: ["offboarding", "departure checklist"] },
+  // NOT bare "reviewer": this workspace ships a component called Memory
+  // Reviewer, and the word names a person on any kind of review.
+  { term: "code-review", facet: "process", forms: ["code review", "code-review", "pr review", "pull request review", "review checklist"] },
+  // NOT bare "release" — that is the technology axis's deploy/CI territory.
+  { term: "release-process", facet: "process", forms: ["release process", "release checklist", "release cadence", "release train", "cut a release"] },
+  { term: "oncall", facet: "process", forms: ["oncall", "on-call", "on call rotation", "pager rotation"] },
+  { term: "incident", facet: "process", forms: ["incident", "outage", "sev1", "sev-1", "sev2", "sev-2"] },
+  { term: "postmortem", facet: "process", forms: ["postmortem", "post-mortem", "root cause analysis", "rca", "incident review"] },
+  { term: "triage", facet: "process", forms: ["triage", "bug triage", "triage rotation"] },
+  { term: "handoff", facet: "process", forms: ["handoff", "hand-off", "handover", "shift handoff"] },
+  // The largest single class of memory in this corpus: a standing instruction
+  // about how work is done. "User directive:" is the literal title prefix the
+  // /memlin-remember path writes, which is why it is a form rather than a guess.
+  { term: "convention", facet: "process", forms: ["convention", "working agreement", "style guide", "house rule", "ground rule", "user directive", "standing instruction"] },
+  // ------------------------------------------------------------- commercial --
+  { term: "pricing", facet: "commercial", forms: ["pricing", "price list", "pricing tier", "rate card", "list price"] },
+  { term: "billing", facet: "commercial", forms: ["billing", "invoice", "invoicing", "billing cycle"] },
+  // The verb "renew" is out: certificates, tokens and leases all renew.
+  { term: "renewal", facet: "commercial", forms: ["renewal", "renewal date", "contract renewal", "subscription renewal"] },
+  // Bare "contract" is the worst word in this table for THIS repo: it ships
+  // packages/shared/src/memlin-contract.ts, contract tests for the MCP surface,
+  // "Reader contract" memories and component data contracts. Only the
+  // paperwork senses survive.
+  { term: "contract", facet: "commercial", forms: ["msa", "statement of work", "sow", "contract negotiation", "signed contract", "countersigned"] },
+  { term: "procurement", facet: "commercial", forms: ["procurement", "purchase order", "po number"] },
+  // Bare "customer" is engineering vocabulary here — customer-facing copy, the
+  // customer table, "the customer prefers blue" — so the facet needs the noun
+  // phrase that can only mean an account.
+  { term: "customer", facet: "commercial", forms: ["customer account", "customer contact", "customer meeting", "key customer", "enterprise customer"] },
+  // "downgrade" is semver and permissions here; bare "churn" is what tags do on
+  // reclassification; bare "cancellation" is an aborted request.
+  { term: "churn", facet: "commercial", forms: ["churn rate", "customer churn", "churned", "account cancellation", "subscription cancellation"] },
+  // "quota" is deliberately absent: an API quota is not a sales quota.
+  { term: "sales", facet: "commercial", forms: ["sales", "sales cycle", "sales pipeline", "win rate"] },
+  // A PoC or a "proof of concept" is a prototype in an engineering corpus, and
+  // "trial and error" is not a pilot.
+  { term: "trial", facet: "commercial", forms: ["free trial", "trial period", "trial account", "trial conversion", "pilot program"] },
+  { term: "discount", facet: "commercial", forms: ["discount", "promo code", "coupon"] },
+  { term: "competitor", facet: "commercial", forms: ["competitor", "competitive analysis", "competitive landscape"] },
+  { term: "partnership", facet: "commercial", forms: ["partnership", "partner program", "reseller"] },
+  // Bare "support" is the single most over-matching word in an eng corpus
+  // ("we support Node 20"), so only the desk meaning counts.
+  { term: "support", facet: "commercial", forms: ["customer support", "support ticket", "support queue", "help desk"] },
+  // ----------------------------------------------------------------- people --
+  { term: "hiring", facet: "people", forms: ["hiring", "recruiting", "job opening", "headcount"] },
+  // Bare "interview" is a user interview as often as a hiring one, and that is
+  // product research, not this facet.
+  { term: "interview", facet: "people", forms: ["interview loop", "interview panel", "interview debrief", "hiring interview", "take-home exercise"] },
+  // "promotion" is auto-promotion of facts and promoting a staging build here;
+  // "1:1" is a 1:1 mapping far more often than a meeting.
+  { term: "performance-review", facet: "people", forms: ["performance review", "perf review", "career ladder", "one-on-one", "promotion cycle"] },
+  // Bare "ownership" is Rust ownership, data ownership, buffer ownership.
+  { term: "ownership", facet: "people", forms: ["code owner", "code ownership", "owning team", "dri", "accountable for", "raci"] },
+  { term: "escalation", facet: "people", forms: ["escalation", "escalation path"] },
+  { term: "team-structure", facet: "people", forms: ["team structure", "org chart", "reporting line"] },
+  { term: "availability", facet: "people", forms: ["time off", "pto", "vacation", "working hours", "holiday schedule"] },
+  // ---------------------------------------------------------------- product --
+  { term: "roadmap", facet: "product", forms: ["roadmap", "quarterly plan", "product plan"] },
+  { term: "requirement", facet: "product", forms: ["requirement", "acceptance criteria", "user story", "product spec"] },
+  // Bare "decision" would tag most of the corpus — `decision` is a document kind
+  // here. Only the artefact and the act of deciding count.
+  { term: "decision", facet: "product", forms: ["decision record", "architecture decision", "adr", "decision log", "we decided", "decided to"] },
+  { term: "tradeoff", facet: "product", forms: ["tradeoff", "trade-off", "trade off", "pros and cons"] },
+  { term: "deprecation", facet: "product", forms: ["deprecation", "deprecated", "sunset", "end of life", "eol"] },
+  { term: "feedback", facet: "product", forms: ["user feedback", "customer feedback", "feature request"] },
+  // Bare "launch" means starting a process in half this corpus.
+  { term: "launch", facet: "product", forms: ["product launch", "launch plan", "launch date", "go-live", "general availability", "beta program"] },
+  // The verb is out: "prioritize the fast path" is a routing decision.
+  { term: "prioritization", facet: "product", forms: ["prioritization", "priority order", "must-have"] },
+  { term: "backlog", facet: "product", forms: ["backlog", "icebox"] },
+  // ------------------------------------------------------------- operations --
+  // Bare "playbook" is out — a demo playbook is a script for a sales call, not
+  // an operating procedure — but the qualified ops senses stay.
+  { term: "runbook", facet: "operations", forms: ["runbook", "run book", "operating procedure", "ops playbook", "incident playbook"] },
+  { term: "sla", facet: "operations", forms: ["sla", "slo", "uptime target", "service level"] },
+  // Bare "budget" is taken: the resolver has a delivery budget and the insight
+  // scanner an emission budget, neither of which is money.
+  // ...and "spend" is the other half of the same word: the real title "Flat
+  // token_budget is the limit, never the spend" is about a token budget.
+  { term: "budget", facet: "operations", forms: ["annual budget", "budget approval", "budget owner", "cost cap", "burn rate"] },
+  { term: "compliance", facet: "operations", forms: ["compliance", "soc 2", "soc2", "gdpr", "hipaa", "iso 27001"] },
+  // Bare "audit" is taken too — a resolve audit is a debugging trace, not a
+  // control test.
+  { term: "audit", facet: "operations", forms: ["compliance audit", "external audit", "audit finding", "audit evidence", "auditor"] },
+  { term: "security-policy", facet: "operations", forms: ["security policy", "security review", "threat model", "vulnerability disclosure"] },
+  { term: "data-retention", facet: "operations", forms: ["data retention", "retention policy", "purge policy", "right to be forgotten"] },
+  { term: "access-control", facet: "operations", forms: ["access control", "access review", "least privilege", "permissions policy", "rbac"] },
+  // Bare "privacy" is a macOS settings pane and a /privacy route here, so the
+  // policy senses carry the term instead.
+  { term: "privacy", facet: "operations", forms: ["privacy policy", "data privacy", "pii", "personal data", "data processing agreement", "dpa"] },
+  // Bare "legal" is an adjective in this corpus — a legal value, a legal state,
+  // a legal move.
+  { term: "legal", facet: "operations", forms: ["legal review", "legal counsel", "legal team", "terms of service", "nda", "liability"] },
+  { term: "licensing", facet: "operations", forms: ["license", "licence", "licensing", "license compatibility"] },
+  { term: "vendor", facet: "operations", forms: ["vendor", "third-party provider", "subprocessor", "supplier"] },
+  { term: "disaster-recovery", facet: "operations", forms: ["disaster recovery", "backup policy", "business continuity", "rto", "rpo"] },
+  { term: "governance", facet: "operations", forms: ["governance", "approval policy", "change control", "sign-off"] }
+];
+var TAXONOMY_TERMS = new Set(MEMORY_TAXONOMY.map((e2) => e2.term));
+var TAXONOMY_CANONICAL_BY_FORM = new Map(
+  MEMORY_TAXONOMY.flatMap((e2) => e2.forms.map((f2) => [f2, e2.term]))
+);
+var FACET_BY_TERM = new Map(
+  MEMORY_TAXONOMY.map((e2) => [e2.term, e2.facet])
+);
+
 // packages/sync-core/src/embeddings.ts
 var client = null;
 function getClient() {
@@ -59892,7 +60114,7 @@ var TOOLS = [
   },
   {
     name: "memlin_capture_session",
-    description: "Capture a conversation into the workspace \u2014 the manual, on-demand stand-in for the session scribe that editor plugins (Claude Code, Cursor, \u2026) run automatically on their Stop hook. Hosts like Claude Desktop have no lifecycle hook and no transcript file, so YOU supply the conversation as `transcript` text (alternating '### user' / '### assistant' turns) and the server runs the exact same extraction: it proposes the durable decisions, facts, and reusable skills into the user's inbox for review. Overwrites nothing; nothing is auto-approved. Returns how many proposals were captured (or a `skipped` flag with a `reason` when the account's AI mode is off). Pair with the `memlin-capture` prompt.",
+    description: "Capture a conversation into the workspace \u2014 the manual, on-demand stand-in for the session scribe that editor plugins (Claude Code, Cursor, \u2026) run automatically on their Stop hook. Hosts like Claude Desktop have no lifecycle hook and no transcript file, so YOU supply the conversation as `transcript` text (alternating '### user' / '### assistant' turns) and the server runs the exact same extraction and automatic handling: safe captures become active or background, while only governed or conflicting items remain pending for inbox review. Overwrites nothing. Returns how many proposals were captured and how many still need review (or a `skipped` flag with a `reason` when the account's AI mode is off). Pair with the `memlin-capture` prompt.",
     inputSchema: {
       type: "object",
       required: ["transcript"],
@@ -60863,10 +61085,10 @@ async function dispatchProviderCall(impl, input, opts) {
     };
   }
   if (impl.provider === "google") {
-    const key = opts.allowPlatformProviderKey ? process4.env.GEMINI_API_KEY || process4.env.GOOGLE_API_KEY : void 0;
+    const key = opts.providerKeys?.gemini || (opts.allowPlatformProviderKey ? process4.env.GEMINI_API_KEY || process4.env.GOOGLE_API_KEY : void 0);
     if (!key) {
       throw new ActionExecuteError(
-        "GEMINI_API_KEY or GOOGLE_API_KEY not set \u2014 cannot dispatch provider_call to google",
+        "No Gemini key \u2014 add one in Settings \u2192 API keys, or configure GEMINI_API_KEY",
         "provider_unavailable"
       );
     }
@@ -60899,10 +61121,10 @@ async function dispatchProviderCall(impl, input, opts) {
     };
   }
   if (impl.provider === "xai") {
-    const key = opts.allowPlatformProviderKey ? process4.env.GROK_API_KEY || process4.env.XAI_API_KEY : void 0;
+    const key = opts.providerKeys?.grok || (opts.allowPlatformProviderKey ? process4.env.GROK_API_KEY || process4.env.XAI_API_KEY : void 0);
     if (!key) {
       throw new ActionExecuteError(
-        "GROK_API_KEY or XAI_API_KEY not set \u2014 cannot dispatch provider_call to xai",
+        "No Grok key \u2014 add one in Settings \u2192 API keys, or configure GROK_API_KEY",
         "provider_unavailable"
       );
     }
@@ -66873,6 +67095,28 @@ function generateStatusToken() {
 async function captureFeedback(ctx, rawArgs) {
   const args = FeedbackCaptureInputSchema.parse(rawArgs ?? {});
   const projectId = args.project_id ?? ctx.projectId ?? null;
+  if (ctx.apiBaseUrl && ctx.accessToken) {
+    const base = ctx.apiBaseUrl.replace(/\/+$/, "");
+    const res = await fetch(`${base}/feedback`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ctx.accessToken}`,
+        "content-type": "application/json",
+        "Memlin-Account-Id": ctx.accountId
+      },
+      body: JSON.stringify({
+        ...args,
+        ...projectId ? { project_id: projectId } : {}
+      })
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok || !payload?.feedback_id) {
+      throw new Error(
+        `feedback_capture: ${payload?.error ?? `web API returned ${res.status}`}`
+      );
+    }
+    return payload;
+  }
   const body = (args.body ?? "").trim();
   const tier = decideFeedbackTier({
     body,
@@ -67514,6 +67758,7 @@ async function captureSession(ctx, rawArgs) {
   return {
     run_id: body.run_id ?? null,
     proposals_persisted: Number(body.proposals_persisted ?? 0),
+    proposals_pending: typeof body.proposals_pending === "number" ? body.proposals_pending : null,
     proposal_ids: Array.isArray(body.proposal_ids) ? body.proposal_ids : [],
     proposals_corroborated: Number(body.proposals_corroborated ?? 0),
     proposals_auto_activated: Number(body.proposals_auto_activated ?? 0),
@@ -68203,16 +68448,18 @@ function normalizeGitRemote2(raw) {
   if (!raw) return null;
   let s2 = raw.trim();
   if (!s2) return null;
-  s2 = s2.replace(/^git@([^:]+):/, "https://$1/");
-  s2 = s2.replace(/^ssh:\/\//, "");
-  s2 = s2.replace(/^https?:\/\//, "");
-  s2 = s2.replace(/^git@/, "");
+  if (!s2.includes("://")) {
+    s2 = s2.replace(/^(?:[^@/\s]+@)?([^:/\s]+):(?!\/)/, "https://$1/");
+  }
+  s2 = s2.replace(/^(?:ssh|git|https?):\/\//, "");
+  s2 = s2.replace(/^[^/@]+@/, "");
   s2 = s2.replace(/\.git$/, "");
   s2 = s2.replace(/\/$/, "");
   const slash = s2.indexOf("/");
   if (slash > 0) {
-    const host = s2.slice(0, slash);
+    const host = s2.slice(0, slash).toLowerCase();
     const rest = s2.slice(slash);
+    s2 = host + rest;
     for (const provider of PROVIDER_HOSTS2) {
       if (host === provider) break;
       if (host.startsWith(provider + "-")) {
@@ -68313,7 +68560,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.34";
+  cachedAgentVersion = "0.2.35";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -68691,6 +68938,14 @@ var MemlinApiClient = class {
   async resolveProject(input) {
     return this.request("POST", "/projects/resolve", input);
   }
+  /** GET /account/enforce-done-deployed — the workspace done-deployed gate flag. */
+  async getEnforceDoneDeployed(opts = {}) {
+    return this.request("GET", "/account/enforce-done-deployed", void 0, opts);
+  }
+  /** PUT /account/enforce-done-deployed — owner/admin sets the workspace flag. */
+  async setEnforceDoneDeployed(enabled, opts = {}) {
+    return this.request("PUT", "/account/enforce-done-deployed", { enabled }, opts);
+  }
   /**
    * POST /deploy-guard — acquire or release the per-project deploy lease.
    *
@@ -68759,9 +69014,9 @@ var MemlinApiClient = class {
    *
    * Called by the PostToolUse hook after the agent runs `git commit`.
    * The server reads the commit message + diff, asks Haiku to extract
-   * any decision/memory/skill baked into the change, and persists
-   * results as documents with metadata.status='proposed'. They appear
-   * in the user's inbox until accepted.
+   * any decision/memory/skill baked into the change, and persists the
+   * results. The server may activate or background captures automatically;
+   * only the post-processing `proposals_pending` subset needs inbox review.
    */
   async scribeDiff(input, opts = {}) {
     return this.request("POST", "/scribe/diff", input, { accountId: opts.accountId });
@@ -68769,7 +69024,8 @@ var MemlinApiClient = class {
   /**
    * POST /scribe/session — Phase 1 auto-capture from a Claude Code
    * session transcript. Server slices the transcript (tail-biased
-   * when too large), runs Haiku extraction, persists proposals.
+   * when too large), runs Haiku extraction, persists proposals, and reports
+   * how many still need review after automatic handling.
    *
    * Triggered manually by /memlin-scribe today; an auto-triggered
    * variant on Stop with a 15-min debounce is a fast follow-up.
@@ -69786,10 +70042,11 @@ function normalizeGitRemote3(raw) {
   if (!raw) return null;
   let s2 = raw.trim();
   if (!s2) return null;
-  s2 = s2.replace(/^git@([^:]+):/, "https://$1/");
-  s2 = s2.replace(/^ssh:\/\//, "");
-  s2 = s2.replace(/^https?:\/\//, "");
-  s2 = s2.replace(/^git@/, "");
+  if (!s2.includes("://")) {
+    s2 = s2.replace(/^(?:[^@/\s]+@)?([^:/\s]+):(?!\/)/, "https://$1/");
+  }
+  s2 = s2.replace(/^(?:ssh|git|https?):\/\//, "");
+  s2 = s2.replace(/^[^/@]+@/, "");
   s2 = s2.replace(/\.git$/, "");
   s2 = s2.replace(/\/$/, "");
   const providers = [
@@ -69804,8 +70061,9 @@ function normalizeGitRemote3(raw) {
   ];
   const slash = s2.indexOf("/");
   if (slash > 0) {
-    const host = s2.slice(0, slash);
+    const host = s2.slice(0, slash).toLowerCase();
     const rest = s2.slice(slash);
+    s2 = host + rest;
     for (const provider of providers) {
       if (host === provider) break;
       if (host.startsWith(`${provider}-`)) {
@@ -69939,7 +70197,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.34"?.trim();
+  const env = "0.2.35"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }

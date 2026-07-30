@@ -223,16 +223,18 @@ function normalizeGitRemote(raw) {
   if (!raw) return null;
   let s = raw.trim();
   if (!s) return null;
-  s = s.replace(/^git@([^:]+):/, "https://$1/");
-  s = s.replace(/^ssh:\/\//, "");
-  s = s.replace(/^https?:\/\//, "");
-  s = s.replace(/^git@/, "");
+  if (!s.includes("://")) {
+    s = s.replace(/^(?:[^@/\s]+@)?([^:/\s]+):(?!\/)/, "https://$1/");
+  }
+  s = s.replace(/^(?:ssh|git|https?):\/\//, "");
+  s = s.replace(/^[^/@]+@/, "");
   s = s.replace(/\.git$/, "");
   s = s.replace(/\/$/, "");
   const slash = s.indexOf("/");
   if (slash > 0) {
-    const host = s.slice(0, slash);
+    const host = s.slice(0, slash).toLowerCase();
     const rest = s.slice(slash);
+    s = host + rest;
     for (const provider of PROVIDER_HOSTS) {
       if (host === provider) break;
       if (host.startsWith(provider + "-")) {
@@ -580,7 +582,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.34";
+  cachedAgentVersion = "0.2.35";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -958,6 +960,14 @@ var MemlinApiClient = class {
   async resolveProject(input) {
     return this.request("POST", "/projects/resolve", input);
   }
+  /** GET /account/enforce-done-deployed — the workspace done-deployed gate flag. */
+  async getEnforceDoneDeployed(opts = {}) {
+    return this.request("GET", "/account/enforce-done-deployed", void 0, opts);
+  }
+  /** PUT /account/enforce-done-deployed — owner/admin sets the workspace flag. */
+  async setEnforceDoneDeployed(enabled, opts = {}) {
+    return this.request("PUT", "/account/enforce-done-deployed", { enabled }, opts);
+  }
   /**
    * POST /deploy-guard — acquire or release the per-project deploy lease.
    *
@@ -1026,9 +1036,9 @@ var MemlinApiClient = class {
    *
    * Called by the PostToolUse hook after the agent runs `git commit`.
    * The server reads the commit message + diff, asks Haiku to extract
-   * any decision/memory/skill baked into the change, and persists
-   * results as documents with metadata.status='proposed'. They appear
-   * in the user's inbox until accepted.
+   * any decision/memory/skill baked into the change, and persists the
+   * results. The server may activate or background captures automatically;
+   * only the post-processing `proposals_pending` subset needs inbox review.
    */
   async scribeDiff(input, opts = {}) {
     return this.request("POST", "/scribe/diff", input, { accountId: opts.accountId });
@@ -1036,7 +1046,8 @@ var MemlinApiClient = class {
   /**
    * POST /scribe/session — Phase 1 auto-capture from a Claude Code
    * session transcript. Server slices the transcript (tail-biased
-   * when too large), runs Haiku extraction, persists proposals.
+   * when too large), runs Haiku extraction, persists proposals, and reports
+   * how many still need review after automatic handling.
    *
    * Triggered manually by /memlin-scribe today; an auto-triggered
    * variant on Stop with a 15-min debounce is a fast follow-up.
