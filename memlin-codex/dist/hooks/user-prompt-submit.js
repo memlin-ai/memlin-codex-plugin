@@ -548,7 +548,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.38";
+  cachedAgentVersion = "0.2.39";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -771,6 +771,12 @@ var MemlinApiClient = class {
    *  (multi-account workspaces). */
   async writeUsageEvent(input, opts = {}) {
     return this.request("POST", "/usage/event", input, { accountId: opts.accountId });
+  }
+  /** Batched, idempotent editor-agent telemetry. This stream is deliberately
+   * separate from usage_events: it powers live sessions, subagent visibility,
+   * model analytics, and operational timelines without affecting metering. */
+  async writeAgentActivityBatch(events, opts = {}) {
+    return this.request("POST", "/agent/activity", { events }, opts);
   }
   /** GET /documents — list, filtered. */
   async listDocuments(opts = {}, callOpts = {}) {
@@ -1840,25 +1846,52 @@ function runResolveWithBudget(opts) {
       return;
     }
     let settled = false;
+    let claimInFlight = null;
+    const claimBundle = () => {
+      if (claimInFlight) return claimInFlight;
+      claimInFlight = takePendingBundle(opts.cwd, opts.host, {
+        sessionId: opts.sessionId ?? null,
+        task: opts.task
+      }).finally(() => {
+        claimInFlight = null;
+      });
+      return claimInFlight;
+    };
+    const settleFromBundle = async () => {
+      const bundle = await claimBundle();
+      if (!bundle || settled) return false;
+      settled = true;
+      clearTimeout(timer);
+      clearInterval(bundlePoll);
+      child.unref();
+      resolve({ bundle, stillRunning: false });
+      return true;
+    };
     const timer = setTimeout(() => {
       if (settled) return;
       settled = true;
+      clearInterval(bundlePoll);
       child.unref();
       resolve({ bundle: null, stillRunning: true });
     }, budget);
+    const bundlePoll = setInterval(() => {
+      if (!settled) void settleFromBundle();
+    }, 40);
     child.on("exit", () => {
       if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      void takePendingBundle(opts.cwd, opts.host, {
-        sessionId: opts.sessionId ?? null,
-        task: opts.task
-      }).then((bundle) => resolve({ bundle, stillRunning: false }));
+      void settleFromBundle().then((found) => {
+        if (found || settled) return;
+        settled = true;
+        clearTimeout(timer);
+        clearInterval(bundlePoll);
+        resolve({ bundle: null, stillRunning: false });
+      });
     });
     child.on("error", () => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      clearInterval(bundlePoll);
       resolve({ bundle: null, stillRunning: false });
     });
   });

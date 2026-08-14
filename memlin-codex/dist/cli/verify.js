@@ -518,7 +518,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.38";
+  cachedAgentVersion = "0.2.39";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -741,6 +741,12 @@ var MemlinApiClient = class {
    *  (multi-account workspaces). */
   async writeUsageEvent(input, opts = {}) {
     return this.request("POST", "/usage/event", input, { accountId: opts.accountId });
+  }
+  /** Batched, idempotent editor-agent telemetry. This stream is deliberately
+   * separate from usage_events: it powers live sessions, subagent visibility,
+   * model analytics, and operational timelines without affecting metering. */
+  async writeAgentActivityBatch(events, opts = {}) {
+    return this.request("POST", "/agent/activity", { events }, opts);
   }
   /** GET /documents — list, filtered. */
   async listDocuments(opts = {}, callOpts = {}) {

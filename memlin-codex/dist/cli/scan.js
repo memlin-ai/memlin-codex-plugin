@@ -209,9 +209,9 @@ var init_companion_client = __esm({
   }
 });
 
-// node_modules/.pnpm/web-tree-sitter@0.20.8/node_modules/web-tree-sitter/tree-sitter.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/web-tree-sitter@0.20.8/node_modules/web-tree-sitter/tree-sitter.js
 var require_tree_sitter = __commonJS({
-  "node_modules/.pnpm/web-tree-sitter@0.20.8/node_modules/web-tree-sitter/tree-sitter.js"(exports, module) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/web-tree-sitter@0.20.8/node_modules/web-tree-sitter/tree-sitter.js"(exports, module) {
     var Module = void 0 !== Module ? Module : {};
     var TreeSitter = (function() {
       var initPromise, document = "object" == typeof window ? { currentScript: window.document.currentScript } : null;
@@ -1826,9 +1826,9 @@ ${JSON.stringify(t2, null, 2)}`);
   }
 });
 
-// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64.js
 var require_base64 = __commonJS({
-  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64.js"(exports2) {
     var intToCharMap = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".split("");
     exports2.encode = function(number) {
       if (0 <= number && number < intToCharMap.length) {
@@ -1867,9 +1867,9 @@ var require_base64 = __commonJS({
   }
 });
 
-// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64-vlq.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64-vlq.js
 var require_base64_vlq = __commonJS({
-  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64-vlq.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64-vlq.js"(exports2) {
     var base64 = require_base64();
     var VLQ_BASE_SHIFT = 5;
     var VLQ_BASE = 1 << VLQ_BASE_SHIFT;
@@ -1921,9 +1921,9 @@ var require_base64_vlq = __commonJS({
   }
 });
 
-// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/util.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/util.js
 var require_util = __commonJS({
-  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/util.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/util.js"(exports2) {
     function getArg(aArgs, aName, aDefaultValue) {
       if (aName in aArgs) {
         return aArgs[aName];
@@ -2222,9 +2222,9 @@ var require_util = __commonJS({
   }
 });
 
-// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/array-set.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/array-set.js
 var require_array_set = __commonJS({
-  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/array-set.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/array-set.js"(exports2) {
     var util = require_util();
     var has = Object.prototype.hasOwnProperty;
     var hasNativeMap = typeof Map !== "undefined";
@@ -2292,9 +2292,9 @@ var require_array_set = __commonJS({
   }
 });
 
-// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/mapping-list.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/mapping-list.js
 var require_mapping_list = __commonJS({
-  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/mapping-list.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/mapping-list.js"(exports2) {
     var util = require_util();
     function generatedPositionAfter(mappingA, mappingB) {
       var lineA = mappingA.generatedLine;
@@ -2331,9 +2331,9 @@ var require_mapping_list = __commonJS({
   }
 });
 
-// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-generator.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-generator.js
 var require_source_map_generator = __commonJS({
-  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-generator.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-generator.js"(exports2) {
     var base64VLQ = require_base64_vlq();
     var util = require_util();
     var ArraySet = require_array_set().ArraySet;
@@ -2607,9 +2607,9 @@ var require_source_map_generator = __commonJS({
   }
 });
 
-// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/binary-search.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/binary-search.js
 var require_binary_search = __commonJS({
-  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/binary-search.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/binary-search.js"(exports2) {
     exports2.GREATEST_LOWER_BOUND = 1;
     exports2.LEAST_UPPER_BOUND = 2;
     function recursiveSearch(aLow, aHigh, aNeedle, aHaystack, aCompare, aBias) {
@@ -2663,9 +2663,9 @@ var require_binary_search = __commonJS({
   }
 });
 
-// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/quick-sort.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/quick-sort.js
 var require_quick_sort = __commonJS({
-  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/quick-sort.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/quick-sort.js"(exports2) {
     function swap(ary, x, y) {
       var temp = ary[x];
       ary[x] = ary[y];
@@ -2698,9 +2698,9 @@ var require_quick_sort = __commonJS({
   }
 });
 
-// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-consumer.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-consumer.js
 var require_source_map_consumer = __commonJS({
-  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-consumer.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-consumer.js"(exports2) {
     var util = require_util();
     var binarySearch = require_binary_search();
     var ArraySet = require_array_set().ArraySet;
@@ -3299,9 +3299,9 @@ var require_source_map_consumer = __commonJS({
   }
 });
 
-// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-node.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-node.js
 var require_source_node = __commonJS({
-  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-node.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-node.js"(exports2) {
     var SourceMapGenerator = require_source_map_generator().SourceMapGenerator;
     var util = require_util();
     var REGEX_NEWLINE = /(\r?\n)/;
@@ -3564,18 +3564,18 @@ var require_source_node = __commonJS({
   }
 });
 
-// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/source-map.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/source-map.js
 var require_source_map = __commonJS({
-  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/source-map.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/source-map.js"(exports2) {
     exports2.SourceMapGenerator = require_source_map_generator().SourceMapGenerator;
     exports2.SourceMapConsumer = require_source_map_consumer().SourceMapConsumer;
     exports2.SourceNode = require_source_node().SourceNode;
   }
 });
 
-// node_modules/.pnpm/buffer-from@1.1.2/node_modules/buffer-from/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/buffer-from@1.1.2/node_modules/buffer-from/index.js
 var require_buffer_from = __commonJS({
-  "node_modules/.pnpm/buffer-from@1.1.2/node_modules/buffer-from/index.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/buffer-from@1.1.2/node_modules/buffer-from/index.js"(exports2, module2) {
     var toString = Object.prototype.toString;
     var isModern = typeof Buffer !== "undefined" && typeof Buffer.alloc === "function" && typeof Buffer.allocUnsafe === "function" && typeof Buffer.from === "function";
     function isArrayBuffer(input) {
@@ -3622,9 +3622,9 @@ var require_buffer_from = __commonJS({
   }
 });
 
-// node_modules/.pnpm/source-map-support@0.5.21/node_modules/source-map-support/source-map-support.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map-support@0.5.21/node_modules/source-map-support/source-map-support.js
 var require_source_map_support = __commonJS({
-  "node_modules/.pnpm/source-map-support@0.5.21/node_modules/source-map-support/source-map-support.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map-support@0.5.21/node_modules/source-map-support/source-map-support.js"(exports2, module2) {
     var SourceMapConsumer = require_source_map().SourceMapConsumer;
     var path19 = __require("path");
     var fs12;
@@ -4092,9 +4092,9 @@ var require_source_map_support = __commonJS({
   }
 });
 
-// node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/typescript.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/typescript.js
 var require_typescript = __commonJS({
-  "node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/typescript.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/typescript.js"(exports2, module2) {
     var ts = {};
     ((module3) => {
       "use strict";
@@ -215602,9 +215602,9 @@ Additional information: BADCLIENT: Bad error code, ${badCode} not found in range
   }
 });
 
-// node_modules/.pnpm/balanced-match@4.0.4/node_modules/balanced-match/dist/commonjs/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/balanced-match@4.0.4/node_modules/balanced-match/dist/commonjs/index.js
 var require_commonjs = __commonJS({
-  "node_modules/.pnpm/balanced-match@4.0.4/node_modules/balanced-match/dist/commonjs/index.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/balanced-match@4.0.4/node_modules/balanced-match/dist/commonjs/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.range = exports2.balanced = void 0;
@@ -215664,9 +215664,9 @@ var require_commonjs = __commonJS({
   }
 });
 
-// node_modules/.pnpm/brace-expansion@5.0.6/node_modules/brace-expansion/dist/commonjs/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/brace-expansion@5.0.6/node_modules/brace-expansion/dist/commonjs/index.js
 var require_commonjs2 = __commonJS({
-  "node_modules/.pnpm/brace-expansion@5.0.6/node_modules/brace-expansion/dist/commonjs/index.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/brace-expansion@5.0.6/node_modules/brace-expansion/dist/commonjs/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.EXPANSION_MAX = void 0;
@@ -215833,9 +215833,9 @@ var require_commonjs2 = __commonJS({
   }
 });
 
-// node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js
 var require_assert_valid_pattern = __commonJS({
-  "node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.assertValidPattern = void 0;
@@ -215852,9 +215852,9 @@ var require_assert_valid_pattern = __commonJS({
   }
 });
 
-// node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/brace-expressions.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/brace-expressions.js
 var require_brace_expressions = __commonJS({
-  "node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/brace-expressions.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/brace-expressions.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.parseClass = void 0;
@@ -215969,9 +215969,9 @@ var require_brace_expressions = __commonJS({
   }
 });
 
-// node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/unescape.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/unescape.js
 var require_unescape = __commonJS({
-  "node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/unescape.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/unescape.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.unescape = void 0;
@@ -215985,9 +215985,9 @@ var require_unescape = __commonJS({
   }
 });
 
-// node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/ast.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/ast.js
 var require_ast = __commonJS({
-  "node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/ast.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/ast.js"(exports2) {
     "use strict";
     var _a;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -216639,9 +216639,9 @@ var require_ast = __commonJS({
   }
 });
 
-// node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/escape.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/escape.js
 var require_escape = __commonJS({
-  "node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/escape.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/escape.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.escape = void 0;
@@ -216655,9 +216655,9 @@ var require_escape = __commonJS({
   }
 });
 
-// node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/index.js
 var require_commonjs3 = __commonJS({
-  "node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/index.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.unescape = exports2.escape = exports2.AST = exports2.Minimatch = exports2.match = exports2.makeRe = exports2.braceExpand = exports2.defaults = exports2.filter = exports2.GLOBSTAR = exports2.sep = exports2.minimatch = void 0;
@@ -217495,9 +217495,9 @@ var require_commonjs3 = __commonJS({
   }
 });
 
-// node_modules/.pnpm/path-browserify@1.0.1/node_modules/path-browserify/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/path-browserify@1.0.1/node_modules/path-browserify/index.js
 var require_path_browserify = __commonJS({
-  "node_modules/.pnpm/path-browserify@1.0.1/node_modules/path-browserify/index.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/path-browserify@1.0.1/node_modules/path-browserify/index.js"(exports2, module2) {
     "use strict";
     function assertPath(path19) {
       if (typeof path19 !== "string") {
@@ -217902,9 +217902,9 @@ var require_path_browserify = __commonJS({
   }
 });
 
-// node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/constants.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/constants.js
 var require_constants = __commonJS({
-  "node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/constants.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/constants.js"(exports2, module2) {
     "use strict";
     var WIN_SLASH = "\\\\/";
     var WIN_NO_SLASH = `[^${WIN_SLASH}]`;
@@ -218104,9 +218104,9 @@ var require_constants = __commonJS({
   }
 });
 
-// node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/utils.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/utils.js
 var require_utils = __commonJS({
-  "node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/utils.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/utils.js"(exports2) {
     "use strict";
     var {
       REGEX_BACKSLASH,
@@ -218168,9 +218168,9 @@ var require_utils = __commonJS({
   }
 });
 
-// node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/scan.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/scan.js
 var require_scan = __commonJS({
-  "node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/scan.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/scan.js"(exports2, module2) {
     "use strict";
     var utils = require_utils();
     var {
@@ -218498,9 +218498,9 @@ var require_scan = __commonJS({
   }
 });
 
-// node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/parse.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/parse.js
 var require_parse = __commonJS({
-  "node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/parse.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/parse.js"(exports2, module2) {
     "use strict";
     var constants2 = require_constants();
     var utils = require_utils();
@@ -219495,9 +219495,9 @@ var require_parse = __commonJS({
   }
 });
 
-// node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/picomatch.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/picomatch.js
 var require_picomatch = __commonJS({
-  "node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/picomatch.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/picomatch.js"(exports2, module2) {
     "use strict";
     var scan = require_scan();
     var parse = require_parse();
@@ -219635,9 +219635,9 @@ var require_picomatch = __commonJS({
   }
 });
 
-// node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/index.js
 var require_picomatch2 = __commonJS({
-  "node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/index.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/index.js"(exports2, module2) {
     "use strict";
     var pico = require_picomatch();
     var utils = require_utils();
@@ -219652,9 +219652,9 @@ var require_picomatch2 = __commonJS({
   }
 });
 
-// node_modules/.pnpm/fdir@6.5.0_picomatch@4.0.4/node_modules/fdir/dist/index.cjs
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/fdir@6.5.0_picomatch@4.0.4/node_modules/fdir/dist/index.cjs
 var require_dist = __commonJS({
-  "node_modules/.pnpm/fdir@6.5.0_picomatch@4.0.4/node_modules/fdir/dist/index.cjs"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/fdir@6.5.0_picomatch@4.0.4/node_modules/fdir/dist/index.cjs"(exports2) {
     var __create2 = Object.create;
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
@@ -220184,9 +220184,9 @@ var require_dist = __commonJS({
   }
 });
 
-// node_modules/.pnpm/tinyglobby@0.2.16/node_modules/tinyglobby/dist/index.cjs
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/tinyglobby@0.2.16/node_modules/tinyglobby/dist/index.cjs
 var require_dist2 = __commonJS({
-  "node_modules/.pnpm/tinyglobby@0.2.16/node_modules/tinyglobby/dist/index.cjs"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/tinyglobby@0.2.16/node_modules/tinyglobby/dist/index.cjs"(exports2) {
     Object.defineProperty(exports2, Symbol.toStringTag, { value: "Module" });
     var __create2 = Object.create;
     var __defProp2 = Object.defineProperty;
@@ -220490,9 +220490,9 @@ var require_dist2 = __commonJS({
   }
 });
 
-// node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/ts-morph-common.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/ts-morph-common.js
 var require_ts_morph_common = __commonJS({
-  "node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/ts-morph-common.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/ts-morph-common.js"(exports2) {
     "use strict";
     var ts = require_typescript();
     var minimatch = require_commonjs3();
@@ -223756,9 +223756,9 @@ ${nodeLocation}` : message;
   }
 });
 
-// node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/utils/string_utils.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/utils/string_utils.js
 var require_string_utils = __commonJS({
-  "node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/utils/string_utils.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/utils/string_utils.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.getStringFromStrOrFunc = exports2.escapeForWithinString = void 0;
@@ -223787,9 +223787,9 @@ var require_string_utils = __commonJS({
   }
 });
 
-// node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/mod.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/mod.js
 var require_mod = __commonJS({
-  "node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/mod.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/mod.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var string_utils_js_1 = require_string_utils();
@@ -224623,9 +224623,9 @@ var require_mod = __commonJS({
   }
 });
 
-// node_modules/.pnpm/ts-morph@28.0.0/node_modules/ts-morph/dist/ts-morph.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/ts-morph@28.0.0/node_modules/ts-morph/dist/ts-morph.js
 var require_ts_morph = __commonJS({
-  "node_modules/.pnpm/ts-morph@28.0.0/node_modules/ts-morph/dist/ts-morph.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/ts-morph@28.0.0/node_modules/ts-morph/dist/ts-morph.js"(exports2) {
     "use strict";
     var common = require_ts_morph_common();
     var CodeBlockWriter = require_mod();
@@ -246135,7 +246135,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.38";
+  cachedAgentVersion = "0.2.39";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -246358,6 +246358,12 @@ var MemlinApiClient = class {
    *  (multi-account workspaces). */
   async writeUsageEvent(input, opts = {}) {
     return this.request("POST", "/usage/event", input, { accountId: opts.accountId });
+  }
+  /** Batched, idempotent editor-agent telemetry. This stream is deliberately
+   * separate from usage_events: it powers live sessions, subagent visibility,
+   * model analytics, and operational timelines without affecting metering. */
+  async writeAgentActivityBatch(events, opts = {}) {
+    return this.request("POST", "/agent/activity", { events }, opts);
   }
   /** GET /documents — list, filtered. */
   async listDocuments(opts = {}, callOpts = {}) {
@@ -247174,17 +247180,17 @@ function detectGitRemotes(cwd) {
   return out2;
 }
 
-// services/scanners/dist/runner/run-scan.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/runner/run-scan.js
 import path17 from "node:path";
 
-// services/scanners/dist/scanner-discovery/repo-walker.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/repo-walker.js
 import { promises as fs6 } from "node:fs";
 import path9 from "node:path";
 
-// services/scanners/dist/scanner-discovery/graph/csharp-parser.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/csharp-parser.js
 var import_web_tree_sitter2 = __toESM(require_tree_sitter(), 1);
 
-// services/scanners/dist/scanner-discovery/graph/ts-runtime.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/ts-runtime.js
 var import_web_tree_sitter = __toESM(require_tree_sitter(), 1);
 import path8 from "node:path";
 import { existsSync as existsSync2 } from "node:fs";
@@ -247217,7 +247223,7 @@ function initTreeSitter() {
   return initPromise2;
 }
 
-// services/scanners/dist/scanner-discovery/graph/csharp-parser.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/csharp-parser.js
 var parserPromise = null;
 function getCSharpParser() {
   if (!parserPromise) {
@@ -247325,7 +247331,7 @@ function extractCSharpRoutes(root) {
   return out2;
 }
 
-// services/scanners/dist/scanner-discovery/repo-walker.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/repo-walker.js
 var MAX_FUNCTIONS_PER_COMPONENT = 120;
 var EXCERPT_CHARS = 500;
 var MAX_COMPONENTS = 200;
@@ -248070,7 +248076,7 @@ async function sampleExtensions(root, cap) {
   return seen;
 }
 
-// services/scanners/dist/runner/enrich-summaries.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/runner/enrich-summaries.js
 var HAIKU_MODEL = "claude-haiku-4-5";
 var ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 var ANTHROPIC_VERSION = "2023-06-01";
@@ -248183,11 +248189,11 @@ async function callAnthropic(apiKey, systemPrompt, userPrompt, maxTokens) {
   return json.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
 }
 
-// services/scanners/dist/scanner-discovery/graph/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/index.js
 import { promises as fs11 } from "node:fs";
 import path16 from "node:path";
 
-// services/scanners/dist/scanner-discovery/graph/ts-project.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/ts-project.js
 var import_ts_morph = __toESM(require_ts_morph(), 1);
 import { promises as fs7 } from "node:fs";
 import path10 from "node:path";
@@ -248314,7 +248320,7 @@ function releaseProject(cp) {
   }
 }
 
-// services/scanners/dist/scanner-discovery/graph/extract.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/extract.js
 var import_ts_morph2 = __toESM(require_ts_morph(), 1);
 import path11 from "node:path";
 var WRITE_METHODS = /* @__PURE__ */ new Set(["insert", "update", "upsert", "delete"]);
@@ -248598,7 +248604,7 @@ function toRepoRelative(repoRoot, absPath) {
   return rel.split(path11.sep).join("/");
 }
 
-// services/scanners/dist/scanner-discovery/graph/ts-morph-analyzer.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/ts-morph-analyzer.js
 var tsMorphAnalyzer = {
   name: "ts-morph",
   async analyzeComponent(repoRoot, componentDir) {
@@ -248617,11 +248623,11 @@ var tsMorphAnalyzer = {
   }
 };
 
-// services/scanners/dist/scanner-discovery/graph/csharp-analyzer.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/csharp-analyzer.js
 import { promises as fs8 } from "node:fs";
 import path12 from "node:path";
 
-// services/scanners/dist/scanner-discovery/graph/sql-tables.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/sql-tables.js
 function looksLikeSql(s) {
   return /\b(SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE)\b/i.test(s) && /\b(FROM|INTO|JOIN|SET|VALUES)\b/i.test(s);
 }
@@ -248711,7 +248717,7 @@ function extractSqlObjects(sql) {
   return { tables: [...tables], views: [...views], procs: [...procs], funcs: [...funcs] };
 }
 
-// services/scanners/dist/scanner-discovery/graph/csharp-analyzer.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/csharp-analyzer.js
 var MAX_FILES = 1500;
 var SKIP_DIRS3 = /* @__PURE__ */ new Set([
   "bin",
@@ -248977,11 +248983,11 @@ var csharpAnalyzer = {
   }
 };
 
-// services/scanners/dist/scanner-discovery/graph/python-analyzer.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/python-analyzer.js
 import { promises as fs9 } from "node:fs";
 import path13 from "node:path";
 
-// services/scanners/dist/scanner-discovery/graph/python-parser.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/python-parser.js
 var import_web_tree_sitter3 = __toESM(require_tree_sitter(), 1);
 var parserPromise2 = null;
 function getPythonParser() {
@@ -249012,7 +249018,7 @@ function extractPythonSymbols(root) {
   return out2;
 }
 
-// services/scanners/dist/scanner-discovery/graph/python-analyzer.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/python-analyzer.js
 var MAX_FILES2 = 1500;
 var SKIP_DIRS4 = /* @__PURE__ */ new Set([
   ".git",
@@ -249191,7 +249197,7 @@ var pythonAnalyzer = {
   }
 };
 
-// services/scanners/dist/scanner-discovery/graph/sql-schema.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/sql-schema.js
 import { promises as fs10 } from "node:fs";
 import path14 from "node:path";
 var MAX_SQL_FILES = 600;
@@ -249273,13 +249279,13 @@ async function scanSqlSchema(repoRoot) {
   return { nodes, edges };
 }
 
-// services/scanners/dist/scanner-discovery/graph/persist-graph.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/persist-graph.js
 import { createHash } from "node:crypto";
 
-// services/scanners/dist/scanner-discovery/graph/catalog.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/catalog.js
 import path15 from "node:path";
 
-// services/scanners/dist/scanner-discovery/graph/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/index.js
 var CS_EXT = /* @__PURE__ */ new Set([".cs"]);
 var PY_EXT = /* @__PURE__ */ new Set([".py"]);
 var TSJS_EXT = /* @__PURE__ */ new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx"]);
@@ -249331,7 +249337,7 @@ async function languageCensus(dir, acc, depth) {
   return acc;
 }
 
-// services/scanners/dist/runner/run-scan.js
+// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/runner/run-scan.js
 function normalizeFacts(facts, repoRoot) {
   return {
     calls: facts.calls.map((c) => ({

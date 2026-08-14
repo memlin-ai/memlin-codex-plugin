@@ -209,9 +209,9 @@ var init_companion_client = __esm({
   }
 });
 
-// node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js
 var require_kind_of = __commonJS({
-  "node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js"(exports2, module2) {
     var toString = Object.prototype.toString;
     module2.exports = function kindOf(val) {
       if (val === void 0) return "undefined";
@@ -330,9 +330,9 @@ var require_kind_of = __commonJS({
   }
 });
 
-// node_modules/.pnpm/is-extendable@0.1.1/node_modules/is-extendable/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/is-extendable@0.1.1/node_modules/is-extendable/index.js
 var require_is_extendable = __commonJS({
-  "node_modules/.pnpm/is-extendable@0.1.1/node_modules/is-extendable/index.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/is-extendable@0.1.1/node_modules/is-extendable/index.js"(exports2, module2) {
     "use strict";
     module2.exports = function isExtendable(val) {
       return typeof val !== "undefined" && val !== null && (typeof val === "object" || typeof val === "function");
@@ -340,9 +340,9 @@ var require_is_extendable = __commonJS({
   }
 });
 
-// node_modules/.pnpm/extend-shallow@2.0.1/node_modules/extend-shallow/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/extend-shallow@2.0.1/node_modules/extend-shallow/index.js
 var require_extend_shallow = __commonJS({
-  "node_modules/.pnpm/extend-shallow@2.0.1/node_modules/extend-shallow/index.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/extend-shallow@2.0.1/node_modules/extend-shallow/index.js"(exports2, module2) {
     "use strict";
     var isObject = require_is_extendable();
     module2.exports = function extend(o) {
@@ -371,9 +371,9 @@ var require_extend_shallow = __commonJS({
   }
 });
 
-// node_modules/.pnpm/section-matter@1.0.0/node_modules/section-matter/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/section-matter@1.0.0/node_modules/section-matter/index.js
 var require_section_matter = __commonJS({
-  "node_modules/.pnpm/section-matter@1.0.0/node_modules/section-matter/index.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/section-matter@1.0.0/node_modules/section-matter/index.js"(exports2, module2) {
     "use strict";
     var typeOf = require_kind_of();
     var extend = require_extend_shallow();
@@ -478,9 +478,9 @@ var require_section_matter = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/common.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/common.js
 var require_common = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/common.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/common.js"(exports2, module2) {
     "use strict";
     function isNothing(subject) {
       return typeof subject === "undefined" || subject === null;
@@ -523,9 +523,9 @@ var require_common = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/exception.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/exception.js
 var require_exception = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/exception.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/exception.js"(exports2, module2) {
     "use strict";
     function YAMLException(reason, mark) {
       Error.call(this);
@@ -553,9 +553,9 @@ var require_exception = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/mark.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/mark.js
 var require_mark = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/mark.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/mark.js"(exports2, module2) {
     "use strict";
     var common = require_common();
     function Mark(name, buffer, position, line, column) {
@@ -611,9 +611,9 @@ var require_mark = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type.js
 var require_type = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type.js"(exports2, module2) {
     "use strict";
     var YAMLException = require_exception();
     var TYPE_CONSTRUCTOR_OPTIONS = [
@@ -670,9 +670,9 @@ var require_type = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema.js
 var require_schema = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema.js"(exports2, module2) {
     "use strict";
     var common = require_common();
     var YAMLException = require_exception();
@@ -758,9 +758,9 @@ var require_schema = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/str.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/str.js
 var require_str = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/str.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/str.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     module2.exports = new Type("tag:yaml.org,2002:str", {
@@ -772,9 +772,9 @@ var require_str = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/seq.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/seq.js
 var require_seq = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/seq.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/seq.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     module2.exports = new Type("tag:yaml.org,2002:seq", {
@@ -786,9 +786,9 @@ var require_seq = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/map.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/map.js
 var require_map = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/map.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/map.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     module2.exports = new Type("tag:yaml.org,2002:map", {
@@ -800,9 +800,9 @@ var require_map = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/failsafe.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/failsafe.js
 var require_failsafe = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/failsafe.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/failsafe.js"(exports2, module2) {
     "use strict";
     var Schema = require_schema();
     module2.exports = new Schema({
@@ -815,9 +815,9 @@ var require_failsafe = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/null.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/null.js
 var require_null = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/null.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/null.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     function resolveYamlNull(data) {
@@ -855,9 +855,9 @@ var require_null = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/bool.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/bool.js
 var require_bool = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/bool.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/bool.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     function resolveYamlBoolean(data) {
@@ -892,9 +892,9 @@ var require_bool = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/int.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/int.js
 var require_int = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/int.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/int.js"(exports2, module2) {
     "use strict";
     var common = require_common();
     var Type = require_type();
@@ -1025,9 +1025,9 @@ var require_int = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/float.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/float.js
 var require_float = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/float.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/float.js"(exports2, module2) {
     "use strict";
     var common = require_common();
     var Type = require_type();
@@ -1120,9 +1120,9 @@ var require_float = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/json.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/json.js
 var require_json = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/json.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/json.js"(exports2, module2) {
     "use strict";
     var Schema = require_schema();
     module2.exports = new Schema({
@@ -1139,9 +1139,9 @@ var require_json = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/core.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/core.js
 var require_core = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/core.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/core.js"(exports2, module2) {
     "use strict";
     var Schema = require_schema();
     module2.exports = new Schema({
@@ -1152,9 +1152,9 @@ var require_core = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/timestamp.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/timestamp.js
 var require_timestamp = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/timestamp.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/timestamp.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     var YAML_DATE_REGEXP = new RegExp(
@@ -1213,9 +1213,9 @@ var require_timestamp = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/merge.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/merge.js
 var require_merge = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/merge.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/merge.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     function resolveYamlMerge(data) {
@@ -1228,9 +1228,9 @@ var require_merge = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/binary.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/binary.js
 var require_binary = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/binary.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/binary.js"(exports2, module2) {
     "use strict";
     var NodeBuffer;
     try {
@@ -1321,9 +1321,9 @@ var require_binary = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/omap.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/omap.js
 var require_omap = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/omap.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/omap.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     var _hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -1358,9 +1358,9 @@ var require_omap = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/pairs.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/pairs.js
 var require_pairs = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/pairs.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/pairs.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     var _toString = Object.prototype.toString;
@@ -1396,9 +1396,9 @@ var require_pairs = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/set.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/set.js
 var require_set = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/set.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/set.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     var _hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -1423,9 +1423,9 @@ var require_set = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_safe.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_safe.js
 var require_default_safe = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_safe.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_safe.js"(exports2, module2) {
     "use strict";
     var Schema = require_schema();
     module2.exports = new Schema({
@@ -1446,9 +1446,9 @@ var require_default_safe = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/undefined.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/undefined.js
 var require_undefined = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/undefined.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/undefined.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     function resolveJavascriptUndefined() {
@@ -1473,9 +1473,9 @@ var require_undefined = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/regexp.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/regexp.js
 var require_regexp = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/regexp.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/regexp.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     function resolveJavascriptRegExp(data) {
@@ -1517,9 +1517,9 @@ var require_regexp = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/function.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/function.js
 var require_function = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/function.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/function.js"(exports2, module2) {
     "use strict";
     var esprima;
     try {
@@ -1572,9 +1572,9 @@ var require_function = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_full.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_full.js
 var require_default_full = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_full.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_full.js"(exports2, module2) {
     "use strict";
     var Schema = require_schema();
     module2.exports = Schema.DEFAULT = new Schema({
@@ -1590,9 +1590,9 @@ var require_default_full = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/loader.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/loader.js
 var require_loader = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/loader.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/loader.js"(exports2, module2) {
     "use strict";
     var common = require_common();
     var YAMLException = require_exception();
@@ -2709,9 +2709,9 @@ var require_loader = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/dumper.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/dumper.js
 var require_dumper = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/dumper.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/dumper.js"(exports2, module2) {
     "use strict";
     var common = require_common();
     var YAMLException = require_exception();
@@ -3257,9 +3257,9 @@ var require_dumper = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml.js
 var require_js_yaml = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml.js"(exports2, module2) {
     "use strict";
     var loader = require_loader();
     var dumper = require_dumper();
@@ -3292,18 +3292,18 @@ var require_js_yaml = __commonJS({
   }
 });
 
-// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/index.js
 var require_js_yaml2 = __commonJS({
-  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/index.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/index.js"(exports2, module2) {
     "use strict";
     var yaml2 = require_js_yaml();
     module2.exports = yaml2;
   }
 });
 
-// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engines.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engines.js
 var require_engines = __commonJS({
-  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engines.js"(exports, module) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engines.js"(exports, module) {
     "use strict";
     var yaml = require_js_yaml2();
     var engines = exports = module.exports;
@@ -3339,9 +3339,9 @@ var require_engines = __commonJS({
   }
 });
 
-// node_modules/.pnpm/strip-bom-string@1.0.0/node_modules/strip-bom-string/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/strip-bom-string@1.0.0/node_modules/strip-bom-string/index.js
 var require_strip_bom_string = __commonJS({
-  "node_modules/.pnpm/strip-bom-string@1.0.0/node_modules/strip-bom-string/index.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/strip-bom-string@1.0.0/node_modules/strip-bom-string/index.js"(exports2, module2) {
     "use strict";
     module2.exports = function(str2) {
       if (typeof str2 === "string" && str2.charAt(0) === "\uFEFF") {
@@ -3352,9 +3352,9 @@ var require_strip_bom_string = __commonJS({
   }
 });
 
-// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/utils.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/utils.js
 var require_utils = __commonJS({
-  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/utils.js"(exports2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/utils.js"(exports2) {
     "use strict";
     var stripBom = require_strip_bom_string();
     var typeOf = require_kind_of();
@@ -3392,9 +3392,9 @@ var require_utils = __commonJS({
   }
 });
 
-// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/defaults.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/defaults.js
 var require_defaults = __commonJS({
-  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/defaults.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/defaults.js"(exports2, module2) {
     "use strict";
     var engines2 = require_engines();
     var utils = require_utils();
@@ -3411,9 +3411,9 @@ var require_defaults = __commonJS({
   }
 });
 
-// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engine.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engine.js
 var require_engine = __commonJS({
-  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engine.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engine.js"(exports2, module2) {
     "use strict";
     module2.exports = function(name, options2) {
       let engine = options2.engines[name] || options2.engines[aliase(name)];
@@ -3445,9 +3445,9 @@ var require_engine = __commonJS({
   }
 });
 
-// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/stringify.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/stringify.js
 var require_stringify = __commonJS({
-  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/stringify.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/stringify.js"(exports2, module2) {
     "use strict";
     var typeOf = require_kind_of();
     var getEngine = require_engine();
@@ -3498,9 +3498,9 @@ var require_stringify = __commonJS({
   }
 });
 
-// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/excerpt.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/excerpt.js
 var require_excerpt = __commonJS({
-  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/excerpt.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/excerpt.js"(exports2, module2) {
     "use strict";
     var defaults = require_defaults();
     module2.exports = function(file, options2) {
@@ -3525,9 +3525,9 @@ var require_excerpt = __commonJS({
   }
 });
 
-// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/to-file.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/to-file.js
 var require_to_file = __commonJS({
-  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/to-file.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/to-file.js"(exports2, module2) {
     "use strict";
     var typeOf = require_kind_of();
     var stringify = require_stringify();
@@ -3559,9 +3559,9 @@ var require_to_file = __commonJS({
   }
 });
 
-// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/parse.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/parse.js
 var require_parse = __commonJS({
-  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/parse.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/parse.js"(exports2, module2) {
     "use strict";
     var getEngine = require_engine();
     var defaults = require_defaults();
@@ -3576,9 +3576,9 @@ var require_parse = __commonJS({
   }
 });
 
-// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js
 var require_gray_matter = __commonJS({
-  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
+  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
     var fs9 = __require("fs");
     var sections = require_section_matter();
@@ -3693,7 +3693,7 @@ var require_gray_matter = __commonJS({
 });
 
 // packages/plugin-core/dist/stop-handler.js
-import { execSync as execSync3 } from "node:child_process";
+import { execSync as execSync2 } from "node:child_process";
 import { promises as fs8 } from "node:fs";
 
 // packages/plugin-core/dist/client.js
@@ -4102,7 +4102,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.38";
+  cachedAgentVersion = "0.2.39";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -4325,6 +4325,12 @@ var MemlinApiClient = class {
    *  (multi-account workspaces). */
   async writeUsageEvent(input, opts = {}) {
     return this.request("POST", "/usage/event", input, { accountId: opts.accountId });
+  }
+  /** Batched, idempotent editor-agent telemetry. This stream is deliberately
+   * separate from usage_events: it powers live sessions, subagent visibility,
+   * model analytics, and operational timelines without affecting metering. */
+  async writeAgentActivityBatch(events, opts = {}) {
+    return this.request("POST", "/agent/activity", { events }, opts);
   }
   /** GET /documents — list, filtered. */
   async listDocuments(opts = {}, callOpts = {}) {
@@ -5073,13 +5079,14 @@ function log(msg) {
 
 // packages/plugin-core/dist/done-gate.js
 init_companion_client();
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { promises as fs5 } from "node:fs";
 import path7 from "node:path";
-var CLAIM = /\bit'?s (now )?(live|deployed|done|fixed|shipped)\b|\bnow live\b|\bis live\b|\bis deployed\b|\bdeployed to prod\b|\ball done\b|\bfully (fixed|working|deployed|shipped)\b|\bfix(ed)? (and|&) deployed\b|\bmerged (and|&) deployed\b|✅/i;
+var CLAIM = /\bit'?s (now )?(live|deployed|done|fixed|shipped)\b|\bnow live\b|\bis live\b|\bis deployed\b|\bdeployed to prod\b|\ball done\b|\bfully (fixed|working|deployed|shipped)\b|\bfix(ed)? (and|&) deployed\b|\bmerged (and|&) deployed\b|(^|\n)\s*[-*•\s]*(done|deployed|shipped|fixed)\b|✅/i;
 var HARD = /(^|\n)\s*[-*✅•\s]*\s*(fixed|deployed|shipped|done)\b[.! ]*\s*$/im;
 var HONEST = /not (yet )?(live|merged|deployed|shipped)|isn'?t (live|merged|deployed|shipped)|remaining step|next step (is|to)|not on main|still on (the |a )?(feature )?branch|needs? (to be )?merg|to be merged|before (this|it) is live|to make (it|this) live|awaiting (merge|deploy)|hold(ing)? the merge/i;
 var OVERRIDE = /\[skip-done-gate\]|done-gate:\s*override/i;
+var DELIVERY_REQUEST = /\b(?:fix|repair|implement|build|create|add|change|update|remove|refactor|deploy(?:ed|ing|ment)?|ship(?:ped|ping)?|publish(?:ed|ing)?|release(?:d|ing)?)\b|\bmake\b[^\n.!?]{0,80}\bwork(?:ing)?\b/i;
 function isOff(v) {
   const s = (v || "").trim().toLowerCase();
   return s === "off" || s === "0" || s === "false" || s === "no";
@@ -5091,7 +5098,15 @@ async function readMarker(cwd) {
     try {
       const raw = await fs5.readFile(file, "utf8");
       const parsed = JSON.parse(raw);
-      return { enabled: parsed.enabled !== false, base: parsed.base || "origin/main" };
+      const deploymentEvidence = Array.isArray(parsed.deploymentEvidence) ? parsed.deploymentEvidence.filter(
+        (item) => item && typeof item.name === "string" && typeof item.tag === "string" && Array.isArray(item.paths) && item.paths.every((p) => typeof p === "string" && p.length > 0)
+      ) : [];
+      return {
+        enabled: parsed.enabled !== false,
+        base: parsed.base || "origin/main",
+        strict: parsed.strict === true,
+        deploymentEvidence
+      };
     } catch {
     }
     const parent = path7.dirname(dir);
@@ -5118,16 +5133,32 @@ async function resolveGate(cwd) {
   const envOn = env === "1" || env === "true";
   const enabled = serverEnabled === true || marker?.enabled === true || envOn;
   if (!enabled) return null;
-  return { enabled: true, base: marker?.base || "origin/main" };
+  return {
+    enabled: true,
+    base: marker?.base || "origin/main",
+    strict: marker?.strict === true,
+    deploymentEvidence: marker?.deploymentEvidence ?? []
+  };
 }
-async function lastAssistantText(transcriptPath) {
+function contentText(content) {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content.map((block) => {
+    if (!block || typeof block !== "object") return "";
+    const item = block;
+    return item.type === "text" || item.type === "input_text" || item.type === "output_text" ? String(item.text ?? "") : "";
+  }).join(" ");
+}
+async function readTranscript(transcriptPath) {
   let raw;
   try {
     raw = await fs5.readFile(transcriptPath, "utf8");
   } catch {
-    return "";
+    return null;
   }
-  let text = "";
+  let lastAssistantText = "";
+  const userTexts = [];
+  let baselineCommit = null;
   for (const line of raw.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed) continue;
@@ -5137,24 +5168,34 @@ async function lastAssistantText(transcriptPath) {
     } catch {
       continue;
     }
-    const msg = ev.message;
-    if (!msg || msg.role !== "assistant") continue;
-    const content = msg.content;
-    let chunk = "";
-    if (typeof content === "string") {
-      chunk = content;
-    } else if (Array.isArray(content)) {
-      chunk = content.map(
-        (b) => b && typeof b === "object" && b.type === "text" ? String(b.text ?? "") : ""
-      ).join(" ");
+    const row = ev;
+    if (!baselineCommit && row.type === "session_meta") {
+      const commit = row.payload?.git?.commit_hash;
+      if (typeof commit === "string" && commit) baselineCommit = commit;
     }
-    if (chunk.trim()) text = chunk;
+    const msg = row.message;
+    if (msg?.role === "assistant") {
+      const chunk = contentText(msg.content);
+      if (chunk.trim()) lastAssistantText = chunk;
+    } else if (msg?.role === "user") {
+      const chunk = contentText(msg.content);
+      if (chunk.trim()) userTexts.push(chunk);
+    }
+    const payload = row.payload;
+    if (row.type === "response_item" && payload?.type === "message") {
+      const chunk = contentText(payload.content);
+      if (payload.role === "assistant" && chunk.trim()) lastAssistantText = chunk;
+      if (payload.role === "user" && chunk.trim()) userTexts.push(chunk);
+    } else if (row.type === "event_msg" && payload?.type === "user_message") {
+      const chunk = typeof payload.message === "string" ? payload.message : "";
+      if (chunk.trim()) userTexts.push(chunk);
+    }
   }
-  return text;
+  return { lastAssistantText, userTexts, baselineCommit };
 }
 function git(args, cwd) {
   try {
-    return execSync(`git ${args}`, {
+    return execFileSync("git", args, {
       cwd,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
@@ -5166,7 +5207,7 @@ function git(args, cwd) {
 }
 function gitOk(args, cwd) {
   try {
-    execSync(`git ${args}`, {
+    execFileSync("git", args, {
       cwd,
       stdio: ["ignore", "ignore", "ignore"],
       timeout: 5e3
@@ -5176,25 +5217,105 @@ function gitOk(args, cwd) {
     return false;
   }
 }
+function changedPathsSince(baseline, cwd) {
+  if (!baseline || !gitOk(["rev-parse", "--verify", `${baseline}^{commit}`], cwd)) return null;
+  const output = git(["diff", "--name-only", `${baseline}..HEAD`], cwd);
+  return output === null ? null : output.split("\n").map((p) => p.trim()).filter(Boolean);
+}
+function changedEvidencePaths(evidence, cwd) {
+  const paths = /* @__PURE__ */ new Set();
+  for (const item of evidence) {
+    if (!gitOk(["rev-parse", "--verify", `${item.tag}^{commit}`], cwd)) {
+      for (const prefix of item.paths) paths.add(prefix);
+      continue;
+    }
+    const output = git(["diff", "--name-only", `${item.tag}..HEAD`, "--", ...item.paths], cwd);
+    for (const file of output?.split("\n") ?? []) {
+      if (file.trim()) paths.add(file.trim());
+    }
+  }
+  return [...paths];
+}
+function pathMatchesPrefix(file, prefix) {
+  const normalized = prefix.replace(/^\.\//, "").replace(/\/$/, "");
+  return file === normalized || file.startsWith(`${normalized}/`);
+}
+function pendingDeploymentEvidence(evidence, changedPaths, cwd) {
+  const pending = [];
+  for (const item of evidence) {
+    const applies = changedPaths.some(
+      (file) => item.paths.some((prefix) => pathMatchesPrefix(file, prefix))
+    );
+    if (!applies) continue;
+    const tagRef = `${item.tag}^{commit}`;
+    if (!gitOk(["rev-parse", "--verify", tagRef], cwd)) {
+      pending.push(`${item.name}: deployment tag ${item.tag} is missing`);
+      continue;
+    }
+    if (!gitOk(["diff", "--quiet", `${item.tag}..HEAD`, "--", ...item.paths], cwd)) {
+      pending.push(`${item.name}: ${item.tag} does not contain the task's current code`);
+    }
+  }
+  return pending;
+}
+function strictBlock(reasons, base) {
+  return {
+    decision: "block",
+    reason: "HOLD \u2014 this session has an unfinished delivery obligation: " + reasons.join("; ") + `. Keep working until the change is committed, merged into ${base}, deployed, and verified by the configured production evidence. An honest \u201Cnot deployed\u201D status does not complete the task. Only the user may cancel the requirement or disable the gate.`
+  };
+}
 async function enforceDoneMeansDeployed(payload) {
+  let strictConfig = null;
   try {
-    if (payload.stop_hook_active) return null;
     const cwd = payload.cwd || process.cwd();
+    const cfg = await resolveGate(cwd);
+    if (!cfg) return null;
+    strictConfig = cfg.strict ? cfg : null;
     const transcript = payload.transcript_path;
-    if (!transcript) return null;
-    const text = await lastAssistantText(transcript);
+    if (!transcript) {
+      return cfg.strict ? strictBlock(["the host supplied no transcript, so completion cannot be verified"], cfg.base) : null;
+    }
+    const snapshot = await readTranscript(transcript);
+    if (!snapshot) {
+      return cfg.strict ? strictBlock(["the transcript could not be read, so completion cannot be verified"], cfg.base) : null;
+    }
+    const text = snapshot.lastAssistantText;
+    const deliveryRequested = snapshot.userTexts.some((userText) => DELIVERY_REQUEST.test(userText));
+    if (cfg.strict && deliveryRequested) {
+      const why2 = [];
+      if (!gitOk(["rev-parse", "--verify", cfg.base], cwd)) {
+        why2.push(`the configured base ref ${cfg.base} is unavailable`);
+        return strictBlock(why2, cfg.base);
+      }
+      const branchOutput = git(["rev-parse", "--abbrev-ref", "HEAD"], cwd);
+      const branch2 = branchOutput || "HEAD";
+      const status = git(["status", "--porcelain"], cwd);
+      const dirty2 = Boolean(status);
+      const merged2 = gitOk(["merge-base", "--is-ancestor", "HEAD", cfg.base], cwd);
+      const onMain2 = branch2 === "main" || branch2 === "master";
+      const unpushed2 = onMain2 ? Boolean(git(["rev-list", `${cfg.base}..HEAD`], cwd)) : false;
+      if (!merged2) why2.push(`HEAD (${branch2}) is not merged into ${cfg.base}`);
+      if (branchOutput === null) why2.push("the current Git branch could not be inspected");
+      if (status === null) why2.push("the working tree could not be inspected");
+      if (dirty2) why2.push("the working tree has uncommitted changes");
+      if (unpushed2) why2.push(`there are unpushed commits (${cfg.base}..HEAD)`);
+      const changedPaths = changedPathsSince(snapshot.baselineCommit, cwd);
+      const scopedPaths = changedPaths ?? changedEvidencePaths(cfg.deploymentEvidence, cwd);
+      why2.push(...pendingDeploymentEvidence(cfg.deploymentEvidence, scopedPaths, cwd));
+      if (why2.length > 0) return strictBlock(why2, cfg.base);
+      return null;
+    }
+    if (payload.stop_hook_active) return null;
     if (!text) return null;
     if (HONEST.test(text)) return null;
     if (OVERRIDE.test(text)) return null;
     if (!CLAIM.test(text) && !HARD.test(text)) return null;
-    const cfg = await resolveGate(cwd);
-    if (!cfg) return null;
-    if (!gitOk(`rev-parse --verify ${cfg.base}`, cwd)) return null;
-    const branch = git("rev-parse --abbrev-ref HEAD", cwd) || "HEAD";
-    const dirty = Boolean(git("status --porcelain", cwd));
-    const merged = gitOk(`merge-base --is-ancestor HEAD ${cfg.base}`, cwd);
+    if (!gitOk(["rev-parse", "--verify", cfg.base], cwd)) return null;
+    const branch = git(["rev-parse", "--abbrev-ref", "HEAD"], cwd) || "HEAD";
+    const dirty = Boolean(git(["status", "--porcelain"], cwd));
+    const merged = gitOk(["merge-base", "--is-ancestor", "HEAD", cfg.base], cwd);
     const onMain = branch === "main" || branch === "master";
-    const unpushed = onMain ? Boolean(git(`rev-list ${cfg.base}..HEAD`, cwd)) : false;
+    const unpushed = onMain ? Boolean(git(["rev-list", `${cfg.base}..HEAD`], cwd)) : false;
     const live = merged && !dirty && !unpushed;
     if (live) return null;
     const why = [];
@@ -5206,7 +5327,13 @@ async function enforceDoneMeansDeployed(payload) {
   (2) If you cannot merge right now (a concurrent deploy is in flight, you need sign-off, CI is red), say so plainly and state the exact remaining step \u2014 but do NOT call it done, fixed, or deployed.
 Override (deliberate): include [skip-done-gate] in your message to ship-anyway this once, or disable the gate entirely with MEMLIN_DONE_GATE=off (or set "enabled": false in .memlin/enforce-done-deployed.json). The gate is opt-in and read-only \u2014 it never edits your files.`;
     return { decision: "block", reason };
-  } catch {
+  } catch (error) {
+    if (strictConfig) {
+      return strictBlock(
+        [`verification failed: ${error instanceof Error ? error.message : String(error)}`],
+        strictConfig.base
+      );
+    }
     return null;
   }
 }
@@ -5446,7 +5573,7 @@ function accumulateScribeNotice(existing, input) {
 }
 
 // packages/plugin-core/dist/project-resolver.js
-import { execSync as execSync2 } from "node:child_process";
+import { execSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import path10 from "node:path";
 var ALLOW_ACCOUNT_MISMATCH_ENV = "MEMLIN_ALLOW_ACCOUNT_MISMATCH";
@@ -5498,7 +5625,7 @@ async function resolveProject(api, cwd, configProjectId) {
 }
 function readGitRemote(cwd) {
   try {
-    const url = execSync2("git remote get-url origin", {
+    const url = execSync("git remote get-url origin", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
@@ -5574,7 +5701,7 @@ function flattenForScribe(content) {
   return parts.join("\n");
 }
 
-// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
 __export(external_exports, {
   BRAND: () => BRAND,
@@ -5686,7 +5813,7 @@ __export(external_exports, {
   void: () => voidType
 });
 
-// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/util.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/util.js
 var util;
 (function(util2) {
   util2.assertEqual = (_) => {
@@ -5820,7 +5947,7 @@ var getParsedType = (data) => {
   }
 };
 
-// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/ZodError.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/ZodError.js
 var ZodIssueCode = util.arrayToEnum([
   "invalid_type",
   "invalid_literal",
@@ -5938,7 +6065,7 @@ ZodError.create = (issues) => {
   return error;
 };
 
-// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/locales/en.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/locales/en.js
 var errorMap = (issue, _ctx) => {
   let message;
   switch (issue.code) {
@@ -6041,7 +6168,7 @@ var errorMap = (issue, _ctx) => {
 };
 var en_default = errorMap;
 
-// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/errors.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/errors.js
 var overrideErrorMap = en_default;
 function setErrorMap(map) {
   overrideErrorMap = map;
@@ -6050,7 +6177,7 @@ function getErrorMap() {
   return overrideErrorMap;
 }
 
-// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
   const { data, path: path11, errorMaps, issueData } = params;
   const fullPath = [...path11, ...issueData.path || []];
@@ -6160,14 +6287,14 @@ var isDirty = (x) => x.status === "dirty";
 var isValid = (x) => x.status === "valid";
 var isAsync = (x) => typeof Promise !== "undefined" && x instanceof Promise;
 
-// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/errorUtil.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/errorUtil.js
 var errorUtil;
 (function(errorUtil2) {
   errorUtil2.errToObj = (message) => typeof message === "string" ? { message } : message || {};
   errorUtil2.toString = (message) => typeof message === "string" ? message : message?.message;
 })(errorUtil || (errorUtil = {}));
 
-// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
+// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
   constructor(parent, value, path11, key) {
     this._cachedPath = [];
@@ -9615,7 +9742,7 @@ var coerce = {
 };
 var NEVER = INVALID;
 
-// packages/shared/dist/constants.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/constants.js
 var DOCUMENT_KINDS = [
   "memory",
   "skill",
@@ -9724,7 +9851,7 @@ var METERED_EVENT_TYPES = new Set(
   FREE_TIER_METERS.flatMap((m) => m.eventTypes)
 );
 
-// packages/shared/dist/schemas.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/schemas.js
 var UUID = external_exports.string().uuid();
 var DocumentKindSchema = external_exports.enum(DOCUMENT_KINDS);
 var DocumentScopeSchema = external_exports.enum(DOCUMENT_SCOPES);
@@ -9785,7 +9912,7 @@ var DocumentPatchSchema = external_exports.object({
   source: AgentKindSchema
 });
 
-// packages/shared/dist/brand-guidelines.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/brand-guidelines.js
 var BRAND_COLOR_ROLES = [
   "primary",
   "secondary",
@@ -9844,10 +9971,10 @@ var BrandGuidelinesFrontmatterSchema = external_exports.object({
   imagery: external_exports.array(BrandImageryNoteSchema).optional()
 });
 
-// packages/shared/dist/brand-guidelines-frontmatter.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/brand-guidelines-frontmatter.js
 var import_gray_matter = __toESM(require_gray_matter(), 1);
 
-// packages/shared/dist/redact.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/redact.js
 function luhnValid(digits) {
   if (digits.length === 0) return false;
   let sum = 0;
@@ -10050,7 +10177,7 @@ for (const p of REDACTION_PATTERNS) {
   }
 }
 
-// packages/shared/dist/action-metadata.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/action-metadata.js
 var ActionNameSchema = external_exports.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9._-]*$/, {
   message: "action name must be lowercase alphanumeric + dot/underscore/hyphen, 1-64 chars"
 });
@@ -10141,7 +10268,7 @@ var ActionMetadataSchema = external_exports.object({
   implementation: ActionImplementationSchema
 });
 
-// packages/shared/dist/task-classifier.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/task-classifier.js
 var RULES = [
   // Tests come BEFORE feature/bug — "add tests" / "fix tests" both
   // belong here.
@@ -10467,7 +10594,7 @@ function classifyTask(task) {
   return "unknown";
 }
 
-// packages/shared/dist/authority.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/authority.js
 var AUTHORITY_TIER = {
   PLATFORM: 1,
   REQUIRED_GOVERNANCE: 2,
@@ -10477,14 +10604,14 @@ var AUTHORITY_TIER = {
   HISTORICAL: 6
 };
 
-// packages/shared/dist/decision-authority.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/decision-authority.js
 var DECISION_AUTHORITY = {
   REQUIRED_GOVERNANCE: AUTHORITY_TIER.REQUIRED_GOVERNANCE,
   APPROVED_POLICY: AUTHORITY_TIER.APPROVED_POLICY,
   HISTORICAL: AUTHORITY_TIER.HISTORICAL
 };
 
-// packages/shared/dist/feedback-signals.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/feedback-signals.js
 var CORRECTION_PATTERNS = [
   // Preserved from the original detectors.
   /\b(no[, ]+|actually[, ]+|that['’]?s wrong|that['’]?s incorrect|you['’]?re wrong)\b/i,
@@ -10557,10 +10684,10 @@ function isNegativeFeedback(text) {
   return classifyNegativeFeedback(text).isNegative;
 }
 
-// packages/shared/dist/skill-frontmatter.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/skill-frontmatter.js
 var import_gray_matter2 = __toESM(require_gray_matter(), 1);
 
-// packages/shared/dist/model-prices.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/model-prices.js
 var MODEL_PRICES = {
   // Anthropic. Opus was absent until 2026-07-23, which meant every Opus turn —
   // a common Claude Code default — priced as $0 and was reported as an unpriced
@@ -10589,7 +10716,7 @@ var MODEL_PRICES = {
   "gpt-4.1-mini": { inputUsdPerMTok: 0.4, outputUsdPerMTok: 1.6 }
 };
 
-// packages/shared/dist/usage-stats.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/usage-stats.js
 var SONNET_INPUT_USD_PER_MTOK = MODEL_PRICES["claude-sonnet-4-6"].inputUsdPerMTok;
 var SONNET_OUTPUT_USD_PER_MTOK = MODEL_PRICES["claude-sonnet-4-6"].outputUsdPerMTok;
 var OUTPUT_MULTIPLIER = 0.3;
@@ -10601,7 +10728,7 @@ function estCostUsd(inputTokens) {
 var SONNET_BLENDED_USD_PER_MTOK = SONNET_INPUT_USD_PER_MTOK + OUTPUT_MULTIPLIER * SONNET_OUTPUT_USD_PER_MTOK;
 var SAVINGS_USD_PER_TOKEN = estCostUsd(1);
 
-// packages/shared/dist/feature-discovery.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/feature-discovery.js
 var FEATURE_DISCOVERY_SYSTEM = [
   "You are Memlin's feature mapper. You read the inventory of a software project \u2014",
   "its components (subsystems), recent pull requests, and plans \u2014 and group them",
@@ -10623,7 +10750,7 @@ var FEATURE_DISCOVERY_SYSTEM = [
   "where each members entry is an id from the inventory. No prose outside the JSON."
 ].join("\n");
 
-// packages/shared/dist/memory-taxonomy.js
+// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/memory-taxonomy.js
 var MEMORY_TAXONOMY = [
   // ---------------------------------------------------------------- process --
   { term: "standup", facet: "process", forms: ["standup", "stand-up", "daily standup", "daily scrum", "daily sync"] },
@@ -10865,7 +10992,7 @@ async function heartbeat(cwd) {
 }
 function readGitRemote2(cwd) {
   try {
-    const url = execSync3("git remote get-url origin", {
+    const url = execSync2("git remote get-url origin", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
