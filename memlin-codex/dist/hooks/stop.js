@@ -209,9 +209,9 @@ var init_companion_client = __esm({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js
+// node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js
 var require_kind_of = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js"(exports2, module2) {
+  "node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js"(exports2, module2) {
     var toString = Object.prototype.toString;
     module2.exports = function kindOf(val) {
       if (val === void 0) return "undefined";
@@ -330,9 +330,9 @@ var require_kind_of = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/is-extendable@0.1.1/node_modules/is-extendable/index.js
+// node_modules/.pnpm/is-extendable@0.1.1/node_modules/is-extendable/index.js
 var require_is_extendable = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/is-extendable@0.1.1/node_modules/is-extendable/index.js"(exports2, module2) {
+  "node_modules/.pnpm/is-extendable@0.1.1/node_modules/is-extendable/index.js"(exports2, module2) {
     "use strict";
     module2.exports = function isExtendable(val) {
       return typeof val !== "undefined" && val !== null && (typeof val === "object" || typeof val === "function");
@@ -340,9 +340,9 @@ var require_is_extendable = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/extend-shallow@2.0.1/node_modules/extend-shallow/index.js
+// node_modules/.pnpm/extend-shallow@2.0.1/node_modules/extend-shallow/index.js
 var require_extend_shallow = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/extend-shallow@2.0.1/node_modules/extend-shallow/index.js"(exports2, module2) {
+  "node_modules/.pnpm/extend-shallow@2.0.1/node_modules/extend-shallow/index.js"(exports2, module2) {
     "use strict";
     var isObject = require_is_extendable();
     module2.exports = function extend(o) {
@@ -371,9 +371,9 @@ var require_extend_shallow = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/section-matter@1.0.0/node_modules/section-matter/index.js
+// node_modules/.pnpm/section-matter@1.0.0/node_modules/section-matter/index.js
 var require_section_matter = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/section-matter@1.0.0/node_modules/section-matter/index.js"(exports2, module2) {
+  "node_modules/.pnpm/section-matter@1.0.0/node_modules/section-matter/index.js"(exports2, module2) {
     "use strict";
     var typeOf = require_kind_of();
     var extend = require_extend_shallow();
@@ -478,9 +478,9 @@ var require_section_matter = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/common.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/common.js
 var require_common = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/common.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/common.js"(exports2, module2) {
     "use strict";
     function isNothing(subject) {
       return typeof subject === "undefined" || subject === null;
@@ -523,9 +523,9 @@ var require_common = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/exception.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/exception.js
 var require_exception = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/exception.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/exception.js"(exports2, module2) {
     "use strict";
     function YAMLException(reason, mark) {
       Error.call(this);
@@ -553,9 +553,9 @@ var require_exception = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/mark.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/mark.js
 var require_mark = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/mark.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/mark.js"(exports2, module2) {
     "use strict";
     var common = require_common();
     function Mark(name, buffer, position, line, column) {
@@ -611,9 +611,9 @@ var require_mark = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type.js
 var require_type = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type.js"(exports2, module2) {
     "use strict";
     var YAMLException = require_exception();
     var TYPE_CONSTRUCTOR_OPTIONS = [
@@ -670,9 +670,9 @@ var require_type = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema.js
 var require_schema = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema.js"(exports2, module2) {
     "use strict";
     var common = require_common();
     var YAMLException = require_exception();
@@ -758,9 +758,9 @@ var require_schema = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/str.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/str.js
 var require_str = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/str.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/str.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     module2.exports = new Type("tag:yaml.org,2002:str", {
@@ -772,9 +772,9 @@ var require_str = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/seq.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/seq.js
 var require_seq = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/seq.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/seq.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     module2.exports = new Type("tag:yaml.org,2002:seq", {
@@ -786,9 +786,9 @@ var require_seq = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/map.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/map.js
 var require_map = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/map.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/map.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     module2.exports = new Type("tag:yaml.org,2002:map", {
@@ -800,9 +800,9 @@ var require_map = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/failsafe.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/failsafe.js
 var require_failsafe = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/failsafe.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/failsafe.js"(exports2, module2) {
     "use strict";
     var Schema = require_schema();
     module2.exports = new Schema({
@@ -815,9 +815,9 @@ var require_failsafe = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/null.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/null.js
 var require_null = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/null.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/null.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     function resolveYamlNull(data) {
@@ -855,9 +855,9 @@ var require_null = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/bool.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/bool.js
 var require_bool = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/bool.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/bool.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     function resolveYamlBoolean(data) {
@@ -892,9 +892,9 @@ var require_bool = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/int.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/int.js
 var require_int = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/int.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/int.js"(exports2, module2) {
     "use strict";
     var common = require_common();
     var Type = require_type();
@@ -1025,9 +1025,9 @@ var require_int = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/float.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/float.js
 var require_float = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/float.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/float.js"(exports2, module2) {
     "use strict";
     var common = require_common();
     var Type = require_type();
@@ -1120,9 +1120,9 @@ var require_float = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/json.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/json.js
 var require_json = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/json.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/json.js"(exports2, module2) {
     "use strict";
     var Schema = require_schema();
     module2.exports = new Schema({
@@ -1139,9 +1139,9 @@ var require_json = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/core.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/core.js
 var require_core = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/core.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/core.js"(exports2, module2) {
     "use strict";
     var Schema = require_schema();
     module2.exports = new Schema({
@@ -1152,9 +1152,9 @@ var require_core = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/timestamp.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/timestamp.js
 var require_timestamp = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/timestamp.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/timestamp.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     var YAML_DATE_REGEXP = new RegExp(
@@ -1213,9 +1213,9 @@ var require_timestamp = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/merge.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/merge.js
 var require_merge = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/merge.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/merge.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     function resolveYamlMerge(data) {
@@ -1228,9 +1228,9 @@ var require_merge = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/binary.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/binary.js
 var require_binary = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/binary.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/binary.js"(exports2, module2) {
     "use strict";
     var NodeBuffer;
     try {
@@ -1321,9 +1321,9 @@ var require_binary = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/omap.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/omap.js
 var require_omap = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/omap.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/omap.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     var _hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -1358,9 +1358,9 @@ var require_omap = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/pairs.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/pairs.js
 var require_pairs = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/pairs.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/pairs.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     var _toString = Object.prototype.toString;
@@ -1396,9 +1396,9 @@ var require_pairs = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/set.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/set.js
 var require_set = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/set.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/set.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     var _hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -1423,9 +1423,9 @@ var require_set = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_safe.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_safe.js
 var require_default_safe = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_safe.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_safe.js"(exports2, module2) {
     "use strict";
     var Schema = require_schema();
     module2.exports = new Schema({
@@ -1446,9 +1446,9 @@ var require_default_safe = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/undefined.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/undefined.js
 var require_undefined = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/undefined.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/undefined.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     function resolveJavascriptUndefined() {
@@ -1473,9 +1473,9 @@ var require_undefined = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/regexp.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/regexp.js
 var require_regexp = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/regexp.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/regexp.js"(exports2, module2) {
     "use strict";
     var Type = require_type();
     function resolveJavascriptRegExp(data) {
@@ -1517,9 +1517,9 @@ var require_regexp = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/function.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/function.js
 var require_function = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/function.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/js/function.js"(exports2, module2) {
     "use strict";
     var esprima;
     try {
@@ -1572,9 +1572,9 @@ var require_function = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_full.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_full.js
 var require_default_full = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_full.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema/default_full.js"(exports2, module2) {
     "use strict";
     var Schema = require_schema();
     module2.exports = Schema.DEFAULT = new Schema({
@@ -1590,9 +1590,9 @@ var require_default_full = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/loader.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/loader.js
 var require_loader = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/loader.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/loader.js"(exports2, module2) {
     "use strict";
     var common = require_common();
     var YAMLException = require_exception();
@@ -2709,9 +2709,9 @@ var require_loader = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/dumper.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/dumper.js
 var require_dumper = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/dumper.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/dumper.js"(exports2, module2) {
     "use strict";
     var common = require_common();
     var YAMLException = require_exception();
@@ -3257,9 +3257,9 @@ var require_dumper = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml.js
 var require_js_yaml = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml.js"(exports2, module2) {
     "use strict";
     var loader = require_loader();
     var dumper = require_dumper();
@@ -3292,18 +3292,18 @@ var require_js_yaml = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/index.js
+// node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/index.js
 var require_js_yaml2 = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/index.js"(exports2, module2) {
+  "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/index.js"(exports2, module2) {
     "use strict";
     var yaml2 = require_js_yaml();
     module2.exports = yaml2;
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engines.js
+// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engines.js
 var require_engines = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engines.js"(exports, module) {
+  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engines.js"(exports, module) {
     "use strict";
     var yaml = require_js_yaml2();
     var engines = exports = module.exports;
@@ -3339,9 +3339,9 @@ var require_engines = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/strip-bom-string@1.0.0/node_modules/strip-bom-string/index.js
+// node_modules/.pnpm/strip-bom-string@1.0.0/node_modules/strip-bom-string/index.js
 var require_strip_bom_string = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/strip-bom-string@1.0.0/node_modules/strip-bom-string/index.js"(exports2, module2) {
+  "node_modules/.pnpm/strip-bom-string@1.0.0/node_modules/strip-bom-string/index.js"(exports2, module2) {
     "use strict";
     module2.exports = function(str2) {
       if (typeof str2 === "string" && str2.charAt(0) === "\uFEFF") {
@@ -3352,9 +3352,9 @@ var require_strip_bom_string = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/utils.js
+// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/utils.js
 var require_utils = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/utils.js"(exports2) {
+  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/utils.js"(exports2) {
     "use strict";
     var stripBom = require_strip_bom_string();
     var typeOf = require_kind_of();
@@ -3392,9 +3392,9 @@ var require_utils = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/defaults.js
+// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/defaults.js
 var require_defaults = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/defaults.js"(exports2, module2) {
+  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/defaults.js"(exports2, module2) {
     "use strict";
     var engines2 = require_engines();
     var utils = require_utils();
@@ -3411,9 +3411,9 @@ var require_defaults = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engine.js
+// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engine.js
 var require_engine = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engine.js"(exports2, module2) {
+  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/engine.js"(exports2, module2) {
     "use strict";
     module2.exports = function(name, options2) {
       let engine = options2.engines[name] || options2.engines[aliase(name)];
@@ -3445,9 +3445,9 @@ var require_engine = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/stringify.js
+// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/stringify.js
 var require_stringify = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/stringify.js"(exports2, module2) {
+  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/stringify.js"(exports2, module2) {
     "use strict";
     var typeOf = require_kind_of();
     var getEngine = require_engine();
@@ -3498,9 +3498,9 @@ var require_stringify = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/excerpt.js
+// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/excerpt.js
 var require_excerpt = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/excerpt.js"(exports2, module2) {
+  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/excerpt.js"(exports2, module2) {
     "use strict";
     var defaults = require_defaults();
     module2.exports = function(file, options2) {
@@ -3525,9 +3525,9 @@ var require_excerpt = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/to-file.js
+// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/to-file.js
 var require_to_file = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/to-file.js"(exports2, module2) {
+  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/to-file.js"(exports2, module2) {
     "use strict";
     var typeOf = require_kind_of();
     var stringify = require_stringify();
@@ -3559,9 +3559,9 @@ var require_to_file = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/parse.js
+// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/parse.js
 var require_parse = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/parse.js"(exports2, module2) {
+  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/lib/parse.js"(exports2, module2) {
     "use strict";
     var getEngine = require_engine();
     var defaults = require_defaults();
@@ -3576,9 +3576,9 @@ var require_parse = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js
+// node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js
 var require_gray_matter = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
+  "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
     var fs9 = __require("fs");
     var sections = require_section_matter();
@@ -3833,7 +3833,7 @@ async function writePersistedToken(t) {
   });
   await atomicRename(tmp, file);
 }
-async function refreshAccessToken(refreshToken) {
+async function refreshAccessToken(refreshToken, options2 = {}) {
   requireClientId();
   const body = new URLSearchParams({
     grant_type: "refresh_token",
@@ -3843,7 +3843,8 @@ async function refreshAccessToken(refreshToken) {
   const res = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString()
+    body: body.toString(),
+    signal: AbortSignal.timeout(Math.max(1, options2.timeoutMs ?? 15e3))
   });
   if (!res.ok) {
     throw new Error(`refresh: ${res.status} ${await res.text()}`);
@@ -3856,17 +3857,17 @@ var DEFAULT_FRESHNESS_MARGIN_MS = 6e4;
 async function getValidAccessToken() {
   return ensureFreshToken(DEFAULT_FRESHNESS_MARGIN_MS);
 }
-async function ensureFreshToken(marginMs = DEFAULT_FRESHNESS_MARGIN_MS) {
+async function ensureFreshToken(marginMs = DEFAULT_FRESHNESS_MARGIN_MS, options2 = {}) {
   const persisted = await readPersistedToken();
   if (!persisted) throw new Error("not signed in \u2014 run `memlin login`");
   if (Date.now() < persisted.expires_at - marginMs) return persisted.access_token;
   if (refreshInFlight) return refreshInFlight;
-  refreshInFlight = doRefresh(persisted, marginMs).finally(() => {
+  refreshInFlight = doRefresh(persisted, marginMs, options2).finally(() => {
     refreshInFlight = null;
   });
   return refreshInFlight;
 }
-async function doRefresh(stale, marginMs) {
+async function doRefresh(stale, marginMs, options2) {
   const latest = await readPersistedToken();
   if (latest && Date.now() < latest.expires_at - marginMs) return latest.access_token;
   try {
@@ -3883,7 +3884,7 @@ async function doRefresh(stale, marginMs) {
     throw new Error("access token expired and no refresh token saved \u2014 run `memlin login`");
   }
   try {
-    const fresh = await refreshAccessToken(refreshToken);
+    const fresh = await refreshAccessToken(refreshToken, options2);
     return await withAuthFileLock(async () => {
       const beforeWrite = await readPersistedToken();
       if (!beforeWrite || beforeWrite.access_token !== refreshSource.access_token) {
@@ -4102,7 +4103,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.39";
+  cachedAgentVersion = "0.2.40";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -4308,13 +4309,15 @@ var MemlinApiClient = class {
    *  Returns kind='decision' docs whose `metadata.enforce` is set —
    *  the PreToolUse handler in plugin-core's pre-tool-use-handler
    *  module is the primary caller. */
-  async listEnforceDecisions(opts = {}) {
+  async listEnforceDecisions(opts = {}, requestOpts = {}) {
     const qs = new URLSearchParams();
     if (opts.project_id !== void 0) {
       qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
     }
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.request("GET", `/decisions/enforce${suffix}`);
+    return this.request("GET", `/decisions/enforce${suffix}`, void 0, {
+      accountId: requestOpts.accountId
+    });
   }
   /** POST /usage/event — write a usage_events row from the client.
    *  Server-side enforces an allowlist of event_types (today:
@@ -4421,19 +4424,24 @@ var MemlinApiClient = class {
       action
     });
   }
-  async listHandoffs(opts = {}) {
+  async listHandoffs(opts = {}, callOpts = {}) {
     const qs = new URLSearchParams();
     if (opts.project_id) qs.set("project_id", opts.project_id);
     if (opts.target_agent_kind) qs.set("target_agent_kind", opts.target_agent_kind);
     if (opts.status) qs.set("status", opts.status);
     if (opts.limit) qs.set("limit", String(opts.limit));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.request("GET", `/handoffs${suffix}`);
-  }
-  async updateHandoff(handoffId, action) {
-    return this.request("PATCH", `/handoffs/${encodeURIComponent(handoffId)}`, {
-      action
+    return this.request("GET", `/handoffs${suffix}`, void 0, {
+      accountId: callOpts.accountId
     });
+  }
+  async updateHandoff(handoffId, action, opts = {}) {
+    return this.request(
+      "PATCH",
+      `/handoffs/${encodeURIComponent(handoffId)}`,
+      { action },
+      { accountId: opts.accountId }
+    );
   }
   async createHandoff(input) {
     return this.request("POST", "/handoffs", input);
@@ -4536,8 +4544,13 @@ var MemlinApiClient = class {
     return this.request("POST", "/edit-guard", input, { accountId: opts.accountId });
   }
   /** GET /audit/<id>/replay — reconstruct a past resolve's exact bundle. */
-  async replayAudit(auditId) {
-    return this.request("GET", `/audit/${auditId}/replay`);
+  async replayAudit(auditId, opts = {}) {
+    return this.request(
+      "GET",
+      `/audit/${auditId}/replay`,
+      void 0,
+      { accountId: opts.accountId }
+    );
   }
   /** GET /audit/<id>/explain — per-item decomposition of a past resolve's
    *  ranking arithmetic (similarity, kind weight, component boost, rerank,
@@ -4692,8 +4705,8 @@ var MemlinApiClient = class {
    * companion plans row with status='drafted'. Returns the document_id
    * + version metadata for downstream URL construction.
    */
-  async pushPlan(input) {
-    return this.request("POST", "/plans", input);
+  async pushPlan(input, opts = {}) {
+    return this.request("POST", "/plans", input, { accountId: opts.accountId });
   }
   /**
    * GET /plans — list plans for the account, optionally filtered by
@@ -4701,7 +4714,7 @@ var MemlinApiClient = class {
    * UserPromptSubmit + SessionStart hooks to keep ~/.claude/plans/ in
    * sync with the server.
    */
-  async listPlans(opts = {}) {
+  async listPlans(opts = {}, callOpts = {}) {
     const qs = new URLSearchParams();
     if (opts.status) qs.set("status", opts.status);
     if (opts.project_id !== void 0) {
@@ -4711,21 +4724,27 @@ var MemlinApiClient = class {
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     const res = await this.request(
       "GET",
-      `/plans${suffix}`
+      `/plans${suffix}`,
+      void 0,
+      { accountId: callOpts.accountId }
     );
     return res.plans;
   }
   /** GET /plans/<id> — full plan detail (status + body + bundle ref). */
-  async getPlan(id) {
-    return this.request("GET", `/plans/${encodeURIComponent(id)}`);
+  async getPlan(id, opts = {}) {
+    return this.request("GET", `/plans/${encodeURIComponent(id)}`, void 0, {
+      accountId: opts.accountId
+    });
   }
   /**
    * PATCH /plans/<id> — replace the plan's body (creates a new
    * document_version, auto-embeds). Used by the PostToolUse hook to push
    * Claude Code edits back up to Memlin.
    */
-  async updatePlan(id, input) {
-    return this.request("PATCH", `/plans/${encodeURIComponent(id)}`, input);
+  async updatePlan(id, input, opts = {}) {
+    return this.request("PATCH", `/plans/${encodeURIComponent(id)}`, input, {
+      accountId: opts.accountId
+    });
   }
   /**
    * POST /projects — create a project in the caller's current account.
@@ -5342,12 +5361,110 @@ Override (deliberate): include [skip-done-gate] in your message to ship-anyway t
 import crypto from "node:crypto";
 import { promises as fs6 } from "node:fs";
 import os6 from "node:os";
+import path9 from "node:path";
+
+// packages/plugin-core/dist/project-resolver.js
+import { execSync } from "node:child_process";
+import { existsSync, readdirSync } from "node:fs";
 import path8 from "node:path";
+var ALLOW_ACCOUNT_MISMATCH_ENV = "MEMLIN_ALLOW_ACCOUNT_MISMATCH";
+function allowAccountMismatch(env = process.env) {
+  const v = env[ALLOW_ACCOUNT_MISMATCH_ENV];
+  return v === "1" || v === "true" || v === "yes";
+}
+function accountBindingHazard(r, opts = {}) {
+  if (!r.hasGitRemote || !r.project_id) return "none";
+  if (r.reason === "local-path") return opts.allowMismatch ? "warn" : "block";
+  if (r.reason === "config") return "warn";
+  return "none";
+}
+async function resolveProject(api, cwd, configProjectId) {
+  const absCwd = path8.resolve(cwd);
+  const remotes = detectGitRemotes(cwd);
+  const hasGitRemote = remotes.length > 0;
+  try {
+    const result = await api.resolveProject({
+      // Primary remote (back-compat with the single-remote server path).
+      git_remote: remotes[0] ?? null,
+      // All detected remotes — for the workspace-root-of-repos case, this is
+      // every sibling repo so the server resolves to the owning project.
+      git_remotes: remotes,
+      cwd: absCwd
+    });
+    if (result.project_id) {
+      return {
+        project_id: result.project_id,
+        project_name: result.name,
+        account_id: result.account_id,
+        reason: result.reason === "none" ? "config" : result.reason,
+        hasGitRemote,
+        enforce_done_deployed: result.enforce_done_deployed
+      };
+    }
+  } catch {
+  }
+  if (configProjectId) {
+    const localBinding = await findWorkspaceBinding(absCwd).catch(() => null);
+    if (localBinding?.binding.project_id === configProjectId) {
+      return {
+        project_id: configProjectId,
+        project_name: null,
+        account_id: null,
+        reason: "config",
+        hasGitRemote
+      };
+    }
+  }
+  return { project_id: null, project_name: null, account_id: null, reason: "none", hasGitRemote };
+}
+function readGitRemote(cwd) {
+  try {
+    const url = execSync("git remote get-url origin", {
+      windowsHide: true,
+      cwd,
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8"
+    }).trim();
+    return normalizeGitRemote(url);
+  } catch {
+    return null;
+  }
+}
+var MAX_WORKSPACE_SCAN = 64;
+function detectGitRemotes(cwd) {
+  const enclosing = readGitRemote(cwd);
+  if (enclosing) return [enclosing];
+  const out = [];
+  try {
+    let scanned = 0;
+    for (const entry of readdirSync(cwd, { withFileTypes: true })) {
+      if (scanned >= MAX_WORKSPACE_SCAN) break;
+      if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") {
+        continue;
+      }
+      scanned++;
+      const child = path8.join(cwd, entry.name);
+      if (!existsSync(path8.join(child, ".git"))) continue;
+      const remote = readGitRemote(child);
+      if (remote && !out.includes(remote)) out.push(remote);
+    }
+  } catch {
+  }
+  return out;
+}
+function isWorkspaceActive(input) {
+  return Boolean(input.resolvedProjectId) || input.workspaceBound;
+}
+function effectiveAccountId(input) {
+  return input.resolvedAccountId ?? input.configAccountId;
+}
+
+// packages/plugin-core/dist/heartbeat.js
 var DEFAULT_THROTTLE_MS = 6e4;
 var HEARTBEAT_REQUEST_TIMEOUT_MS = 750;
 function statePath(cwd, host) {
   const key = crypto.createHash("sha256").update(cwd).digest("hex").slice(0, 16);
-  return path8.join(os6.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
+  return path9.join(os6.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
 }
 async function recentlySent(file, throttleMs) {
   try {
@@ -5366,7 +5483,18 @@ async function recordInstallHeartbeat(cwd, reason, opts = {}) {
   try {
     const ctx = await getApi({ cwd });
     if (!ctx) return;
+    const resolved = await resolveProject(ctx.api, cwd, ctx.config.project_id);
+    if (!isWorkspaceActive({
+      resolvedProjectId: resolved.project_id,
+      workspaceBound: ctx.workspaceBound
+    })) {
+      return;
+    }
     await ctx.api.getAccount({
+      accountId: effectiveAccountId({
+        configAccountId: ctx.config.account_id,
+        resolvedAccountId: resolved.account_id
+      }),
       requestTimeoutMs: HEARTBEAT_REQUEST_TIMEOUT_MS,
       maxRetries: 0
     });
@@ -5526,10 +5654,10 @@ function attributeAppliedItems(agentMessage, replay) {
 
 // packages/plugin-core/dist/state.js
 import { promises as fs7 } from "node:fs";
-import path9 from "node:path";
+import path10 from "node:path";
 import os7 from "node:os";
 import crypto2 from "node:crypto";
-var STATE_FILE = path9.join(os7.homedir(), ".config", "memlin", "state.json");
+var STATE_FILE = path10.join(os7.homedir(), ".config", "memlin", "state.json");
 var EMPTY = { documents: {} };
 async function readState() {
   try {
@@ -5540,7 +5668,7 @@ async function readState() {
   }
 }
 async function writeState(state) {
-  await fs7.mkdir(path9.dirname(STATE_FILE), { recursive: true });
+  await fs7.mkdir(path10.dirname(STATE_FILE), { recursive: true });
   const tmp = `${STATE_FILE}.${process.pid}.tmp`;
   await fs7.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
   await atomicRename(tmp, STATE_FILE);
@@ -5570,96 +5698,6 @@ function accumulateScribeNotice(existing, input) {
     session_id: input.sessionId,
     at: input.at
   };
-}
-
-// packages/plugin-core/dist/project-resolver.js
-import { execSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
-import path10 from "node:path";
-var ALLOW_ACCOUNT_MISMATCH_ENV = "MEMLIN_ALLOW_ACCOUNT_MISMATCH";
-function allowAccountMismatch(env = process.env) {
-  const v = env[ALLOW_ACCOUNT_MISMATCH_ENV];
-  return v === "1" || v === "true" || v === "yes";
-}
-function accountBindingHazard(r, opts = {}) {
-  if (!r.hasGitRemote || !r.project_id) return "none";
-  if (r.reason === "local-path") return opts.allowMismatch ? "warn" : "block";
-  if (r.reason === "config") return "warn";
-  return "none";
-}
-async function resolveProject(api, cwd, configProjectId) {
-  const absCwd = path10.resolve(cwd);
-  const remotes = detectGitRemotes(cwd);
-  const hasGitRemote = remotes.length > 0;
-  try {
-    const result = await api.resolveProject({
-      // Primary remote (back-compat with the single-remote server path).
-      git_remote: remotes[0] ?? null,
-      // All detected remotes — for the workspace-root-of-repos case, this is
-      // every sibling repo so the server resolves to the owning project.
-      git_remotes: remotes,
-      cwd: absCwd
-    });
-    if (result.project_id) {
-      return {
-        project_id: result.project_id,
-        project_name: result.name,
-        account_id: result.account_id,
-        reason: result.reason === "none" ? "config" : result.reason,
-        hasGitRemote,
-        enforce_done_deployed: result.enforce_done_deployed
-      };
-    }
-  } catch {
-  }
-  if (configProjectId) {
-    return {
-      project_id: configProjectId,
-      project_name: null,
-      account_id: null,
-      reason: "config",
-      hasGitRemote
-    };
-  }
-  return { project_id: null, project_name: null, account_id: null, reason: "none", hasGitRemote };
-}
-function readGitRemote(cwd) {
-  try {
-    const url = execSync("git remote get-url origin", {
-      windowsHide: true,
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8"
-    }).trim();
-    return normalizeGitRemote(url);
-  } catch {
-    return null;
-  }
-}
-var MAX_WORKSPACE_SCAN = 64;
-function detectGitRemotes(cwd) {
-  const enclosing = readGitRemote(cwd);
-  if (enclosing) return [enclosing];
-  const out = [];
-  try {
-    let scanned = 0;
-    for (const entry of readdirSync(cwd, { withFileTypes: true })) {
-      if (scanned >= MAX_WORKSPACE_SCAN) break;
-      if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") {
-        continue;
-      }
-      scanned++;
-      const child = path10.join(cwd, entry.name);
-      if (!existsSync(path10.join(child, ".git"))) continue;
-      const remote = readGitRemote(child);
-      if (remote && !out.includes(remote)) out.push(remote);
-    }
-  } catch {
-  }
-  return out;
-}
-function isWorkspaceActive(input) {
-  return Boolean(input.resolvedProjectId) || input.workspaceBound;
 }
 
 // packages/plugin-core/dist/transcript.js
@@ -5701,7 +5739,7 @@ function flattenForScribe(content) {
   return parts.join("\n");
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
+// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
 __export(external_exports, {
   BRAND: () => BRAND,
@@ -5813,7 +5851,7 @@ __export(external_exports, {
   void: () => voidType
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/util.js
+// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/util.js
 var util;
 (function(util2) {
   util2.assertEqual = (_) => {
@@ -5947,7 +5985,7 @@ var getParsedType = (data) => {
   }
 };
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/ZodError.js
+// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/ZodError.js
 var ZodIssueCode = util.arrayToEnum([
   "invalid_type",
   "invalid_literal",
@@ -6065,7 +6103,7 @@ ZodError.create = (issues) => {
   return error;
 };
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/locales/en.js
+// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/locales/en.js
 var errorMap = (issue, _ctx) => {
   let message;
   switch (issue.code) {
@@ -6168,7 +6206,7 @@ var errorMap = (issue, _ctx) => {
 };
 var en_default = errorMap;
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/errors.js
+// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/errors.js
 var overrideErrorMap = en_default;
 function setErrorMap(map) {
   overrideErrorMap = map;
@@ -6177,7 +6215,7 @@ function getErrorMap() {
   return overrideErrorMap;
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
+// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
   const { data, path: path11, errorMaps, issueData } = params;
   const fullPath = [...path11, ...issueData.path || []];
@@ -6287,14 +6325,14 @@ var isDirty = (x) => x.status === "dirty";
 var isValid = (x) => x.status === "valid";
 var isAsync = (x) => typeof Promise !== "undefined" && x instanceof Promise;
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/errorUtil.js
+// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/errorUtil.js
 var errorUtil;
 (function(errorUtil2) {
   errorUtil2.errToObj = (message) => typeof message === "string" ? { message } : message || {};
   errorUtil2.toString = (message) => typeof message === "string" ? message : message?.message;
 })(errorUtil || (errorUtil = {}));
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
+// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
   constructor(parent, value, path11, key) {
     this._cachedPath = [];
@@ -9742,7 +9780,7 @@ var coerce = {
 };
 var NEVER = INVALID;
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/constants.js
+// packages/shared/dist/constants.js
 var DOCUMENT_KINDS = [
   "memory",
   "skill",
@@ -9851,7 +9889,7 @@ var METERED_EVENT_TYPES = new Set(
   FREE_TIER_METERS.flatMap((m) => m.eventTypes)
 );
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/schemas.js
+// packages/shared/dist/schemas.js
 var UUID = external_exports.string().uuid();
 var DocumentKindSchema = external_exports.enum(DOCUMENT_KINDS);
 var DocumentScopeSchema = external_exports.enum(DOCUMENT_SCOPES);
@@ -9912,7 +9950,7 @@ var DocumentPatchSchema = external_exports.object({
   source: AgentKindSchema
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/brand-guidelines.js
+// packages/shared/dist/brand-guidelines.js
 var BRAND_COLOR_ROLES = [
   "primary",
   "secondary",
@@ -9971,10 +10009,10 @@ var BrandGuidelinesFrontmatterSchema = external_exports.object({
   imagery: external_exports.array(BrandImageryNoteSchema).optional()
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/brand-guidelines-frontmatter.js
+// packages/shared/dist/brand-guidelines-frontmatter.js
 var import_gray_matter = __toESM(require_gray_matter(), 1);
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/redact.js
+// packages/shared/dist/redact.js
 function luhnValid(digits) {
   if (digits.length === 0) return false;
   let sum = 0;
@@ -10177,7 +10215,7 @@ for (const p of REDACTION_PATTERNS) {
   }
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/action-metadata.js
+// packages/shared/dist/action-metadata.js
 var ActionNameSchema = external_exports.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9._-]*$/, {
   message: "action name must be lowercase alphanumeric + dot/underscore/hyphen, 1-64 chars"
 });
@@ -10268,7 +10306,7 @@ var ActionMetadataSchema = external_exports.object({
   implementation: ActionImplementationSchema
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/task-classifier.js
+// packages/shared/dist/task-classifier.js
 var RULES = [
   // Tests come BEFORE feature/bug — "add tests" / "fix tests" both
   // belong here.
@@ -10594,7 +10632,7 @@ function classifyTask(task) {
   return "unknown";
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/authority.js
+// packages/shared/dist/authority.js
 var AUTHORITY_TIER = {
   PLATFORM: 1,
   REQUIRED_GOVERNANCE: 2,
@@ -10604,14 +10642,14 @@ var AUTHORITY_TIER = {
   HISTORICAL: 6
 };
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/decision-authority.js
+// packages/shared/dist/decision-authority.js
 var DECISION_AUTHORITY = {
   REQUIRED_GOVERNANCE: AUTHORITY_TIER.REQUIRED_GOVERNANCE,
   APPROVED_POLICY: AUTHORITY_TIER.APPROVED_POLICY,
   HISTORICAL: AUTHORITY_TIER.HISTORICAL
 };
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/feedback-signals.js
+// packages/shared/dist/feedback-signals.js
 var CORRECTION_PATTERNS = [
   // Preserved from the original detectors.
   /\b(no[, ]+|actually[, ]+|that['’]?s wrong|that['’]?s incorrect|you['’]?re wrong)\b/i,
@@ -10684,10 +10722,10 @@ function isNegativeFeedback(text) {
   return classifyNegativeFeedback(text).isNegative;
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/skill-frontmatter.js
+// packages/shared/dist/skill-frontmatter.js
 var import_gray_matter2 = __toESM(require_gray_matter(), 1);
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/model-prices.js
+// packages/shared/dist/model-prices.js
 var MODEL_PRICES = {
   // Anthropic. Opus was absent until 2026-07-23, which meant every Opus turn —
   // a common Claude Code default — priced as $0 and was reported as an unpriced
@@ -10716,7 +10754,7 @@ var MODEL_PRICES = {
   "gpt-4.1-mini": { inputUsdPerMTok: 0.4, outputUsdPerMTok: 1.6 }
 };
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/usage-stats.js
+// packages/shared/dist/usage-stats.js
 var SONNET_INPUT_USD_PER_MTOK = MODEL_PRICES["claude-sonnet-4-6"].inputUsdPerMTok;
 var SONNET_OUTPUT_USD_PER_MTOK = MODEL_PRICES["claude-sonnet-4-6"].outputUsdPerMTok;
 var OUTPUT_MULTIPLIER = 0.3;
@@ -10728,7 +10766,7 @@ function estCostUsd(inputTokens) {
 var SONNET_BLENDED_USD_PER_MTOK = SONNET_INPUT_USD_PER_MTOK + OUTPUT_MULTIPLIER * SONNET_OUTPUT_USD_PER_MTOK;
 var SAVINGS_USD_PER_TOKEN = estCostUsd(1);
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/feature-discovery.js
+// packages/shared/dist/feature-discovery.js
 var FEATURE_DISCOVERY_SYSTEM = [
   "You are Memlin's feature mapper. You read the inventory of a software project \u2014",
   "its components (subsystems), recent pull requests, and plans \u2014 and group them",
@@ -10750,7 +10788,7 @@ var FEATURE_DISCOVERY_SYSTEM = [
   "where each members entry is an id from the inventory. No prose outside the JSON."
 ].join("\n");
 
-// ../../../Users/mattbeach/Dropbox/MAI/packages/shared/dist/memory-taxonomy.js
+// packages/shared/dist/memory-taxonomy.js
 var MEMORY_TAXONOMY = [
   // ---------------------------------------------------------------- process --
   { term: "standup", facet: "process", forms: ["standup", "stand-up", "daily standup", "daily scrum", "daily sync"] },
@@ -11003,7 +11041,31 @@ function readGitRemote2(cwd) {
     return null;
   }
 }
-async function maybeProposeMemory(ctx, payload) {
+async function resolveStopWorkspaceRouting(ctx, cwd) {
+  let resolvedProjectId = null;
+  let resolvedAccountId = null;
+  let hazard = "none";
+  try {
+    const resolved = await resolveProject(ctx.api, cwd, ctx.config.project_id);
+    resolvedProjectId = resolved.project_id;
+    resolvedAccountId = resolved.account_id;
+    hazard = accountBindingHazard(resolved, { allowMismatch: allowAccountMismatch() });
+  } catch {
+  }
+  return {
+    accountId: effectiveAccountId({
+      configAccountId: ctx.config.account_id,
+      resolvedAccountId
+    }),
+    projectId: resolvedProjectId,
+    active: isWorkspaceActive({
+      resolvedProjectId,
+      workspaceBound: ctx.workspaceBound
+    }),
+    hazard
+  };
+}
+async function maybeProposeMemory(ctx, payload, routing) {
   if (!payload.transcript_path) return;
   const exchange = await readLastExchange(payload.transcript_path);
   if (!exchange) {
@@ -11016,27 +11078,11 @@ async function maybeProposeMemory(ctx, payload) {
   }
   const cwd = payload.cwd ?? process.cwd();
   const gitRemote = readGitRemote2(cwd);
-  let accountOverride;
-  let resolvedProjectId = null;
-  let hazard = "none";
-  try {
-    const resolved = await resolveProject(ctx.api, cwd, ctx.config.project_id);
-    resolvedProjectId = resolved.project_id;
-    if (resolved.account_id && resolved.account_id !== ctx.config.account_id) {
-      accountOverride = resolved.account_id;
-    }
-    hazard = accountBindingHazard(resolved, { allowMismatch: allowAccountMismatch() });
-  } catch {
-  }
-  const active = isWorkspaceActive({
-    resolvedProjectId,
-    workspaceBound: ctx.workspaceBound
-  });
-  if (!active) {
+  if (!routing.active) {
     log("memory propose: skipped \u2014 not a known Memlin workspace");
     return;
   }
-  if (hazard === "block") {
+  if (routing.hazard === "block") {
     log(
       "memory propose: BLOCKED \u2014 account-binding mismatch (git remote not owned by the resolved project). Re-link with `memlin add-project`, or set MEMLIN_ALLOW_ACCOUNT_MISMATCH=1 to record here anyway."
     );
@@ -11049,7 +11095,7 @@ async function maybeProposeMemory(ctx, payload) {
       cwd,
       git_remote: gitRemote
     },
-    accountOverride ? { accountId: accountOverride } : {}
+    { accountId: routing.accountId }
   );
   try {
     const result = await withTimeout(propose, TIMEOUT_MS, { ok: false, proposed: 0 });
@@ -11068,7 +11114,7 @@ async function maybeProposeMemory(ctx, payload) {
   }
 }
 var TURN_TIMING_OUTLIER_MS = 30 * 60 * 1e3;
-async function maybeRecordTurnTiming(ctx, payload) {
+async function maybeRecordTurnTiming(ctx, payload, routing) {
   const state = await readState();
   const sessionId = payload.session_id ?? sessionIdFromTranscriptPath(payload.transcript_path) ?? null;
   const lastResolve = getLastResolveForSession(state, sessionId);
@@ -11081,32 +11127,35 @@ async function maybeRecordTurnTiming(ctx, payload) {
   if (wallClockMs < 0) return;
   const usage = payload.transcript_path ? await readLastAssistantUsage(payload.transcript_path) : null;
   try {
-    await ctx.api.writeUsageEvent({
-      event_type: "turn.timing",
-      metadata: {
-        audit_id: lastResolve.audit_id,
-        // join key → invocation + outcome
-        session_id: sessionId,
-        host: lastResolve.host ?? null,
-        turn_started_at: lastResolve.turn_started_at,
-        answer_delivered_at: answerDeliveredAt,
-        wall_clock_ms: wallClockMs,
-        outlier: wallClockMs > TURN_TIMING_OUTLIER_MS,
-        ...usage ? {
-          turn_input_tokens: usage.input_tokens,
-          turn_output_tokens: usage.output_tokens,
-          turn_cache_read_input_tokens: usage.cache_read_input_tokens,
-          turn_cache_creation_input_tokens: usage.cache_creation_input_tokens,
-          turn_model: usage.model
-        } : {}
-      }
-    });
+    await ctx.api.writeUsageEvent(
+      {
+        event_type: "turn.timing",
+        metadata: {
+          audit_id: lastResolve.audit_id,
+          // join key → invocation + outcome
+          session_id: sessionId,
+          host: lastResolve.host ?? null,
+          turn_started_at: lastResolve.turn_started_at,
+          answer_delivered_at: answerDeliveredAt,
+          wall_clock_ms: wallClockMs,
+          outlier: wallClockMs > TURN_TIMING_OUTLIER_MS,
+          ...usage ? {
+            turn_input_tokens: usage.input_tokens,
+            turn_output_tokens: usage.output_tokens,
+            turn_cache_read_input_tokens: usage.cache_read_input_tokens,
+            turn_cache_creation_input_tokens: usage.cache_creation_input_tokens,
+            turn_model: usage.model
+          } : {}
+        }
+      },
+      { accountId: routing.accountId }
+    );
     log(`recorded turn.timing: ${wallClockMs}ms for audit ${lastResolve.audit_id}`);
   } catch (err) {
     log(`failed to record turn.timing: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
-async function maybeRecordOutcome(ctx, payload) {
+async function maybeRecordOutcome(ctx, payload, routing) {
   const state = await readState();
   const transcriptSessionId = sessionIdFromTranscriptPath(payload.transcript_path);
   const sessionId = payload.session_id ?? transcriptSessionId ?? null;
@@ -11132,7 +11181,7 @@ async function maybeRecordOutcome(ctx, payload) {
   };
   try {
     const replay = await withTimeout(
-      ctx.api.replayAudit(lastResolve.audit_id),
+      ctx.api.replayAudit(lastResolve.audit_id, { accountId: routing.accountId }),
       OUTCOME_ATTRIBUTION_TIMEOUT_MS,
       null
     );
@@ -11143,20 +11192,23 @@ async function maybeRecordOutcome(ctx, payload) {
     );
   }
   try {
-    await ctx.api.writeUsageEvent({
-      event_type: "resolve.outcome",
-      metadata: {
-        audit_id: lastResolve.audit_id,
-        outcome,
-        severity,
-        kinds: feedback.kinds,
-        agent_apology: agentApology,
-        task_category: taskCategory,
-        applied_item_ids: attribution.applied_item_ids,
-        referenced_item_ids: attribution.referenced_item_ids,
-        attribution_mode: attribution.attribution_mode
-      }
-    });
+    await ctx.api.writeUsageEvent(
+      {
+        event_type: "resolve.outcome",
+        metadata: {
+          audit_id: lastResolve.audit_id,
+          outcome,
+          severity,
+          kinds: feedback.kinds,
+          agent_apology: agentApology,
+          task_category: taskCategory,
+          applied_item_ids: attribution.applied_item_ids,
+          referenced_item_ids: attribution.referenced_item_ids,
+          attribution_mode: attribution.attribution_mode
+        }
+      },
+      { accountId: routing.accountId }
+    );
     log(
       `recorded resolve.outcome: ${outcome} for audit ${lastResolve.audit_id} (${attribution.attribution_mode}, ${attribution.applied_item_ids.length} applied)`
     );
@@ -11166,13 +11218,16 @@ async function maybeRecordOutcome(ctx, payload) {
         `resolver outcome is negative; capturing correction rule for audit ${lastResolve.audit_id}...`
       );
       try {
-        const propose = ctx.api.proposeMemory({
-          user_message: exchange.user_message,
-          agent_message: exchange.agent_message,
-          cwd,
-          git_remote: gitRemote,
-          negative_outcome_audit_id: lastResolve.audit_id
-        });
+        const propose = ctx.api.proposeMemory(
+          {
+            user_message: exchange.user_message,
+            agent_message: exchange.agent_message,
+            cwd,
+            git_remote: gitRemote,
+            negative_outcome_audit_id: lastResolve.audit_id
+          },
+          { accountId: routing.accountId }
+        );
         const res = await withTimeout(propose, TIMEOUT_MS, { ok: false, proposed: 0 });
         if (res.correction_rule) {
           const next = await readState();
@@ -11226,7 +11281,7 @@ function lastTurnHasInsistence(raw) {
   }
   return false;
 }
-async function maybeScribeSession(ctx, payload) {
+async function maybeScribeSession(ctx, payload, routing) {
   if (!payload.transcript_path) return;
   let raw;
   try {
@@ -11249,22 +11304,10 @@ async function maybeScribeSession(ctx, payload) {
     log("scribe force-flush \u2014 insistence signal in last user turn");
   }
   const cwd = payload.cwd ?? process.cwd();
-  let resolvedProjectId = null;
-  let accountOverride;
-  let hazard = "none";
-  try {
-    const resolved = await resolveProject(ctx.api, cwd, ctx.config.project_id);
-    resolvedProjectId = resolved.project_id;
-    if (resolved.account_id && resolved.account_id !== ctx.config.account_id) {
-      accountOverride = resolved.account_id;
-    }
-    hazard = accountBindingHazard(resolved, { allowMismatch: allowAccountMismatch() });
-  } catch {
-  }
-  if (!isWorkspaceActive({ resolvedProjectId, workspaceBound: ctx.workspaceBound })) {
+  if (!routing.active) {
     return;
   }
-  if (hazard === "block") {
+  if (routing.hazard === "block") {
     log(
       "session scribe: BLOCKED \u2014 account-binding mismatch. Re-link with `memlin add-project`, or set MEMLIN_ALLOW_ACCOUNT_MISMATCH=1 to record here anyway."
     );
@@ -11298,11 +11341,11 @@ ${text}`);
     {
       session_id: sessionId,
       transcript: delta,
-      project_id: resolvedProjectId,
+      project_id: routing.projectId,
       cwd,
       git_remote: readGitRemote2(cwd)
     },
-    accountOverride ? { accountId: accountOverride } : {}
+    { accountId: routing.accountId }
   );
   try {
     const result = await withTimeout(scribe, SCRIBE_TIMEOUT_MS, {
@@ -11369,7 +11412,7 @@ function truncateWorkingText(text, max) {
   if (text.length <= max) return text;
   return `${text.slice(0, Math.max(0, max - 1)).trimEnd()}\u2026`;
 }
-async function maybeUpsertWorkingMemory(ctx, payload) {
+async function maybeUpsertWorkingMemory(ctx, payload, routing) {
   const transcriptSessionId = sessionIdFromTranscriptPath(payload.transcript_path);
   const sessionId = payload.session_id ?? transcriptSessionId ?? null;
   if (!sessionId) {
@@ -11377,26 +11420,11 @@ async function maybeUpsertWorkingMemory(ctx, payload) {
     return;
   }
   const cwd = payload.cwd ?? process.cwd();
-  let accountOverride;
-  let resolvedProjectId = null;
-  let hazard = "none";
-  try {
-    const resolved = await resolveProject(ctx.api, cwd, ctx.config.project_id);
-    resolvedProjectId = resolved.project_id;
-    if (resolved.account_id && resolved.account_id !== ctx.config.account_id) {
-      accountOverride = resolved.account_id;
-    }
-    hazard = accountBindingHazard(resolved, { allowMismatch: allowAccountMismatch() });
-  } catch {
-  }
-  if (!isWorkspaceActive({
-    resolvedProjectId,
-    workspaceBound: ctx.workspaceBound
-  })) {
+  if (!routing.active) {
     log("working memory: skipped \u2014 not a known Memlin workspace");
     return;
   }
-  if (hazard === "block") {
+  if (routing.hazard === "block") {
     log("working memory: BLOCKED \u2014 account-binding mismatch");
     return;
   }
@@ -11414,7 +11442,7 @@ async function maybeUpsertWorkingMemory(ctx, payload) {
     return;
   }
   const path11 = workingMemoryPath(sessionId);
-  const callOpts = accountOverride ? { accountId: accountOverride } : {};
+  const callOpts = { accountId: routing.accountId };
   let documentId = state.working_memory_ids?.[sessionId] ?? null;
   if (!documentId) {
     try {
@@ -11422,7 +11450,7 @@ async function maybeUpsertWorkingMemory(ctx, payload) {
         ctx.api.listDocuments(
           {
             kinds: ["memory"],
-            ...resolvedProjectId ? { project_id: resolvedProjectId } : {}
+            ...routing.projectId ? { project_id: routing.projectId } : {}
           },
           callOpts
         ),
@@ -11441,13 +11469,13 @@ async function maybeUpsertWorkingMemory(ctx, payload) {
     const write = ctx.api.writeDocument(
       {
         document_id: documentId,
-        scope: resolvedProjectId ? "project" : "team",
+        scope: routing.projectId ? "project" : "team",
         kind: "memory",
         title: `Working memory \u2014 ${sessionId.slice(0, 12)}`,
         path: path11,
         content,
         commit_message: "session working memory",
-        project_id: resolvedProjectId,
+        project_id: routing.projectId,
         metadata: {
           memory_type: "working",
           session_id: sessionId
@@ -11484,13 +11512,14 @@ async function runStopHandler(payload) {
   }
   const ctx = await getApi({ cwd });
   if (!ctx) return;
+  const routing = await resolveStopWorkspaceRouting(ctx, cwd);
   await Promise.allSettled([
     heartbeat(cwd),
-    maybeProposeMemory(ctx, payload),
-    maybeScribeSession(ctx, payload),
-    maybeRecordOutcome(ctx, payload),
-    maybeRecordTurnTiming(ctx, payload),
-    maybeUpsertWorkingMemory(ctx, payload)
+    maybeProposeMemory(ctx, payload, routing),
+    maybeScribeSession(ctx, payload, routing),
+    maybeRecordOutcome(ctx, payload, routing),
+    maybeRecordTurnTiming(ctx, payload, routing),
+    maybeUpsertWorkingMemory(ctx, payload, routing)
   ]);
 }
 

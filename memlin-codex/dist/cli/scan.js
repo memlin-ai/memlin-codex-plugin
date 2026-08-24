@@ -209,9 +209,9 @@ var init_companion_client = __esm({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/web-tree-sitter@0.20.8/node_modules/web-tree-sitter/tree-sitter.js
+// node_modules/.pnpm/web-tree-sitter@0.20.8/node_modules/web-tree-sitter/tree-sitter.js
 var require_tree_sitter = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/web-tree-sitter@0.20.8/node_modules/web-tree-sitter/tree-sitter.js"(exports, module) {
+  "node_modules/.pnpm/web-tree-sitter@0.20.8/node_modules/web-tree-sitter/tree-sitter.js"(exports, module) {
     var Module = void 0 !== Module ? Module : {};
     var TreeSitter = (function() {
       var initPromise, document = "object" == typeof window ? { currentScript: window.document.currentScript } : null;
@@ -1826,9 +1826,9 @@ ${JSON.stringify(t2, null, 2)}`);
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64.js
+// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64.js
 var require_base64 = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64.js"(exports2) {
+  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64.js"(exports2) {
     var intToCharMap = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".split("");
     exports2.encode = function(number) {
       if (0 <= number && number < intToCharMap.length) {
@@ -1867,9 +1867,9 @@ var require_base64 = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64-vlq.js
+// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64-vlq.js
 var require_base64_vlq = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64-vlq.js"(exports2) {
+  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/base64-vlq.js"(exports2) {
     var base64 = require_base64();
     var VLQ_BASE_SHIFT = 5;
     var VLQ_BASE = 1 << VLQ_BASE_SHIFT;
@@ -1921,9 +1921,9 @@ var require_base64_vlq = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/util.js
+// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/util.js
 var require_util = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/util.js"(exports2) {
+  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/util.js"(exports2) {
     function getArg(aArgs, aName, aDefaultValue) {
       if (aName in aArgs) {
         return aArgs[aName];
@@ -2222,9 +2222,9 @@ var require_util = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/array-set.js
+// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/array-set.js
 var require_array_set = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/array-set.js"(exports2) {
+  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/array-set.js"(exports2) {
     var util = require_util();
     var has = Object.prototype.hasOwnProperty;
     var hasNativeMap = typeof Map !== "undefined";
@@ -2292,9 +2292,9 @@ var require_array_set = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/mapping-list.js
+// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/mapping-list.js
 var require_mapping_list = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/mapping-list.js"(exports2) {
+  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/mapping-list.js"(exports2) {
     var util = require_util();
     function generatedPositionAfter(mappingA, mappingB) {
       var lineA = mappingA.generatedLine;
@@ -2331,9 +2331,9 @@ var require_mapping_list = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-generator.js
+// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-generator.js
 var require_source_map_generator = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-generator.js"(exports2) {
+  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-generator.js"(exports2) {
     var base64VLQ = require_base64_vlq();
     var util = require_util();
     var ArraySet = require_array_set().ArraySet;
@@ -2607,9 +2607,9 @@ var require_source_map_generator = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/binary-search.js
+// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/binary-search.js
 var require_binary_search = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/binary-search.js"(exports2) {
+  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/binary-search.js"(exports2) {
     exports2.GREATEST_LOWER_BOUND = 1;
     exports2.LEAST_UPPER_BOUND = 2;
     function recursiveSearch(aLow, aHigh, aNeedle, aHaystack, aCompare, aBias) {
@@ -2663,9 +2663,9 @@ var require_binary_search = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/quick-sort.js
+// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/quick-sort.js
 var require_quick_sort = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/quick-sort.js"(exports2) {
+  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/quick-sort.js"(exports2) {
     function swap(ary, x, y) {
       var temp = ary[x];
       ary[x] = ary[y];
@@ -2698,9 +2698,9 @@ var require_quick_sort = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-consumer.js
+// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-consumer.js
 var require_source_map_consumer = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-consumer.js"(exports2) {
+  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-map-consumer.js"(exports2) {
     var util = require_util();
     var binarySearch = require_binary_search();
     var ArraySet = require_array_set().ArraySet;
@@ -3299,9 +3299,9 @@ var require_source_map_consumer = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-node.js
+// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-node.js
 var require_source_node = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-node.js"(exports2) {
+  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/lib/source-node.js"(exports2) {
     var SourceMapGenerator = require_source_map_generator().SourceMapGenerator;
     var util = require_util();
     var REGEX_NEWLINE = /(\r?\n)/;
@@ -3564,18 +3564,18 @@ var require_source_node = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/source-map.js
+// node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/source-map.js
 var require_source_map = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/source-map.js"(exports2) {
+  "node_modules/.pnpm/source-map@0.6.1/node_modules/source-map/source-map.js"(exports2) {
     exports2.SourceMapGenerator = require_source_map_generator().SourceMapGenerator;
     exports2.SourceMapConsumer = require_source_map_consumer().SourceMapConsumer;
     exports2.SourceNode = require_source_node().SourceNode;
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/buffer-from@1.1.2/node_modules/buffer-from/index.js
+// node_modules/.pnpm/buffer-from@1.1.2/node_modules/buffer-from/index.js
 var require_buffer_from = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/buffer-from@1.1.2/node_modules/buffer-from/index.js"(exports2, module2) {
+  "node_modules/.pnpm/buffer-from@1.1.2/node_modules/buffer-from/index.js"(exports2, module2) {
     var toString = Object.prototype.toString;
     var isModern = typeof Buffer !== "undefined" && typeof Buffer.alloc === "function" && typeof Buffer.allocUnsafe === "function" && typeof Buffer.from === "function";
     function isArrayBuffer(input) {
@@ -3622,9 +3622,9 @@ var require_buffer_from = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map-support@0.5.21/node_modules/source-map-support/source-map-support.js
+// node_modules/.pnpm/source-map-support@0.5.21/node_modules/source-map-support/source-map-support.js
 var require_source_map_support = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/source-map-support@0.5.21/node_modules/source-map-support/source-map-support.js"(exports2, module2) {
+  "node_modules/.pnpm/source-map-support@0.5.21/node_modules/source-map-support/source-map-support.js"(exports2, module2) {
     var SourceMapConsumer = require_source_map().SourceMapConsumer;
     var path19 = __require("path");
     var fs12;
@@ -4092,9 +4092,9 @@ var require_source_map_support = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/typescript.js
+// node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/typescript.js
 var require_typescript = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/typescript.js"(exports2, module2) {
+  "node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/typescript.js"(exports2, module2) {
     var ts = {};
     ((module3) => {
       "use strict";
@@ -11975,19 +11975,19 @@ ${lanes.join("\n")}
           pollScheduled = host.setTimeout(pollQueue, 2e3, "pollQueue");
         }
       }
-      function createSingleWatcherPerName(cache, useCaseSensitiveFileNames2, name, callback, createWatcher) {
+      function createSingleWatcherPerName(cache2, useCaseSensitiveFileNames2, name, callback, createWatcher) {
         const toCanonicalFileName = createGetCanonicalFileName(useCaseSensitiveFileNames2);
         const path19 = toCanonicalFileName(name);
-        const existing = cache.get(path19);
+        const existing = cache2.get(path19);
         if (existing) {
           existing.callbacks.push(callback);
         } else {
-          cache.set(path19, {
+          cache2.set(path19, {
             watcher: createWatcher(
               // Cant infer types correctly so lets satisfy checker
               ((param1, param2, param3) => {
                 var _a;
-                return (_a = cache.get(path19)) == null ? void 0 : _a.callbacks.slice().forEach((cb) => cb(param1, param2, param3));
+                return (_a = cache2.get(path19)) == null ? void 0 : _a.callbacks.slice().forEach((cb) => cb(param1, param2, param3));
               })
             ),
             callbacks: [callback]
@@ -11995,10 +11995,10 @@ ${lanes.join("\n")}
         }
         return {
           close: () => {
-            const watcher = cache.get(path19);
+            const watcher = cache2.get(path19);
             if (!watcher) return;
             if (!orderedRemoveItem(watcher.callbacks, callback) || watcher.callbacks.length) return;
-            cache.delete(path19);
+            cache2.delete(path19);
             closeFileWatcherOf(watcher);
           }
         };
@@ -12034,7 +12034,7 @@ ${lanes.join("\n")}
         setTimeout: setTimeout2,
         clearTimeout: clearTimeout2
       }) {
-        const cache = /* @__PURE__ */ new Map();
+        const cache2 = /* @__PURE__ */ new Map();
         const callbackCache = createMultiMap();
         const cacheToUpdateChildWatches = /* @__PURE__ */ new Map();
         let timerToUpdateChildWatches;
@@ -12043,7 +12043,7 @@ ${lanes.join("\n")}
         return (dirName, callback, recursive, options) => recursive ? createDirectoryWatcher(dirName, options, callback) : watchDirectory(dirName, callback, recursive, options);
         function createDirectoryWatcher(dirName, options, callback, link) {
           const dirPath = toCanonicalFilePath(dirName);
-          let directoryWatcher = cache.get(dirPath);
+          let directoryWatcher = cache2.get(dirPath);
           if (directoryWatcher) {
             directoryWatcher.refCount++;
           } else {
@@ -12054,7 +12054,7 @@ ${lanes.join("\n")}
                   var _a;
                   if (isIgnoredPath(fileName, options)) return;
                   if (options == null ? void 0 : options.synchronousWatchDirectory) {
-                    if (!((_a = cache.get(dirPath)) == null ? void 0 : _a.targetWatcher)) invokeCallbacks(dirName, dirPath, fileName);
+                    if (!((_a = cache2.get(dirPath)) == null ? void 0 : _a.targetWatcher)) invokeCallbacks(dirName, dirPath, fileName);
                     updateChildWatches(dirName, dirPath, options);
                   } else {
                     nonSyncUpdateChildWatches(dirName, dirPath, fileName, options);
@@ -12069,7 +12069,7 @@ ${lanes.join("\n")}
               targetWatcher: void 0,
               links: void 0
             };
-            cache.set(dirPath, directoryWatcher);
+            cache2.set(dirPath, directoryWatcher);
             updateChildWatches(dirName, dirPath, options);
           }
           if (link) (directoryWatcher.links ?? (directoryWatcher.links = /* @__PURE__ */ new Set())).add(link);
@@ -12081,12 +12081,12 @@ ${lanes.join("\n")}
             dirName,
             close: () => {
               var _a;
-              const directoryWatcher2 = Debug.checkDefined(cache.get(dirPath));
+              const directoryWatcher2 = Debug.checkDefined(cache2.get(dirPath));
               if (callbackToAdd) callbackCache.remove(dirPath, callbackToAdd);
               if (link) (_a = directoryWatcher2.links) == null ? void 0 : _a.delete(link);
               directoryWatcher2.refCount--;
               if (directoryWatcher2.refCount) return;
-              cache.delete(dirPath);
+              cache2.delete(dirPath);
               directoryWatcher2.links = void 0;
               closeFileWatcherOf(directoryWatcher2);
               closeTargetWatcher(directoryWatcher2);
@@ -12122,7 +12122,7 @@ ${lanes.join("\n")}
               }
             }
           });
-          (_b = (_a = cache.get(dirPath)) == null ? void 0 : _a.links) == null ? void 0 : _b.forEach((link) => {
+          (_b = (_a = cache2.get(dirPath)) == null ? void 0 : _a.links) == null ? void 0 : _b.forEach((link) => {
             const toPathInLink = (fileName2) => combinePaths(link, getRelativePathFromDirectory(dirName, fileName2, toCanonicalFilePath));
             if (invokeMap) {
               invokeCallbacks(link, toCanonicalFilePath(link), invokeMap, fileNames == null ? void 0 : fileNames.map(toPathInLink));
@@ -12132,7 +12132,7 @@ ${lanes.join("\n")}
           });
         }
         function nonSyncUpdateChildWatches(dirName, dirPath, fileName, options) {
-          const parentWatcher = cache.get(dirPath);
+          const parentWatcher = cache2.get(dirPath);
           if (parentWatcher && fileSystemEntryExists(
             dirName,
             1
@@ -12170,7 +12170,7 @@ ${lanes.join("\n")}
             const { value: [dirPath, { dirName, options, fileNames }] } = result;
             cacheToUpdateChildWatches.delete(dirPath);
             const hasChanges = updateChildWatches(dirName, dirPath, options);
-            if (!((_a = cache.get(dirPath)) == null ? void 0 : _a.targetWatcher)) invokeCallbacks(dirName, dirPath, invokeMap, hasChanges ? void 0 : fileNames);
+            if (!((_a = cache2.get(dirPath)) == null ? void 0 : _a.targetWatcher)) invokeCallbacks(dirName, dirPath, invokeMap, hasChanges ? void 0 : fileNames);
           }
           sysLog(`sysLog:: invokingWatchers:: Elapsed:: ${timestamp() - start2}ms:: ${cacheToUpdateChildWatches.size}`);
           callbackCache.forEach((callbacks, rootDirName) => {
@@ -12194,7 +12194,7 @@ ${lanes.join("\n")}
           parentWatcher.childWatches = emptyArray;
           for (const childWatcher of existingChildWatches) {
             childWatcher.close();
-            removeChildWatches(cache.get(toCanonicalFilePath(childWatcher.dirName)));
+            removeChildWatches(cache2.get(toCanonicalFilePath(childWatcher.dirName)));
           }
         }
         function closeTargetWatcher(watcher) {
@@ -12204,7 +12204,7 @@ ${lanes.join("\n")}
           }
         }
         function updateChildWatches(parentDir, parentDirPath, options) {
-          const parentWatcher = cache.get(parentDirPath);
+          const parentWatcher = cache2.get(parentDirPath);
           if (!parentWatcher) return false;
           const target = normalizePath(realpath(parentDir));
           let hasChanges;
@@ -26997,13 +26997,13 @@ ${lanes.join("\n")}
         function hasAnySymlinks() {
           return !!(symlinkedFiles == null ? void 0 : symlinkedFiles.size) || !!symlinkedDirectories && !!forEachEntry(symlinkedDirectories, (value) => !!value);
         }
-        function processResolution(cache, resolution) {
+        function processResolution(cache2, resolution) {
           if (!resolution || !resolution.originalPath || !resolution.resolvedFileName) return;
           const { resolvedFileName, originalPath } = resolution;
-          cache.setSymlinkedFile(toPath(originalPath, cwd, getCanonicalFileName), resolvedFileName);
+          cache2.setSymlinkedFile(toPath(originalPath, cwd, getCanonicalFileName), resolvedFileName);
           const [commonResolved, commonOriginal] = guessDirectorySymlink(resolvedFileName, originalPath, cwd, getCanonicalFileName) || emptyArray;
           if (commonResolved && commonOriginal) {
-            cache.setSymlinkedDirectory(
+            cache2.setSymlinkedDirectory(
               commonOriginal,
               {
                 real: ensureTrailingDirectorySeparator(commonResolved),
@@ -51475,7 +51475,7 @@ ${lanes.join("\n")}
         Debug.assert(extensionIsTS(resolved.extension));
         return { fileName: resolved.path, packageId: resolved.packageId };
       }
-      function createResolvedModuleWithFailedLookupLocationsHandlingSymlink(moduleName, resolved, isExternalLibraryImport, failedLookupLocations, affectingLocations, diagnostics, state, cache, alternateResult) {
+      function createResolvedModuleWithFailedLookupLocationsHandlingSymlink(moduleName, resolved, isExternalLibraryImport, failedLookupLocations, affectingLocations, diagnostics, state, cache2, alternateResult) {
         if (!state.resultFromCache && !state.compilerOptions.preserveSymlinks && resolved && isExternalLibraryImport && !resolved.originalPath && !isExternalModuleNameRelative(moduleName)) {
           const { resolvedFileName, originalPath } = getOriginalAndResolvedFileName(resolved.path, state.host, state.traceEnabled);
           if (originalPath) resolved = { ...resolved, path: resolvedFileName, originalPath };
@@ -51487,13 +51487,13 @@ ${lanes.join("\n")}
           affectingLocations,
           diagnostics,
           state.resultFromCache,
-          cache,
+          cache2,
           alternateResult
         );
       }
-      function createResolvedModuleWithFailedLookupLocations(resolved, isExternalLibraryImport, failedLookupLocations, affectingLocations, diagnostics, resultFromCache, cache, alternateResult) {
+      function createResolvedModuleWithFailedLookupLocations(resolved, isExternalLibraryImport, failedLookupLocations, affectingLocations, diagnostics, resultFromCache, cache2, alternateResult) {
         if (resultFromCache) {
-          if (!(cache == null ? void 0 : cache.isReadonly)) {
+          if (!(cache2 == null ? void 0 : cache2.isReadonly)) {
             resultFromCache.failedLookupLocations = updateResolutionField(resultFromCache.failedLookupLocations, failedLookupLocations);
             resultFromCache.affectingLocations = updateResolutionField(resultFromCache.affectingLocations, affectingLocations);
             resultFromCache.resolutionDiagnostics = updateResolutionField(resultFromCache.resolutionDiagnostics, diagnostics);
@@ -51666,16 +51666,16 @@ ${lanes.join("\n")}
         const nameForLookup = endsWith(typeRoot, "/node_modules/@types") || endsWith(typeRoot, "/node_modules/@types/") ? mangleScopedPackageNameWithTrace(typeReferenceDirectiveName, moduleResolutionState) : typeReferenceDirectiveName;
         return combinePaths(typeRoot, nameForLookup);
       }
-      function resolveTypeReferenceDirective(typeReferenceDirectiveName, containingFile, options, host, redirectedReference, cache, resolutionMode) {
+      function resolveTypeReferenceDirective(typeReferenceDirectiveName, containingFile, options, host, redirectedReference, cache2, resolutionMode) {
         Debug.assert(typeof typeReferenceDirectiveName === "string", "Non-string value passed to `ts.resolveTypeReferenceDirective`, likely by a wrapping package working with an outdated `resolveTypeReferenceDirectives` signature. This is probably not a problem in TS itself.");
         const traceEnabled = isTraceEnabled(options, host);
         if (redirectedReference) {
           options = redirectedReference.commandLine.options;
         }
         const containingDirectory = containingFile ? getDirectoryPath(containingFile) : void 0;
-        let result = containingDirectory ? cache == null ? void 0 : cache.getFromDirectoryCache(typeReferenceDirectiveName, resolutionMode, containingDirectory, redirectedReference) : void 0;
+        let result = containingDirectory ? cache2 == null ? void 0 : cache2.getFromDirectoryCache(typeReferenceDirectiveName, resolutionMode, containingDirectory, redirectedReference) : void 0;
         if (!result && containingDirectory && !isExternalModuleNameRelative(typeReferenceDirectiveName)) {
-          result = cache == null ? void 0 : cache.getFromNonRelativeNameCache(typeReferenceDirectiveName, resolutionMode, containingDirectory, redirectedReference);
+          result = cache2 == null ? void 0 : cache2.getFromNonRelativeNameCache(typeReferenceDirectiveName, resolutionMode, containingDirectory, redirectedReference);
         }
         if (result) {
           if (traceEnabled) {
@@ -51723,7 +51723,7 @@ ${lanes.join("\n")}
           traceEnabled,
           failedLookupLocations,
           affectingLocations,
-          packageJsonInfoCache: cache,
+          packageJsonInfoCache: cache2,
           features,
           conditions,
           requestContainingDirectory: containingDirectory,
@@ -51757,15 +51757,15 @@ ${lanes.join("\n")}
           affectingLocations: initializeResolutionField(affectingLocations),
           resolutionDiagnostics: initializeResolutionField(diagnostics)
         };
-        if (containingDirectory && cache && !cache.isReadonly) {
-          cache.getOrCreateCacheForDirectory(containingDirectory, redirectedReference).set(
+        if (containingDirectory && cache2 && !cache2.isReadonly) {
+          cache2.getOrCreateCacheForDirectory(containingDirectory, redirectedReference).set(
             typeReferenceDirectiveName,
             /*mode*/
             resolutionMode,
             result
           );
           if (!isExternalModuleNameRelative(typeReferenceDirectiveName)) {
-            cache.getOrCreateCacheForNonRelativeName(typeReferenceDirectiveName, resolutionMode, redirectedReference).set(containingDirectory, result);
+            cache2.getOrCreateCacheForNonRelativeName(typeReferenceDirectiveName, resolutionMode, redirectedReference).set(containingDirectory, result);
           }
         }
         if (traceEnabled) traceResult(result);
@@ -51900,8 +51900,8 @@ ${lanes.join("\n")}
         }
         return concatenate(conditions, options.customConditions);
       }
-      function resolvePackageNameToPackageJson(packageName, containingDirectory, options, host, cache) {
-        const moduleResolutionState = getTemporaryModuleResolutionState(cache == null ? void 0 : cache.getPackageJsonInfoCache(), host, options);
+      function resolvePackageNameToPackageJson(packageName, containingDirectory, options, host, cache2) {
+        const moduleResolutionState = getTemporaryModuleResolutionState(cache2 == null ? void 0 : cache2.getPackageJsonInfoCache(), host, options);
         return forEachAncestorDirectoryStoppingAtGlobalCache(host, containingDirectory, (ancestorDirectory) => {
           if (getBaseFileName(ancestorDirectory) !== "node_modules") {
             const nodeModulesFolder = combinePaths(ancestorDirectory, "node_modules");
@@ -52041,27 +52041,27 @@ ${lanes.join("\n")}
         }
       }
       function createPackageJsonInfoCache(currentDirectory, getCanonicalFileName) {
-        let cache;
+        let cache2;
         return { getPackageJsonInfo: getPackageJsonInfo2, setPackageJsonInfo, clear: clear2, getInternalMap };
         function getPackageJsonInfo2(packageJsonPath) {
-          return cache == null ? void 0 : cache.get(toPath(packageJsonPath, currentDirectory, getCanonicalFileName));
+          return cache2 == null ? void 0 : cache2.get(toPath(packageJsonPath, currentDirectory, getCanonicalFileName));
         }
         function setPackageJsonInfo(packageJsonPath, info2) {
-          (cache || (cache = /* @__PURE__ */ new Map())).set(toPath(packageJsonPath, currentDirectory, getCanonicalFileName), info2);
+          (cache2 || (cache2 = /* @__PURE__ */ new Map())).set(toPath(packageJsonPath, currentDirectory, getCanonicalFileName), info2);
         }
         function clear2() {
-          cache = void 0;
+          cache2 = void 0;
         }
         function getInternalMap() {
-          return cache;
+          return cache2;
         }
       }
       function getOrCreateCache(cacheWithRedirects, redirectedReference, key, create) {
-        const cache = cacheWithRedirects.getOrCreateMapOfCacheRedirects(redirectedReference);
-        let result = cache.get(key);
+        const cache2 = cacheWithRedirects.getOrCreateMapOfCacheRedirects(redirectedReference);
+        let result = cache2.get(key);
         if (!result) {
           result = create();
-          cache.set(key, result);
+          cache2.set(key, result);
         }
         return result;
       }
@@ -52096,17 +52096,17 @@ ${lanes.join("\n")}
       function createModeAwareCache() {
         const underlying = /* @__PURE__ */ new Map();
         const memoizedReverseKeys = /* @__PURE__ */ new Map();
-        const cache = {
+        const cache2 = {
           get(specifier, mode) {
             return underlying.get(getUnderlyingCacheKey(specifier, mode));
           },
           set(specifier, mode, value) {
             underlying.set(getUnderlyingCacheKey(specifier, mode), value);
-            return cache;
+            return cache2;
           },
           delete(specifier, mode) {
             underlying.delete(getUnderlyingCacheKey(specifier, mode));
-            return cache;
+            return cache2;
           },
           has(specifier, mode) {
             return underlying.has(getUnderlyingCacheKey(specifier, mode));
@@ -52121,7 +52121,7 @@ ${lanes.join("\n")}
             return underlying.size;
           }
         };
-        return cache;
+        return cache2;
         function getUnderlyingCacheKey(specifier, mode) {
           const result = createModeAwareCacheKey(specifier, mode);
           memoizedReverseKeys.set(result, [specifier, mode]);
@@ -52267,12 +52267,12 @@ ${lanes.join("\n")}
       function getOptionsForLibraryResolution(options) {
         return { moduleResolution: 2, traceResolution: options.traceResolution };
       }
-      function resolveLibrary(libraryName, resolveFrom, compilerOptions, host, cache) {
-        return resolveModuleName(libraryName, resolveFrom, getOptionsForLibraryResolution(compilerOptions), host, cache);
+      function resolveLibrary(libraryName, resolveFrom, compilerOptions, host, cache2) {
+        return resolveModuleName(libraryName, resolveFrom, getOptionsForLibraryResolution(compilerOptions), host, cache2);
       }
-      function resolveModuleNameFromCache(moduleName, containingFile, cache, mode) {
+      function resolveModuleNameFromCache(moduleName, containingFile, cache2, mode) {
         const containingDirectory = getDirectoryPath(containingFile);
-        return cache.getFromDirectoryCache(
+        return cache2.getFromDirectoryCache(
           moduleName,
           mode,
           containingDirectory,
@@ -52280,7 +52280,7 @@ ${lanes.join("\n")}
           void 0
         );
       }
-      function resolveModuleName(moduleName, containingFile, compilerOptions, host, cache, redirectedReference, resolutionMode) {
+      function resolveModuleName(moduleName, containingFile, compilerOptions, host, cache2, redirectedReference, resolutionMode) {
         const traceEnabled = isTraceEnabled(compilerOptions, host);
         if (redirectedReference) {
           compilerOptions = redirectedReference.commandLine.options;
@@ -52292,7 +52292,7 @@ ${lanes.join("\n")}
           }
         }
         const containingDirectory = getDirectoryPath(containingFile);
-        let result = cache == null ? void 0 : cache.getFromDirectoryCache(moduleName, resolutionMode, containingDirectory, redirectedReference);
+        let result = cache2 == null ? void 0 : cache2.getFromDirectoryCache(moduleName, resolutionMode, containingDirectory, redirectedReference);
         if (result) {
           if (traceEnabled) {
             trace(host, Diagnostics.Resolution_for_module_0_was_found_in_cache_from_location_1, moduleName, containingDirectory);
@@ -52311,27 +52311,27 @@ ${lanes.join("\n")}
           }
           switch (moduleResolution) {
             case 3:
-              result = node16ModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache, redirectedReference, resolutionMode);
+              result = node16ModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache2, redirectedReference, resolutionMode);
               break;
             case 99:
-              result = nodeNextModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache, redirectedReference, resolutionMode);
+              result = nodeNextModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache2, redirectedReference, resolutionMode);
               break;
             case 2:
-              result = nodeModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache, redirectedReference, resolutionMode ? getConditions(compilerOptions, resolutionMode) : void 0);
+              result = nodeModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache2, redirectedReference, resolutionMode ? getConditions(compilerOptions, resolutionMode) : void 0);
               break;
             case 1:
-              result = classicNameResolver(moduleName, containingFile, compilerOptions, host, cache, redirectedReference);
+              result = classicNameResolver(moduleName, containingFile, compilerOptions, host, cache2, redirectedReference);
               break;
             case 100:
-              result = bundlerModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache, redirectedReference, resolutionMode ? getConditions(compilerOptions, resolutionMode) : void 0);
+              result = bundlerModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache2, redirectedReference, resolutionMode ? getConditions(compilerOptions, resolutionMode) : void 0);
               break;
             default:
               return Debug.fail(`Unexpected moduleResolution: ${moduleResolution}`);
           }
-          if (cache && !cache.isReadonly) {
-            cache.getOrCreateCacheForDirectory(containingDirectory, redirectedReference).set(moduleName, resolutionMode, result);
+          if (cache2 && !cache2.isReadonly) {
+            cache2.getOrCreateCacheForDirectory(containingDirectory, redirectedReference).set(moduleName, resolutionMode, result);
             if (!isExternalModuleNameRelative(moduleName)) {
-              cache.getOrCreateCacheForNonRelativeName(moduleName, resolutionMode, redirectedReference).set(containingDirectory, result);
+              cache2.getOrCreateCacheForNonRelativeName(moduleName, resolutionMode, redirectedReference).set(containingDirectory, result);
             }
           }
         }
@@ -52478,31 +52478,31 @@ ${lanes.join("\n")}
         NodeResolutionFeatures2[NodeResolutionFeatures2["EsmMode"] = 32] = "EsmMode";
         return NodeResolutionFeatures2;
       })(NodeResolutionFeatures || {});
-      function node16ModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache, redirectedReference, resolutionMode) {
+      function node16ModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache2, redirectedReference, resolutionMode) {
         return nodeNextModuleNameResolverWorker(
           30,
           moduleName,
           containingFile,
           compilerOptions,
           host,
-          cache,
+          cache2,
           redirectedReference,
           resolutionMode
         );
       }
-      function nodeNextModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache, redirectedReference, resolutionMode) {
+      function nodeNextModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache2, redirectedReference, resolutionMode) {
         return nodeNextModuleNameResolverWorker(
           94,
           moduleName,
           containingFile,
           compilerOptions,
           host,
-          cache,
+          cache2,
           redirectedReference,
           resolutionMode
         );
       }
-      function nodeNextModuleNameResolverWorker(features, moduleName, containingFile, compilerOptions, host, cache, redirectedReference, resolutionMode, conditions) {
+      function nodeNextModuleNameResolverWorker(features, moduleName, containingFile, compilerOptions, host, cache2, redirectedReference, resolutionMode, conditions) {
         const containingDirectory = getDirectoryPath(containingFile);
         const esmMode = resolutionMode === 99 ? 32 : 0;
         let extensions = compilerOptions.noDtsResolution ? 3 : 1 | 2 | 4;
@@ -52515,7 +52515,7 @@ ${lanes.join("\n")}
           containingDirectory,
           compilerOptions,
           host,
-          cache,
+          cache2,
           extensions,
           /*isConfigLookup*/
           false,
@@ -52541,7 +52541,7 @@ ${lanes.join("\n")}
           void 0
         );
       }
-      function bundlerModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache, redirectedReference, conditions) {
+      function bundlerModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache2, redirectedReference, conditions) {
         const containingDirectory = getDirectoryPath(containingFile);
         let extensions = compilerOptions.noDtsResolution ? 3 : 1 | 2 | 4;
         if (getResolveJsonModule(compilerOptions)) {
@@ -52553,7 +52553,7 @@ ${lanes.join("\n")}
           containingDirectory,
           compilerOptions,
           host,
-          cache,
+          cache2,
           extensions,
           /*isConfigLookup*/
           false,
@@ -52561,7 +52561,7 @@ ${lanes.join("\n")}
           conditions
         );
       }
-      function nodeModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache, redirectedReference, conditions, isConfigLookup) {
+      function nodeModuleNameResolver(moduleName, containingFile, compilerOptions, host, cache2, redirectedReference, conditions, isConfigLookup) {
         let extensions;
         if (isConfigLookup) {
           extensions = 8;
@@ -52571,7 +52571,7 @@ ${lanes.join("\n")}
         } else {
           extensions = getResolveJsonModule(compilerOptions) ? 1 | 2 | 4 | 8 : 1 | 2 | 4;
         }
-        return nodeModuleNameResolverWorker(conditions ? 94 : 0, moduleName, getDirectoryPath(containingFile), compilerOptions, host, cache, extensions, !!isConfigLookup, redirectedReference, conditions);
+        return nodeModuleNameResolverWorker(conditions ? 94 : 0, moduleName, getDirectoryPath(containingFile), compilerOptions, host, cache2, extensions, !!isConfigLookup, redirectedReference, conditions);
       }
       function nodeNextJsonConfigResolver(moduleName, containingFile, host) {
         return nodeModuleNameResolverWorker(
@@ -52594,7 +52594,7 @@ ${lanes.join("\n")}
           void 0
         );
       }
-      function nodeModuleNameResolverWorker(features, moduleName, containingDirectory, compilerOptions, host, cache, extensions, isConfigLookup, redirectedReference, conditions) {
+      function nodeModuleNameResolverWorker(features, moduleName, containingDirectory, compilerOptions, host, cache2, extensions, isConfigLookup, redirectedReference, conditions) {
         var _a, _b, _c, _d, _e;
         const traceEnabled = isTraceEnabled(compilerOptions, host);
         const failedLookupLocations = [];
@@ -52612,7 +52612,7 @@ ${lanes.join("\n")}
           traceEnabled,
           failedLookupLocations,
           affectingLocations,
-          packageJsonInfoCache: cache,
+          packageJsonInfoCache: cache2,
           features,
           conditions: conditions ?? emptyArray,
           requestContainingDirectory: containingDirectory,
@@ -52674,7 +52674,7 @@ ${lanes.join("\n")}
           affectingLocations,
           diagnostics,
           state,
-          cache,
+          cache2,
           alternateResult
         );
         function tryResolve(extensions2, state2) {
@@ -52692,13 +52692,13 @@ ${lanes.join("\n")}
           }
           if (!isExternalModuleNameRelative(moduleName)) {
             if (features & 2 && startsWith(moduleName, "#")) {
-              const resolved3 = loadModuleFromImports(extensions2, moduleName, containingDirectory, state2, cache, redirectedReference);
+              const resolved3 = loadModuleFromImports(extensions2, moduleName, containingDirectory, state2, cache2, redirectedReference);
               if (resolved3) {
                 return resolved3.value && { value: { resolved: resolved3.value, isExternalLibraryImport: false } };
               }
             }
             if (features & 4) {
-              const resolved3 = loadModuleFromSelfNameReference(extensions2, moduleName, containingDirectory, state2, cache, redirectedReference);
+              const resolved3 = loadModuleFromSelfNameReference(extensions2, moduleName, containingDirectory, state2, cache2, redirectedReference);
               if (resolved3) {
                 return resolved3.value && { value: { resolved: resolved3.value, isExternalLibraryImport: false } };
               }
@@ -52712,7 +52712,7 @@ ${lanes.join("\n")}
             if (traceEnabled) {
               trace(host, Diagnostics.Loading_module_0_from_node_modules_folder_target_file_types_Colon_1, moduleName, formatExtensions(extensions2));
             }
-            let resolved2 = loadModuleFromNearestNodeModulesDirectory(extensions2, moduleName, containingDirectory, state2, cache, redirectedReference);
+            let resolved2 = loadModuleFromNearestNodeModulesDirectory(extensions2, moduleName, containingDirectory, state2, cache2, redirectedReference);
             if (extensions2 & 4) {
               resolved2 ?? (resolved2 = resolveFromTypeRoot(moduleName, state2));
             }
@@ -52984,14 +52984,14 @@ ${lanes.join("\n")}
         const packageInfo = considerPackageJson ? getPackageJsonInfo(candidate, onlyRecordFailures, state) : void 0;
         return withPackageId(packageInfo, loadNodeModuleFromDirectoryWorker(extensions, candidate, onlyRecordFailures, state, packageInfo), state);
       }
-      function getEntrypointsFromPackageJsonInfo(packageJsonInfo, options, host, cache, resolveJs) {
+      function getEntrypointsFromPackageJsonInfo(packageJsonInfo, options, host, cache2, resolveJs) {
         if (!resolveJs && packageJsonInfo.contents.resolvedEntrypoints !== void 0) {
           return packageJsonInfo.contents.resolvedEntrypoints;
         }
         let entrypoints;
         const extensions = 1 | 4 | (resolveJs ? 2 : 0);
         const features = getNodeResolutionFeatures(options);
-        const loadPackageJsonMainState = getTemporaryModuleResolutionState(cache == null ? void 0 : cache.getPackageJsonInfoCache(), host, options);
+        const loadPackageJsonMainState = getTemporaryModuleResolutionState(cache2 == null ? void 0 : cache2.getPackageJsonInfoCache(), host, options);
         loadPackageJsonMainState.conditions = getConditions(options);
         loadPackageJsonMainState.requestContainingDirectory = packageJsonInfo.packageDirectory;
         const mainResolution = loadNodeModuleFromDirectoryWorker(
@@ -53293,7 +53293,7 @@ ${lanes.join("\n")}
       function noKeyStartsWithDot(obj) {
         return !some(getOwnKeys(obj), (k) => startsWith(k, "."));
       }
-      function loadModuleFromSelfNameReference(extensions, moduleName, directory, state, cache, redirectedReference) {
+      function loadModuleFromSelfNameReference(extensions, moduleName, directory, state, cache2, redirectedReference) {
         var _a, _b;
         const directoryPath = getNormalizedAbsolutePath(directory, (_b = (_a = state.host).getCurrentDirectory) == null ? void 0 : _b.call(_a));
         const scope = getPackageScopeForPath(directoryPath, state);
@@ -53311,13 +53311,13 @@ ${lanes.join("\n")}
         const trailingParts = parts.slice(nameParts.length);
         const subpath = !length(trailingParts) ? "." : `.${directorySeparator}${trailingParts.join(directorySeparator)}`;
         if (getAllowJSCompilerOption(state.compilerOptions) && !pathContainsNodeModules(directory)) {
-          return loadModuleFromExports(scope, extensions, subpath, state, cache, redirectedReference);
+          return loadModuleFromExports(scope, extensions, subpath, state, cache2, redirectedReference);
         }
         const priorityExtensions = extensions & (1 | 4);
         const secondaryExtensions = extensions & ~(1 | 4);
-        return loadModuleFromExports(scope, priorityExtensions, subpath, state, cache, redirectedReference) || loadModuleFromExports(scope, secondaryExtensions, subpath, state, cache, redirectedReference);
+        return loadModuleFromExports(scope, priorityExtensions, subpath, state, cache2, redirectedReference) || loadModuleFromExports(scope, secondaryExtensions, subpath, state, cache2, redirectedReference);
       }
-      function loadModuleFromExports(scope, extensions, subpath, state, cache, redirectedReference) {
+      function loadModuleFromExports(scope, extensions, subpath, state, cache2, redirectedReference) {
         if (!scope.contents.packageJsonContent.exports) {
           return void 0;
         }
@@ -53332,7 +53332,7 @@ ${lanes.join("\n")}
             const loadModuleFromTargetExportOrImport = getLoadModuleFromTargetExportOrImport(
               extensions,
               state,
-              cache,
+              cache2,
               redirectedReference,
               subpath,
               scope,
@@ -53360,7 +53360,7 @@ ${lanes.join("\n")}
           const result = loadModuleFromExportsOrImports(
             extensions,
             state,
-            cache,
+            cache2,
             redirectedReference,
             subpath,
             scope.contents.packageJsonContent.exports,
@@ -53380,7 +53380,7 @@ ${lanes.join("\n")}
           void 0
         );
       }
-      function loadModuleFromImports(extensions, moduleName, directory, state, cache, redirectedReference) {
+      function loadModuleFromImports(extensions, moduleName, directory, state, cache2, redirectedReference) {
         var _a, _b;
         if (moduleName === "#" || startsWith(moduleName, "#/") && !(state.features & 64)) {
           if (state.traceEnabled) {
@@ -53414,7 +53414,7 @@ ${lanes.join("\n")}
         const result = loadModuleFromExportsOrImports(
           extensions,
           state,
-          cache,
+          cache2,
           redirectedReference,
           moduleName,
           scope.contents.packageJsonContent.imports,
@@ -53446,8 +53446,8 @@ ${lanes.join("\n")}
         if (b.length > a.length) return 1;
         return 0;
       }
-      function loadModuleFromExportsOrImports(extensions, state, cache, redirectedReference, moduleName, lookupTable, scope, isImports) {
-        const loadModuleFromTargetExportOrImport = getLoadModuleFromTargetExportOrImport(extensions, state, cache, redirectedReference, moduleName, scope, isImports);
+      function loadModuleFromExportsOrImports(extensions, state, cache2, redirectedReference, moduleName, lookupTable, scope, isImports) {
+        const loadModuleFromTargetExportOrImport = getLoadModuleFromTargetExportOrImport(extensions, state, cache2, redirectedReference, moduleName, scope, isImports);
         if (!endsWith(moduleName, directorySeparator) && !moduleName.includes("*") && hasProperty(lookupTable, moduleName)) {
           const target = lookupTable[moduleName];
           return loadModuleFromTargetExportOrImport(
@@ -53505,7 +53505,7 @@ ${lanes.join("\n")}
         const firstStar = patternKey.indexOf("*");
         return firstStar !== -1 && firstStar === patternKey.lastIndexOf("*");
       }
-      function getLoadModuleFromTargetExportOrImport(extensions, state, cache, redirectedReference, moduleName, scope, isImports) {
+      function getLoadModuleFromTargetExportOrImport(extensions, state, cache2, redirectedReference, moduleName, scope, isImports) {
         return loadModuleFromTargetExportOrImport;
         function loadModuleFromTargetExportOrImport(target, subpath, pattern, key) {
           var _a, _b;
@@ -53530,7 +53530,7 @@ ${lanes.join("\n")}
                   scope.packageDirectory + "/",
                   state.compilerOptions,
                   state.host,
-                  cache,
+                  cache2,
                   extensions,
                   /*isConfigLookup*/
                   false,
@@ -53746,7 +53746,7 @@ ${lanes.join("\n")}
         if (!range) return false;
         return range.test(version);
       }
-      function loadModuleFromNearestNodeModulesDirectory(extensions, moduleName, directory, state, cache, redirectedReference) {
+      function loadModuleFromNearestNodeModulesDirectory(extensions, moduleName, directory, state, cache2, redirectedReference) {
         return loadModuleFromNearestNodeModulesDirectoryWorker(
           extensions,
           moduleName,
@@ -53754,7 +53754,7 @@ ${lanes.join("\n")}
           state,
           /*typesScopeOnly*/
           false,
-          cache,
+          cache2,
           redirectedReference
         );
       }
@@ -53772,7 +53772,7 @@ ${lanes.join("\n")}
           void 0
         );
       }
-      function loadModuleFromNearestNodeModulesDirectoryWorker(extensions, moduleName, directory, state, typesScopeOnly, cache, redirectedReference) {
+      function loadModuleFromNearestNodeModulesDirectoryWorker(extensions, moduleName, directory, state, typesScopeOnly, cache2, redirectedReference) {
         const mode = state.features === 0 ? void 0 : state.features & 32 || state.conditions.includes("import") ? 99 : 1;
         const priorityExtensions = extensions & (1 | 4);
         const secondaryExtensions = extensions & ~(1 | 4);
@@ -53791,11 +53791,11 @@ ${lanes.join("\n")}
             normalizeSlashes(directory),
             (ancestorDirectory) => {
               if (getBaseFileName(ancestorDirectory) !== "node_modules") {
-                const resolutionFromCache = tryFindNonRelativeModuleNameInCache(cache, moduleName, mode, ancestorDirectory, redirectedReference, state);
+                const resolutionFromCache = tryFindNonRelativeModuleNameInCache(cache2, moduleName, mode, ancestorDirectory, redirectedReference, state);
                 if (resolutionFromCache) {
                   return resolutionFromCache;
                 }
-                return toSearchResult(loadModuleFromImmediateNodeModulesDirectory(extensions2, moduleName, ancestorDirectory, state, typesScopeOnly, cache, redirectedReference));
+                return toSearchResult(loadModuleFromImmediateNodeModulesDirectory(extensions2, moduleName, ancestorDirectory, state, typesScopeOnly, cache2, redirectedReference));
               }
             }
           );
@@ -53810,14 +53810,14 @@ ${lanes.join("\n")}
           if (ancestorDirectory === globalCache) return false;
         }) || void 0;
       }
-      function loadModuleFromImmediateNodeModulesDirectory(extensions, moduleName, directory, state, typesScopeOnly, cache, redirectedReference) {
+      function loadModuleFromImmediateNodeModulesDirectory(extensions, moduleName, directory, state, typesScopeOnly, cache2, redirectedReference) {
         const nodeModulesFolder = combinePaths(directory, "node_modules");
         const nodeModulesFolderExists = directoryProbablyExists(nodeModulesFolder, state.host);
         if (!nodeModulesFolderExists && state.traceEnabled) {
           trace(state.host, Diagnostics.Directory_0_does_not_exist_skipping_all_lookups_in_it, nodeModulesFolder);
         }
         if (!typesScopeOnly) {
-          const packageResult = loadModuleFromSpecificNodeModulesDirectory(extensions, moduleName, nodeModulesFolder, nodeModulesFolderExists, state, cache, redirectedReference);
+          const packageResult = loadModuleFromSpecificNodeModulesDirectory(extensions, moduleName, nodeModulesFolder, nodeModulesFolderExists, state, cache2, redirectedReference);
           if (packageResult) {
             return packageResult;
           }
@@ -53831,10 +53831,10 @@ ${lanes.join("\n")}
             }
             nodeModulesAtTypesExists = false;
           }
-          return loadModuleFromSpecificNodeModulesDirectory(4, mangleScopedPackageNameWithTrace(moduleName, state), nodeModulesAtTypes2, nodeModulesAtTypesExists, state, cache, redirectedReference);
+          return loadModuleFromSpecificNodeModulesDirectory(4, mangleScopedPackageNameWithTrace(moduleName, state), nodeModulesAtTypes2, nodeModulesAtTypesExists, state, cache2, redirectedReference);
         }
       }
-      function loadModuleFromSpecificNodeModulesDirectory(extensions, moduleName, nodeModulesDirectory, nodeModulesDirectoryExists, state, cache, redirectedReference) {
+      function loadModuleFromSpecificNodeModulesDirectory(extensions, moduleName, nodeModulesDirectory, nodeModulesDirectoryExists, state, cache2, redirectedReference) {
         var _a, _b;
         const candidate = normalizePath(combinePaths(nodeModulesDirectory, moduleName));
         const { packageName, rest } = parsePackageName(moduleName);
@@ -53875,7 +53875,7 @@ ${lanes.join("\n")}
           state.resolvedPackageDirectory = true;
         }
         if (packageInfo && packageInfo.contents.packageJsonContent.exports && state.features & 8) {
-          return (_b = loadModuleFromExports(packageInfo, extensions, combinePaths(".", rest), state, cache, redirectedReference)) == null ? void 0 : _b.value;
+          return (_b = loadModuleFromExports(packageInfo, extensions, combinePaths(".", rest), state, cache2, redirectedReference)) == null ? void 0 : _b.value;
         }
         const versionPaths = rest !== "" && packageInfo ? getVersionPathsOfPackageJsonInfo(packageInfo, state) : void 0;
         if (versionPaths) {
@@ -53947,8 +53947,8 @@ ${lanes.join("\n")}
       function unmangleScopedPackageName(typesPackageName) {
         return typesPackageName.includes(mangledScopedPackageSeparator) ? "@" + typesPackageName.replace(mangledScopedPackageSeparator, directorySeparator) : typesPackageName;
       }
-      function tryFindNonRelativeModuleNameInCache(cache, moduleName, mode, containingDirectory, redirectedReference, state) {
-        const result = cache && cache.getFromNonRelativeNameCache(moduleName, mode, containingDirectory, redirectedReference);
+      function tryFindNonRelativeModuleNameInCache(cache2, moduleName, mode, containingDirectory, redirectedReference, state) {
+        const result = cache2 && cache2.getFromNonRelativeNameCache(moduleName, mode, containingDirectory, redirectedReference);
         if (result) {
           if (state.traceEnabled) {
             trace(state.host, Diagnostics.Resolution_for_module_0_was_found_in_cache_from_location_1, moduleName, containingDirectory);
@@ -53965,7 +53965,7 @@ ${lanes.join("\n")}
           };
         }
       }
-      function classicNameResolver(moduleName, containingFile, compilerOptions, host, cache, redirectedReference) {
+      function classicNameResolver(moduleName, containingFile, compilerOptions, host, cache2, redirectedReference) {
         const traceEnabled = isTraceEnabled(compilerOptions, host);
         const failedLookupLocations = [];
         const affectingLocations = [];
@@ -53977,7 +53977,7 @@ ${lanes.join("\n")}
           traceEnabled,
           failedLookupLocations,
           affectingLocations,
-          packageJsonInfoCache: cache,
+          packageJsonInfoCache: cache2,
           features: 0,
           conditions: [],
           requestContainingDirectory: containingDirectory,
@@ -53998,7 +53998,7 @@ ${lanes.join("\n")}
           affectingLocations,
           diagnostics,
           state,
-          cache
+          cache2
         );
         function tryResolve(extensions) {
           const resolvedUsingSettings = tryLoadModuleUsingOptionalResolutionSettings(extensions, moduleName, containingDirectory, loadModuleFromFileNoPackageId, state);
@@ -54011,7 +54011,7 @@ ${lanes.join("\n")}
               containingDirectory,
               (directory) => {
                 const resolutionFromCache = tryFindNonRelativeModuleNameInCache(
-                  cache,
+                  cache2,
                   moduleName,
                   /*mode*/
                   void 0,
@@ -57779,9 +57779,9 @@ ${lanes.join("\n")}
         if (!moduleSourceFile) {
           return emptyArray;
         }
-        const cache = (_a = host.getModuleSpecifierCache) == null ? void 0 : _a.call(host);
-        const cached = cache == null ? void 0 : cache.get(importingSourceFile.path, moduleSourceFile.path, userPreferences, options);
-        return [cached == null ? void 0 : cached.kind, cached == null ? void 0 : cached.moduleSpecifiers, moduleSourceFile, cached == null ? void 0 : cached.modulePaths, cache];
+        const cache2 = (_a = host.getModuleSpecifierCache) == null ? void 0 : _a.call(host);
+        const cached = cache2 == null ? void 0 : cache2.get(importingSourceFile.path, moduleSourceFile.path, userPreferences, options);
+        return [cached == null ? void 0 : cached.kind, cached == null ? void 0 : cached.moduleSpecifiers, moduleSourceFile, cached == null ? void 0 : cached.modulePaths, cache2];
       }
       function getModuleSpecifiers(moduleSymbol, checker, compilerOptions, importingSourceFile, host, userPreferences, options = {}) {
         return getModuleSpecifiersWithCacheInfo(
@@ -57806,7 +57806,7 @@ ${lanes.join("\n")}
             computedWithoutCache
           };
         }
-        let [kind, specifiers, moduleSourceFile, modulePaths, cache] = tryGetModuleSpecifiersFromCacheWorker(
+        let [kind, specifiers, moduleSourceFile, modulePaths, cache2] = tryGetModuleSpecifiersFromCacheWorker(
           moduleSymbol,
           importingSourceFile,
           host,
@@ -57826,7 +57826,7 @@ ${lanes.join("\n")}
           options,
           forAutoImport
         );
-        cache == null ? void 0 : cache.set(importingSourceFile.path, moduleSourceFile.path, userPreferences, options, result.kind, modulePaths, result.moduleSpecifiers);
+        cache2 == null ? void 0 : cache2.set(importingSourceFile.path, moduleSourceFile.path, userPreferences, options, result.kind, modulePaths, result.moduleSpecifiers);
         return result;
       }
       function getLocalModuleSpecifierBetweenFileNames(importingFile, targetFileName, compilerOptions, host, preferences, options = {}) {
@@ -58058,14 +58058,14 @@ ${lanes.join("\n")}
         var _a;
         const importingFilePath = toPath(info2.importingSourceFileName, host.getCurrentDirectory(), hostGetCanonicalFileName(host));
         const importedFilePath = toPath(importedFileName, host.getCurrentDirectory(), hostGetCanonicalFileName(host));
-        const cache = (_a = host.getModuleSpecifierCache) == null ? void 0 : _a.call(host);
-        if (cache) {
-          const cached = cache.get(importingFilePath, importedFilePath, preferences, options);
+        const cache2 = (_a = host.getModuleSpecifierCache) == null ? void 0 : _a.call(host);
+        if (cache2) {
+          const cached = cache2.get(importingFilePath, importedFilePath, preferences, options);
           if (cached == null ? void 0 : cached.modulePaths) return cached.modulePaths;
         }
         const modulePaths = getAllModulePathsWorker(info2, importedFileName, host, compilerOptions, options);
-        if (cache) {
-          cache.setModulePaths(importingFilePath, importedFilePath, preferences, options, modulePaths);
+        if (cache2) {
+          cache2.setModulePaths(importingFilePath, importedFilePath, preferences, options, modulePaths);
         }
         return modulePaths;
       }
@@ -58082,11 +58082,11 @@ ${lanes.join("\n")}
       }
       function getAllModulePathsWorker(info2, importedFileName, host, compilerOptions, options) {
         var _a, _b;
-        const cache = (_a = host.getModuleResolutionCache) == null ? void 0 : _a.call(host);
+        const cache2 = (_a = host.getModuleResolutionCache) == null ? void 0 : _a.call(host);
         const links = (_b = host.getSymlinkCache) == null ? void 0 : _b.call(host);
-        if (cache && links && host.readFile && !pathContainsNodeModules(info2.importingSourceFileName)) {
+        if (cache2 && links && host.readFile && !pathContainsNodeModules(info2.importingSourceFileName)) {
           Debug.type(host);
-          const state = getTemporaryModuleResolutionState(cache.getPackageJsonInfoCache(), host, {});
+          const state = getTemporaryModuleResolutionState(cache2.getPackageJsonInfoCache(), host, {});
           const packageJson = getPackageScopeForPath(getDirectoryPath(info2.importingSourceFileName), state);
           if (packageJson) {
             const toResolve = getAllRuntimeDependencies(packageJson.contents.packageJsonContent);
@@ -58096,7 +58096,7 @@ ${lanes.join("\n")}
                 combinePaths(packageJson.packageDirectory, "package.json"),
                 compilerOptions,
                 host,
-                cache,
+                cache2,
                 /*redirectedReference*/
                 void 0,
                 options.overrideImportMode
@@ -62886,11 +62886,11 @@ ${lanes.join("\n")}
             return void 0;
           }
           const links = getSymbolLinks(symbol);
-          const cache = links.accessibleChainCache || (links.accessibleChainCache = /* @__PURE__ */ new Map());
+          const cache2 = links.accessibleChainCache || (links.accessibleChainCache = /* @__PURE__ */ new Map());
           const firstRelevantLocation = forEachSymbolTableInScope(enclosingDeclaration, (_, __, ___, node) => node);
           const key = `${useOnlyExternalAliasing ? 0 : 1}|${firstRelevantLocation ? getNodeId(firstRelevantLocation) : 0}|${meaning}`;
-          if (cache.has(key)) {
-            return cache.get(key);
+          if (cache2.has(key)) {
+            return cache2.get(key);
           }
           const id = getSymbolId(symbol);
           let visitedSymbolTables = visitedSymbolTablesMap.get(id);
@@ -62898,7 +62898,7 @@ ${lanes.join("\n")}
             visitedSymbolTablesMap.set(id, visitedSymbolTables = []);
           }
           const result = forEachSymbolTableInScope(enclosingDeclaration, getAccessibleSymbolChainFromSymbolTable);
-          cache.set(key, result);
+          cache2.set(key, result);
           return result;
           function getAccessibleSymbolChainFromSymbolTable(symbols, ignoreQualification, isLocalNameLookup) {
             if (!pushIfUnique(visitedSymbolTables, symbols)) {
@@ -75992,21 +75992,21 @@ ${lanes.join("\n")}
           }
         }
         function getSimplifiedIndexedAccessType(type, writing) {
-          const cache = writing ? "simplifiedForWriting" : "simplifiedForReading";
-          if (type[cache]) {
-            return type[cache] === circularConstraintType ? type : type[cache];
+          const cache2 = writing ? "simplifiedForWriting" : "simplifiedForReading";
+          if (type[cache2]) {
+            return type[cache2] === circularConstraintType ? type : type[cache2];
           }
-          type[cache] = circularConstraintType;
+          type[cache2] = circularConstraintType;
           const objectType = getSimplifiedType(type.objectType, writing);
           const indexType = getSimplifiedType(type.indexType, writing);
           const distributedOverIndex = distributeObjectOverIndexType(objectType, indexType, writing);
           if (distributedOverIndex) {
-            return type[cache] = distributedOverIndex;
+            return type[cache2] = distributedOverIndex;
           }
           if (!(indexType.flags & 132644864)) {
             const distributedOverObject = distributeIndexOverObjectType(objectType, indexType, writing);
             if (distributedOverObject) {
-              return type[cache] = distributedOverObject;
+              return type[cache2] = distributedOverObject;
             }
           }
           if (isGenericTupleType(objectType) && indexType.flags & 67648) {
@@ -76018,15 +76018,15 @@ ${lanes.join("\n")}
               writing
             );
             if (elementType) {
-              return type[cache] = elementType;
+              return type[cache2] = elementType;
             }
           }
           if (isGenericMappedType(objectType)) {
             if (getMappedTypeNameTypeKind(objectType) !== 2) {
-              return type[cache] = mapType(substituteIndexedMappedType(objectType, type.indexType), (t) => getSimplifiedType(t, writing));
+              return type[cache2] = mapType(substituteIndexedMappedType(objectType, type.indexType), (t) => getSimplifiedType(t, writing));
             }
           }
-          return type[cache] = type;
+          return type[cache2] = type;
         }
         function getSimplifiedConditionalType(type, writing) {
           const checkType = type.checkType;
@@ -84667,12 +84667,12 @@ ${lanes.join("\n")}
           }
           function getTypeAtFlowLoopLabel(flow) {
             const id = getFlowNodeId(flow);
-            const cache = flowLoopCaches[id] || (flowLoopCaches[id] = /* @__PURE__ */ new Map());
+            const cache2 = flowLoopCaches[id] || (flowLoopCaches[id] = /* @__PURE__ */ new Map());
             const key2 = getOrSetCacheKey();
             if (!key2) {
               return declaredType;
             }
-            const cached = cache.get(key2);
+            const cached = cache2.get(key2);
             if (cached) {
               return cached;
             }
@@ -84706,7 +84706,7 @@ ${lanes.join("\n")}
                 flowType = getTypeAtFlowNode(antecedent);
                 flowTypeCache = saveFlowTypeCache;
                 flowLoopCount--;
-                const cached2 = cache.get(key2);
+                const cached2 = cache2.get(key2);
                 if (cached2) {
                   return cached2;
                 }
@@ -84732,7 +84732,7 @@ ${lanes.join("\n")}
                 true
               );
             }
-            cache.set(key2, result);
+            cache2.set(key2, result);
             return result;
           }
           function getUnionOrEvolvingArrayType(types, subtypeReduction) {
@@ -89762,12 +89762,12 @@ ${lanes.join("\n")}
         }
         function reportNonexistentProperty(propNode, containingType, isUncheckedJS) {
           const links = getNodeLinks(propNode);
-          const cache = links.nonExistentPropCheckCache || (links.nonExistentPropCheckCache = /* @__PURE__ */ new Set());
+          const cache2 = links.nonExistentPropCheckCache || (links.nonExistentPropCheckCache = /* @__PURE__ */ new Set());
           const key = `${getTypeId(containingType)}|${isUncheckedJS}`;
-          if (cache.has(key)) {
+          if (cache2.has(key)) {
             return;
           }
-          cache.add(key);
+          cache2.add(key);
           let errorInfo;
           let relatedInfo;
           if (!isPrivateIdentifier(propNode) && containingType.flags & 134217728 && !(containingType.flags & 12713980)) {
@@ -95837,8 +95837,8 @@ ${lanes.join("\n")}
             /* TypeOnly */
           );
           if (flowInvocationCount !== startInvocationCount) {
-            const cache = flowTypeCache || (flowTypeCache = []);
-            cache[getNodeId(node)] = type;
+            const cache2 = flowTypeCache || (flowTypeCache = []);
+            cache2[getNodeId(node)] = type;
             setNodeFlags(
               node,
               node.flags | 268435456
@@ -138598,8 +138598,8 @@ ${lanes.join("\n")}
         }
         function generateNameCached(node, privateName, flags2, prefix, suffix) {
           const nodeId = getNodeId(node);
-          const cache = privateName ? nodeIdToGeneratedPrivateName : nodeIdToGeneratedName;
-          return cache[nodeId] || (cache[nodeId] = generateNameForNode(node, privateName, flags2 ?? 0, formatGeneratedNamePart(prefix, generateName), formatGeneratedNamePart(suffix)));
+          const cache2 = privateName ? nodeIdToGeneratedPrivateName : nodeIdToGeneratedName;
+          return cache2[nodeId] || (cache2[nodeId] = generateNameForNode(node, privateName, flags2 ?? 0, formatGeneratedNamePart(prefix, generateName), formatGeneratedNamePart(suffix)));
         }
         function isUniqueName(name, privateName) {
           return isFileLevelUniqueNameInCurrentFile(name, privateName) && !isReservedName(name, privateName) && !generatedNames.has(name);
@@ -140405,7 +140405,7 @@ ${lanes.join("\n")}
         getName: getModuleResolutionName,
         getMode: (entry, file, compilerOptions) => getModeForUsageLocation(file, entry, compilerOptions)
       };
-      function createModuleResolutionLoader(containingFile, redirectedReference, options, host, cache) {
+      function createModuleResolutionLoader(containingFile, redirectedReference, options, host, cache2) {
         return {
           nameAndMode: moduleResolutionNameAndModeGetter,
           resolve: (moduleName, resolutionMode) => resolveModuleName(
@@ -140413,7 +140413,7 @@ ${lanes.join("\n")}
             containingFile,
             options,
             host,
-            cache,
+            cache2,
             redirectedReference,
             resolutionMode
           )
@@ -140426,7 +140426,7 @@ ${lanes.join("\n")}
         getName: getTypeReferenceResolutionName,
         getMode: (entry, file, compilerOptions) => getModeForFileReference(entry, file && getDefaultResolutionModeForFileWorker(file, compilerOptions))
       };
-      function createTypeReferenceResolutionLoader(containingFile, redirectedReference, options, host, cache) {
+      function createTypeReferenceResolutionLoader(containingFile, redirectedReference, options, host, cache2) {
         return {
           nameAndMode: typeReferenceResolutionNameAndModeGetter,
           resolve: (typeRef, resoluionMode) => resolveTypeReferenceDirective(
@@ -140435,7 +140435,7 @@ ${lanes.join("\n")}
             options,
             host,
             redirectedReference,
-            cache,
+            cache2,
             resoluionMode
           )
         };
@@ -140443,15 +140443,15 @@ ${lanes.join("\n")}
       function loadWithModeAwareCache(entries, containingFile, redirectedReference, options, containingSourceFile, host, resolutionCache, createLoader) {
         if (entries.length === 0) return emptyArray;
         const resolutions = [];
-        const cache = /* @__PURE__ */ new Map();
+        const cache2 = /* @__PURE__ */ new Map();
         const loader = createLoader(containingFile, redirectedReference, options, host, resolutionCache);
         for (const entry of entries) {
           const name = loader.nameAndMode.getName(entry);
           const mode = loader.nameAndMode.getMode(entry, containingSourceFile, (redirectedReference == null ? void 0 : redirectedReference.commandLine.options) || options);
           const key = createModeAwareCacheKey(name, mode);
-          let result = cache.get(key);
+          let result = cache2.get(key);
           if (!result) {
-            cache.set(key, result = loader.resolve(name, mode));
+            cache2.set(key, result = loader.resolve(name, mode));
           }
           resolutions.push(result);
         }
@@ -147070,9 +147070,9 @@ ${lanes.join("\n")}
             /* Recursive */
           );
         }
-        function removeResolutionsOfFileFromCache(cache, filePath, getResolutionWithResolvedFileName) {
+        function removeResolutionsOfFileFromCache(cache2, filePath, getResolutionWithResolvedFileName) {
           var _a;
-          const resolutions = cache.get(filePath);
+          const resolutions = cache2.get(filePath);
           if (resolutions) {
             if (!((_a = resolutionHost.skipWatchingFailedLookups) == null ? void 0 : _a.call(resolutionHost, filePath))) {
               resolutions.forEach(
@@ -147083,7 +147083,7 @@ ${lanes.join("\n")}
                 )
               );
             }
-            cache.delete(filePath);
+            cache2.delete(filePath);
           }
         }
         function removeResolutionsFromProjectReferenceRedirects(filePath) {
@@ -149103,14 +149103,14 @@ ${lanes.join("\n")}
       }
       function disableCache(state) {
         if (!state.cache) return;
-        const { cache, host, compilerHost, extendedConfigCache, moduleResolutionCache, typeReferenceDirectiveResolutionCache, libraryResolutionCache } = state;
-        host.readFile = cache.originalReadFile;
-        host.fileExists = cache.originalFileExists;
-        host.directoryExists = cache.originalDirectoryExists;
-        host.createDirectory = cache.originalCreateDirectory;
-        host.writeFile = cache.originalWriteFile;
-        compilerHost.getSourceFile = cache.originalGetSourceFile;
-        state.readFileWithCache = cache.originalReadFileWithCache;
+        const { cache: cache2, host, compilerHost, extendedConfigCache, moduleResolutionCache, typeReferenceDirectiveResolutionCache, libraryResolutionCache } = state;
+        host.readFile = cache2.originalReadFile;
+        host.fileExists = cache2.originalFileExists;
+        host.directoryExists = cache2.originalDirectoryExists;
+        host.createDirectory = cache2.originalCreateDirectory;
+        host.writeFile = cache2.originalWriteFile;
+        compilerHost.getSourceFile = cache2.originalGetSourceFile;
+        state.readFileWithCache = cache2.originalReadFileWithCache;
         extendedConfigCache.clear();
         moduleResolutionCache == null ? void 0 : moduleResolutionCache.clear();
         typeReferenceDirectiveResolutionCache == null ? void 0 : typeReferenceDirectiveResolutionCache.clear();
@@ -156491,7 +156491,7 @@ ${lanes.join("\n")}
         const symbols = /* @__PURE__ */ new Map();
         const packages = /* @__PURE__ */ new Map();
         let usableByFileName;
-        const cache = {
+        const cache2 = {
           isUsableByFile: (importingFile) => importingFile === usableByFileName,
           isEmpty: () => !exportInfo.size,
           clear: () => {
@@ -156501,7 +156501,7 @@ ${lanes.join("\n")}
           },
           add: (importingFile, symbol, symbolTableKey, moduleSymbol, moduleFile, exportKind, isFromPackageJson, checker) => {
             if (importingFile !== usableByFileName) {
-              cache.clear();
+              cache2.clear();
               usableByFileName = importingFile;
             }
             let packageName;
@@ -156589,7 +156589,7 @@ ${lanes.join("\n")}
             // Changes elsewhere in the file can change the *type* of an export in a module augmentation,
             // but type info is gathered in getCompletionEntryDetails, which doesn't use the cache.
             !arrayIsEqualTo(oldSourceFile.moduleAugmentations, newSourceFile.moduleAugmentations) || !ambientModuleDeclarationsAreEqual(oldSourceFile, newSourceFile)) {
-              cache.clear();
+              cache2.clear();
               return true;
             }
             usableByFileName = newSourceFile.path;
@@ -156597,9 +156597,9 @@ ${lanes.join("\n")}
           }
         };
         if (Debug.isDebugging) {
-          Object.defineProperty(cache, "__cache", { value: exportInfo });
+          Object.defineProperty(cache2, "__cache", { value: exportInfo });
         }
-        return cache;
+        return cache2;
         function rehydrateCachedInfo(info2) {
           if (info2.symbol && info2.moduleSymbol) return info2;
           const { id, exportKind, targetFlags, isFromPackageJson, moduleFileName } = info2;
@@ -156817,7 +156817,7 @@ ${lanes.join("\n")}
         var _a, _b, _c, _d, _e;
         const start2 = timestamp();
         (_a = host.getPackageJsonAutoImportProvider) == null ? void 0 : _a.call(host);
-        const cache = ((_b = host.getCachedExportInfoMap) == null ? void 0 : _b.call(host)) || createCacheableExportInfoMap({
+        const cache2 = ((_b = host.getCachedExportInfoMap) == null ? void 0 : _b.call(host)) || createCacheableExportInfoMap({
           getCurrentProgram: () => program,
           getPackageJsonAutoImportProvider: () => {
             var _a2;
@@ -156828,9 +156828,9 @@ ${lanes.join("\n")}
             return (_a2 = host.getGlobalTypingsCacheLocation) == null ? void 0 : _a2.call(host);
           }
         });
-        if (cache.isUsableByFile(importingFile.path)) {
+        if (cache2.isUsableByFile(importingFile.path)) {
           (_c = host.log) == null ? void 0 : _c.call(host, "getExportInfoMap: cache hit");
-          return cache;
+          return cache2;
         }
         (_d = host.log) == null ? void 0 : _d.call(host, "getExportInfoMap: cache miss or empty; calculating new results");
         let moduleCount = 0;
@@ -156847,7 +156847,7 @@ ${lanes.join("\n")}
               const checker = program2.getTypeChecker();
               const defaultInfo = getDefaultLikeExportInfo(moduleSymbol, checker);
               if (defaultInfo && isImportableSymbol(defaultInfo.symbol, checker)) {
-                cache.add(
+                cache2.add(
                   importingFile.path,
                   defaultInfo.symbol,
                   defaultInfo.exportKind === 1 ? "default" : "export=",
@@ -156860,7 +156860,7 @@ ${lanes.join("\n")}
               }
               checker.forEachExportAndPropertyOfModule(moduleSymbol, (exported, key) => {
                 if (exported !== (defaultInfo == null ? void 0 : defaultInfo.symbol) && isImportableSymbol(exported, checker) && addToSeen(seenExports, key)) {
-                  cache.add(
+                  cache2.add(
                     importingFile.path,
                     exported,
                     key,
@@ -156875,11 +156875,11 @@ ${lanes.join("\n")}
             }
           );
         } catch (err2) {
-          cache.clear();
+          cache2.clear();
           throw err2;
         }
         (_e = host.log) == null ? void 0 : _e.call(host, `getExportInfoMap: done in ${timestamp() - start2} ms`);
-        return cache;
+        return cache2;
       }
       function getDefaultLikeExportInfo(moduleSymbol, checker) {
         const exportEquals = checker.resolveExternalModuleSymbol(moduleSymbol);
@@ -182220,8 +182220,8 @@ ${newComment.split("\n").map((c) => ` * ${c}`).join("\n")}
       function completionEntryDataIsResolved(data) {
         return !!(data == null ? void 0 : data.moduleSpecifier);
       }
-      function continuePreviousIncompleteResponse(cache, file, location, program, host, preferences, cancellationToken, position) {
-        const previousResponse = cache.get();
+      function continuePreviousIncompleteResponse(cache2, file, location, program, host, preferences, cancellationToken, position) {
+        const previousResponse = cache2.get();
         if (!previousResponse) return void 0;
         const touchNode = getTouchingPropertyName(file, position);
         const lowerCaseTokenText = location.text.toLowerCase();
@@ -206700,9 +206700,9 @@ ${options.prefix}` : "\n" : options.prefix
         // TODO: GH#18217
       };
       var noopConfigFileWatcher = { close: noop };
-      function getConfigFileNameFromCache(info2, cache) {
-        if (!cache) return void 0;
-        const configFileForOpenFile = cache.get(info2.path);
+      function getConfigFileNameFromCache(info2, cache2) {
+        if (!cache2) return void 0;
+        const configFileForOpenFile = cache2.get(info2.path);
         if (configFileForOpenFile === void 0) return void 0;
         if (!isAncestorConfigFileInfo(info2)) {
           return isString(configFileForOpenFile) || !configFileForOpenFile ? configFileForOpenFile : (
@@ -210513,12 +210513,12 @@ Dynamic files must always be opened with service's current directory or service 
       }
       function createModuleSpecifierCache(host) {
         let containedNodeModulesWatchers;
-        let cache;
+        let cache2;
         let currentKey;
         const result = {
           get(fromFileName, toFileName2, preferences, options) {
-            if (!cache || currentKey !== key(fromFileName, preferences, options)) return void 0;
-            return cache.get(toFileName2);
+            if (!cache2 || currentKey !== key(fromFileName, preferences, options)) return void 0;
+            return cache2.get(toFileName2);
           },
           set(fromFileName, toFileName2, preferences, options, kind, modulePaths, moduleSpecifiers2) {
             ensureCache(fromFileName, preferences, options).set(toFileName2, createInfo(
@@ -210546,12 +210546,12 @@ Dynamic files must always be opened with service's current directory or service 
             }
           },
           setModulePaths(fromFileName, toFileName2, preferences, options, modulePaths) {
-            const cache2 = ensureCache(fromFileName, preferences, options);
-            const info2 = cache2.get(toFileName2);
+            const cache22 = ensureCache(fromFileName, preferences, options);
+            const info2 = cache22.get(toFileName2);
             if (info2) {
               info2.modulePaths = modulePaths;
             } else {
-              cache2.set(toFileName2, createInfo(
+              cache22.set(toFileName2, createInfo(
                 /*kind*/
                 void 0,
                 modulePaths,
@@ -210565,13 +210565,13 @@ Dynamic files must always be opened with service's current directory or service 
             }
           },
           setBlockedByPackageJsonDependencies(fromFileName, toFileName2, preferences, options, packageName, isBlockedByPackageJsonDependencies) {
-            const cache2 = ensureCache(fromFileName, preferences, options);
-            const info2 = cache2.get(toFileName2);
+            const cache22 = ensureCache(fromFileName, preferences, options);
+            const info2 = cache22.get(toFileName2);
             if (info2) {
               info2.isBlockedByPackageJsonDependencies = isBlockedByPackageJsonDependencies;
               info2.packageName = packageName;
             } else {
-              cache2.set(toFileName2, createInfo(
+              cache22.set(toFileName2, createInfo(
                 /*kind*/
                 void 0,
                 /*modulePaths*/
@@ -210585,25 +210585,25 @@ Dynamic files must always be opened with service's current directory or service 
           },
           clear() {
             containedNodeModulesWatchers == null ? void 0 : containedNodeModulesWatchers.forEach(closeFileWatcher);
-            cache == null ? void 0 : cache.clear();
+            cache2 == null ? void 0 : cache2.clear();
             containedNodeModulesWatchers == null ? void 0 : containedNodeModulesWatchers.clear();
             currentKey = void 0;
           },
           count() {
-            return cache ? cache.size : 0;
+            return cache2 ? cache2.size : 0;
           }
         };
         if (Debug.isDebugging) {
-          Object.defineProperty(result, "__cache", { get: () => cache });
+          Object.defineProperty(result, "__cache", { get: () => cache2 });
         }
         return result;
         function ensureCache(fromFileName, preferences, options) {
           const newKey = key(fromFileName, preferences, options);
-          if (cache && currentKey !== newKey) {
+          if (cache2 && currentKey !== newKey) {
             result.clear();
           }
           currentKey = newKey;
-          return cache || (cache = /* @__PURE__ */ new Map());
+          return cache2 || (cache2 = /* @__PURE__ */ new Map());
         }
         function key(fromFileName, preferences, options) {
           return `${fromFileName},${preferences.importModuleSpecifierEnding},${preferences.importModuleSpecifierPreference},${options.overrideImportMode}`;
@@ -214842,9 +214842,9 @@ Additional information: BADCLIENT: Bad error code, ${badCode} not found in range
       _ScriptVersionCache.maxVersions = 8;
       var ScriptVersionCache = _ScriptVersionCache;
       var LineIndexSnapshot = class _LineIndexSnapshot {
-        constructor(version2, cache, index, changesSincePreviousVersion = emptyArray2) {
+        constructor(version2, cache2, index, changesSincePreviousVersion = emptyArray2) {
           this.version = version2;
-          this.cache = cache;
+          this.cache = cache2;
           this.index = index;
           this.changesSincePreviousVersion = changesSincePreviousVersion;
         }
@@ -215602,9 +215602,9 @@ Additional information: BADCLIENT: Bad error code, ${badCode} not found in range
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/balanced-match@4.0.4/node_modules/balanced-match/dist/commonjs/index.js
+// node_modules/.pnpm/balanced-match@4.0.4/node_modules/balanced-match/dist/commonjs/index.js
 var require_commonjs = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/balanced-match@4.0.4/node_modules/balanced-match/dist/commonjs/index.js"(exports2) {
+  "node_modules/.pnpm/balanced-match@4.0.4/node_modules/balanced-match/dist/commonjs/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.range = exports2.balanced = void 0;
@@ -215664,9 +215664,9 @@ var require_commonjs = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/brace-expansion@5.0.6/node_modules/brace-expansion/dist/commonjs/index.js
+// node_modules/.pnpm/brace-expansion@5.0.6/node_modules/brace-expansion/dist/commonjs/index.js
 var require_commonjs2 = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/brace-expansion@5.0.6/node_modules/brace-expansion/dist/commonjs/index.js"(exports2) {
+  "node_modules/.pnpm/brace-expansion@5.0.6/node_modules/brace-expansion/dist/commonjs/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.EXPANSION_MAX = void 0;
@@ -215833,9 +215833,9 @@ var require_commonjs2 = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js
+// node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js
 var require_assert_valid_pattern = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js"(exports2) {
+  "node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.assertValidPattern = void 0;
@@ -215852,9 +215852,9 @@ var require_assert_valid_pattern = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/brace-expressions.js
+// node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/brace-expressions.js
 var require_brace_expressions = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/brace-expressions.js"(exports2) {
+  "node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/brace-expressions.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.parseClass = void 0;
@@ -215969,9 +215969,9 @@ var require_brace_expressions = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/unescape.js
+// node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/unescape.js
 var require_unescape = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/unescape.js"(exports2) {
+  "node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/unescape.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.unescape = void 0;
@@ -215985,9 +215985,9 @@ var require_unescape = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/ast.js
+// node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/ast.js
 var require_ast = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/ast.js"(exports2) {
+  "node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/ast.js"(exports2) {
     "use strict";
     var _a;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -216639,9 +216639,9 @@ var require_ast = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/escape.js
+// node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/escape.js
 var require_escape = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/escape.js"(exports2) {
+  "node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/escape.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.escape = void 0;
@@ -216655,9 +216655,9 @@ var require_escape = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/index.js
+// node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/index.js
 var require_commonjs3 = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/index.js"(exports2) {
+  "node_modules/.pnpm/minimatch@10.2.5/node_modules/minimatch/dist/commonjs/index.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.unescape = exports2.escape = exports2.AST = exports2.Minimatch = exports2.match = exports2.makeRe = exports2.braceExpand = exports2.defaults = exports2.filter = exports2.GLOBSTAR = exports2.sep = exports2.minimatch = void 0;
@@ -217495,9 +217495,9 @@ var require_commonjs3 = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/path-browserify@1.0.1/node_modules/path-browserify/index.js
+// node_modules/.pnpm/path-browserify@1.0.1/node_modules/path-browserify/index.js
 var require_path_browserify = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/path-browserify@1.0.1/node_modules/path-browserify/index.js"(exports2, module2) {
+  "node_modules/.pnpm/path-browserify@1.0.1/node_modules/path-browserify/index.js"(exports2, module2) {
     "use strict";
     function assertPath(path19) {
       if (typeof path19 !== "string") {
@@ -217902,9 +217902,9 @@ var require_path_browserify = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/constants.js
+// node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/constants.js
 var require_constants = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/constants.js"(exports2, module2) {
+  "node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/constants.js"(exports2, module2) {
     "use strict";
     var WIN_SLASH = "\\\\/";
     var WIN_NO_SLASH = `[^${WIN_SLASH}]`;
@@ -218104,9 +218104,9 @@ var require_constants = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/utils.js
+// node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/utils.js
 var require_utils = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/utils.js"(exports2) {
+  "node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/utils.js"(exports2) {
     "use strict";
     var {
       REGEX_BACKSLASH,
@@ -218168,9 +218168,9 @@ var require_utils = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/scan.js
+// node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/scan.js
 var require_scan = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/scan.js"(exports2, module2) {
+  "node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/scan.js"(exports2, module2) {
     "use strict";
     var utils = require_utils();
     var {
@@ -218498,9 +218498,9 @@ var require_scan = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/parse.js
+// node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/parse.js
 var require_parse = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/parse.js"(exports2, module2) {
+  "node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/parse.js"(exports2, module2) {
     "use strict";
     var constants2 = require_constants();
     var utils = require_utils();
@@ -219495,9 +219495,9 @@ var require_parse = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/picomatch.js
+// node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/picomatch.js
 var require_picomatch = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/picomatch.js"(exports2, module2) {
+  "node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/lib/picomatch.js"(exports2, module2) {
     "use strict";
     var scan = require_scan();
     var parse = require_parse();
@@ -219635,9 +219635,9 @@ var require_picomatch = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/index.js
+// node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/index.js
 var require_picomatch2 = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/index.js"(exports2, module2) {
+  "node_modules/.pnpm/picomatch@4.0.4/node_modules/picomatch/index.js"(exports2, module2) {
     "use strict";
     var pico = require_picomatch();
     var utils = require_utils();
@@ -219652,9 +219652,9 @@ var require_picomatch2 = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/fdir@6.5.0_picomatch@4.0.4/node_modules/fdir/dist/index.cjs
+// node_modules/.pnpm/fdir@6.5.0_picomatch@4.0.4/node_modules/fdir/dist/index.cjs
 var require_dist = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/fdir@6.5.0_picomatch@4.0.4/node_modules/fdir/dist/index.cjs"(exports2) {
+  "node_modules/.pnpm/fdir@6.5.0_picomatch@4.0.4/node_modules/fdir/dist/index.cjs"(exports2) {
     var __create2 = Object.create;
     var __defProp2 = Object.defineProperty;
     var __getOwnPropDesc2 = Object.getOwnPropertyDescriptor;
@@ -220184,9 +220184,9 @@ var require_dist = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/tinyglobby@0.2.16/node_modules/tinyglobby/dist/index.cjs
+// node_modules/.pnpm/tinyglobby@0.2.16/node_modules/tinyglobby/dist/index.cjs
 var require_dist2 = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/tinyglobby@0.2.16/node_modules/tinyglobby/dist/index.cjs"(exports2) {
+  "node_modules/.pnpm/tinyglobby@0.2.16/node_modules/tinyglobby/dist/index.cjs"(exports2) {
     Object.defineProperty(exports2, Symbol.toStringTag, { value: "Module" });
     var __create2 = Object.create;
     var __defProp2 = Object.defineProperty;
@@ -220490,9 +220490,9 @@ var require_dist2 = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/ts-morph-common.js
+// node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/ts-morph-common.js
 var require_ts_morph_common = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/ts-morph-common.js"(exports2) {
+  "node_modules/.pnpm/@ts-morph+common@0.29.0/node_modules/@ts-morph/common/dist/ts-morph-common.js"(exports2) {
     "use strict";
     var ts = require_typescript();
     var minimatch = require_commonjs3();
@@ -221264,9 +221264,9 @@ ${nodeLocation}` : message;
       return ts__namespace.createLanguageServiceSourceFile(filePath, scriptSnapshot, optionsOrScriptTarget ?? ts__namespace.ScriptTarget.Latest, version, setParentNodes, scriptKind);
     }
     function createDocumentCache(files) {
-      const cache = new InternalDocumentCache();
-      cache._addFiles(files);
-      return cache;
+      const cache2 = new InternalDocumentCache();
+      cache2._addFiles(files);
+      return cache2;
     }
     var FileSystemDocumentCache = class {
       #documentCache;
@@ -223756,9 +223756,9 @@ ${nodeLocation}` : message;
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/utils/string_utils.js
+// node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/utils/string_utils.js
 var require_string_utils = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/utils/string_utils.js"(exports2) {
+  "node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/utils/string_utils.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.getStringFromStrOrFunc = exports2.escapeForWithinString = void 0;
@@ -223787,9 +223787,9 @@ var require_string_utils = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/mod.js
+// node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/mod.js
 var require_mod = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/mod.js"(exports2) {
+  "node_modules/.pnpm/code-block-writer@13.0.3/node_modules/code-block-writer/script/mod.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var string_utils_js_1 = require_string_utils();
@@ -224623,9 +224623,9 @@ var require_mod = __commonJS({
   }
 });
 
-// ../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/ts-morph@28.0.0/node_modules/ts-morph/dist/ts-morph.js
+// node_modules/.pnpm/ts-morph@28.0.0/node_modules/ts-morph/dist/ts-morph.js
 var require_ts_morph = __commonJS({
-  "../../../Users/mattbeach/Dropbox/MAI/node_modules/.pnpm/ts-morph@28.0.0/node_modules/ts-morph/dist/ts-morph.js"(exports2) {
+  "node_modules/.pnpm/ts-morph@28.0.0/node_modules/ts-morph/dist/ts-morph.js"(exports2) {
     "use strict";
     var common = require_ts_morph_common();
     var CodeBlockWriter = require_mod();
@@ -245898,7 +245898,7 @@ async function writePersistedToken(t) {
   });
   await atomicRename(tmp, file);
 }
-async function refreshAccessToken(refreshToken) {
+async function refreshAccessToken(refreshToken, options = {}) {
   requireClientId();
   const body2 = new URLSearchParams({
     grant_type: "refresh_token",
@@ -245908,7 +245908,8 @@ async function refreshAccessToken(refreshToken) {
   const res = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body2.toString()
+    body: body2.toString(),
+    signal: AbortSignal.timeout(Math.max(1, options.timeoutMs ?? 15e3))
   });
   if (!res.ok) {
     throw new Error(`refresh: ${res.status} ${await res.text()}`);
@@ -245921,17 +245922,17 @@ var DEFAULT_FRESHNESS_MARGIN_MS = 6e4;
 async function getValidAccessToken() {
   return ensureFreshToken(DEFAULT_FRESHNESS_MARGIN_MS);
 }
-async function ensureFreshToken(marginMs = DEFAULT_FRESHNESS_MARGIN_MS) {
+async function ensureFreshToken(marginMs = DEFAULT_FRESHNESS_MARGIN_MS, options = {}) {
   const persisted = await readPersistedToken();
   if (!persisted) throw new Error("not signed in \u2014 run `memlin login`");
   if (Date.now() < persisted.expires_at - marginMs) return persisted.access_token;
   if (refreshInFlight) return refreshInFlight;
-  refreshInFlight = doRefresh(persisted, marginMs).finally(() => {
+  refreshInFlight = doRefresh(persisted, marginMs, options).finally(() => {
     refreshInFlight = null;
   });
   return refreshInFlight;
 }
-async function doRefresh(stale, marginMs) {
+async function doRefresh(stale, marginMs, options) {
   const latest = await readPersistedToken();
   if (latest && Date.now() < latest.expires_at - marginMs) return latest.access_token;
   try {
@@ -245948,7 +245949,7 @@ async function doRefresh(stale, marginMs) {
     throw new Error("access token expired and no refresh token saved \u2014 run `memlin login`");
   }
   try {
-    const fresh = await refreshAccessToken(refreshToken);
+    const fresh = await refreshAccessToken(refreshToken, options);
     return await withAuthFileLock(async () => {
       const beforeWrite = await readPersistedToken();
       if (!beforeWrite || beforeWrite.access_token !== refreshSource.access_token) {
@@ -246135,7 +246136,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.39";
+  cachedAgentVersion = "0.2.40";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -246341,13 +246342,15 @@ var MemlinApiClient = class {
    *  Returns kind='decision' docs whose `metadata.enforce` is set —
    *  the PreToolUse handler in plugin-core's pre-tool-use-handler
    *  module is the primary caller. */
-  async listEnforceDecisions(opts = {}) {
+  async listEnforceDecisions(opts = {}, requestOpts = {}) {
     const qs = new URLSearchParams();
     if (opts.project_id !== void 0) {
       qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
     }
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.request("GET", `/decisions/enforce${suffix}`);
+    return this.request("GET", `/decisions/enforce${suffix}`, void 0, {
+      accountId: requestOpts.accountId
+    });
   }
   /** POST /usage/event — write a usage_events row from the client.
    *  Server-side enforces an allowlist of event_types (today:
@@ -246454,19 +246457,24 @@ var MemlinApiClient = class {
       action
     });
   }
-  async listHandoffs(opts = {}) {
+  async listHandoffs(opts = {}, callOpts = {}) {
     const qs = new URLSearchParams();
     if (opts.project_id) qs.set("project_id", opts.project_id);
     if (opts.target_agent_kind) qs.set("target_agent_kind", opts.target_agent_kind);
     if (opts.status) qs.set("status", opts.status);
     if (opts.limit) qs.set("limit", String(opts.limit));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.request("GET", `/handoffs${suffix}`);
-  }
-  async updateHandoff(handoffId, action) {
-    return this.request("PATCH", `/handoffs/${encodeURIComponent(handoffId)}`, {
-      action
+    return this.request("GET", `/handoffs${suffix}`, void 0, {
+      accountId: callOpts.accountId
     });
+  }
+  async updateHandoff(handoffId, action, opts = {}) {
+    return this.request(
+      "PATCH",
+      `/handoffs/${encodeURIComponent(handoffId)}`,
+      { action },
+      { accountId: opts.accountId }
+    );
   }
   async createHandoff(input) {
     return this.request("POST", "/handoffs", input);
@@ -246569,8 +246577,13 @@ var MemlinApiClient = class {
     return this.request("POST", "/edit-guard", input, { accountId: opts.accountId });
   }
   /** GET /audit/<id>/replay — reconstruct a past resolve's exact bundle. */
-  async replayAudit(auditId) {
-    return this.request("GET", `/audit/${auditId}/replay`);
+  async replayAudit(auditId, opts = {}) {
+    return this.request(
+      "GET",
+      `/audit/${auditId}/replay`,
+      void 0,
+      { accountId: opts.accountId }
+    );
   }
   /** GET /audit/<id>/explain — per-item decomposition of a past resolve's
    *  ranking arithmetic (similarity, kind weight, component boost, rerank,
@@ -246725,8 +246738,8 @@ var MemlinApiClient = class {
    * companion plans row with status='drafted'. Returns the document_id
    * + version metadata for downstream URL construction.
    */
-  async pushPlan(input) {
-    return this.request("POST", "/plans", input);
+  async pushPlan(input, opts = {}) {
+    return this.request("POST", "/plans", input, { accountId: opts.accountId });
   }
   /**
    * GET /plans — list plans for the account, optionally filtered by
@@ -246734,7 +246747,7 @@ var MemlinApiClient = class {
    * UserPromptSubmit + SessionStart hooks to keep ~/.claude/plans/ in
    * sync with the server.
    */
-  async listPlans(opts = {}) {
+  async listPlans(opts = {}, callOpts = {}) {
     const qs = new URLSearchParams();
     if (opts.status) qs.set("status", opts.status);
     if (opts.project_id !== void 0) {
@@ -246744,21 +246757,27 @@ var MemlinApiClient = class {
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     const res = await this.request(
       "GET",
-      `/plans${suffix}`
+      `/plans${suffix}`,
+      void 0,
+      { accountId: callOpts.accountId }
     );
     return res.plans;
   }
   /** GET /plans/<id> — full plan detail (status + body + bundle ref). */
-  async getPlan(id) {
-    return this.request("GET", `/plans/${encodeURIComponent(id)}`);
+  async getPlan(id, opts = {}) {
+    return this.request("GET", `/plans/${encodeURIComponent(id)}`, void 0, {
+      accountId: opts.accountId
+    });
   }
   /**
    * PATCH /plans/<id> — replace the plan's body (creates a new
    * document_version, auto-embeds). Used by the PostToolUse hook to push
    * Claude Code edits back up to Memlin.
    */
-  async updatePlan(id, input) {
-    return this.request("PATCH", `/plans/${encodeURIComponent(id)}`, input);
+  async updatePlan(id, input, opts = {}) {
+    return this.request("PATCH", `/plans/${encodeURIComponent(id)}`, input, {
+      accountId: opts.accountId
+    });
   }
   /**
    * POST /projects — create a project in the caller's current account.
@@ -247134,13 +247153,16 @@ async function resolveProject(api, cwd, configProjectId) {
   } catch {
   }
   if (configProjectId) {
-    return {
-      project_id: configProjectId,
-      project_name: null,
-      account_id: null,
-      reason: "config",
-      hasGitRemote
-    };
+    const localBinding = await findWorkspaceBinding(absCwd).catch(() => null);
+    if (localBinding?.binding.project_id === configProjectId) {
+      return {
+        project_id: configProjectId,
+        project_name: null,
+        account_id: null,
+        reason: "config",
+        hasGitRemote
+      };
+    }
   }
   return { project_id: null, project_name: null, account_id: null, reason: "none", hasGitRemote };
 }
@@ -247180,17 +247202,17 @@ function detectGitRemotes(cwd) {
   return out2;
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/runner/run-scan.js
+// services/scanners/dist/runner/run-scan.js
 import path17 from "node:path";
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/repo-walker.js
+// services/scanners/dist/scanner-discovery/repo-walker.js
 import { promises as fs6 } from "node:fs";
 import path9 from "node:path";
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/csharp-parser.js
+// services/scanners/dist/scanner-discovery/graph/csharp-parser.js
 var import_web_tree_sitter2 = __toESM(require_tree_sitter(), 1);
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/ts-runtime.js
+// services/scanners/dist/scanner-discovery/graph/ts-runtime.js
 var import_web_tree_sitter = __toESM(require_tree_sitter(), 1);
 import path8 from "node:path";
 import { existsSync as existsSync2 } from "node:fs";
@@ -247223,7 +247245,7 @@ function initTreeSitter() {
   return initPromise2;
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/csharp-parser.js
+// services/scanners/dist/scanner-discovery/graph/csharp-parser.js
 var parserPromise = null;
 function getCSharpParser() {
   if (!parserPromise) {
@@ -247331,7 +247353,7 @@ function extractCSharpRoutes(root) {
   return out2;
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/repo-walker.js
+// services/scanners/dist/scanner-discovery/repo-walker.js
 var MAX_FUNCTIONS_PER_COMPONENT = 120;
 var EXCERPT_CHARS = 500;
 var MAX_COMPONENTS = 200;
@@ -248076,10 +248098,236 @@ async function sampleExtensions(root, cap) {
   return seen;
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/runner/enrich-summaries.js
-var HAIKU_MODEL = "claude-haiku-4-5";
+// services/scanners/dist/shared/model-catalog.js
+var MODEL_ROLES = {
+  generationFast: "generation.fast",
+  generationBalanced: "generation.balanced",
+  generationDeep: "generation.deep",
+  rerankDefault: "rerank.default",
+  classificationDefault: "classification.default",
+  embeddingDefault: "embedding.default",
+  webResearch: "web.research"
+};
+var ModelResolutionError = class extends Error {
+  code;
+  status;
+  constructor(message, code, status) {
+    super(message);
+    this.code = code;
+    this.status = status;
+    this.name = "ModelResolutionError";
+  }
+};
+var DEFAULT_CACHE_TTL_MS = 55e3;
+var DEFAULT_TIMEOUT_MS = 5e3;
+var cache = /* @__PURE__ */ new Map();
+var inFlight = /* @__PURE__ */ new Map();
+function configuredBaseUrl(env) {
+  return env.MODEL_ENGINE_BASE_URL?.trim() || env.RECAP_WEB_BASE_URL?.trim() || void 0;
+}
+function configuredSecret(env) {
+  return env.MODEL_ENGINE_SECRET?.trim() || env.RECAP_TRIGGER_SECRET?.trim() || void 0;
+}
+function endpointFor(base) {
+  let url;
+  try {
+    url = new URL("/api/internal/model-catalog/resolve", base);
+  } catch {
+    throw new ModelResolutionError("model engine base URL is invalid", "invalid_configuration");
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new ModelResolutionError("model engine base URL must use HTTP(S)", "invalid_configuration");
+  }
+  return url.toString();
+}
+function validModelId(value) {
+  return typeof value === "string" && value.trim().length > 0 && value.length <= 300 && !/[\u0000-\u001f\u007f]/.test(value);
+}
+function parseCandidate(value, enabledProviders) {
+  if (!value || typeof value !== "object")
+    return null;
+  const record = value;
+  if (!validModelId(record.id))
+    return null;
+  if (record.registryId !== void 0 && !validModelId(record.registryId))
+    return null;
+  if (typeof record.provider !== "string" || !enabledProviders.has(record.provider)) {
+    return null;
+  }
+  return {
+    id: record.id.trim(),
+    // During a rolling web/worker deployment an older resolver may not yet
+    // return the registry sidecar. Legacy registry IDs equal provider IDs.
+    registryId: validModelId(record.registryId) ? record.registryId.trim() : record.id.trim(),
+    provider: record.provider,
+    health: typeof record.health === "string" ? record.health : "unknown",
+    lifecycle: typeof record.lifecycle === "string" ? record.lifecycle : "active"
+  };
+}
+function parseResolvedModels(body2, enabledProviders) {
+  if (!body2 || typeof body2 !== "object")
+    return null;
+  const response = body2;
+  const raw = Array.isArray(response.candidates) && response.candidates.length > 0 ? response.candidates.slice(0, 3) : [response.model];
+  const parsed = raw.map((candidate) => parseCandidate(candidate, enabledProviders));
+  if (parsed.some((candidate) => candidate === null))
+    return null;
+  const seen = /* @__PURE__ */ new Set();
+  return parsed.filter((candidate) => {
+    const key = `${candidate.provider}:${candidate.registryId}`;
+    if (seen.has(key))
+      return false;
+    seen.add(key);
+    return true;
+  });
+}
+async function resolveModelCandidatesForRole(options) {
+  const providers = Array.from(new Set(options.enabledProviders)).sort();
+  if (providers.length === 0) {
+    throw new ModelResolutionError("at least one model provider is required", "invalid_configuration");
+  }
+  const env = options.env ?? process.env;
+  const baseUrl = configuredBaseUrl(env);
+  const secret = configuredSecret(env);
+  const overrideKey = `MEMLIN_MODEL_${options.role.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}`;
+  const override = options.modelOverride?.trim() || (!baseUrl || !secret ? env[overrideKey]?.trim() : void 0);
+  if (override) {
+    if (!validModelId(override)) {
+      throw new ModelResolutionError("configured model override is invalid", "invalid_configuration");
+    }
+    const provider = options.providerOverride ?? (providers.length === 1 ? providers[0] : void 0);
+    if (!provider || !providers.includes(provider)) {
+      throw new ModelResolutionError("a valid provider is required with a model override", "invalid_configuration");
+    }
+    return [
+      {
+        id: override,
+        registryId: override,
+        provider,
+        health: "configuration_override",
+        lifecycle: "active"
+      }
+    ];
+  }
+  if (!baseUrl || !secret) {
+    throw new ModelResolutionError("MODEL_ENGINE_BASE_URL/RECAP_WEB_BASE_URL and MODEL_ENGINE_SECRET/RECAP_TRIGGER_SECRET are required", "not_configured");
+  }
+  const endpoint = endpointFor(baseUrl);
+  const cacheKey = JSON.stringify([endpoint, options.role, providers, options.accountId ?? null]);
+  const now = Date.now();
+  const cached = cache.get(cacheKey);
+  if (cached && cached.expiresAt > now)
+    return cached.models;
+  const existing = inFlight.get(cacheKey);
+  if (existing)
+    return existing;
+  const request = (async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+    try {
+      let response;
+      try {
+        response = await (options.fetchImpl ?? fetch)(endpoint, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-recap-secret": secret
+          },
+          body: JSON.stringify({
+            role: options.role,
+            enabledProviders: providers,
+            ...options.accountId ? { accountId: options.accountId } : {}
+          }),
+          signal: controller.signal
+        });
+      } catch (error) {
+        const detail = error instanceof Error && error.name === "AbortError" ? "timed out" : "failed";
+        throw new ModelResolutionError(`model engine request ${detail}`, "request_failed");
+      }
+      if (!response.ok) {
+        throw new ModelResolutionError(`model engine could not resolve role ${options.role}`, "unavailable", response.status);
+      }
+      const body2 = await response.json().catch(() => null);
+      const models = parseResolvedModels(body2, new Set(providers));
+      if (!models || models.length === 0) {
+        throw new ModelResolutionError("model engine returned an invalid response", "invalid_response");
+      }
+      const ttl = options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
+      if (ttl > 0)
+        cache.set(cacheKey, { expiresAt: Date.now() + ttl, models });
+      return models;
+    } finally {
+      clearTimeout(timer);
+    }
+  })();
+  inFlight.set(cacheKey, request);
+  try {
+    return await request;
+  } finally {
+    inFlight.delete(cacheKey);
+  }
+}
+
+// services/scanners/dist/shared/anthropic.js
 var ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 var ANTHROPIC_VERSION = "2023-06-01";
+var DEFAULT_MAX_TOKENS = 4e3;
+function isRetryableAnthropicModelFailure(status, body2) {
+  if (status !== 400 && status !== 403 && status !== 404)
+    return false;
+  const normalized = body2.toLowerCase().replace(/[_-]+/g, " ");
+  if (!normalized.includes("model"))
+    return false;
+  return /(?:not allowed|inactive|retired|deprecated|not available|unavailable|not found|does not exist|unsupported|invalid model|permission|access)/i.test(normalized);
+}
+async function requestAnthropic(apiKey, model, systemPrompt, userPrompt, maxTokens, fetchImpl) {
+  return fetchImpl(ANTHROPIC_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      model: model.id,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }]
+    })
+  });
+}
+async function callAnthropic(systemPrompt, userPrompt, opts) {
+  const apiKey = opts?.apiKey ?? process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY missing \u2014 scanner cannot call the model");
+  }
+  const candidates = await resolveModelCandidatesForRole({
+    role: opts?.role ?? MODEL_ROLES.generationFast,
+    enabledProviders: ["anthropic"],
+    accountId: opts?.accountId,
+    modelOverride: opts?.modelId,
+    fetchImpl: opts?.fetchImpl,
+    env: opts?.modelEngineEnv
+  });
+  const attempts = candidates.slice(0, 3);
+  for (let index = 0; index < attempts.length; index += 1) {
+    const candidate = attempts[index];
+    const res = await requestAnthropic(apiKey, candidate, systemPrompt, userPrompt, opts?.maxTokens ?? DEFAULT_MAX_TOKENS, opts?.fetchImpl ?? fetch);
+    if (!res.ok) {
+      const body2 = await res.text().catch(() => "");
+      if (index + 1 < attempts.length && isRetryableAnthropicModelFailure(res.status, body2)) {
+        continue;
+      }
+      throw new Error(`anthropic ${res.status}: ${body2.slice(0, 500)}`);
+    }
+    const json = await res.json();
+    opts?.onModelSelected?.(candidate);
+    return json.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
+  }
+  throw new Error("anthropic model candidates exhausted");
+}
+
+// services/scanners/dist/runner/enrich-summaries.js
 var BATCH_SIZE = 8;
 var SYSTEM = `You summarize code units for a developer-facing catalog. For each function, route, hook, or migration you're given, write ONE plain-language sentence (occasionally two) describing what it does and why it exists. Be concrete and specific \u2014 name the actual behavior, not generic filler. No preamble, no "this function\u2026", just the description.
 
@@ -248097,6 +248345,30 @@ async function enrichManifestSummaries(functions, opts) {
   const batches = [];
   for (let i = 0; i < indexed.length; i += BATCH_SIZE)
     batches.push(indexed.slice(i, i + BATCH_SIZE));
+  if (batches.length === 0) {
+    return {
+      considered: candidates.length,
+      enriched: 0,
+      skipped: skippedByCap + (functions.length - candidates.length),
+      errors: 0
+    };
+  }
+  try {
+    await resolveModelCandidatesForRole({
+      role: MODEL_ROLES.generationFast,
+      enabledProviders: ["anthropic"],
+      modelOverride: opts.modelId
+    });
+  } catch (err2) {
+    process.stderr.write(`[enrich-summaries] model resolution failed: ${err2 instanceof Error ? err2.message : String(err2)}
+`);
+    return {
+      considered: candidates.length,
+      enriched: 0,
+      skipped: skippedByCap + (functions.length - candidates.length),
+      errors: toEnrich.length
+    };
+  }
   let enriched = 0;
   let errors = 0;
   let cursor = 0;
@@ -248109,7 +248381,7 @@ async function enrichManifestSummaries(functions, opts) {
       if (!batch)
         return;
       try {
-        const summaries = await summarizeBatch(batch, opts.apiKey);
+        const summaries = await summarizeBatch(batch, opts.apiKey, opts.modelId);
         for (const item of batch) {
           const s = summaries.get(item.key);
           if (s) {
@@ -248131,7 +248403,7 @@ async function enrichManifestSummaries(functions, opts) {
     errors
   };
 }
-async function summarizeBatch(batch, apiKey) {
+async function summarizeBatch(batch, apiKey, modelId) {
   const items = batch.map(({ key, ref }) => {
     return `--- id: ${key}
 kind: ${ref.kind}
@@ -248145,7 +248417,12 @@ ${(ref.excerpt ?? "").slice(0, 600)}`;
 ${items.join("\n\n")}
 
 Return JSON now.`;
-  const raw = await callAnthropic(apiKey, SYSTEM, userPrompt, 1500);
+  const raw = await callAnthropic(SYSTEM, userPrompt, {
+    apiKey,
+    maxTokens: 1500,
+    role: MODEL_ROLES.generationFast,
+    modelId
+  });
   let cleaned = raw.trim().replace(/^```(?:json)?\n?|\n?```$/g, "");
   const first = cleaned.indexOf("{");
   const last = cleaned.lastIndexOf("}");
@@ -248166,34 +248443,12 @@ Return JSON now.`;
   }
   return out2;
 }
-async function callAnthropic(apiKey, systemPrompt, userPrompt, maxTokens) {
-  const res = await fetch(ANTHROPIC_URL, {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": ANTHROPIC_VERSION,
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      model: HAIKU_MODEL,
-      max_tokens: maxTokens,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }]
-    })
-  });
-  if (!res.ok) {
-    const body2 = await res.text().catch(() => "");
-    throw new Error(`anthropic ${res.status}: ${body2.slice(0, 300)}`);
-  }
-  const json = await res.json();
-  return json.content.filter((b) => b.type === "text").map((b) => b.text ?? "").join("");
-}
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/index.js
+// services/scanners/dist/scanner-discovery/graph/index.js
 import { promises as fs11 } from "node:fs";
 import path16 from "node:path";
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/ts-project.js
+// services/scanners/dist/scanner-discovery/graph/ts-project.js
 var import_ts_morph = __toESM(require_ts_morph(), 1);
 import { promises as fs7 } from "node:fs";
 import path10 from "node:path";
@@ -248320,7 +248575,7 @@ function releaseProject(cp) {
   }
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/extract.js
+// services/scanners/dist/scanner-discovery/graph/extract.js
 var import_ts_morph2 = __toESM(require_ts_morph(), 1);
 import path11 from "node:path";
 var WRITE_METHODS = /* @__PURE__ */ new Set(["insert", "update", "upsert", "delete"]);
@@ -248604,7 +248859,7 @@ function toRepoRelative(repoRoot, absPath) {
   return rel.split(path11.sep).join("/");
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/ts-morph-analyzer.js
+// services/scanners/dist/scanner-discovery/graph/ts-morph-analyzer.js
 var tsMorphAnalyzer = {
   name: "ts-morph",
   async analyzeComponent(repoRoot, componentDir) {
@@ -248623,11 +248878,11 @@ var tsMorphAnalyzer = {
   }
 };
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/csharp-analyzer.js
+// services/scanners/dist/scanner-discovery/graph/csharp-analyzer.js
 import { promises as fs8 } from "node:fs";
 import path12 from "node:path";
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/sql-tables.js
+// services/scanners/dist/scanner-discovery/graph/sql-tables.js
 function looksLikeSql(s) {
   return /\b(SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM|MERGE)\b/i.test(s) && /\b(FROM|INTO|JOIN|SET|VALUES)\b/i.test(s);
 }
@@ -248717,7 +248972,7 @@ function extractSqlObjects(sql) {
   return { tables: [...tables], views: [...views], procs: [...procs], funcs: [...funcs] };
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/csharp-analyzer.js
+// services/scanners/dist/scanner-discovery/graph/csharp-analyzer.js
 var MAX_FILES = 1500;
 var SKIP_DIRS3 = /* @__PURE__ */ new Set([
   "bin",
@@ -248983,11 +249238,11 @@ var csharpAnalyzer = {
   }
 };
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/python-analyzer.js
+// services/scanners/dist/scanner-discovery/graph/python-analyzer.js
 import { promises as fs9 } from "node:fs";
 import path13 from "node:path";
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/python-parser.js
+// services/scanners/dist/scanner-discovery/graph/python-parser.js
 var import_web_tree_sitter3 = __toESM(require_tree_sitter(), 1);
 var parserPromise2 = null;
 function getPythonParser() {
@@ -249018,7 +249273,7 @@ function extractPythonSymbols(root) {
   return out2;
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/python-analyzer.js
+// services/scanners/dist/scanner-discovery/graph/python-analyzer.js
 var MAX_FILES2 = 1500;
 var SKIP_DIRS4 = /* @__PURE__ */ new Set([
   ".git",
@@ -249197,7 +249452,7 @@ var pythonAnalyzer = {
   }
 };
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/sql-schema.js
+// services/scanners/dist/scanner-discovery/graph/sql-schema.js
 import { promises as fs10 } from "node:fs";
 import path14 from "node:path";
 var MAX_SQL_FILES = 600;
@@ -249279,13 +249534,13 @@ async function scanSqlSchema(repoRoot) {
   return { nodes, edges };
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/persist-graph.js
+// services/scanners/dist/scanner-discovery/graph/persist-graph.js
 import { createHash } from "node:crypto";
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/catalog.js
+// services/scanners/dist/scanner-discovery/graph/catalog.js
 import path15 from "node:path";
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/scanner-discovery/graph/index.js
+// services/scanners/dist/scanner-discovery/graph/index.js
 var CS_EXT = /* @__PURE__ */ new Set([".cs"]);
 var PY_EXT = /* @__PURE__ */ new Set([".py"]);
 var TSJS_EXT = /* @__PURE__ */ new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx"]);
@@ -249337,7 +249592,7 @@ async function languageCensus(dir, acc, depth) {
   return acc;
 }
 
-// ../../../Users/mattbeach/Dropbox/MAI/services/scanners/dist/runner/run-scan.js
+// services/scanners/dist/runner/run-scan.js
 function normalizeFacts(facts, repoRoot) {
   return {
     calls: facts.calls.map((c) => ({
