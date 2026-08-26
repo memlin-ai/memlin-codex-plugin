@@ -3624,7 +3624,10 @@ var init_companion_client = __esm({
     CALL_TIMEOUTS = {
       "workspace.resolve": 2e3,
       "sync.now": 5e3,
-      "login.start": 1e4
+      "login.start": 1e4,
+      // Local-store reads walk the materialized doc tree on disk.
+      "memory.search": 2e3,
+      "memory.read": 2e3
     };
     socketDeadUntil = 0;
     SOCKET_DEAD_TTL_MS = 5e3;
@@ -3673,6 +3676,33 @@ async function atomicRename(from, to, dependencies = {}) {
   } finally {
     if (renameQueues.get(queueKey) === run) renameQueues.delete(queueKey);
   }
+}
+
+// packages/plugin-core/src/backend-error.ts
+var MemlinApiError = class extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+    this.name = "MemlinApiError";
+  }
+  status;
+};
+function looksLikeHtml(text) {
+  const head = text.slice(0, 512).trimStart().toLowerCase();
+  return head.startsWith("<!doctype html") || head.startsWith("<html") || head.includes("<html") || head.startsWith("<") && /<\/(head|body|title|div|p)>/i.test(text);
+}
+function singleLine(text, max = 200) {
+  const collapsed = text.replace(/\s+/g, " ").trim();
+  return collapsed.length <= max ? collapsed : `${collapsed.slice(0, max - 1)}\u2026`;
+}
+function describeOpaqueBody(status, text) {
+  const trimmed = text.trim();
+  if (!trimmed) return `HTTP ${status}`;
+  if (looksLikeHtml(trimmed)) {
+    const via = /cloudflare/i.test(trimmed) ? "Cloudflare " : "";
+    return `HTTP ${status} (${via}HTML error page suppressed, ${trimmed.length} chars)`;
+  }
+  return `HTTP ${status}: ${singleLine(trimmed)}`;
 }
 
 // packages/plugin-core/src/auth.ts
@@ -4016,7 +4046,7 @@ var NATIVE_MEMORY_BATCH_SIZE = 20;
 var NATIVE_MEMORY_BATCH_CONCURRENCY = 3;
 var NATIVE_MEMORY_REQUEST_TIMEOUT_MS = 9e4;
 var NATIVE_MEMORY_BATCH_INDEX = "# Native memory satellite batch\n";
-var RETRIABLE_STATUS = /* @__PURE__ */ new Set([408, 429, 500, 502, 503, 504]);
+var RETRIABLE_STATUS = /* @__PURE__ */ new Set([408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524]);
 var RETRIABLE_NETWORK_CODES = /* @__PURE__ */ new Set([
   "ECONNRESET",
   "ECONNREFUSED",
@@ -4133,8 +4163,9 @@ var MemlinApiClient = class {
         }
       }
       if (!res.ok) {
-        const errMsg = parsed?.error ?? text ?? `HTTP ${res.status}`;
-        throw new Error(`${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`);
+        const serverError = parsed?.error;
+        const errMsg = typeof serverError === "string" && serverError ? singleLine(serverError, 300) : describeOpaqueBody(res.status, text);
+        throw new MemlinApiError(`${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`, res.status);
       }
       return parsed;
     }
@@ -4244,6 +4275,7 @@ var MemlinApiClient = class {
     if (opts.project_id !== void 0) {
       qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
     }
+    if (opts.has_trigger) qs.set("has_trigger", "true");
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     const res = await this.request("GET", `/documents${suffix}`, void 0, { accountId: callOpts.accountId });
     return res.documents.map((d) => {

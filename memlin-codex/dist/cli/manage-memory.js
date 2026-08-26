@@ -54,10 +54,12 @@ __export(companion_client_exports, {
   companionDelegationEnabled: () => companionDelegationEnabled,
   companionForDelegation: () => companionForDelegation,
   companionGetToken: () => companionGetToken,
+  companionReadLocal: () => companionReadLocal,
   companionReportSession: () => companionReportSession,
   companionRequest: () => companionRequest,
   companionResolveWorkspace: () => companionResolveWorkspace,
   companionRunDir: () => companionRunDir,
+  companionSearchLocal: () => companionSearchLocal,
   companionSocketPath: () => companionSocketPath,
   companionStatus: () => companionStatus,
   companionSyncNow: () => companionSyncNow,
@@ -162,6 +164,12 @@ async function companionResolveWorkspace(cwd) {
 async function companionSyncNow(req) {
   return companionRequest("sync.now", req);
 }
+async function companionSearchLocal(req) {
+  return companionRequest("memory.search", req);
+}
+async function companionReadLocal(req) {
+  return companionRequest("memory.read", req);
+}
 async function companionReportSession(req) {
   return (await companionRequest("session.report", req))?.registered ?? false;
 }
@@ -201,7 +209,10 @@ var init_companion_client = __esm({
     CALL_TIMEOUTS = {
       "workspace.resolve": 2e3,
       "sync.now": 5e3,
-      "login.start": 1e4
+      "login.start": 1e4,
+      // Local-store reads walk the materialized doc tree on disk.
+      "memory.search": 2e3,
+      "memory.read": 2e3
     };
     socketDeadUntil = 0;
     SOCKET_DEAD_TTL_MS = 5e3;
@@ -3838,6 +3849,73 @@ async function atomicRename(from, to, dependencies = {}) {
   }
 }
 
+// packages/plugin-core/src/backend-error.ts
+var MemlinApiError = class extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+    this.name = "MemlinApiError";
+  }
+  status;
+};
+function looksLikeHtml(text) {
+  const head = text.slice(0, 512).trimStart().toLowerCase();
+  return head.startsWith("<!doctype html") || head.startsWith("<html") || head.includes("<html") || head.startsWith("<") && /<\/(head|body|title|div|p)>/i.test(text);
+}
+function singleLine(text, max = 200) {
+  const collapsed = text.replace(/\s+/g, " ").trim();
+  return collapsed.length <= max ? collapsed : `${collapsed.slice(0, max - 1)}\u2026`;
+}
+function describeOpaqueBody(status, text) {
+  const trimmed = text.trim();
+  if (!trimmed) return `HTTP ${status}`;
+  if (looksLikeHtml(trimmed)) {
+    const via = /cloudflare/i.test(trimmed) ? "Cloudflare " : "";
+    return `HTTP ${status} (${via}HTML error page suppressed, ${trimmed.length} chars)`;
+  }
+  return `HTTP ${status}: ${singleLine(trimmed)}`;
+}
+function backendUnreachableLine(detail) {
+  return `memlin: backend unreachable (${detail}), no memory available`;
+}
+var ROUTING_PATTERN = /account routing (unavailable|lookup failed)/i;
+var CLOUDFLARE_STATUS = /\b(52[0-7])\b/;
+function statusOf(err) {
+  if (err instanceof MemlinApiError) return err.status;
+  const status = err?.status;
+  if (typeof status === "number" && status >= 100 && status <= 599) return status;
+  const message = err instanceof Error ? err.message : String(err);
+  const arrow = message.match(/→ (\d{3}):/);
+  if (arrow) return Number(arrow[1]);
+  return null;
+}
+function summarizeBackendFailure(err) {
+  const message = err instanceof Error ? err.message : String(err ?? "");
+  const status = statusOf(err);
+  if (ROUTING_PATTERN.test(message)) {
+    const embedded = message.match(CLOUDFLARE_STATUS)?.[1];
+    const code = embedded ?? (status !== null && status >= 500 ? String(status) : null);
+    const detail = code ? `routing ${code}` : "routing unavailable";
+    return { kind: "routing", status: code ? Number(code) : status, detail, line: backendUnreachableLine(detail) };
+  }
+  if (status !== null && status >= 500) {
+    const detail = `HTTP ${status}`;
+    return { kind: "http", status, detail, line: backendUnreachableLine(detail) };
+  }
+  if (/took longer than \d+ seconds/i.test(message)) {
+    return { kind: "network", status: null, detail: "timeout", line: backendUnreachableLine("timeout") };
+  }
+  if (/couldn'?t reach|fetch failed|ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|network/i.test(message)) {
+    return {
+      kind: "network",
+      status: null,
+      detail: "network unreachable",
+      line: backendUnreachableLine("network unreachable")
+    };
+  }
+  return null;
+}
+
 // packages/plugin-core/src/auth.ts
 var MEMLIN_PROD_AUTH0_DOMAIN = "memlin.us.auth0.com";
 var MEMLIN_PROD_AUTH0_CLIENT_ID = "fyYMQ4Cxc6Nu5juVwL8Ihqq4fgAFecG9";
@@ -3942,7 +4020,7 @@ async function refreshAccessToken(refreshToken, options2 = {}) {
     signal: AbortSignal.timeout(Math.max(1, options2.timeoutMs ?? 15e3))
   });
   if (!res.ok) {
-    throw new Error(`refresh: ${res.status} ${await res.text()}`);
+    throw new Error(`refresh: ${describeOpaqueBody(res.status, await res.text())}`);
   }
   const json = await res.json();
   return toPersisted(json, refreshToken);
@@ -4197,7 +4275,7 @@ var NATIVE_MEMORY_BATCH_SIZE = 20;
 var NATIVE_MEMORY_BATCH_CONCURRENCY = 3;
 var NATIVE_MEMORY_REQUEST_TIMEOUT_MS = 9e4;
 var NATIVE_MEMORY_BATCH_INDEX = "# Native memory satellite batch\n";
-var RETRIABLE_STATUS = /* @__PURE__ */ new Set([408, 429, 500, 502, 503, 504]);
+var RETRIABLE_STATUS = /* @__PURE__ */ new Set([408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524]);
 var RETRIABLE_NETWORK_CODES = /* @__PURE__ */ new Set([
   "ECONNRESET",
   "ECONNREFUSED",
@@ -4314,8 +4392,9 @@ var MemlinApiClient = class {
         }
       }
       if (!res.ok) {
-        const errMsg = parsed?.error ?? text ?? `HTTP ${res.status}`;
-        throw new Error(`${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`);
+        const serverError = parsed?.error;
+        const errMsg = typeof serverError === "string" && serverError ? singleLine(serverError, 300) : describeOpaqueBody(res.status, text);
+        throw new MemlinApiError(`${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`, res.status);
       }
       return parsed;
     }
@@ -4425,6 +4504,7 @@ var MemlinApiClient = class {
     if (opts.project_id !== void 0) {
       qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
     }
+    if (opts.has_trigger) qs.set("has_trigger", "true");
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     const res = await this.request("GET", `/documents${suffix}`, void 0, { accountId: callOpts.accountId });
     return res.documents.map((d) => {
@@ -5179,6 +5259,7 @@ async function resolveProject(api, cwd, configProjectId) {
   const absCwd = path8.resolve(cwd);
   const remotes = detectGitRemotes(cwd);
   const hasGitRemote = remotes.length > 0;
+  let serverFailure;
   try {
     const result = await api.resolveProject({
       // Primary remote (back-compat with the single-remote server path).
@@ -5198,7 +5279,8 @@ async function resolveProject(api, cwd, configProjectId) {
         enforce_done_deployed: result.enforce_done_deployed
       };
     }
-  } catch {
+  } catch (e) {
+    serverFailure = summarizeBackendFailure(e) ?? void 0;
   }
   if (configProjectId) {
     const localBinding = await findWorkspaceBinding(absCwd).catch(() => null);
@@ -5208,11 +5290,19 @@ async function resolveProject(api, cwd, configProjectId) {
         project_name: null,
         account_id: null,
         reason: "config",
-        hasGitRemote
+        hasGitRemote,
+        server_failure: serverFailure
       };
     }
   }
-  return { project_id: null, project_name: null, account_id: null, reason: "none", hasGitRemote };
+  return {
+    project_id: null,
+    project_name: null,
+    account_id: null,
+    reason: "none",
+    hasGitRemote,
+    server_failure: serverFailure
+  };
 }
 function readGitRemote(cwd) {
   try {

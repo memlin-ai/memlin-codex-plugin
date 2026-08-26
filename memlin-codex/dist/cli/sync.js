@@ -54,10 +54,12 @@ __export(companion_client_exports, {
   companionDelegationEnabled: () => companionDelegationEnabled,
   companionForDelegation: () => companionForDelegation,
   companionGetToken: () => companionGetToken,
+  companionReadLocal: () => companionReadLocal,
   companionReportSession: () => companionReportSession,
   companionRequest: () => companionRequest,
   companionResolveWorkspace: () => companionResolveWorkspace,
   companionRunDir: () => companionRunDir,
+  companionSearchLocal: () => companionSearchLocal,
   companionSocketPath: () => companionSocketPath,
   companionStatus: () => companionStatus,
   companionSyncNow: () => companionSyncNow,
@@ -162,6 +164,12 @@ async function companionResolveWorkspace(cwd) {
 async function companionSyncNow(req) {
   return companionRequest("sync.now", req);
 }
+async function companionSearchLocal(req) {
+  return companionRequest("memory.search", req);
+}
+async function companionReadLocal(req) {
+  return companionRequest("memory.read", req);
+}
 async function companionReportSession(req) {
   return (await companionRequest("session.report", req))?.registered ?? false;
 }
@@ -201,7 +209,10 @@ var init_companion_client = __esm({
     CALL_TIMEOUTS = {
       "workspace.resolve": 2e3,
       "sync.now": 5e3,
-      "login.start": 1e4
+      "login.start": 1e4,
+      // Local-store reads walk the materialized doc tree on disk.
+      "memory.search": 2e3,
+      "memory.read": 2e3
     };
     socketDeadUntil = 0;
     SOCKET_DEAD_TTL_MS = 5e3;
@@ -3580,7 +3591,7 @@ var require_parse = __commonJS({
 var require_gray_matter = __commonJS({
   "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
-    var fs9 = __require("fs");
+    var fs10 = __require("fs");
     var sections = require_section_matter();
     var defaults = require_defaults();
     var stringify = require_stringify();
@@ -3664,7 +3675,7 @@ var require_gray_matter = __commonJS({
       return stringify(file, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str2 = fs9.readFileSync(filepath, "utf8");
+      const str2 = fs10.readFileSync(filepath, "utf8");
       const file = matter3(str2, options2);
       file.path = filepath;
       return file;
@@ -3693,7 +3704,7 @@ var require_gray_matter = __commonJS({
 });
 
 // packages/plugin-core/src/cli/sync.ts
-import path12 from "node:path";
+import path14 from "node:path";
 
 // packages/plugin-core/src/project-resolver.ts
 import { execSync } from "node:child_process";
@@ -4000,6 +4011,73 @@ function isFileNotFound(error) {
   return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
 }
 
+// packages/plugin-core/src/backend-error.ts
+var MemlinApiError = class extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+    this.name = "MemlinApiError";
+  }
+  status;
+};
+function looksLikeHtml(text) {
+  const head = text.slice(0, 512).trimStart().toLowerCase();
+  return head.startsWith("<!doctype html") || head.startsWith("<html") || head.includes("<html") || head.startsWith("<") && /<\/(head|body|title|div|p)>/i.test(text);
+}
+function singleLine(text, max = 200) {
+  const collapsed = text.replace(/\s+/g, " ").trim();
+  return collapsed.length <= max ? collapsed : `${collapsed.slice(0, max - 1)}\u2026`;
+}
+function describeOpaqueBody(status, text) {
+  const trimmed = text.trim();
+  if (!trimmed) return `HTTP ${status}`;
+  if (looksLikeHtml(trimmed)) {
+    const via = /cloudflare/i.test(trimmed) ? "Cloudflare " : "";
+    return `HTTP ${status} (${via}HTML error page suppressed, ${trimmed.length} chars)`;
+  }
+  return `HTTP ${status}: ${singleLine(trimmed)}`;
+}
+function backendUnreachableLine(detail) {
+  return `memlin: backend unreachable (${detail}), no memory available`;
+}
+var ROUTING_PATTERN = /account routing (unavailable|lookup failed)/i;
+var CLOUDFLARE_STATUS = /\b(52[0-7])\b/;
+function statusOf(err) {
+  if (err instanceof MemlinApiError) return err.status;
+  const status = err?.status;
+  if (typeof status === "number" && status >= 100 && status <= 599) return status;
+  const message = err instanceof Error ? err.message : String(err);
+  const arrow = message.match(/→ (\d{3}):/);
+  if (arrow) return Number(arrow[1]);
+  return null;
+}
+function summarizeBackendFailure(err) {
+  const message = err instanceof Error ? err.message : String(err ?? "");
+  const status = statusOf(err);
+  if (ROUTING_PATTERN.test(message)) {
+    const embedded = message.match(CLOUDFLARE_STATUS)?.[1];
+    const code = embedded ?? (status !== null && status >= 500 ? String(status) : null);
+    const detail = code ? `routing ${code}` : "routing unavailable";
+    return { kind: "routing", status: code ? Number(code) : status, detail, line: backendUnreachableLine(detail) };
+  }
+  if (status !== null && status >= 500) {
+    const detail = `HTTP ${status}`;
+    return { kind: "http", status, detail, line: backendUnreachableLine(detail) };
+  }
+  if (/took longer than \d+ seconds/i.test(message)) {
+    return { kind: "network", status: null, detail: "timeout", line: backendUnreachableLine("timeout") };
+  }
+  if (/couldn'?t reach|fetch failed|ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|network/i.test(message)) {
+    return {
+      kind: "network",
+      status: null,
+      detail: "network unreachable",
+      line: backendUnreachableLine("network unreachable")
+    };
+  }
+  return null;
+}
+
 // packages/plugin-core/src/project-resolver.ts
 var WORKSPACE_ENV_VARS = [
   // Claude Code exposes the original project dir to hooks/plugin commands.
@@ -4022,6 +4100,7 @@ async function resolveProject(api, cwd, configProjectId) {
   const absCwd = path3.resolve(cwd);
   const remotes = detectGitRemotes(cwd);
   const hasGitRemote = remotes.length > 0;
+  let serverFailure;
   try {
     const result = await api.resolveProject({
       // Primary remote (back-compat with the single-remote server path).
@@ -4041,7 +4120,8 @@ async function resolveProject(api, cwd, configProjectId) {
         enforce_done_deployed: result.enforce_done_deployed
       };
     }
-  } catch {
+  } catch (e) {
+    serverFailure = summarizeBackendFailure(e) ?? void 0;
   }
   if (configProjectId) {
     const localBinding = await findWorkspaceBinding(absCwd).catch(() => null);
@@ -4051,11 +4131,19 @@ async function resolveProject(api, cwd, configProjectId) {
         project_name: null,
         account_id: null,
         reason: "config",
-        hasGitRemote
+        hasGitRemote,
+        server_failure: serverFailure
       };
     }
   }
-  return { project_id: null, project_name: null, account_id: null, reason: "none", hasGitRemote };
+  return {
+    project_id: null,
+    project_name: null,
+    account_id: null,
+    reason: "none",
+    hasGitRemote,
+    server_failure: serverFailure
+  };
 }
 function readGitRemote(cwd) {
   try {
@@ -4540,7 +4628,7 @@ async function refreshAccessToken(refreshToken, options2 = {}) {
     signal: AbortSignal.timeout(Math.max(1, options2.timeoutMs ?? 15e3))
   });
   if (!res.ok) {
-    throw new Error(`refresh: ${res.status} ${await res.text()}`);
+    throw new Error(`refresh: ${describeOpaqueBody(res.status, await res.text())}`);
   }
   const json = await res.json();
   return toPersisted(json, refreshToken);
@@ -4644,7 +4732,7 @@ var NATIVE_MEMORY_BATCH_SIZE = 20;
 var NATIVE_MEMORY_BATCH_CONCURRENCY = 3;
 var NATIVE_MEMORY_REQUEST_TIMEOUT_MS = 9e4;
 var NATIVE_MEMORY_BATCH_INDEX = "# Native memory satellite batch\n";
-var RETRIABLE_STATUS = /* @__PURE__ */ new Set([408, 429, 500, 502, 503, 504]);
+var RETRIABLE_STATUS = /* @__PURE__ */ new Set([408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524]);
 var RETRIABLE_NETWORK_CODES = /* @__PURE__ */ new Set([
   "ECONNRESET",
   "ECONNREFUSED",
@@ -4761,8 +4849,9 @@ var MemlinApiClient = class {
         }
       }
       if (!res.ok) {
-        const errMsg = parsed?.error ?? text ?? `HTTP ${res.status}`;
-        throw new Error(`${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`);
+        const serverError = parsed?.error;
+        const errMsg = typeof serverError === "string" && serverError ? singleLine(serverError, 300) : describeOpaqueBody(res.status, text);
+        throw new MemlinApiError(`${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`, res.status);
       }
       return parsed;
     }
@@ -4872,6 +4961,7 @@ var MemlinApiClient = class {
     if (opts.project_id !== void 0) {
       qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
     }
+    if (opts.has_trigger) qs.set("has_trigger", "true");
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     const res = await this.request("GET", `/documents${suffix}`, void 0, { accountId: callOpts.accountId });
     return res.documents.map((d) => {
@@ -5402,6 +5492,11 @@ function applyWorkspaceOverlay(config, overlay) {
   return { workspaceBound: true, workspaceRoot: overlay.workspaceRoot };
 }
 
+// packages/plugin-core/src/trigger-memories.ts
+import { promises as fs8 } from "node:fs";
+import os9 from "node:os";
+import path12 from "node:path";
+
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
 __export(external_exports, {
@@ -5880,8 +5975,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path13, errorMaps, issueData } = params;
-  const fullPath = [...path13, ...issueData.path || []];
+  const { data, path: path15, errorMaps, issueData } = params;
+  const fullPath = [...path15, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -5997,11 +6092,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path13, key) {
+  constructor(parent, value, path15, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path13;
+    this._path = path15;
     this._key = key;
   }
   get path() {
@@ -9878,6 +9973,111 @@ for (const p of REDACTION_PATTERNS) {
   }
 }
 
+// packages/shared/dist/trigger-memories.js
+var MEMORY_TRIGGER_MODES = ["warn", "deny"];
+var TRIGGER_MAX_PATTERN_LENGTH = 200;
+var TRIGGER_MAX_PATTERN_TOKENS = 8;
+var TRIGGER_MAX_PATH_PREFIX_LENGTH = 300;
+var TRIGGER_MAX_MESSAGE_LENGTH = 2e3;
+function parseMemoryTrigger(raw) {
+  if (raw === null || raw === void 0 || typeof raw !== "object" || Array.isArray(raw)) {
+    return { ok: false, errors: ["trigger must be an object"] };
+  }
+  const obj = raw;
+  const errors = [];
+  const commandPattern = normalizeCommandPattern(obj.command_pattern, errors);
+  const pathPrefix = normalizePathPrefix(obj.path_prefix, errors);
+  const mode = normalizeMode(obj.mode, errors);
+  const message = normalizeMessage(obj.message, errors);
+  if (!commandPattern && !pathPrefix && errors.length === 0) {
+    errors.push("trigger requires at least one of command_pattern / path_prefix");
+  }
+  if (errors.length > 0) return { ok: false, errors };
+  return {
+    ok: true,
+    trigger: {
+      command_pattern: commandPattern,
+      path_prefix: pathPrefix,
+      mode: mode ?? "warn",
+      message
+    }
+  };
+}
+function normalizeCommandPattern(raw, errors) {
+  if (raw === null || raw === void 0) return null;
+  if (typeof raw !== "string") {
+    errors.push("command_pattern must be a string");
+    return null;
+  }
+  const pattern = raw.trim().replace(/\s+/g, " ");
+  if (!pattern) {
+    errors.push("command_pattern must not be empty");
+    return null;
+  }
+  if (pattern.length > TRIGGER_MAX_PATTERN_LENGTH) {
+    errors.push(`command_pattern longer than ${TRIGGER_MAX_PATTERN_LENGTH} chars`);
+    return null;
+  }
+  if (/[;&|()\n`]/.test(pattern)) {
+    errors.push("command_pattern must be a single command prefix (no ; & | ( ) or newlines)");
+    return null;
+  }
+  const tokens = pattern.split(" ");
+  if (tokens.length > TRIGGER_MAX_PATTERN_TOKENS) {
+    errors.push(`command_pattern has more than ${TRIGGER_MAX_PATTERN_TOKENS} tokens`);
+    return null;
+  }
+  return pattern;
+}
+function normalizePathPrefix(raw, errors) {
+  if (raw === null || raw === void 0) return null;
+  if (typeof raw !== "string") {
+    errors.push("path_prefix must be a string");
+    return null;
+  }
+  if (raw.length > TRIGGER_MAX_PATH_PREFIX_LENGTH) {
+    errors.push(`path_prefix longer than ${TRIGGER_MAX_PATH_PREFIX_LENGTH} chars`);
+    return null;
+  }
+  const slashed = raw.trim().replace(/\\/g, "/");
+  if (slashed.startsWith("/") || /^[A-Za-z]:/.test(slashed)) {
+    errors.push("path_prefix must be workspace-relative, not absolute");
+    return null;
+  }
+  const prefix = slashed.replace(/^(\.\/)+/, "").replace(/\/+$/, "");
+  if (!prefix) {
+    errors.push("path_prefix must not be empty");
+    return null;
+  }
+  if (prefix.split("/").some((seg) => seg === ".." || seg === "")) {
+    errors.push('path_prefix must not contain ".." or empty segments');
+    return null;
+  }
+  return prefix;
+}
+function normalizeMode(raw, errors) {
+  if (raw === null || raw === void 0) return null;
+  if (typeof raw !== "string" || !MEMORY_TRIGGER_MODES.includes(raw)) {
+    errors.push(`mode must be one of ${MEMORY_TRIGGER_MODES.join(" | ")}`);
+    return null;
+  }
+  return raw;
+}
+function normalizeMessage(raw, errors) {
+  if (raw === null || raw === void 0) return null;
+  if (typeof raw !== "string") {
+    errors.push("message must be a string");
+    return null;
+  }
+  const message = raw.trim();
+  if (!message) return null;
+  if (message.length > TRIGGER_MAX_MESSAGE_LENGTH) {
+    errors.push(`message longer than ${TRIGGER_MAX_MESSAGE_LENGTH} chars`);
+    return null;
+  }
+  return message;
+}
+
 // packages/shared/dist/action-metadata.js
 var ActionNameSchema = external_exports.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9._-]*$/, {
   message: "action name must be lowercase alphanumeric + dot/underscore/hyphen, 1-64 chars"
@@ -10287,13 +10487,143 @@ var FACET_BY_TERM = new Map(
   MEMORY_TAXONOMY.map((e) => [e.term, e.facet])
 );
 
+// packages/plugin-core/src/edit-activity.ts
+import { execSync as execSync2 } from "node:child_process";
+import path11 from "node:path";
+import os8 from "node:os";
+
+// packages/plugin-core/src/trigger-memories.ts
+function compiledTriggersPath() {
+  return path12.join(os9.homedir(), ".config", "memlin", "triggers.json");
+}
+function decodeStoredEntry(raw, fallbackId) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw;
+  const parsed = parseMemoryTrigger({
+    command_pattern: obj.command_pattern ?? null,
+    path_prefix: obj.path_prefix ?? null,
+    mode: obj.mode ?? void 0,
+    message: obj.message ?? null
+  });
+  if (!parsed.ok) return null;
+  const title = typeof obj.title === "string" && obj.title.trim() ? obj.title.trim() : null;
+  if (!title) return null;
+  const id = typeof obj.id === "string" && obj.id.trim() ? obj.id.trim() : fallbackId;
+  return {
+    id,
+    title: title.slice(0, 200),
+    mode: parsed.trigger.mode,
+    command_pattern: parsed.trigger.command_pattern,
+    path_prefix: parsed.trigger.path_prefix,
+    message: parsed.trigger.message
+  };
+}
+async function readCompiledTriggers(file = compiledTriggersPath()) {
+  const empty = { version: 1, workspaces: {} };
+  let raw;
+  try {
+    raw = await fs8.readFile(file, "utf8");
+  } catch {
+    return empty;
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || typeof parsed.workspaces !== "object") {
+      return empty;
+    }
+    const workspaces = {};
+    for (const [root, section] of Object.entries(parsed.workspaces ?? {})) {
+      if (!section || typeof section !== "object") continue;
+      const s = section;
+      const rawTriggers = Array.isArray(s.triggers) ? s.triggers : [];
+      const triggers = rawTriggers.map((t, i) => decodeStoredEntry(t, `${root}#${i}`)).filter((t) => t !== null);
+      workspaces[root] = {
+        account_id: typeof s.account_id === "string" ? s.account_id : null,
+        project_id: typeof s.project_id === "string" ? s.project_id : null,
+        compiled_at: typeof s.compiled_at === "string" ? s.compiled_at : "",
+        triggers
+      };
+    }
+    return { version: 1, workspaces };
+  } catch {
+    return empty;
+  }
+}
+var COMPILED_MESSAGE_MAX = 700;
+async function compileWorkspaceTriggers(args) {
+  const file = args.file ?? compiledTriggersPath();
+  const root = await canonicalRoot(args.workspaceRoot);
+  const triggers = [];
+  let skipped = 0;
+  for (const doc of args.docs) {
+    if (doc.kind !== "memory") continue;
+    if (doc.trigger === null || doc.trigger === void 0) continue;
+    const parsed = parseMemoryTrigger(doc.trigger);
+    if (!parsed.ok) {
+      skipped++;
+      continue;
+    }
+    triggers.push({
+      id: doc.id,
+      title: doc.title.slice(0, 200),
+      mode: parsed.trigger.mode,
+      command_pattern: parsed.trigger.command_pattern,
+      path_prefix: parsed.trigger.path_prefix,
+      message: parsed.trigger.message ?? truncateMessage(doc.content)
+    });
+  }
+  const state = await readCompiledTriggers(file);
+  if (triggers.length === 0) {
+    delete state.workspaces[root];
+  } else {
+    state.workspaces[root] = {
+      account_id: args.accountId,
+      project_id: args.projectId,
+      compiled_at: args.now ?? (/* @__PURE__ */ new Date()).toISOString(),
+      triggers
+    };
+  }
+  await fs8.mkdir(path12.dirname(file), { recursive: true });
+  const tmp = `${file}.${process.pid}.tmp`;
+  await fs8.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
+  await atomicRename(tmp, file);
+  return { compiled: triggers.length, skipped };
+}
+function truncateMessage(content) {
+  const text = content.trim();
+  if (!text) return null;
+  if (text.length <= COMPILED_MESSAGE_MAX) return text;
+  return `${text.slice(0, COMPILED_MESSAGE_MAX - 1)}\u2026`;
+}
+async function workspaceRootFor(cwd) {
+  try {
+    const binding = await findWorkspaceBinding(cwd);
+    if (binding) return canonicalRoot(binding.workspaceRoot);
+  } catch {
+  }
+  try {
+    const identity = await resolveGitWorkspaceIdentity(cwd);
+    return canonicalRoot(identity.checkout_root);
+  } catch {
+    return canonicalRoot(cwd);
+  }
+}
+async function canonicalRoot(dir) {
+  const resolved = path12.resolve(dir);
+  try {
+    return await fs8.realpath(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
 // packages/plugin-core/src/resolver-skill.ts
 import { createHash } from "node:crypto";
-import { promises as fs8 } from "node:fs";
-import os8 from "node:os";
-import path11 from "node:path";
-var RESOLVER_SKILL_DIR = path11.join(os8.homedir(), ".claude", "skills", "memlin");
-var RESOLVER_SKILL_FILE = path11.join(RESOLVER_SKILL_DIR, "SKILL.md");
+import { promises as fs9 } from "node:fs";
+import os10 from "node:os";
+import path13 from "node:path";
+var RESOLVER_SKILL_DIR = path13.join(os10.homedir(), ".claude", "skills", "memlin");
+var RESOLVER_SKILL_FILE = path13.join(RESOLVER_SKILL_DIR, "SKILL.md");
 var LEGACY_RESOLVER_SKILL_HASHES = [
   // v1: 2026-06-09 → 2026-06-17. Before the "Writing your own memories"
   // section was added.
@@ -10303,7 +10633,7 @@ async function ensureResolverSkill() {
   try {
     let existing = null;
     try {
-      existing = await fs8.readFile(RESOLVER_SKILL_FILE, "utf8");
+      existing = await fs9.readFile(RESOLVER_SKILL_FILE, "utf8");
     } catch (e) {
       if (e.code !== "ENOENT") throw e;
     }
@@ -10315,11 +10645,11 @@ async function ensureResolverSkill() {
       if (!LEGACY_RESOLVER_SKILL_HASHES.includes(hash2)) {
         return { status: "kept", path: RESOLVER_SKILL_FILE };
       }
-      await fs8.writeFile(RESOLVER_SKILL_FILE, RESOLVER_SKILL_MD, "utf8");
+      await fs9.writeFile(RESOLVER_SKILL_FILE, RESOLVER_SKILL_MD, "utf8");
       return { status: "upgraded", path: RESOLVER_SKILL_FILE };
     }
-    await fs8.mkdir(RESOLVER_SKILL_DIR, { recursive: true });
-    await fs8.writeFile(RESOLVER_SKILL_FILE, RESOLVER_SKILL_MD, "utf8");
+    await fs9.mkdir(RESOLVER_SKILL_DIR, { recursive: true });
+    await fs9.writeFile(RESOLVER_SKILL_FILE, RESOLVER_SKILL_MD, "utf8");
     return { status: "installed", path: RESOLVER_SKILL_FILE };
   } catch (e) {
     return {
@@ -10501,6 +10831,23 @@ async function main() {
   for (const p of result.archived) console.log(`  \u293F ${p} \u2192 archived (preserved, no longer in scope)`);
   for (const p of result.keptEdited) console.log(`  \u2022 ${p} (kept \u2014 locally edited)`);
   await writeState(state);
+  try {
+    const compiled = await compileWorkspaceTriggers({
+      workspaceRoot: await workspaceRootFor(runtimeCwd()),
+      accountId: resolved.account_id ?? config.account_id,
+      projectId: resolved.project_id,
+      docs: m1
+    });
+    if (compiled.compiled > 0 || compiled.skipped > 0) {
+      console.log(
+        `  \u26A1 ${compiled.compiled} trigger-bound memor${compiled.compiled === 1 ? "y" : "ies"} compiled` + (compiled.skipped > 0 ? ` (${compiled.skipped} invalid skipped)` : "")
+      );
+    }
+  } catch (err) {
+    console.error(
+      `  trigger compile failed (non-fatal): ${err instanceof Error ? err.message : err}`
+    );
+  }
   console.log(
     `  ${pushed} pushed, ${result.written.length} pulled, ${result.archived.length} archived \u2014 nothing deleted`
   );
@@ -10523,7 +10870,7 @@ function inferTitle(relPath, content) {
     const name = m[1].split("\n").find((l) => l.startsWith("name:"));
     if (name) return name.replace(/^name:\s*/, "").trim();
   }
-  return path12.basename(relPath, path12.extname(relPath));
+  return path14.basename(relPath, path14.extname(relPath));
 }
 main().catch((err) => {
   console.error("memlin sync failed:", err instanceof Error ? err.message : err);
