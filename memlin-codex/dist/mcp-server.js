@@ -69275,7 +69275,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.40";
+  cachedAgentVersion = "0.2.41";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -71510,7 +71510,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.40"?.trim();
+  const env = "0.2.41"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }
