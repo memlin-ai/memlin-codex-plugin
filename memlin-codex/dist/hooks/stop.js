@@ -4181,7 +4181,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.41";
+  cachedAgentVersion = "0.2.42";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -5328,7 +5328,7 @@ function changedEvidencePaths(evidence, cwd) {
       for (const prefix of item.paths) paths.add(prefix);
       continue;
     }
-    const output = git(["diff", "--name-only", `${item.tag}..HEAD`, "--", ...item.paths], cwd);
+    const output = git(["diff", "--name-only", `${item.tag}...HEAD`, "--", ...item.paths], cwd);
     for (const file of output?.split("\n") ?? []) {
       if (file.trim()) paths.add(file.trim());
     }
@@ -5351,7 +5351,7 @@ function pendingDeploymentEvidence(evidence, changedPaths, cwd) {
       pending.push(`${item.name}: deployment tag ${item.tag} is missing`);
       continue;
     }
-    if (!gitOk(["diff", "--quiet", `${item.tag}..HEAD`, "--", ...item.paths], cwd)) {
+    if (!gitOk(["diff", "--quiet", `${item.tag}...HEAD`, "--", ...item.paths], cwd)) {
       pending.push(`${item.name}: ${item.tag} does not contain the task's current code`);
     }
   }
