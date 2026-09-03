@@ -3705,7 +3705,7 @@ var require_gray_matter = __commonJS({
 
 // apps/codex-plugin/src/hooks/post-tool-use.ts
 import { spawn } from "node:child_process";
-import path12 from "node:path";
+import path16 from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 
 // packages/plugin-core/dist/client.js
@@ -4168,7 +4168,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.42";
+  cachedAgentVersion = "0.2.45";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -4411,6 +4411,7 @@ var MemlinApiClient = class {
       qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
     }
     if (opts.has_trigger) qs.set("has_trigger", "true");
+    if (opts.path) qs.set("path", opts.path);
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     const res = await this.request("GET", `/documents${suffix}`, void 0, { accountId: callOpts.accountId });
     return res.documents.map((d) => {
@@ -4495,6 +4496,7 @@ var MemlinApiClient = class {
     const qs = new URLSearchParams();
     if (opts.project_id) qs.set("project_id", opts.project_id);
     if (opts.target_agent_kind) qs.set("target_agent_kind", opts.target_agent_kind);
+    if (opts.target_session_id) qs.set("target_session_id", opts.target_session_id);
     if (opts.status) qs.set("status", opts.status);
     if (opts.limit) qs.set("limit", String(opts.limit));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
@@ -4608,6 +4610,11 @@ var MemlinApiClient = class {
    * project_id is passed explicitly (the hook resolves it from cwd first).
    */
   async editGuard(input, opts = {}) {
+    return this.request("POST", "/edit-guard", input, { accountId: opts.accountId });
+  }
+  /** Transactional edit broker. prepare acquires exact-path ownership or
+   * returns the first holder that still needs compatibility proof. */
+  async editBroker(input, opts = {}) {
     return this.request("POST", "/edit-guard", input, { accountId: opts.accountId });
   }
   /** GET /audit/<id>/replay — reconstruct a past resolve's exact bundle. */
@@ -4942,12 +4949,12 @@ async function canonicalSafeDirectory(candidate) {
     const before = await fs3.lstat(candidate);
     if (before.isSymbolicLink() || !before.isDirectory()) return null;
     await fs3.access(candidate, constants.R_OK | constants.X_OK);
-    const canonical = await fs3.realpath(candidate);
+    const canonical2 = await fs3.realpath(candidate);
     const after = await fs3.lstat(candidate);
     if (after.isSymbolicLink() || !after.isDirectory() || after.dev !== before.dev || after.ino !== before.ino) {
       return null;
     }
-    return canonical;
+    return canonical2;
   } catch {
     return null;
   }
@@ -5139,22 +5146,29 @@ async function getApi(opts = {}) {
   }
   const cwd = opts.cwd ?? process.cwd();
   const overlay = await findWorkspaceBinding(cwd);
-  const { workspaceBound, workspaceRoot } = applyWorkspaceOverlay(config, overlay);
+  const { workspaceBound, workspaceRoot, workspaceAccountName } = applyWorkspaceOverlay(
+    config,
+    overlay
+  );
   const apiUrl = process.env.MEMLIN_API_URL?.trim() || config.api_url || resolveApiUrl();
   const api = new MemlinApiClient({
     baseUrl: apiUrl,
     getAccessToken: () => getIdentityBoundAccessToken(config),
     accountId: config.account_id
   });
-  return { api, config, workspaceBound, workspaceRoot };
+  return { api, config, workspaceBound, workspaceRoot, workspaceAccountName };
 }
 function applyWorkspaceOverlay(config, overlay) {
-  if (!overlay) return { workspaceBound: false, workspaceRoot: null };
+  if (!overlay) return { workspaceBound: false, workspaceRoot: null, workspaceAccountName: null };
   config.account_id = overlay.binding.account_id;
   if (overlay.binding.project_id !== void 0) {
     config.project_id = overlay.binding.project_id;
   }
-  return { workspaceBound: true, workspaceRoot: overlay.workspaceRoot };
+  return {
+    workspaceBound: true,
+    workspaceRoot: overlay.workspaceRoot,
+    workspaceAccountName: overlay.binding.account_name ?? null
+  };
 }
 function log(msg) {
   if (process.env.MEMLIN_DEBUG) {
@@ -5165,7 +5179,7 @@ function log(msg) {
 
 // packages/plugin-core/dist/pre-tool-use-handler.js
 import { execSync as execSync3 } from "node:child_process";
-import path10 from "node:path";
+import path14 from "node:path";
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -5645,8 +5659,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path13, errorMaps, issueData } = params;
-  const fullPath = [...path13, ...issueData.path || []];
+  const { data, path: path17, errorMaps, issueData } = params;
+  const fullPath = [...path17, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -5762,11 +5776,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path13, key) {
+  constructor(parent, value, path17, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path13;
+    this._path = path17;
     this._key = key;
   }
   get path() {
@@ -9461,7 +9475,12 @@ function luhnValid(digits) {
 function isValidCardNumber(match) {
   const digits = match.replace(/\D/g, "");
   if (digits.length < 13 || digits.length > 19) return false;
-  if (!/^[2-6]/.test(digits)) return false;
+  const first = digits.charCodeAt(0) - 48;
+  if (first < 2 || first > 6) return false;
+  if (first === 2) {
+    const bin = Number(digits.slice(0, 4));
+    if (bin < 2221 || bin > 2720) return false;
+  }
   return luhnValid(digits);
 }
 function isValidUsSsn(match) {
@@ -9737,10 +9756,17 @@ var ActionMetadataSchema = external_exports.object({
 // packages/shared/dist/task-classifier.js
 var DEPLOY_TOOL_RE = /\b(?:vercel\s+(?:deploy|--?prod\w*)|fly(?:ctl)?\s+deploy|wrangler\s+(?:deploy|publish)|sst\s+deploy|serverless\s+deploy|sls\s+deploy|(?:npm|pnpm|yarn)\s+(?:run\s+)?deploy|make\s+deploy|git\s+push\s+\S*(?:deploy|prod|production|heroku))\b/i;
 var DEPLOY_CMD_RE = /(?:^|;|&&|\|\||&|\|)\s*(?:[\w./-]*\/)?deploy(?:\.[a-z]+)?(?=\s|$)/i;
+var FOREGROUND_SHIP_CMD_RE = /(?:^|;|&&|\|\||&|\|)\s*(?:(?:bash|sh|env)\s+)?(?:[\w./-]*\/)?deploy-(?:web|admin|prod|mcp)(?:-local)?(?:\.[a-z]+)?(?=\s|$)|(?:^|;|&&|\|\||&|\|)\s*az\s+webapp\s+deploy\b|(?:^|;|&&|\|\||&|\|)\s*azd\s+deploy\b/i;
 var DEPLOY_TRIGGER_CMD_RE = /\bgh\s+pr\s+merge\b|\bgh\s+workflow\s+run\b[^;&|]*\b(?:deploy|prod|production|release)\b|\bgit\s+push\b[^;&|]*?[\s:](?:main|master|prod|production|release\/\S+)(?=\s|$)/i;
 function isDeployCommand(command) {
   if (!command) return false;
-  return DEPLOY_TOOL_RE.test(command) || DEPLOY_CMD_RE.test(command) || DEPLOY_TRIGGER_CMD_RE.test(command);
+  return DEPLOY_TOOL_RE.test(command) || DEPLOY_CMD_RE.test(command) || FOREGROUND_SHIP_CMD_RE.test(command) || DEPLOY_TRIGGER_CMD_RE.test(command);
+}
+function isSelfLeasingDeployCommand(command) {
+  if (!command) return false;
+  return /(?:^|;|&&|\|\||&|\|)\s*(?:(?:bash|sh|env)\s+)?(?:[\w./-]*\/)?deploy-(?:web|admin|prod|mcp)(?:-local)?(?:\.[a-z]+)?(?=\s|$)/i.test(
+    command
+  ) || /(?:npm|pnpm|yarn)\s+(?:run\s+)?deploy:(?:web|admin|mcp)\b/i.test(command);
 }
 
 // packages/shared/dist/authority.js
@@ -9771,20 +9797,37 @@ var MODEL_PRICES = {
   "claude-haiku-4-5": { inputUsdPerMTok: 1, outputUsdPerMTok: 5 },
   "claude-sonnet-4-6": { inputUsdPerMTok: 3, outputUsdPerMTok: 15 },
   "claude-sonnet-4-5": { inputUsdPerMTok: 3, outputUsdPerMTok: 15 },
-  // ⚠️ INTRODUCTORY pricing, in effect only through 2026-08-31. On 2026-09-01
-  // Sonnet 5 reverts to $3 / $15 — the tripwire test in model-prices.test.ts
-  // goes red on that date until this is bumped. Do NOT set it to $3/$15 early:
-  // that over-bills every Sonnet 5 turn by 50% until the window actually ends.
+  // $2/$10 launched as introductory pricing through 2026-08-31, and the
+  // scheduled 2026-09-01 revert to $3/$15 was CANCELLED — Anthropic made the
+  // introductory rate standard. Verified 2026-09-02 against
+  // https://platform.claude.com/docs/en/about-claude/pricing, which states the
+  // increase "will not occur". This is the standard price now; do not "restore"
+  // $3/$15 on the strength of the old launch announcement — that over-bills
+  // every Sonnet 5 turn by 50%.
   "claude-sonnet-5": { inputUsdPerMTok: 2, outputUsdPerMTok: 10 },
+  // Opus 5 was absent until 2026-09-02. The app never requests it, but
+  // aggregateTurnTiming prices provider-reported models from ingested Claude
+  // Code telemetry, where it is a current default — so every Opus 5 turn was
+  // bucketed 'unknown_model' and dropped out of cost totals. Unpriced is the
+  // safe fallback, but it is still a silent hole in the numbers.
+  "claude-opus-5": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-5": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-6": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-7": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-8": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
-  // Deprecated (retires 2026-08-05) but still billable until then, so priced
-  // rather than left to report $0. 3x Opus 4.8's rate — a stray call costed at
-  // $0 would be a material miss. Drop this entry after the retirement date.
+  // Retired on the Claude API (2026-08-05) but STILL SERVED — and still
+  // billable — on Amazon Bedrock and Google Cloud (verified 2026-09-02 against
+  // the pricing docs), so it stays priced. Do not drop this entry: a partner
+  // call costed at $0 is a material miss, and 3x Opus 4.8's rate makes it an
+  // expensive one.
   "claude-opus-4-1": { inputUsdPerMTok: 15, outputUsdPerMTok: 75 },
   // Anthropic's most capable tier. Mythos 5 (Project Glasswing) shares the sheet.
+  // The 5.1 pair prices the same per base token as the 5 pair but reads cache at
+  // 0.025x rather than the standard 0.1x, so they cannot be plain table rows —
+  // without the override a cache-heavy Fable 5.1 turn costs 4x what it should,
+  // and cache reads dominate an agentic turn.
+  "claude-fable-5-1": { inputUsdPerMTok: 10, outputUsdPerMTok: 50, cacheReadMultiplier: 0.025 },
+  "claude-mythos-5-1": { inputUsdPerMTok: 10, outputUsdPerMTok: 50, cacheReadMultiplier: 0.025 },
   "claude-fable-5": { inputUsdPerMTok: 10, outputUsdPerMTok: 50 },
   "claude-mythos-5": { inputUsdPerMTok: 10, outputUsdPerMTok: 50 },
   // OpenAI
@@ -10042,15 +10085,194 @@ function effectiveAccountId(input) {
 
 // packages/plugin-core/dist/edit-activity.js
 import { execSync as execSync2 } from "node:child_process";
-import path8 from "node:path";
+import { realpathSync as realpathSync2 } from "node:fs";
+import path9 from "node:path";
+import os7 from "node:os";
+
+// packages/plugin-core/dist/edit-broker-local.js
+import crypto from "node:crypto";
+import {
+  closeSync,
+  existsSync as existsSync2,
+  mkdirSync,
+  openSync,
+  readFileSync as readFileSync2,
+  realpathSync,
+  renameSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
 import os6 from "node:os";
-var EDIT_TOOLS = /* @__PURE__ */ new Set(["Edit", "Write", "MultiEdit", "NotebookEdit"]);
+import path8 from "node:path";
+import { execFileSync } from "node:child_process";
+var LOCK_STALE_MS = 1e4;
+var STATE_VERSION = 1;
+function digest(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+function git(cwd, args) {
+  try {
+    return execFileSync("git", args, {
+      cwd,
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+      timeout: 500
+    }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+function canonical(value) {
+  try {
+    return realpathSync(value);
+  } catch {
+    return path8.resolve(value);
+  }
+}
+function localBrokerIdentity(cwd) {
+  const rootRaw = git(cwd, ["rev-parse", "--show-toplevel"]);
+  const commonRaw = git(cwd, ["rev-parse", "--git-common-dir"]);
+  if (!rootRaw || !commonRaw) return null;
+  const root = canonical(rootRaw);
+  const commonDir = canonical(
+    path8.isAbsolute(commonRaw) ? commonRaw : path8.resolve(cwd, commonRaw)
+  );
+  const deviceId = digest(`${os6.hostname()}\0${os6.platform()}\0${os6.arch()}`);
+  return {
+    root,
+    commonDir,
+    worktreeId: digest(`${deviceId}\0${root}`),
+    deviceId,
+    branch: git(cwd, ["rev-parse", "--abbrev-ref", "HEAD"]),
+    head: git(cwd, ["rev-parse", "HEAD"])
+  };
+}
+function statePaths(identity) {
+  const dir = path8.join(identity.commonDir, "memlin");
+  return {
+    dir,
+    state: path8.join(dir, "edit-broker-state.json"),
+    lock: path8.join(dir, "edit-broker.lock")
+  };
+}
+function emptyState() {
+  return { version: STATE_VERSION, worktrees: {}, leases: [] };
+}
+function readState(file) {
+  try {
+    const parsed = JSON.parse(readFileSync2(file, "utf8"));
+    if (parsed?.version === STATE_VERSION && parsed.worktrees && Array.isArray(parsed.leases)) {
+      return parsed;
+    }
+  } catch {
+  }
+  return emptyState();
+}
+function writeState(file, state) {
+  const temp = `${file}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  writeFileSync(temp, JSON.stringify(state), { mode: 384 });
+  renameSync(temp, file);
+}
+function pause(ms) {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch {
+    const until = Date.now() + ms;
+    while (Date.now() < until) {
+    }
+  }
+}
+function withState(identity, mutate) {
+  const files = statePaths(identity);
+  mkdirSync(files.dir, { recursive: true, mode: 448 });
+  let lockFd = null;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    try {
+      lockFd = openSync(files.lock, "wx", 384);
+      break;
+    } catch {
+      try {
+        const lock = JSON.parse(readFileSync2(files.lock, "utf8"));
+        if (typeof lock.at !== "number" || Date.now() - lock.at > LOCK_STALE_MS) {
+          rmSync(files.lock, { force: true });
+          continue;
+        }
+      } catch {
+        rmSync(files.lock, { force: true });
+        continue;
+      }
+      pause(25);
+    }
+  }
+  if (lockFd === null) throw new Error("local edit-broker lock timed out");
+  try {
+    writeFileSync(lockFd, JSON.stringify({ pid: process.pid, at: Date.now() }));
+    const state = readState(files.state);
+    const now = Date.now();
+    state.leases = state.leases.filter((lease) => lease.expiresAt > now);
+    state.worktrees[identity.worktreeId] = {
+      id: identity.worktreeId,
+      root: identity.root,
+      branch: identity.branch,
+      head: identity.head,
+      seenAt: now
+    };
+    const result = mutate(state);
+    writeState(files.state, state);
+    return result;
+  } finally {
+    closeSync(lockFd);
+    rmSync(files.lock, { force: true });
+  }
+}
+function releaseLocalWriteLeases(identity, sessionId, paths) {
+  withState(identity, (state) => {
+    state.leases = state.leases.filter(
+      (lease) => !(lease.sessionId === sessionId && lease.worktreeId === identity.worktreeId && (!paths || paths.includes(lease.path)))
+    );
+  });
+}
+
+// packages/plugin-core/dist/edit-activity.js
+var EDIT_TOOLS = /* @__PURE__ */ new Set([
+  "edit",
+  "write",
+  "multiedit",
+  "notebookedit",
+  "editnotebook"
+]);
+var APPLY_PATCH_TOOLS = /* @__PURE__ */ new Set(["applypatch", "apply_patch"]);
+var SHELL_TOOLS = /* @__PURE__ */ new Set(["bash", "shell", "powershell"]);
+function normalizedTool(toolName) {
+  return toolName.replace(/[^A-Za-z_]/g, "").toLowerCase();
+}
 function editedPathsFromHook(toolName, toolInput) {
-  if (!toolName || !EDIT_TOOLS.has(toolName) || !toolInput) return [];
+  if (!toolName || !toolInput) return [];
+  const tool = normalizedTool(toolName);
+  if (APPLY_PATCH_TOOLS.has(tool) || SHELL_TOOLS.has(tool)) {
+    const patch = [
+      toolInput.patch,
+      toolInput.input,
+      toolInput.content,
+      SHELL_TOOLS.has(tool) ? toolInput.command : null
+    ].find(
+      (value) => typeof value === "string"
+    );
+    if (!patch || SHELL_TOOLS.has(tool) && !/\b(?:apply_patch|git\s+apply|patch)\b/i.test(patch)) {
+      return [];
+    }
+    return [
+      ...new Set(
+        [...patch.matchAll(/^\*\*\* (?:Update|Add|Delete) File: (.+)$/gm)].map((match) => match[1]?.trim()).filter((value) => Boolean(value))
+      )
+    ];
+  }
+  if (!EDIT_TOOLS.has(tool)) return [];
   const p = typeof toolInput.file_path === "string" && toolInput.file_path || typeof toolInput.notebook_path === "string" && toolInput.notebook_path || null;
   return p ? [p] : [];
 }
-function repoRelativePath(absPath, cwd) {
+function gitToplevel(cwd) {
   try {
     const top = execSync2("git rev-parse --show-toplevel", {
       windowsHide: true,
@@ -10059,13 +10281,35 @@ function repoRelativePath(absPath, cwd) {
       encoding: "utf8",
       timeout: 250
     }).trim();
-    if (top) {
-      const rel = path8.relative(top, absPath);
-      if (rel && !rel.startsWith("..") && !path8.isAbsolute(rel)) return rel;
-    }
+    return top || null;
   } catch {
+    return null;
   }
-  return path8.basename(absPath);
+}
+function repoRelativePath(absPath, cwd) {
+  const top = gitToplevel(cwd);
+  if (top) {
+    const canonicalWithMissingTail = (candidate) => {
+      const tail = [];
+      let cursor = path9.resolve(candidate);
+      while (true) {
+        try {
+          return path9.join(realpathSync2(cursor), ...tail.reverse());
+        } catch {
+          const parent = path9.dirname(cursor);
+          if (parent === cursor) return path9.resolve(candidate);
+          tail.push(path9.basename(cursor));
+          cursor = parent;
+        }
+      }
+    };
+    const rel = path9.relative(
+      canonicalWithMissingTail(top),
+      canonicalWithMissingTail(absPath)
+    );
+    if (rel && !rel.startsWith("..") && !path9.isAbsolute(rel)) return rel;
+  }
+  return path9.basename(absPath);
 }
 function readGitBranch(cwd) {
   try {
@@ -10086,14 +10330,15 @@ async function recordEditActivity(ctx, payload) {
     const rawPaths = editedPathsFromHook(payload.tool_name, payload.tool_input);
     if (rawPaths.length === 0) return;
     const cwd = payload.cwd ?? process.cwd();
-    const plansDir = path8.join(os6.homedir(), ".claude", "plans");
-    const abs = rawPaths.map((p) => path8.resolve(cwd, p));
-    const codePaths = abs.filter((p) => !p.startsWith(plansDir + path8.sep));
+    const plansDir = path9.join(os7.homedir(), ".claude", "plans");
+    const abs = rawPaths.map((p) => path9.resolve(cwd, p));
+    const codePaths = abs.filter((p) => !p.startsWith(plansDir + path9.sep));
     if (codePaths.length === 0) return;
     const resolved = await resolveProject(ctx.api, cwd, ctx.config.project_id);
     if (!resolved.project_id) return;
     const accountOverride = resolved.account_id && resolved.account_id !== ctx.config.account_id ? resolved.account_id : void 0;
     const relPaths = [...new Set(codePaths.map((p) => repoRelativePath(p, cwd)))];
+    const identity = localBrokerIdentity(cwd);
     await ctx.api.writeUsageEvent(
       {
         event_type: "edit.activity",
@@ -10101,7 +10346,10 @@ async function recordEditActivity(ctx, payload) {
           project_id: resolved.project_id,
           session_id: payload.session_id ?? null,
           paths: relPaths,
-          git_branch: readGitBranch(cwd)
+          git_branch: readGitBranch(cwd),
+          git_head: identity?.head ?? null,
+          worktree_id: identity?.worktreeId ?? null,
+          device_id: identity?.deviceId ?? null
         }
       },
       accountOverride ? { accountId: accountOverride } : {}
@@ -10113,14 +10361,77 @@ async function recordEditActivity(ctx, payload) {
   }
 }
 
+// packages/plugin-core/dist/edit-broker.js
+import {
+  mkdtempSync,
+  readFileSync as readFileSync4,
+  rmSync as rmSync2,
+  writeFileSync as writeFileSync2
+} from "node:fs";
+import os8 from "node:os";
+import path11 from "node:path";
+import { execFileSync as execFileSync2, spawnSync } from "node:child_process";
+
+// packages/plugin-core/dist/edit-intent.js
+import crypto2 from "node:crypto";
+import { readFileSync as readFileSync3 } from "node:fs";
+import path10 from "node:path";
+function hashEditContent(value) {
+  return crypto2.createHash("sha256").update(value).digest("hex");
+}
+
+// packages/plugin-core/dist/edit-broker.js
+async function completeEditBroker(ctx, payload) {
+  const sessionId = payload.session_id;
+  if (!sessionId) return;
+  const cwd = payload.cwd ?? process.cwd();
+  const identity = localBrokerIdentity(cwd);
+  const rawPaths = editedPathsFromHook(payload.tool_name, payload.tool_input);
+  if (!identity || rawPaths.length === 0) return;
+  const paths = [...new Set(rawPaths.map(
+    (file) => repoRelativePath(path11.resolve(cwd, file), cwd).replaceAll(path11.sep, "/")
+  ))];
+  try {
+    const resolved = await resolveProject(ctx.api, cwd, ctx.config.project_id);
+    if (!resolved.project_id) return;
+    const opts = resolved.account_id ? { accountId: resolved.account_id } : {};
+    for (const relPath of paths) {
+      let content;
+      try {
+        content = readFileSync4(path11.join(identity.root, relPath), "utf8");
+      } catch {
+        continue;
+      }
+      await ctx.api.editBroker(
+        {
+          action: "complete",
+          project_id: resolved.project_id,
+          session_id: sessionId,
+          path: relPath,
+          result_hash: hashEditContent(content)
+        },
+        opts
+      );
+    }
+  } catch (error) {
+    log(`edit-broker: complete failed: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    releaseLocalWriteLeases(identity, sessionId, paths);
+  }
+}
+
+// packages/plugin-core/dist/edit-collision-report.js
+import path12 from "node:path";
+
 // packages/plugin-core/dist/trigger-memories.js
 import { promises as fs5 } from "node:fs";
-import os7 from "node:os";
-import path9 from "node:path";
+import os9 from "node:os";
+import path13 from "node:path";
 
 // packages/plugin-core/dist/pre-tool-use-handler.js
 async function releaseDeployLease(ctx, args) {
   if (!args.session_id || !isDeployCommand(args.command)) return;
+  if (isSelfLeasingDeployCommand(args.command)) return;
   try {
     const resolved = await resolveProject(ctx.api, args.cwd, ctx.config.project_id);
     if (!resolved.project_id) return;
@@ -10225,15 +10536,15 @@ async function maybeScribeCommit(ctx, payload) {
 }
 
 // packages/plugin-core/dist/heartbeat.js
-import crypto from "node:crypto";
+import crypto3 from "node:crypto";
 import { promises as fs6 } from "node:fs";
-import os8 from "node:os";
-import path11 from "node:path";
+import os10 from "node:os";
+import path15 from "node:path";
 var DEFAULT_THROTTLE_MS = 6e4;
 var HEARTBEAT_REQUEST_TIMEOUT_MS = 750;
 function statePath(cwd, host) {
-  const key = crypto.createHash("sha256").update(cwd).digest("hex").slice(0, 16);
-  return path11.join(os8.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
+  const key = crypto3.createHash("sha256").update(cwd).digest("hex").slice(0, 16);
+  return path15.join(os10.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
 }
 async function recentlySent(file, throttleMs) {
   try {
@@ -10307,8 +10618,8 @@ function readHookInput() {
 }
 
 // apps/codex-plugin/src/hooks/post-tool-use.ts
-var HOOK_DIR = path12.dirname(fileURLToPath2(import.meta.url));
-var PUSH_PLAN_BIN = path12.resolve(HOOK_DIR, "../cli/push-plan.js");
+var HOOK_DIR = path16.dirname(fileURLToPath2(import.meta.url));
+var PUSH_PLAN_BIN = path16.resolve(HOOK_DIR, "../cli/push-plan.js");
 function editedFile(input) {
   const ti = input?.tool_input;
   const fp = ti?.file_path;
@@ -10322,6 +10633,7 @@ async function main() {
   await recordCodexActivity(cwd, "post-tool-use");
   const ctx = await getApi({ cwd });
   if (ctx && input) {
+    await completeEditBroker(ctx, input);
     await recordEditActivity(ctx, input);
     if (input.tool_name === "Bash") {
       const command = typeof input.tool_input?.command === "string" ? input.tool_input.command : "";
@@ -10331,8 +10643,8 @@ async function main() {
   }
   const file = editedFile(input);
   const plansDir = resolveHost().plansDir();
-  const abs = file ? path12.resolve(file) : "";
-  if (abs && abs.startsWith(plansDir + path12.sep) && abs.endsWith(".md")) {
+  const abs = file ? path16.resolve(file) : "";
+  if (abs && abs.startsWith(plansDir + path16.sep) && abs.endsWith(".md")) {
     try {
       const child = spawn(process.execPath, [PUSH_PLAN_BIN, abs], {
         windowsHide: true,

@@ -3705,7 +3705,7 @@ var init_companion_client = __esm({
 
 // packages/plugin-core/dist/pre-tool-use-handler.js
 import { execSync as execSync3 } from "node:child_process";
-import path10 from "node:path";
+import path14 from "node:path";
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4185,8 +4185,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path11, errorMaps, issueData } = params;
-  const fullPath = [...path11, ...issueData.path || []];
+  const { data, path: path15, errorMaps, issueData } = params;
+  const fullPath = [...path15, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -4302,11 +4302,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path11, key) {
+  constructor(parent, value, path15, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path11;
+    this._path = path15;
     this._key = key;
   }
   get path() {
@@ -8001,7 +8001,12 @@ function luhnValid(digits) {
 function isValidCardNumber(match) {
   const digits = match.replace(/\D/g, "");
   if (digits.length < 13 || digits.length > 19) return false;
-  if (!/^[2-6]/.test(digits)) return false;
+  const first = digits.charCodeAt(0) - 48;
+  if (first < 2 || first > 6) return false;
+  if (first === 2) {
+    const bin = Number(digits.slice(0, 4));
+    if (bin < 2221 || bin > 2720) return false;
+  }
   return luhnValid(digits);
 }
 function isValidUsSsn(match) {
@@ -8456,10 +8461,21 @@ var ActionMetadataSchema = external_exports.object({
 // packages/shared/dist/task-classifier.js
 var DEPLOY_TOOL_RE = /\b(?:vercel\s+(?:deploy|--?prod\w*)|fly(?:ctl)?\s+deploy|wrangler\s+(?:deploy|publish)|sst\s+deploy|serverless\s+deploy|sls\s+deploy|(?:npm|pnpm|yarn)\s+(?:run\s+)?deploy|make\s+deploy|git\s+push\s+\S*(?:deploy|prod|production|heroku))\b/i;
 var DEPLOY_CMD_RE = /(?:^|;|&&|\|\||&|\|)\s*(?:[\w./-]*\/)?deploy(?:\.[a-z]+)?(?=\s|$)/i;
+var FOREGROUND_SHIP_CMD_RE = /(?:^|;|&&|\|\||&|\|)\s*(?:(?:bash|sh|env)\s+)?(?:[\w./-]*\/)?deploy-(?:web|admin|prod|mcp)(?:-local)?(?:\.[a-z]+)?(?=\s|$)|(?:^|;|&&|\|\||&|\|)\s*az\s+webapp\s+deploy\b|(?:^|;|&&|\|\||&|\|)\s*azd\s+deploy\b/i;
 var DEPLOY_TRIGGER_CMD_RE = /\bgh\s+pr\s+merge\b|\bgh\s+workflow\s+run\b[^;&|]*\b(?:deploy|prod|production|release)\b|\bgit\s+push\b[^;&|]*?[\s:](?:main|master|prod|production|release\/\S+)(?=\s|$)/i;
 function isDeployCommand(command) {
   if (!command) return false;
-  return DEPLOY_TOOL_RE.test(command) || DEPLOY_CMD_RE.test(command) || DEPLOY_TRIGGER_CMD_RE.test(command);
+  return DEPLOY_TOOL_RE.test(command) || DEPLOY_CMD_RE.test(command) || FOREGROUND_SHIP_CMD_RE.test(command) || DEPLOY_TRIGGER_CMD_RE.test(command);
+}
+function isForegroundDeployCommand(command) {
+  if (!command) return false;
+  return DEPLOY_TOOL_RE.test(command) || DEPLOY_CMD_RE.test(command) || FOREGROUND_SHIP_CMD_RE.test(command);
+}
+function isSelfLeasingDeployCommand(command) {
+  if (!command) return false;
+  return /(?:^|;|&&|\|\||&|\|)\s*(?:(?:bash|sh|env)\s+)?(?:[\w./-]*\/)?deploy-(?:web|admin|prod|mcp)(?:-local)?(?:\.[a-z]+)?(?=\s|$)/i.test(
+    command
+  ) || /(?:npm|pnpm|yarn)\s+(?:run\s+)?deploy:(?:web|admin|mcp)\b/i.test(command);
 }
 function isDeployTriggerCommand(command) {
   if (!command) return false;
@@ -8494,20 +8510,37 @@ var MODEL_PRICES = {
   "claude-haiku-4-5": { inputUsdPerMTok: 1, outputUsdPerMTok: 5 },
   "claude-sonnet-4-6": { inputUsdPerMTok: 3, outputUsdPerMTok: 15 },
   "claude-sonnet-4-5": { inputUsdPerMTok: 3, outputUsdPerMTok: 15 },
-  // ⚠️ INTRODUCTORY pricing, in effect only through 2026-08-31. On 2026-09-01
-  // Sonnet 5 reverts to $3 / $15 — the tripwire test in model-prices.test.ts
-  // goes red on that date until this is bumped. Do NOT set it to $3/$15 early:
-  // that over-bills every Sonnet 5 turn by 50% until the window actually ends.
+  // $2/$10 launched as introductory pricing through 2026-08-31, and the
+  // scheduled 2026-09-01 revert to $3/$15 was CANCELLED — Anthropic made the
+  // introductory rate standard. Verified 2026-09-02 against
+  // https://platform.claude.com/docs/en/about-claude/pricing, which states the
+  // increase "will not occur". This is the standard price now; do not "restore"
+  // $3/$15 on the strength of the old launch announcement — that over-bills
+  // every Sonnet 5 turn by 50%.
   "claude-sonnet-5": { inputUsdPerMTok: 2, outputUsdPerMTok: 10 },
+  // Opus 5 was absent until 2026-09-02. The app never requests it, but
+  // aggregateTurnTiming prices provider-reported models from ingested Claude
+  // Code telemetry, where it is a current default — so every Opus 5 turn was
+  // bucketed 'unknown_model' and dropped out of cost totals. Unpriced is the
+  // safe fallback, but it is still a silent hole in the numbers.
+  "claude-opus-5": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-5": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-6": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-7": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-8": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
-  // Deprecated (retires 2026-08-05) but still billable until then, so priced
-  // rather than left to report $0. 3x Opus 4.8's rate — a stray call costed at
-  // $0 would be a material miss. Drop this entry after the retirement date.
+  // Retired on the Claude API (2026-08-05) but STILL SERVED — and still
+  // billable — on Amazon Bedrock and Google Cloud (verified 2026-09-02 against
+  // the pricing docs), so it stays priced. Do not drop this entry: a partner
+  // call costed at $0 is a material miss, and 3x Opus 4.8's rate makes it an
+  // expensive one.
   "claude-opus-4-1": { inputUsdPerMTok: 15, outputUsdPerMTok: 75 },
   // Anthropic's most capable tier. Mythos 5 (Project Glasswing) shares the sheet.
+  // The 5.1 pair prices the same per base token as the 5 pair but reads cache at
+  // 0.025x rather than the standard 0.1x, so they cannot be plain table rows —
+  // without the override a cache-heavy Fable 5.1 turn costs 4x what it should,
+  // and cache reads dominate an agentic turn.
+  "claude-fable-5-1": { inputUsdPerMTok: 10, outputUsdPerMTok: 50, cacheReadMultiplier: 0.025 },
+  "claude-mythos-5-1": { inputUsdPerMTok: 10, outputUsdPerMTok: 50, cacheReadMultiplier: 0.025 },
   "claude-fable-5": { inputUsdPerMTok: 10, outputUsdPerMTok: 50 },
   "claude-mythos-5": { inputUsdPerMTok: 10, outputUsdPerMTok: 50 },
   // OpenAI
@@ -9142,7 +9175,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.42";
+  cachedAgentVersion = "0.2.45";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -9385,6 +9418,7 @@ var MemlinApiClient = class {
       qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
     }
     if (opts.has_trigger) qs.set("has_trigger", "true");
+    if (opts.path) qs.set("path", opts.path);
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     const res = await this.request("GET", `/documents${suffix}`, void 0, { accountId: callOpts.accountId });
     return res.documents.map((d) => {
@@ -9469,6 +9503,7 @@ var MemlinApiClient = class {
     const qs = new URLSearchParams();
     if (opts.project_id) qs.set("project_id", opts.project_id);
     if (opts.target_agent_kind) qs.set("target_agent_kind", opts.target_agent_kind);
+    if (opts.target_session_id) qs.set("target_session_id", opts.target_session_id);
     if (opts.status) qs.set("status", opts.status);
     if (opts.limit) qs.set("limit", String(opts.limit));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
@@ -9582,6 +9617,11 @@ var MemlinApiClient = class {
    * project_id is passed explicitly (the hook resolves it from cwd first).
    */
   async editGuard(input, opts = {}) {
+    return this.request("POST", "/edit-guard", input, { accountId: opts.accountId });
+  }
+  /** Transactional edit broker. prepare acquires exact-path ownership or
+   * returns the first holder that still needs compatibility proof. */
+  async editBroker(input, opts = {}) {
     return this.request("POST", "/edit-guard", input, { accountId: opts.accountId });
   }
   /** GET /audit/<id>/replay — reconstruct a past resolve's exact bundle. */
@@ -9916,12 +9956,12 @@ async function canonicalSafeDirectory(candidate) {
     const before = await fs3.lstat(candidate);
     if (before.isSymbolicLink() || !before.isDirectory()) return null;
     await fs3.access(candidate, constants.R_OK | constants.X_OK);
-    const canonical = await fs3.realpath(candidate);
+    const canonical2 = await fs3.realpath(candidate);
     const after = await fs3.lstat(candidate);
     if (after.isSymbolicLink() || !after.isDirectory() || after.dev !== before.dev || after.ino !== before.ino) {
       return null;
     }
-    return canonical;
+    return canonical2;
   } catch {
     return null;
   }
@@ -10113,22 +10153,29 @@ async function getApi(opts = {}) {
   }
   const cwd = opts.cwd ?? process.cwd();
   const overlay = await findWorkspaceBinding(cwd);
-  const { workspaceBound, workspaceRoot } = applyWorkspaceOverlay(config, overlay);
+  const { workspaceBound, workspaceRoot, workspaceAccountName } = applyWorkspaceOverlay(
+    config,
+    overlay
+  );
   const apiUrl = process.env.MEMLIN_API_URL?.trim() || config.api_url || resolveApiUrl();
   const api = new MemlinApiClient({
     baseUrl: apiUrl,
     getAccessToken: () => getIdentityBoundAccessToken(config),
     accountId: config.account_id
   });
-  return { api, config, workspaceBound, workspaceRoot };
+  return { api, config, workspaceBound, workspaceRoot, workspaceAccountName };
 }
 function applyWorkspaceOverlay(config, overlay) {
-  if (!overlay) return { workspaceBound: false, workspaceRoot: null };
+  if (!overlay) return { workspaceBound: false, workspaceRoot: null, workspaceAccountName: null };
   config.account_id = overlay.binding.account_id;
   if (overlay.binding.project_id !== void 0) {
     config.project_id = overlay.binding.project_id;
   }
-  return { workspaceBound: true, workspaceRoot: overlay.workspaceRoot };
+  return {
+    workspaceBound: true,
+    workspaceRoot: overlay.workspaceRoot,
+    workspaceAccountName: overlay.binding.account_name ?? null
+  };
 }
 function log(msg) {
   if (process.env.MEMLIN_DEBUG) {
@@ -10231,15 +10278,295 @@ function isWorkspaceActive(input) {
 
 // packages/plugin-core/dist/edit-activity.js
 import { execSync as execSync2 } from "node:child_process";
-import path8 from "node:path";
+import { realpathSync as realpathSync2 } from "node:fs";
+import path9 from "node:path";
+import os7 from "node:os";
+
+// packages/plugin-core/dist/edit-broker-local.js
+import crypto from "node:crypto";
+import {
+  closeSync,
+  existsSync as existsSync2,
+  mkdirSync,
+  openSync,
+  readFileSync as readFileSync2,
+  realpathSync,
+  renameSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
 import os6 from "node:os";
-var EDIT_TOOLS = /* @__PURE__ */ new Set(["Edit", "Write", "MultiEdit", "NotebookEdit"]);
+import path8 from "node:path";
+import { execFileSync } from "node:child_process";
+var LOCAL_LEASE_MS = 2e4;
+var LOCK_STALE_MS = 1e4;
+var STATE_VERSION = 1;
+function digest(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+function git(cwd, args) {
+  try {
+    return execFileSync("git", args, {
+      cwd,
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+      timeout: 500
+    }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+function canonical(value) {
+  try {
+    return realpathSync(value);
+  } catch {
+    return path8.resolve(value);
+  }
+}
+function localBrokerIdentity(cwd) {
+  const rootRaw = git(cwd, ["rev-parse", "--show-toplevel"]);
+  const commonRaw = git(cwd, ["rev-parse", "--git-common-dir"]);
+  if (!rootRaw || !commonRaw) return null;
+  const root = canonical(rootRaw);
+  const commonDir = canonical(
+    path8.isAbsolute(commonRaw) ? commonRaw : path8.resolve(cwd, commonRaw)
+  );
+  const deviceId = digest(`${os6.hostname()}\0${os6.platform()}\0${os6.arch()}`);
+  return {
+    root,
+    commonDir,
+    worktreeId: digest(`${deviceId}\0${root}`),
+    deviceId,
+    branch: git(cwd, ["rev-parse", "--abbrev-ref", "HEAD"]),
+    head: git(cwd, ["rev-parse", "HEAD"])
+  };
+}
+function statePaths(identity) {
+  const dir = path8.join(identity.commonDir, "memlin");
+  return {
+    dir,
+    state: path8.join(dir, "edit-broker-state.json"),
+    lock: path8.join(dir, "edit-broker.lock")
+  };
+}
+function emptyState() {
+  return { version: STATE_VERSION, worktrees: {}, leases: [] };
+}
+function readState(file) {
+  try {
+    const parsed = JSON.parse(readFileSync2(file, "utf8"));
+    if (parsed?.version === STATE_VERSION && parsed.worktrees && Array.isArray(parsed.leases)) {
+      return parsed;
+    }
+  } catch {
+  }
+  return emptyState();
+}
+function writeState(file, state) {
+  const temp = `${file}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  writeFileSync(temp, JSON.stringify(state), { mode: 384 });
+  renameSync(temp, file);
+}
+function pause(ms) {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch {
+    const until = Date.now() + ms;
+    while (Date.now() < until) {
+    }
+  }
+}
+function withState(identity, mutate) {
+  const files = statePaths(identity);
+  mkdirSync(files.dir, { recursive: true, mode: 448 });
+  let lockFd = null;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    try {
+      lockFd = openSync(files.lock, "wx", 384);
+      break;
+    } catch {
+      try {
+        const lock = JSON.parse(readFileSync2(files.lock, "utf8"));
+        if (typeof lock.at !== "number" || Date.now() - lock.at > LOCK_STALE_MS) {
+          rmSync(files.lock, { force: true });
+          continue;
+        }
+      } catch {
+        rmSync(files.lock, { force: true });
+        continue;
+      }
+      pause(25);
+    }
+  }
+  if (lockFd === null) throw new Error("local edit-broker lock timed out");
+  try {
+    writeFileSync(lockFd, JSON.stringify({ pid: process.pid, at: Date.now() }));
+    const state = readState(files.state);
+    const now = Date.now();
+    state.leases = state.leases.filter((lease) => lease.expiresAt > now);
+    state.worktrees[identity.worktreeId] = {
+      id: identity.worktreeId,
+      root: identity.root,
+      branch: identity.branch,
+      head: identity.head,
+      seenAt: now
+    };
+    const result = mutate(state);
+    writeState(files.state, state);
+    return result;
+  } finally {
+    closeSync(lockFd);
+    rmSync(files.lock, { force: true });
+  }
+}
+function acquireLocalWriteLeases(identity, sessionId, paths) {
+  return withState(identity, (state) => {
+    const now = Date.now();
+    for (const candidate of paths) {
+      const holder = state.leases.find(
+        (lease) => lease.path === candidate && lease.worktreeId === identity.worktreeId && lease.sessionId !== sessionId && lease.expiresAt > now
+      );
+      if (holder) {
+        return {
+          acquired: false,
+          conflict: {
+            path: candidate,
+            holderSession: holder.sessionId,
+            holderWorktreeId: holder.worktreeId,
+            holderRoot: state.worktrees[holder.worktreeId]?.root ?? null,
+            secondsAgo: Math.max(0, Math.floor((now - holder.acquiredAt) / 1e3))
+          }
+        };
+      }
+    }
+    state.leases = state.leases.filter(
+      (lease) => !(lease.sessionId === sessionId && lease.worktreeId === identity.worktreeId && paths.includes(lease.path))
+    );
+    for (const candidate of paths) {
+      state.leases.push({
+        path: candidate,
+        sessionId,
+        worktreeId: identity.worktreeId,
+        acquiredAt: now,
+        expiresAt: now + LOCAL_LEASE_MS
+      });
+    }
+    return { acquired: true };
+  });
+}
+function releaseLocalWriteLeases(identity, sessionId, paths) {
+  withState(identity, (state) => {
+    state.leases = state.leases.filter(
+      (lease) => !(lease.sessionId === sessionId && lease.worktreeId === identity.worktreeId && (!paths || paths.includes(lease.path)))
+    );
+  });
+}
+function localRootForWorktree(identity, worktreeId) {
+  if (!worktreeId) return null;
+  return withState(identity, (state) => state.worktrees[worktreeId]?.root ?? null);
+}
+function globRegex(glob) {
+  let source = "^";
+  for (let i = 0; i < glob.length; i += 1) {
+    const char = glob[i];
+    if (char === "*") {
+      if (glob[i + 1] === "*") {
+        source += ".*";
+        i += 1;
+      } else {
+        source += "[^/]*";
+      }
+    } else if (char === "?") {
+      source += "[^/]";
+    } else {
+      source += char.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+    }
+  }
+  return new RegExp(`${source}$`);
+}
+function activeRepositoryClaims(identity, paths, selfAgent = process.env.CLAUDE_AGENT_NAME ?? process.env.MEMLIN_AGENT_NAME ?? "") {
+  const claimsDir = path8.join(identity.root, ".claude-agents");
+  if (!existsSync2(claimsDir)) return [];
+  let names = [];
+  try {
+    names = execFileSync(
+      process.execPath,
+      [
+        "-e",
+        "const fs=require('fs');const p=process.argv[1];process.stdout.write(fs.readdirSync(p).filter(x=>x.endsWith('.json')).join('\\n'))",
+        claimsDir
+      ],
+      { encoding: "utf8", timeout: 500, windowsHide: true }
+    ).split(/\r?\n/).filter(Boolean);
+  } catch {
+    return [];
+  }
+  const now = Date.now();
+  const conflicts = [];
+  for (const name of names) {
+    try {
+      const claim = JSON.parse(readFileSync2(path8.join(claimsDir, name), "utf8"));
+      const agent = typeof claim.agent === "string" ? claim.agent : "";
+      if (!agent || agent === selfAgent) continue;
+      const started = typeof claim.started_at === "string" ? Date.parse(claim.started_at) : NaN;
+      const ttl = typeof claim.ttl_minutes === "number" ? claim.ttl_minutes : 90;
+      if (!Number.isFinite(started) || ttl <= 0 || started + ttl * 6e4 <= now) continue;
+      const patterns = Array.isArray(claim.paths) ? claim.paths.filter((item) => typeof item === "string") : [];
+      for (const pattern of patterns) {
+        const matcher = globRegex(pattern.replaceAll(path8.sep, "/"));
+        if (!paths.some((candidate) => matcher.test(candidate))) continue;
+        conflicts.push({
+          agent,
+          task: typeof claim.task === "string" ? claim.task : null,
+          pathPattern: pattern
+        });
+      }
+    } catch {
+    }
+  }
+  return conflicts;
+}
+
+// packages/plugin-core/dist/edit-activity.js
+var EDIT_TOOLS = /* @__PURE__ */ new Set([
+  "edit",
+  "write",
+  "multiedit",
+  "notebookedit",
+  "editnotebook"
+]);
+var APPLY_PATCH_TOOLS = /* @__PURE__ */ new Set(["applypatch", "apply_patch"]);
+var SHELL_TOOLS = /* @__PURE__ */ new Set(["bash", "shell", "powershell"]);
+function normalizedTool(toolName) {
+  return toolName.replace(/[^A-Za-z_]/g, "").toLowerCase();
+}
 function editedPathsFromHook(toolName, toolInput) {
-  if (!toolName || !EDIT_TOOLS.has(toolName) || !toolInput) return [];
+  if (!toolName || !toolInput) return [];
+  const tool = normalizedTool(toolName);
+  if (APPLY_PATCH_TOOLS.has(tool) || SHELL_TOOLS.has(tool)) {
+    const patch = [
+      toolInput.patch,
+      toolInput.input,
+      toolInput.content,
+      SHELL_TOOLS.has(tool) ? toolInput.command : null
+    ].find(
+      (value) => typeof value === "string"
+    );
+    if (!patch || SHELL_TOOLS.has(tool) && !/\b(?:apply_patch|git\s+apply|patch)\b/i.test(patch)) {
+      return [];
+    }
+    return [
+      ...new Set(
+        [...patch.matchAll(/^\*\*\* (?:Update|Add|Delete) File: (.+)$/gm)].map((match) => match[1]?.trim()).filter((value) => Boolean(value))
+      )
+    ];
+  }
+  if (!EDIT_TOOLS.has(tool)) return [];
   const p = typeof toolInput.file_path === "string" && toolInput.file_path || typeof toolInput.notebook_path === "string" && toolInput.notebook_path || null;
   return p ? [p] : [];
 }
-function repoRelativePath(absPath, cwd) {
+function gitToplevel(cwd) {
   try {
     const top = execSync2("git rev-parse --show-toplevel", {
       windowsHide: true,
@@ -10248,19 +10575,719 @@ function repoRelativePath(absPath, cwd) {
       encoding: "utf8",
       timeout: 250
     }).trim();
-    if (top) {
-      const rel = path8.relative(top, absPath);
-      if (rel && !rel.startsWith("..") && !path8.isAbsolute(rel)) return rel;
+    return top || null;
+  } catch {
+    return null;
+  }
+}
+function repoRelativePath(absPath, cwd) {
+  const top = gitToplevel(cwd);
+  if (top) {
+    const canonicalWithMissingTail = (candidate) => {
+      const tail = [];
+      let cursor = path9.resolve(candidate);
+      while (true) {
+        try {
+          return path9.join(realpathSync2(cursor), ...tail.reverse());
+        } catch {
+          const parent = path9.dirname(cursor);
+          if (parent === cursor) return path9.resolve(candidate);
+          tail.push(path9.basename(cursor));
+          cursor = parent;
+        }
+      }
+    };
+    const rel = path9.relative(
+      canonicalWithMissingTail(top),
+      canonicalWithMissingTail(absPath)
+    );
+    if (rel && !rel.startsWith("..") && !path9.isAbsolute(rel)) return rel;
+  }
+  return path9.basename(absPath);
+}
+function readGitBranch(cwd) {
+  try {
+    const branch = execSync2("git rev-parse --abbrev-ref HEAD", {
+      windowsHide: true,
+      cwd,
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+      timeout: 250
+    }).trim();
+    return branch && branch !== "HEAD" ? branch : null;
+  } catch {
+    return null;
+  }
+}
+
+// packages/plugin-core/dist/edit-broker.js
+import {
+  mkdtempSync,
+  readFileSync as readFileSync4,
+  rmSync as rmSync2,
+  writeFileSync as writeFileSync2
+} from "node:fs";
+import os8 from "node:os";
+import path11 from "node:path";
+import { execFileSync as execFileSync2, spawnSync } from "node:child_process";
+
+// packages/plugin-core/dist/edit-intent.js
+import crypto2 from "node:crypto";
+import { readFileSync as readFileSync3 } from "node:fs";
+import path10 from "node:path";
+var WHOLE_FILE_END = 2147483647;
+var PATCH_TOOLS = /* @__PURE__ */ new Set(["edit", "multiedit"]);
+var WRITE_TOOLS = /* @__PURE__ */ new Set(["write"]);
+var NOTEBOOK_TOOLS = /* @__PURE__ */ new Set(["notebookedit", "editnotebook"]);
+var APPLY_PATCH_TOOLS2 = /* @__PURE__ */ new Set(["applypatch", "apply_patch"]);
+var SHELL_TOOLS2 = /* @__PURE__ */ new Set(["bash", "shell", "powershell"]);
+function hashEditContent(value) {
+  return crypto2.createHash("sha256").update(value).digest("hex");
+}
+function valueString(input, ...keys) {
+  for (const key of keys) {
+    const value = input[key];
+    if (typeof value === "string") return value;
+  }
+  return null;
+}
+function toolKey(toolName) {
+  return (toolName ?? "").replace(/[^A-Za-z_]/g, "").toLowerCase();
+}
+function pathOf(input) {
+  return valueString(input, "file_path", "path", "notebook_path", "target_file");
+}
+function replacementOf(input) {
+  const oldText = valueString(input, "old_string", "oldString");
+  const newText = valueString(input, "new_string", "newString");
+  if (oldText === null || newText === null) return null;
+  return {
+    oldText,
+    newText,
+    replaceAll: input.replace_all === true || input.replaceAll === true
+  };
+}
+function parsePatchRanges(text) {
+  const ranges = [];
+  for (const line of text.split(/\r?\n/)) {
+    const match = /^@@ -(\d+)(?:,(\d+))? \+\d+(?:,\d+)? @@/.exec(line);
+    if (!match) continue;
+    const start = Number.parseInt(match[1], 10);
+    const count = match[2] === void 0 ? 1 : Number.parseInt(match[2], 10);
+    ranges.push({ start, end: Math.max(start, start + Math.max(count, 1) - 1) });
+  }
+  return ranges;
+}
+function parseApplyPatch(text, kind) {
+  const result = [];
+  const lines = text.split(/\r?\n/);
+  let current = null;
+  let body = [];
+  const flush = () => {
+    if (!current) return;
+    current.hintedRanges = parsePatchRanges(body.join("\n"));
+    result.push(current);
+    current = null;
+    body = [];
+  };
+  for (const line of lines) {
+    const header = /^\*\*\* (?:Update|Add|Delete) File: (.+)$/.exec(line);
+    const standard = /^diff --git a\/(.+?) b\/(.+)$/.exec(line);
+    if (header || standard) {
+      flush();
+      current = {
+        path: (header?.[1] ?? standard?.[2] ?? "").trim(),
+        kind,
+        replacements: []
+      };
+      continue;
+    }
+    if (current) body.push(line);
+  }
+  flush();
+  return result;
+}
+function parseShellPatch(input) {
+  const command = valueString(input, "command") ?? "";
+  if (!/\b(?:apply_patch|git\s+apply|patch)\b/i.test(command)) return [];
+  if (!command.includes("*** ") && !command.includes("diff --git ")) return [];
+  return parseApplyPatch(command, "shell_patch");
+}
+function parseEditMutations(toolName, toolInput) {
+  if (!toolInput) return [];
+  const key = toolKey(toolName);
+  if (WRITE_TOOLS.has(key)) {
+    const file = pathOf(toolInput);
+    const content = valueString(toolInput, "content", "new_string", "newString");
+    if (!file) return [];
+    if (content !== null) {
+      return [{ path: file, kind: "whole_file", replacements: [], content }];
+    }
+    const edits = Array.isArray(toolInput.edits) ? toolInput.edits : [];
+    const replacements = edits.flatMap((entry) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+      const replacement = replacementOf(entry);
+      return replacement ? [replacement] : [];
+    });
+    return replacements.length > 0 ? [{ path: file, kind: "patch", replacements }] : [{ path: file, kind: "whole_file", replacements: [] }];
+  }
+  if (NOTEBOOK_TOOLS.has(key)) {
+    const file = pathOf(toolInput);
+    return file ? [{
+      path: file,
+      kind: "notebook",
+      replacements: [],
+      hintedRanges: [{ start: 1, end: WHOLE_FILE_END }]
+    }] : [];
+  }
+  if (key === "multiedit") {
+    const file = pathOf(toolInput);
+    const edits = Array.isArray(toolInput.edits) ? toolInput.edits : [];
+    const replacements = edits.flatMap((entry) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+      const replacement = replacementOf(entry);
+      return replacement ? [replacement] : [];
+    });
+    return file && replacements.length > 0 ? [{ path: file, kind: "patch", replacements }] : [];
+  }
+  if (PATCH_TOOLS.has(key)) {
+    const file = pathOf(toolInput);
+    const replacement = replacementOf(toolInput);
+    return file && replacement ? [{ path: file, kind: "patch", replacements: [replacement] }] : [];
+  }
+  if (APPLY_PATCH_TOOLS2.has(key)) {
+    const patch = valueString(toolInput, "patch", "input", "content") ?? "";
+    return parseApplyPatch(patch, "patch");
+  }
+  if (SHELL_TOOLS2.has(key)) return parseShellPatch(toolInput);
+  return [];
+}
+function lineAt(content, index) {
+  let line = 1;
+  for (let i = 0; i < index; i += 1) {
+    if (content.charCodeAt(i) === 10) line += 1;
+  }
+  return line;
+}
+function lineCount(value) {
+  if (!value) return 1;
+  return value.split(/\r?\n/).length;
+}
+function mergeRanges(ranges) {
+  const sorted = ranges.map((range) => ({
+    start: Math.max(1, Math.floor(range.start)),
+    end: Math.max(1, Math.floor(range.end))
+  })).sort((a, b) => a.start - b.start || a.end - b.end);
+  const merged = [];
+  for (const range of sorted) {
+    const normalized = { start: range.start, end: Math.max(range.start, range.end) };
+    const previous = merged.at(-1);
+    if (previous && normalized.start <= previous.end + 1) {
+      previous.end = Math.max(previous.end, normalized.end);
+    } else {
+      merged.push(normalized);
+    }
+  }
+  return merged;
+}
+function occurrences(content, needle) {
+  if (!needle) return [content.length];
+  const result = [];
+  let from = 0;
+  while (from <= content.length) {
+    const at = content.indexOf(needle, from);
+    if (at < 0) break;
+    result.push(at);
+    from = at + Math.max(1, needle.length);
+  }
+  return result;
+}
+function materializeMutation(mutation, cwd) {
+  const absolutePath = path10.resolve(cwd, mutation.path);
+  let baseContent = "";
+  try {
+    baseContent = readFileSync3(absolutePath, "utf8");
+  } catch {
+    baseContent = "";
+  }
+  const relPath = repoRelativePath(absolutePath, cwd).replaceAll(path10.sep, "/");
+  let proposedContent = mutation.kind === "whole_file" ? mutation.content === void 0 ? null : mutation.content : baseContent;
+  let fresh = true;
+  let staleReason = null;
+  const ranges = [...mutation.hintedRanges ?? []];
+  if (mutation.kind === "whole_file" || mutation.kind === "notebook") {
+    ranges.push({ start: 1, end: WHOLE_FILE_END });
+    if (mutation.kind === "notebook") proposedContent = null;
+  } else if (mutation.replacements.length > 0) {
+    let working = baseContent;
+    for (const replacement of mutation.replacements) {
+      const hits = occurrences(working, replacement.oldText);
+      if (hits.length === 0) {
+        fresh = false;
+        staleReason = "the edit context is no longer present in the current file";
+        proposedContent = null;
+        break;
+      }
+      if (!replacement.replaceAll && hits.length !== 1) {
+        fresh = false;
+        staleReason = `the edit context matches ${hits.length} locations`;
+        proposedContent = null;
+        break;
+      }
+      const selected = replacement.replaceAll ? hits : [hits[0]];
+      for (const at of selected) {
+        const start = lineAt(working, at);
+        ranges.push({
+          start,
+          end: start + Math.max(lineCount(replacement.oldText), lineCount(replacement.newText)) - 1
+        });
+      }
+      working = replacement.replaceAll ? working.split(replacement.oldText).join(replacement.newText) : working.slice(0, hits[0]) + replacement.newText + working.slice(hits[0] + replacement.oldText.length);
+    }
+    if (fresh) proposedContent = working;
+  } else {
+    proposedContent = null;
+  }
+  const normalizedRanges = mergeRanges(
+    ranges.length > 0 ? ranges : [{ start: 1, end: WHOLE_FILE_END }]
+  );
+  const baseHash = hashEditContent(baseContent);
+  const proposedHash = proposedContent === null ? null : hashEditContent(proposedContent);
+  const intentHash = hashEditContent(
+    JSON.stringify({
+      path: relPath,
+      kind: mutation.kind,
+      baseHash,
+      proposedHash,
+      ranges: normalizedRanges,
+      replacements: mutation.replacements.map((replacement) => ({
+        old: hashEditContent(replacement.oldText),
+        next: hashEditContent(replacement.newText),
+        all: replacement.replaceAll
+      }))
+    })
+  );
+  return {
+    absolutePath,
+    path: relPath,
+    kind: mutation.kind,
+    ranges: normalizedRanges,
+    baseHash,
+    proposedHash,
+    intentHash,
+    fresh,
+    staleReason,
+    baseContent,
+    proposedContent
+  };
+}
+function buildEditIntents(toolName, toolInput, cwd) {
+  let mutations = parseEditMutations(toolName, toolInput);
+  const key = toolKey(toolName);
+  if (mutations.length === 0 && toolInput && SHELL_TOOLS2.has(key)) {
+    const command = valueString(toolInput, "command") ?? "";
+    if (/\bgit\s+apply\b/i.test(command) && !/\bgit\s+apply\b[^;\n]*\s--check\b/i.test(command)) {
+      const match = /\bgit\s+apply(?:\s+--[A-Za-z0-9_=-]+)*\s+(['"]?)([^'"\s;|&]+)\1/i.exec(
+        command
+      );
+      if (match?.[2]) {
+        try {
+          mutations = parseApplyPatch(
+            readFileSync3(path10.resolve(cwd, match[2]), "utf8"),
+            "shell_patch"
+          );
+        } catch {
+        }
+      }
+    }
+  }
+  const seen = /* @__PURE__ */ new Set();
+  return mutations.map((mutation) => materializeMutation(mutation, cwd)).filter((intent) => {
+    if (seen.has(intent.path)) return false;
+    seen.add(intent.path);
+    return true;
+  });
+}
+function rangesOverlap(left, right) {
+  return left.some((a) => right.some((b) => a.start <= b.end && b.start <= a.end));
+}
+
+// packages/plugin-core/dist/edit-broker.js
+function wireIntent(intent) {
+  return {
+    path: intent.path,
+    intent_kind: intent.kind,
+    base_hash: intent.baseHash,
+    proposed_hash: intent.proposedHash,
+    intent_hash: intent.intentHash,
+    ranges: intent.ranges
+  };
+}
+function shortSession(value) {
+  return value ? value.slice(0, 12) : "unknown";
+}
+function holderLabel(holder) {
+  const owner = holder.same_user ? "your other session" : "another session";
+  const branch = holder.branch ? ` on branch \`${holder.branch}\`` : "";
+  const task = holder.task ? `
+Owner task: ${holder.task}` : "";
+  return `${owner} ${shortSession(holder.session_id)}${branch}${task}`;
+}
+async function recordLocalOutcome(ctx, accountId, metadata) {
+  try {
+    await ctx.api.writeUsageEvent(
+      {
+        event_type: "tool.guardrail",
+        metadata: { broker: "edit", ...metadata }
+      },
+      accountId ? { accountId } : {}
+    );
+  } catch {
+  }
+}
+function conflictReason(intent, holder, conflictId, holderRoot, duplicate) {
+  const command = holderRoot ? `git -C ${JSON.stringify(holderRoot)} diff -- ${JSON.stringify(intent.path)}` : holder.branch ? `git diff HEAD...${JSON.stringify(holder.branch)} -- ${JSON.stringify(intent.path)}` : `git diff -- ${JSON.stringify(intent.path)}`;
+  return [
+    `Memlin edit-broker \xB7 ${duplicate ? "duplicate" : "overlapping or unproven"} work on \`${intent.path}\`.`,
+    `Owner: ${holderLabel(holder)}`,
+    `Memlin kept the first owner; this edit was not applied. A generic Accept is not a resolution and the claim remains active.`,
+    `Inspect: ${command}`,
+    conflictId ? `Conflict: ${conflictId}` : null,
+    conflictId ? `Resolve with memlin_edit_coordination: yield, handoff, reconciled, or takeover-after-release.` : "Wait for the owner to release, or continue on a different file."
+  ].filter((line) => Boolean(line)).join("\n");
+}
+function gitOutput(cwd, args) {
+  try {
+    return execFileSync2("git", args, {
+      cwd,
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+      timeout: 800
+    });
+  } catch {
+    return null;
+  }
+}
+function git2(cwd, args) {
+  const output = gitOutput(cwd, args);
+  return output?.trim() || null;
+}
+function dryMergeWorktreeIntent(intent, identity, holder, holderRoot) {
+  if (intent.proposedContent === null || !identity.head || !holder.head_sha) return "unknown";
+  let holderContent;
+  try {
+    holderContent = readFileSync4(path11.join(holderRoot, intent.path), "utf8");
+  } catch {
+    return "unknown";
+  }
+  const holderContentHash = hashEditContent(holderContent);
+  if (holderContentHash === intent.proposedHash) return "duplicate";
+  if (!holder.result_hash && holder.base_hash && holderContentHash === holder.base_hash) {
+    return "unknown";
+  }
+  const mergeBase = git2(identity.root, ["merge-base", identity.head, holder.head_sha]);
+  if (!mergeBase) return "unknown";
+  const baseContent = gitOutput(identity.root, ["show", `${mergeBase}:${intent.path}`]);
+  if (baseContent === null) return "unknown";
+  const dir = mkdtempSync(path11.join(os8.tmpdir(), "memlin-edit-broker-"));
+  const ours = path11.join(dir, "ours");
+  const base = path11.join(dir, "base");
+  const theirs = path11.join(dir, "theirs");
+  try {
+    writeFileSync2(ours, intent.proposedContent, "utf8");
+    writeFileSync2(base, baseContent, "utf8");
+    writeFileSync2(theirs, holderContent, "utf8");
+    const result = spawnSync("git", ["merge-file", "-p", ours, base, theirs], {
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+      encoding: "utf8",
+      timeout: 1e3
+    });
+    if (result.status === 0) return "compatible";
+    if (result.status === 1) return "conflict";
+    return "unknown";
+  } finally {
+    rmSync2(dir, { recursive: true, force: true });
+  }
+}
+function immediatelyCompatible(intent, holder, identity) {
+  if (intent.kind !== "whole_file" && intent.kind !== "notebook" && holder.result_hash && holder.result_hash === intent.baseHash && intent.fresh) {
+    return true;
+  }
+  if (holder.base_hash && holder.base_hash === intent.baseHash && holder.ranges.length > 0 && !rangesOverlap(intent.ranges, holder.ranges)) {
+    return true;
+  }
+  if (holder.worktree_id === identity.worktreeId) return false;
+  return false;
+}
+async function prepareEditBroker(ctx, payload, projectId, projectAccountId) {
+  const sessionId = payload.session_id;
+  if (!sessionId) return null;
+  const cwd = payload.cwd ?? process.cwd();
+  const identity = localBrokerIdentity(cwd);
+  if (!identity) return null;
+  const intents = buildEditIntents(payload.tool_name, payload.tool_input, cwd);
+  if (intents.length === 0) return null;
+  const paths = intents.map((intent) => intent.path);
+  const accountOpts = projectAccountId ? { accountId: projectAccountId } : {};
+  const stale = intents.find((intent) => !intent.fresh);
+  if (stale) {
+    await recordLocalOutcome(ctx, projectAccountId, {
+      project_id: projectId,
+      session_id: sessionId,
+      path: stale.path,
+      outcome: "retry_stale"
+    });
+    return {
+      decision: "block",
+      paths,
+      reason: `Memlin edit-broker \xB7 stale edit context for \`${stale.path}\`: ${stale.staleReason ?? "the file changed"}. Re-read the current file and retry; the refreshed patch will clear this hold automatically.`
+    };
+  }
+  const repositoryClaims = activeRepositoryClaims(identity, paths);
+  if (repositoryClaims.length > 0) {
+    const claim = repositoryClaims[0];
+    await recordLocalOutcome(ctx, projectAccountId, {
+      project_id: projectId,
+      session_id: sessionId,
+      path: paths[0] ?? null,
+      outcome: "blocked_repository_claim",
+      holder_agent: claim.agent
+    });
+    return {
+      decision: "block",
+      paths,
+      reason: `Memlin edit-broker \xB7 repository ownership already assigns this path to \`${claim.agent}\` (${claim.pathPattern}).${claim.task ? ` Task: ${claim.task}.` : ""} Yield or create a handoff; accepting the edit does not release that claim.`
+    };
+  }
+  try {
+    const status = await ctx.api.editBroker(
+      { action: "status", project_id: projectId, session_id: sessionId },
+      accountOpts
+    );
+    const waiter = status.conflicts?.find(
+      (raw) => raw.owner_session_id === sessionId && typeof raw.id === "string" && typeof raw.path === "string" && paths.includes(raw.path)
+    );
+    if (waiter) {
+      await recordLocalOutcome(ctx, projectAccountId, {
+        project_id: projectId,
+        session_id: sessionId,
+        path: waiter.path,
+        conflict_id: waiter.id,
+        outcome: "owner_waiter_routed"
+      });
+      return {
+        decision: "block",
+        paths,
+        reason: `Memlin edit-broker \xB7 another session is waiting on your ownership of \`${String(waiter.path)}\` (conflict ${String(waiter.id)}). Finish and hand off, mark the work reconciled, or yield before editing this path again.`
+      };
     }
   } catch {
   }
-  return path8.basename(absPath);
+  let localLease = null;
+  try {
+    localLease = acquireLocalWriteLeases(identity, sessionId, paths);
+  } catch (error) {
+    log(`edit-broker: local lease failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (localLease && !localLease.acquired) {
+    await recordLocalOutcome(ctx, projectAccountId, {
+      project_id: projectId,
+      session_id: sessionId,
+      path: localLease.conflict.path,
+      outcome: "blocked_local_lease",
+      holder_session: shortSession(localLease.conflict.holderSession)
+    });
+    return {
+      decision: "block",
+      paths,
+      reason: `Memlin edit-broker \xB7 session ${shortSession(localLease.conflict.holderSession)} is actively writing \`${localLease.conflict.path}\` in this worktree (${localLease.conflict.secondsAgo}s ago). Wait for that tool call to finish, re-read, and retry.`
+    };
+  }
+  const compatible = /* @__PURE__ */ new Set();
+  try {
+    for (const intent of intents) {
+      let acquired = false;
+      for (let attempt = 0; attempt < 25; attempt += 1) {
+        const response = await ctx.api.editBroker(
+          {
+            action: "prepare",
+            project_id: projectId,
+            session_id: sessionId,
+            worktree_id: identity.worktreeId,
+            device_id: identity.deviceId,
+            branch: identity.branch,
+            head_sha: identity.head,
+            intents: [wireIntent(intent)],
+            compatible_holder_ids: [...compatible],
+            ttl_seconds: 1200
+          },
+          accountOpts
+        );
+        const result = response.prepared?.[0];
+        if (result?.acquired) {
+          acquired = true;
+          break;
+        }
+        const holder = result?.holder;
+        if (!holder?.id) {
+          throw new Error("broker returned a blocked prepare without a holder");
+        }
+        const duplicate = holder.intent_hash === intent.intentHash || intent.proposedHash !== null && holder.proposed_hash === intent.proposedHash;
+        if (duplicate) {
+          releaseLocalWriteLeases(identity, sessionId, paths);
+          return {
+            decision: "block",
+            paths,
+            reason: conflictReason(
+              intent,
+              holder,
+              result?.conflict_id ?? null,
+              localRootForWorktree(identity, holder.worktree_id),
+              true
+            )
+          };
+        }
+        if (immediatelyCompatible(intent, holder, identity)) {
+          compatible.add(holder.id);
+          continue;
+        }
+        const holderRoot = holder.device_id === identity.deviceId ? localRootForWorktree(identity, holder.worktree_id) : null;
+        const dry = holderRoot && holder.worktree_id !== identity.worktreeId ? dryMergeWorktreeIntent(intent, identity, holder, holderRoot) : "unknown";
+        if (dry === "compatible") {
+          compatible.add(holder.id);
+          continue;
+        }
+        releaseLocalWriteLeases(identity, sessionId, paths);
+        return {
+          decision: "block",
+          paths,
+          reason: conflictReason(
+            intent,
+            holder,
+            result?.conflict_id ?? null,
+            holderRoot,
+            dry === "duplicate"
+          )
+        };
+      }
+      if (!acquired) throw new Error("broker compatibility retry limit exceeded");
+    }
+    return { decision: "allow", reason: null, paths };
+  } catch (error) {
+    log(`edit-broker: prepare failed (local-only): ${error instanceof Error ? error.message : String(error)}`);
+    await recordLocalOutcome(ctx, projectAccountId, {
+      project_id: projectId,
+      session_id: sessionId,
+      paths,
+      outcome: "offline_allow"
+    });
+    return { decision: "allow", reason: null, paths };
+  }
+}
+
+// packages/plugin-core/dist/edit-collision-report.js
+import path12 from "node:path";
+function classifyCollision(c, local) {
+  if (c.holder_root && local.root) {
+    return path12.resolve(c.holder_root) === path12.resolve(local.root) ? "same-worktree" : "other-worktree";
+  }
+  if (c.holder_branch && local.branch) {
+    return c.holder_branch === local.branch ? "same-worktree" : "other-worktree";
+  }
+  return "unknown";
+}
+var EXCERPT_LINES = 6;
+var EXCERPT_WIDTH = 100;
+var MAX_HUNKS_SHOWN = 3;
+function parseDiffSummary(numstat, patch) {
+  let added = 0;
+  let removed = 0;
+  const firstStatLine = numstat.split("\n").find((l) => l.trim().length > 0);
+  if (firstStatLine) {
+    const [a, r] = firstStatLine.split("	");
+    added = Number.parseInt(a ?? "", 10) || 0;
+    removed = Number.parseInt(r ?? "", 10) || 0;
+  }
+  const hunks = [];
+  const excerpt = [];
+  for (const line of patch.split("\n")) {
+    if (line.startsWith("@@")) {
+      const m = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(line);
+      if (m) {
+        const start = Number.parseInt(m[1], 10);
+        const count = m[2] === void 0 ? 1 : Number.parseInt(m[2], 10);
+        hunks.push(count <= 1 ? `${start}` : `${start}-${start + count - 1}`);
+      }
+      continue;
+    }
+    if (excerpt.length >= EXCERPT_LINES) continue;
+    if (line.startsWith("+++") || line.startsWith("---")) continue;
+    if (!line.startsWith("+") && !line.startsWith("-")) continue;
+    const text = line.slice(0, EXCERPT_WIDTH).trimEnd();
+    if (text.length <= 1) continue;
+    excerpt.push(text);
+  }
+  return { added, removed, hunks, excerpt };
+}
+function fileList(collisions, top) {
+  return collisions.length === 1 ? `\`${top.path}\`` : `${collisions.length} files (incl. \`${top.path}\`)`;
+}
+function who(c) {
+  if (c.same_user) return "your own other session";
+  const kind = c.holder_agent_kind ? ` (${c.holder_agent_kind})` : "";
+  return c.holder_session ? `agent ${c.holder_session}${kind}` : "another agent";
+}
+function when(c) {
+  return c.minutes_ago <= 0 ? "just now" : `${c.minutes_ago}m ago`;
+}
+function renderStat(d) {
+  if (!d) return null;
+  if (d.added === 0 && d.removed === 0) return null;
+  const shown = d.hunks.slice(0, MAX_HUNKS_SHOWN).join(", ");
+  const more = d.hunks.length > MAX_HUNKS_SHOWN ? `, +${d.hunks.length - MAX_HUNKS_SHOWN} more` : "";
+  const where = shown ? ` around ${shown}${more}` : "";
+  return `+${d.added}/-${d.removed}${where}`;
+}
+function renderCollisionReason(input) {
+  const top = input.collisions[0];
+  const files = fileList(input.collisions, top);
+  const stat = renderStat(input.diff);
+  const lines = [];
+  if (input.kind === "other-worktree") {
+    lines.push(
+      `Memlin edit-guard \xB7 ${who(top)} changed ${files} ${when(top)} on branch \`${top.holder_branch ?? "unknown"}\` \u2014 a different worktree, so your file on disk is not at risk. The two versions have to be reconciled at merge time.`
+    );
+  } else if (input.kind === "same-worktree") {
+    lines.push(
+      `Memlin edit-guard \xB7 ${who(top)} wrote ${files} ${when(top)} in THIS directory${stat ? ` (${stat})` : ""}. Your copy of the file may be stale \u2014 ${input.wholeFileWrite ? "this is a whole-file write, so it drops their change wherever it landed" : "writing over it drops their change"}.`
+    );
+  } else {
+    lines.push(
+      `Memlin edit-guard \xB7 ${who(top)} wrote ${files} ${when(top)}${stat ? ` (${stat})` : ""}. Could not tell whether they share this directory, so treat it as a live collision.`
+    );
+  }
+  if (input.diff && input.diff.excerpt.length > 0) {
+    lines.push("", "What changed:", ...input.diff.excerpt.map((l) => `  ${l}`));
+  }
+  const cwdFlag = input.inspectCwd && input.inspectCwd.length > 0 ? `git -C ${input.inspectCwd} ` : "git ";
+  lines.push(
+    "",
+    "Before accepting:",
+    `  ${cwdFlag}diff -- '${top.path}'    # see their change in full`,
+    input.kind === "same-worktree" || input.kind === "unknown" ? "  \u2026then re-read the file so your edit applies on top of it, not instead of it." : "  \u2026no action needed now; reconcile when these branches merge."
+  );
+  return lines.join("\n");
+}
+function shouldInterrupt(kind) {
+  return kind !== "other-worktree";
 }
 
 // packages/plugin-core/dist/trigger-memories.js
 import { promises as fs5 } from "node:fs";
-import os7 from "node:os";
-import path9 from "node:path";
+import os9 from "node:os";
+import path13 from "node:path";
 var WORKSPACE_TRIGGERS_FILE = "triggers.json";
 function commandSegments(command) {
   const segments = [];
@@ -10358,7 +11385,7 @@ function commandPathCandidates(command, cwd, root) {
       if (eq > 0 && eq < token.length - 1) candidates.push(token.slice(eq + 1));
       for (const cand of candidates) {
         if (!cand || cand.startsWith("-") || cand.includes("$")) continue;
-        const rel = toRootRelative(path9.resolve(cwd, cand), root);
+        const rel = toRootRelative(path13.resolve(cwd, cand), root);
         if (rel !== null) out.push(rel);
       }
     }
@@ -10366,10 +11393,10 @@ function commandPathCandidates(command, cwd, root) {
   return out;
 }
 function toRootRelative(absPath, root) {
-  const rel = path9.relative(root, absPath);
+  const rel = path13.relative(root, absPath);
   if (!rel) return "";
-  if (rel === ".." || rel.startsWith(`..${path9.sep}`) || path9.isAbsolute(rel)) return null;
-  return rel.split(path9.sep).join("/");
+  if (rel === ".." || rel.startsWith(`..${path13.sep}`) || path13.isAbsolute(rel)) return null;
+  return rel.split(path13.sep).join("/");
 }
 function entryMatches(entry, input) {
   const { command_pattern: pattern, path_prefix: prefix } = entry;
@@ -10399,7 +11426,7 @@ function evaluateTriggerEntries(entries, input, source) {
   return hits;
 }
 function compiledTriggersPath() {
-  return path9.join(os7.homedir(), ".config", "memlin", "triggers.json");
+  return path13.join(os9.homedir(), ".config", "memlin", "triggers.json");
 }
 function decodeStoredEntry(raw, fallbackId) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -10455,7 +11482,7 @@ async function readCompiledTriggers(file = compiledTriggersPath()) {
   }
 }
 async function canonicalRoot(dir) {
-  const resolved = path9.resolve(dir);
+  const resolved = path13.resolve(dir);
   try {
     return await fs5.realpath(resolved);
   } catch {
@@ -10465,9 +11492,9 @@ async function canonicalRoot(dir) {
 var WORKSPACE_FILE_MAX_ENTRIES = 200;
 var WALK_CAP = 64;
 async function readWorkspaceTriggersFile(startDir) {
-  let dir = path9.resolve(startDir);
+  let dir = path13.resolve(startDir);
   for (let i = 0; i < WALK_CAP; i++) {
-    const candidate = path9.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_TRIGGERS_FILE);
+    const candidate = path13.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_TRIGGERS_FILE);
     let raw = null;
     try {
       raw = await fs5.readFile(candidate, "utf8");
@@ -10484,7 +11511,7 @@ async function readWorkspaceTriggersFile(startDir) {
         return { root: await canonicalRoot(dir), entries: [] };
       }
     }
-    const parent = path9.dirname(dir);
+    const parent = path13.dirname(dir);
     if (parent === dir) return null;
     dir = parent;
   }
@@ -10492,13 +11519,13 @@ async function readWorkspaceTriggersFile(startDir) {
 }
 function buildMatchInput(payload, root) {
   const command = payload.tool_name === "Bash" && typeof payload.tool_input?.command === "string" ? payload.tool_input.command : null;
-  const edited = editedPathsFromHook(payload.tool_name, payload.tool_input).map((p) => toRootRelative(path9.resolve(payload.cwd, p), root)).filter((p) => p !== null);
+  const edited = editedPathsFromHook(payload.tool_name, payload.tool_input).map((p) => toRootRelative(path13.resolve(payload.cwd, p), root)).filter((p) => p !== null);
   return {
     tool_name: payload.tool_name,
     command,
     edited_paths: edited,
     command_paths: command ? commandPathCandidates(command, payload.cwd, root) : [],
-    cwd_relative: toRootRelative(path9.resolve(payload.cwd), root)
+    cwd_relative: toRootRelative(path13.resolve(payload.cwd), root)
   };
 }
 var REASON_MESSAGE_MAX = 700;
@@ -10648,7 +11675,7 @@ async function loadEnforcementDecisions(ctx, projectId, accountId) {
 async function recordGuardrailEvent(ctx, args) {
   const metadata = {
     tool: args.payload.tool_name,
-    cwd: path10.resolve(args.payload.cwd ?? process.cwd()),
+    cwd: path14.resolve(args.payload.cwd ?? process.cwd()),
     project_id: args.projectId,
     session_id: args.payload.session_id ?? null,
     enforcement_on: args.enforcementOn,
@@ -10687,47 +11714,63 @@ function deployLeaseLivenessMin() {
 function __isDeployLeaseOrphaned(minutesAgo, livenessMin = deployLeaseLivenessMin()) {
   return typeof minutesAgo === "number" && minutesAgo > livenessMin;
 }
-function deployCommandOf(payload) {
-  if (payload.tool_name !== "Bash") return null;
+var SHELL_DEPLOY_TOOLS = /* @__PURE__ */ new Set(["bash", "shell", "powershell"]);
+function isShellDeployTool(toolName) {
+  if (!toolName) return false;
+  return SHELL_DEPLOY_TOOLS.has(toolName.toLowerCase());
+}
+function __deployCommandOf(payload) {
+  if (!isShellDeployTool(payload.tool_name)) return null;
   const cmd = payload.tool_input?.command;
   if (typeof cmd !== "string" || !cmd.trim()) return null;
   return isDeployCommand(cmd) ? cmd : null;
+}
+function deployCommandOf(payload) {
+  return __deployCommandOf(payload);
 }
 async function evaluateDeployGuard(ctx, payload, projectId, projectAccountId) {
   const command = deployCommandOf(payload);
   if (!command) return null;
   if (deployGuardMode() === "off") return null;
   if (!projectId || !payload.session_id) return null;
+  const accountOpts = projectAccountId ? { accountId: projectAccountId } : {};
+  const selfLease = isSelfLeasingDeployCommand(command);
   let res;
   try {
     res = await ctx.api.deployGuard(
-      {
+      selfLease ? { action: "status", project_id: projectId, session_id: payload.session_id } : {
         action: "acquire",
         project_id: projectId,
         session_id: payload.session_id,
-        task: command.slice(0, 200)
+        task: command.slice(0, 200),
+        kind: isForegroundDeployCommand(command) ? "foreground" : "trigger"
       },
-      projectAccountId ? { accountId: projectAccountId } : {}
+      accountOpts
     );
   } catch (err) {
     log(
-      `deploy-guard: acquire failed (fail-open): ${err instanceof Error ? err.message : String(err)}`
+      `deploy-guard: ${selfLease ? "status" : "acquire"} failed (fail-open): ${err instanceof Error ? err.message : String(err)}`
     );
     return null;
   }
-  if (res.acquired !== false) return null;
+  if (selfLease) {
+    if (res.held !== true) return null;
+    if (res.holder_session && res.holder_session === payload.session_id) return null;
+  } else if (res.acquired !== false) {
+    return null;
+  }
   if (isDeployTriggerCommand(res.holder_task) && __isDeployLeaseOrphaned(res.minutes_ago)) {
     log(
       `deploy-guard: trigger-command holder lease is ${res.minutes_ago}m old (> ${deployLeaseLivenessMin()}m liveness) \u2014 orphaned, not a live collision; allowing`
     );
     return null;
   }
-  const who = res.holder_session ? `agent ${res.holder_session.slice(0, 6)}` : "another agent";
+  const who2 = res.holder_session ? `agent ${res.holder_session.slice(0, 6)}` : "another agent";
   const ago = typeof res.minutes_ago === "number" ? `${res.minutes_ago}m ago` : "just now";
   const what = res.holder_task ? ` (task: ${String(res.holder_task).slice(0, 80)})` : "";
   return {
     decision: deployGuardMode() === "block" ? "block" : "ask",
-    reason: `Memlin deploy-guard \xB7 ${who} is already mid-deploy on this project${what}, started ${ago}. Concurrent deploys can clobber each other \u2014 wait for it to finish, then retry.`,
+    reason: `Memlin deploy-guard \xB7 ${who2} is already mid-deploy on this project${what}, started ${ago}. Concurrent deploys can clobber each other \u2014 wait for it to finish, then retry.`,
     matched_decisions: []
   };
 }
@@ -10740,11 +11783,20 @@ var EDIT_GUARD_TIMEOUT_MS = 2500;
 async function evaluateEditCollision(ctx, payload, projectId, projectAccountId) {
   if (editGuardMode() === "off") return null;
   if (!projectId || !payload.session_id) return null;
+  const broker = await prepareEditBroker(ctx, payload, projectId, projectAccountId);
+  if (broker?.decision === "block") {
+    return {
+      decision: "block",
+      reason: broker.reason ?? "Memlin edit-broker held this edit for coordination.",
+      matched_decisions: []
+    };
+  }
+  if (broker?.decision === "allow") return null;
   const rawPaths = editedPathsFromHook(payload.tool_name, payload.tool_input);
   if (rawPaths.length === 0) return null;
   const cwd = payload.cwd ?? process.cwd();
   const relPaths = [
-    ...new Set(rawPaths.map((p) => repoRelativePath(path10.resolve(cwd, p), cwd)))
+    ...new Set(rawPaths.map((p) => repoRelativePath(path14.resolve(cwd, p), cwd)))
   ];
   if (relPaths.length === 0) return null;
   let res;
@@ -10766,14 +11818,48 @@ async function evaluateEditCollision(ctx, payload, projectId, projectAccountId) 
   const collisions = Array.isArray(res.collisions) ? res.collisions : [];
   if (collisions.length === 0) return null;
   const top = collisions[0];
-  const who = top.same_user ? "your own other session" : top.holder_session ? `agent ${top.holder_session}${top.holder_agent_kind ? ` (${top.holder_agent_kind})` : ""}` : "another agent";
-  const fileList = collisions.length === 1 ? `\`${top.path}\`` : `${collisions.length} files (incl. \`${top.path}\`)`;
-  const ago = top.minutes_ago <= 0 ? "just now" : `${top.minutes_ago}m ago`;
+  const kind = classifyCollision(top, {
+    branch: readGitBranch(cwd),
+    root: gitToplevel(cwd)
+  });
+  if (!shouldInterrupt(kind)) {
+    log(`edit-guard: cross-worktree divergence on ${top.path} (${top.holder_branch}) \u2014 not a race`);
+    return null;
+  }
+  const inspectCwd = top.holder_root ?? gitToplevel(cwd);
+  const diff = summarizeFileDiff(top.path, inspectCwd);
   return {
     decision: editGuardMode() === "block" ? "block" : "ask",
-    reason: `Memlin edit-guard \xB7 ${who} edited ${fileList} ${ago}. Two agents writing the same file can clobber each other \u2014 pull their change or coordinate before overwriting.`,
+    reason: renderCollisionReason({
+      collisions,
+      kind,
+      diff,
+      inspectCwd,
+      wholeFileWrite: payload.tool_name === "Write"
+    }),
     matched_decisions: []
   };
+}
+var DIFF_TIMEOUT_MS = 600;
+function summarizeFileDiff(relPath, cwd) {
+  if (!cwd) return null;
+  const read = (args) => {
+    try {
+      return execSync3(`git ${args.join(" ")}`, {
+        windowsHide: true,
+        cwd,
+        stdio: ["ignore", "pipe", "ignore"],
+        encoding: "utf8",
+        timeout: DIFF_TIMEOUT_MS
+      });
+    } catch {
+      return "";
+    }
+  };
+  const quoted = `'${relPath.replace(/'/g, `'\\''`)}'`;
+  const numstat = read(["diff", "--numstat", "--", quoted]);
+  if (!numstat.trim()) return null;
+  return parseDiffSummary(numstat, read(["diff", "-U0", "--", quoted]));
 }
 var TRIGGER_AUDIT_TIMEOUT_MS = 1500;
 async function recordTriggerGuardrailEvent(payload, verdict) {
@@ -10785,7 +11871,7 @@ async function recordTriggerGuardrailEvent(payload, verdict) {
         event_type: "tool.guardrail",
         metadata: {
           tool: payload.tool_name,
-          cwd: path10.resolve(payload.cwd ?? process.cwd()),
+          cwd: path14.resolve(payload.cwd ?? process.cwd()),
           session_id: payload.session_id ?? null,
           trigger_memory: true,
           outcome: verdict.decision === "block" ? "blocked" : "asked",

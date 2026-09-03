@@ -25,11 +25,16 @@ At session start, call **`memlin_list_handoffs`** with `target_agent_kind:
 `packet_markdown`, call **`memlin_update_handoff`** with `action: "accept"`,
 and use the packet as the task brief. Mark it `complete` when finished.
 
-Before non-trivial work, call the **`memlin_resolve_task`** MCP tool with a
-short description of the task. It returns a citation-bearing bundle: the top
-skills, memory facts, approved goals, schemas, and decisions for this project. The
-`UserPromptSubmit` hook also injects a `<memlin-resolved-context>` block —
-when present, treat it as already-resolved.
+The `UserPromptSubmit` hook normally resolves non-trivial prompts. For the
+current message, treat `<memlin-resolved-context>`,
+`<memlin-stale-context>`, `<memlin-context-unchanged>`, and
+`<memlin-context-pending>` as handled and do not call
+**`memlin_resolve_task`** again. A pending marker means the same resolve is
+still running and will be offered on the next turn. If no current marker is
+present and no applicable Memlin bundle was inherited, call
+**`memlin_resolve_task`** once as a fallback. Delegated agents reuse inherited
+context only when it applies to their task. Other Memlin MCP tools remain
+available for exploration and explicit operations.
 
 Use the bundle as authoritative project context: apply the primary skill's
 framework, treat memory facts as ground truth, honor approved goals and REQUIRED

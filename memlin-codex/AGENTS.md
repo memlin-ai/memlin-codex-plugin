@@ -7,11 +7,16 @@ configured in `~/.codex/config.toml` — its tools (`memlin_resolve_task`,
 `memlin_search`, `memlin_read_memory`, `memlin_get_document`, …) expose the
 team's shared memory, skills, approved goals, schemas, and decisions.
 
-Before non-trivial work, call `memlin_resolve_task` with a short task
-description to load this project's context. The Memlin `UserPromptSubmit`
-hook also auto-injects a `<memlin-resolved-context>` block — when you see
-one, treat it as already-resolved and don't re-call `memlin_resolve_task`
-for that message.
+The Memlin `UserPromptSubmit` hook normally resolves non-trivial prompts. For
+the current message, treat `<memlin-resolved-context>`,
+`<memlin-stale-context>`, `<memlin-context-unchanged>`, and
+`<memlin-context-pending>` as handled and do not call `memlin_resolve_task`
+again. A pending marker means the same resolve is still running and will be
+offered on the next turn. If no current marker is present and no applicable
+Memlin bundle was inherited, call `memlin_resolve_task` once as a fallback.
+Delegated agents reuse inherited context only when it applies to their task.
+Other Memlin MCP tools remain available for exploration and explicit
+operations.
 
 At session start, check for assigned handoffs with `memlin_list_handoffs`
 (target_agent_kind `codex`). If a handoff exists, read its `packet_markdown`,

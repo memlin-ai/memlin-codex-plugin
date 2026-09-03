@@ -3705,6 +3705,7 @@ var require_gray_matter = __commonJS({
 
 // packages/plugin-core/dist/stop-handler.js
 import { execSync as execSync2 } from "node:child_process";
+import { createHash } from "node:crypto";
 import { promises as fs8 } from "node:fs";
 
 // packages/plugin-core/dist/client.js
@@ -4181,7 +4182,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.42";
+  cachedAgentVersion = "0.2.45";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -4424,6 +4425,7 @@ var MemlinApiClient = class {
       qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
     }
     if (opts.has_trigger) qs.set("has_trigger", "true");
+    if (opts.path) qs.set("path", opts.path);
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     const res = await this.request("GET", `/documents${suffix}`, void 0, { accountId: callOpts.accountId });
     return res.documents.map((d) => {
@@ -4508,6 +4510,7 @@ var MemlinApiClient = class {
     const qs = new URLSearchParams();
     if (opts.project_id) qs.set("project_id", opts.project_id);
     if (opts.target_agent_kind) qs.set("target_agent_kind", opts.target_agent_kind);
+    if (opts.target_session_id) qs.set("target_session_id", opts.target_session_id);
     if (opts.status) qs.set("status", opts.status);
     if (opts.limit) qs.set("limit", String(opts.limit));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
@@ -4621,6 +4624,11 @@ var MemlinApiClient = class {
    * project_id is passed explicitly (the hook resolves it from cwd first).
    */
   async editGuard(input, opts = {}) {
+    return this.request("POST", "/edit-guard", input, { accountId: opts.accountId });
+  }
+  /** Transactional edit broker. prepare acquires exact-path ownership or
+   * returns the first holder that still needs compatibility proof. */
+  async editBroker(input, opts = {}) {
     return this.request("POST", "/edit-guard", input, { accountId: opts.accountId });
   }
   /** GET /audit/<id>/replay — reconstruct a past resolve's exact bundle. */
@@ -5152,22 +5160,29 @@ async function getApi(opts = {}) {
   }
   const cwd = opts.cwd ?? process.cwd();
   const overlay = await findWorkspaceBinding(cwd);
-  const { workspaceBound, workspaceRoot } = applyWorkspaceOverlay(config, overlay);
+  const { workspaceBound, workspaceRoot, workspaceAccountName } = applyWorkspaceOverlay(
+    config,
+    overlay
+  );
   const apiUrl = process.env.MEMLIN_API_URL?.trim() || config.api_url || resolveApiUrl();
   const api = new MemlinApiClient({
     baseUrl: apiUrl,
     getAccessToken: () => getIdentityBoundAccessToken(config),
     accountId: config.account_id
   });
-  return { api, config, workspaceBound, workspaceRoot };
+  return { api, config, workspaceBound, workspaceRoot, workspaceAccountName };
 }
 function applyWorkspaceOverlay(config, overlay) {
-  if (!overlay) return { workspaceBound: false, workspaceRoot: null };
+  if (!overlay) return { workspaceBound: false, workspaceRoot: null, workspaceAccountName: null };
   config.account_id = overlay.binding.account_id;
   if (overlay.binding.project_id !== void 0) {
     config.project_id = overlay.binding.project_id;
   }
-  return { workspaceBound: true, workspaceRoot: overlay.workspaceRoot };
+  return {
+    workspaceBound: true,
+    workspaceRoot: overlay.workspaceRoot,
+    workspaceAccountName: overlay.binding.account_name ?? null
+  };
 }
 function log(msg) {
   if (process.env.MEMLIN_DEBUG) {
@@ -10123,7 +10138,12 @@ function luhnValid(digits) {
 function isValidCardNumber(match) {
   const digits = match.replace(/\D/g, "");
   if (digits.length < 13 || digits.length > 19) return false;
-  if (!/^[2-6]/.test(digits)) return false;
+  const first = digits.charCodeAt(0) - 48;
+  if (first < 2 || first > 6) return false;
+  if (first === 2) {
+    const bin = Number(digits.slice(0, 4));
+    if (bin < 2221 || bin > 2720) return false;
+  }
   return luhnValid(digits);
 }
 function isValidUsSsn(match) {
@@ -10823,20 +10843,37 @@ var MODEL_PRICES = {
   "claude-haiku-4-5": { inputUsdPerMTok: 1, outputUsdPerMTok: 5 },
   "claude-sonnet-4-6": { inputUsdPerMTok: 3, outputUsdPerMTok: 15 },
   "claude-sonnet-4-5": { inputUsdPerMTok: 3, outputUsdPerMTok: 15 },
-  // ⚠️ INTRODUCTORY pricing, in effect only through 2026-08-31. On 2026-09-01
-  // Sonnet 5 reverts to $3 / $15 — the tripwire test in model-prices.test.ts
-  // goes red on that date until this is bumped. Do NOT set it to $3/$15 early:
-  // that over-bills every Sonnet 5 turn by 50% until the window actually ends.
+  // $2/$10 launched as introductory pricing through 2026-08-31, and the
+  // scheduled 2026-09-01 revert to $3/$15 was CANCELLED — Anthropic made the
+  // introductory rate standard. Verified 2026-09-02 against
+  // https://platform.claude.com/docs/en/about-claude/pricing, which states the
+  // increase "will not occur". This is the standard price now; do not "restore"
+  // $3/$15 on the strength of the old launch announcement — that over-bills
+  // every Sonnet 5 turn by 50%.
   "claude-sonnet-5": { inputUsdPerMTok: 2, outputUsdPerMTok: 10 },
+  // Opus 5 was absent until 2026-09-02. The app never requests it, but
+  // aggregateTurnTiming prices provider-reported models from ingested Claude
+  // Code telemetry, where it is a current default — so every Opus 5 turn was
+  // bucketed 'unknown_model' and dropped out of cost totals. Unpriced is the
+  // safe fallback, but it is still a silent hole in the numbers.
+  "claude-opus-5": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-5": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-6": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-7": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-8": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
-  // Deprecated (retires 2026-08-05) but still billable until then, so priced
-  // rather than left to report $0. 3x Opus 4.8's rate — a stray call costed at
-  // $0 would be a material miss. Drop this entry after the retirement date.
+  // Retired on the Claude API (2026-08-05) but STILL SERVED — and still
+  // billable — on Amazon Bedrock and Google Cloud (verified 2026-09-02 against
+  // the pricing docs), so it stays priced. Do not drop this entry: a partner
+  // call costed at $0 is a material miss, and 3x Opus 4.8's rate makes it an
+  // expensive one.
   "claude-opus-4-1": { inputUsdPerMTok: 15, outputUsdPerMTok: 75 },
   // Anthropic's most capable tier. Mythos 5 (Project Glasswing) shares the sheet.
+  // The 5.1 pair prices the same per base token as the 5 pair but reads cache at
+  // 0.025x rather than the standard 0.1x, so they cannot be plain table rows —
+  // without the override a cache-heavy Fable 5.1 turn costs 4x what it should,
+  // and cache reads dominate an agentic turn.
+  "claude-fable-5-1": { inputUsdPerMTok: 10, outputUsdPerMTok: 50, cacheReadMultiplier: 0.025 },
+  "claude-mythos-5-1": { inputUsdPerMTok: 10, outputUsdPerMTok: 50, cacheReadMultiplier: 0.025 },
   "claude-fable-5": { inputUsdPerMTok: 10, outputUsdPerMTok: 50 },
   "claude-mythos-5": { inputUsdPerMTok: 10, outputUsdPerMTok: 50 },
   // OpenAI
@@ -11540,6 +11577,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
         ctx.api.listDocuments(
           {
             kinds: ["memory"],
+            path: path11,
             ...routing.projectId ? { project_id: routing.projectId } : {}
           },
           callOpts
@@ -11555,6 +11593,11 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
       );
     }
   }
+  const contentHash = createHash("sha256").update(content).digest("hex");
+  if (documentId && state.working_memory_hashes?.[sessionId] === contentHash) {
+    log("working memory: unchanged since last turn, skipping write");
+    return;
+  }
   try {
     const write = ctx.api.writeDocument(
       {
@@ -11569,6 +11612,15 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
         metadata: {
           memory_type: "working",
           session_id: sessionId
+          // Deliberately NOT stamping metadata.status here. These docs are
+          // recall-eligible only via the session_id force-include lane, and
+          // that lane calls isDirectResolverDocumentEligible WITHOUT
+          // includeBackground — so a 'background' stamp would drop session
+          // working memory entirely, and 'active' is what the absent key
+          // already coalesces to. The real problem (these scratch files
+          // competing as dedup candidates against genuine captures) is fixed
+          // where it belongs, in search_documents_for_dedup — see migration
+          // 20260902130400_dedup_excludes_working_memory.sql.
         }
       },
       callOpts
@@ -11583,10 +11635,18 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
       ...next.working_memory_ids ?? {},
       [sessionId]: result.document_id
     };
+    next.working_memory_hashes = {
+      ...next.working_memory_hashes ?? {},
+      [sessionId]: contentHash
+    };
     const ids = Object.entries(next.working_memory_ids);
     if (ids.length > 64) {
       next.working_memory_ids = Object.fromEntries(ids.slice(ids.length - 64));
     }
+    const keep = new Set(Object.keys(next.working_memory_ids));
+    next.working_memory_hashes = Object.fromEntries(
+      Object.entries(next.working_memory_hashes).filter(([k]) => keep.has(k))
+    );
     await writeState(next);
     log(`working memory: upserted ${path11} (v${result.version_number})`);
   } catch (err) {

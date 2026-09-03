@@ -7814,7 +7814,12 @@ function luhnValid(digits) {
 function isValidCardNumber(match) {
   const digits = match.replace(/\D/g, "");
   if (digits.length < 13 || digits.length > 19) return false;
-  if (!/^[2-6]/.test(digits)) return false;
+  const first = digits.charCodeAt(0) - 48;
+  if (first < 2 || first > 6) return false;
+  if (first === 2) {
+    const bin = Number(digits.slice(0, 4));
+    if (bin < 2221 || bin > 2720) return false;
+  }
   return luhnValid(digits);
 }
 function isValidUsSsn(match) {
@@ -8087,6 +8092,147 @@ var ActionMetadataSchema = external_exports.object({
   implementation: ActionImplementationSchema
 });
 
+// packages/shared/dist/current-work.js
+var MAX_FILES = 8;
+var MAX_CHANGES = 5;
+var MAX_DECISIONS = 3;
+var MAX_BLOCKERS = 5;
+var MAX_FIELD_CHARS = 400;
+function trim(s, max = MAX_FIELD_CHARS) {
+  const t = (s ?? "").trim();
+  if (!t) return void 0;
+  return t.length <= max ? t : `${t.slice(0, max - 1).trimEnd()}\u2026`;
+}
+function sectionFromWorkingMemory(body, heading) {
+  const lines = body.split("\n");
+  const start = lines.findIndex((l) => l.trim().toLowerCase() === `## ${heading}`.toLowerCase());
+  if (start < 0) return void 0;
+  const rest = [];
+  for (let i = start + 1; i < lines.length; i += 1) {
+    if (lines[i].startsWith("## ")) break;
+    rest.push(lines[i]);
+  }
+  return trim(rest.join("\n"));
+}
+function checkpointFromWorkingMemory(body) {
+  const m = body.match(/^-\s*updated_at:\s*(\S+)/m);
+  return m ? m[1] : void 0;
+}
+function buildCurrentWork(src) {
+  const sourceVersions = [];
+  const packet = {
+    relevantFiles: [],
+    recentChanges: [],
+    recentDecisions: [],
+    blockers: [],
+    sourceVersions
+  };
+  packet.project = trim(src.projectName);
+  packet.branch = trim(src.branch);
+  packet.ownerOrAgent = trim(src.agentKind);
+  const working = (src.sessionWorking ?? [])[0];
+  if (working?.body) {
+    sourceVersions.push("session_working");
+    packet.objective = sectionFromWorkingMemory(working.body, "Current task");
+    const exchange = sectionFromWorkingMemory(working.body, "Latest exchange");
+    if (exchange) packet.status = exchange;
+    packet.lastCheckpoint = checkpointFromWorkingMemory(working.body);
+  }
+  const open = (src.workInFlight ?? []).filter((w) => w.state === "open");
+  const feature = open[0] ?? (src.workInFlight ?? [])[0];
+  if (feature) {
+    sourceVersions.push("work_in_flight");
+    packet.activeFeature = trim(`#${feature.number} ${feature.title}`);
+    if (!packet.branch && feature.head_ref) packet.branch = trim(feature.head_ref);
+  } else if (src.activeComponent) {
+    packet.activeFeature = trim(src.activeComponent);
+  }
+  const edits = src.recentFileEdits ?? [];
+  const ours = edits.filter((e) => e.same_user === true);
+  if (ours.length > 0) {
+    sourceVersions.push("recent_file_edits");
+    packet.relevantFiles = [...new Set(ours.map((e) => e.path))].slice(0, MAX_FILES);
+  }
+  const others = edits.filter((e) => e.same_user !== true);
+  if (others.length > 0) {
+    packet.recentChanges = others.slice(0, MAX_CHANGES).map((e) => `${e.path}${typeof e.minutes_ago === "number" ? ` (${e.minutes_ago}m ago)` : ""}`);
+  }
+  const decisions = src.decisions ?? [];
+  if (decisions.length > 0) {
+    sourceVersions.push("decisions");
+    packet.recentDecisions = decisions.slice(0, MAX_DECISIONS).map((d) => d.title);
+  }
+  const blockers = [];
+  for (const c of src.editConflicts ?? []) {
+    blockers.push(`edit conflict on ${c.path} (${c.role}) \u2014 ${c.reason}`);
+  }
+  for (const d of src.deployInProgress ?? []) {
+    blockers.push(
+      `deploy in progress by ${d.session_short}${typeof d.minutes_ago === "number" ? ` (${d.minutes_ago}m ago)` : ""} \u2014 hold deploys`
+    );
+  }
+  for (const c of src.collisionWarnings ?? []) {
+    blockers.push(c.component ? `collision in ${c.component} \u2014 ${c.guidance}` : c.guidance);
+  }
+  if (blockers.length > 0) {
+    sourceVersions.push("blockers");
+    packet.blockers = blockers.slice(0, MAX_BLOCKERS).map((b) => trim(b, 200));
+  }
+  const thread = (src.openThreads ?? [])[0];
+  if (thread) {
+    sourceVersions.push("open_threads");
+    packet.nextAction = trim(thread.title);
+  }
+  return packet;
+}
+function hasCurrentWork(p) {
+  return Boolean(
+    p.objective || p.activeFeature || p.nextAction || p.blockers.length > 0 || p.relevantFiles.length > 0
+  );
+}
+function renderCurrentWork(p) {
+  const out = [];
+  out.push("## CURRENT WORK \u2014 resume here");
+  out.push("# Assembled from session + project activity, NOT semantic rank. This is");
+  out.push("# what was in flight; the sections below are supporting context.");
+  out.push("");
+  const line = (label, value) => {
+    if (value) out.push(`${label}: ${value}`);
+  };
+  line("project", p.project);
+  line("objective", p.objective);
+  line("active_feature", p.activeFeature);
+  line("branch", p.branch);
+  line("owner_or_agent", p.ownerOrAgent);
+  if (p.relevantFiles.length > 0) {
+    out.push("relevant_files:");
+    for (const f of p.relevantFiles) out.push(`  - ${f}`);
+  }
+  if (p.recentChanges.length > 0) {
+    out.push("recent_changes (other sessions):");
+    for (const c of p.recentChanges) out.push(`  - ${c}`);
+  }
+  if (p.recentDecisions.length > 0) {
+    out.push("recent_decisions:");
+    for (const d of p.recentDecisions) out.push(`  - ${d}`);
+  }
+  if (p.blockers.length > 0) {
+    out.push("blockers:");
+    for (const b of p.blockers) out.push(`  - ${b}`);
+  }
+  line("next_action", p.nextAction);
+  line("last_checkpoint", p.lastCheckpoint);
+  if (p.status) {
+    out.push("status:");
+    for (const l of p.status.split("\n")) out.push(`  ${l}`);
+  }
+  if (p.sourceVersions.length > 0) {
+    out.push(`# sources: ${p.sourceVersions.join(", ")}`);
+  }
+  out.push("");
+  return out.join("\n");
+}
+
 // packages/shared/dist/authority.js
 var AUTHORITY_TIER = {
   PLATFORM: 1,
@@ -8116,20 +8262,37 @@ var MODEL_PRICES = {
   "claude-haiku-4-5": { inputUsdPerMTok: 1, outputUsdPerMTok: 5 },
   "claude-sonnet-4-6": { inputUsdPerMTok: 3, outputUsdPerMTok: 15 },
   "claude-sonnet-4-5": { inputUsdPerMTok: 3, outputUsdPerMTok: 15 },
-  // ⚠️ INTRODUCTORY pricing, in effect only through 2026-08-31. On 2026-09-01
-  // Sonnet 5 reverts to $3 / $15 — the tripwire test in model-prices.test.ts
-  // goes red on that date until this is bumped. Do NOT set it to $3/$15 early:
-  // that over-bills every Sonnet 5 turn by 50% until the window actually ends.
+  // $2/$10 launched as introductory pricing through 2026-08-31, and the
+  // scheduled 2026-09-01 revert to $3/$15 was CANCELLED — Anthropic made the
+  // introductory rate standard. Verified 2026-09-02 against
+  // https://platform.claude.com/docs/en/about-claude/pricing, which states the
+  // increase "will not occur". This is the standard price now; do not "restore"
+  // $3/$15 on the strength of the old launch announcement — that over-bills
+  // every Sonnet 5 turn by 50%.
   "claude-sonnet-5": { inputUsdPerMTok: 2, outputUsdPerMTok: 10 },
+  // Opus 5 was absent until 2026-09-02. The app never requests it, but
+  // aggregateTurnTiming prices provider-reported models from ingested Claude
+  // Code telemetry, where it is a current default — so every Opus 5 turn was
+  // bucketed 'unknown_model' and dropped out of cost totals. Unpriced is the
+  // safe fallback, but it is still a silent hole in the numbers.
+  "claude-opus-5": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-5": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-6": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-7": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
   "claude-opus-4-8": { inputUsdPerMTok: 5, outputUsdPerMTok: 25 },
-  // Deprecated (retires 2026-08-05) but still billable until then, so priced
-  // rather than left to report $0. 3x Opus 4.8's rate — a stray call costed at
-  // $0 would be a material miss. Drop this entry after the retirement date.
+  // Retired on the Claude API (2026-08-05) but STILL SERVED — and still
+  // billable — on Amazon Bedrock and Google Cloud (verified 2026-09-02 against
+  // the pricing docs), so it stays priced. Do not drop this entry: a partner
+  // call costed at $0 is a material miss, and 3x Opus 4.8's rate makes it an
+  // expensive one.
   "claude-opus-4-1": { inputUsdPerMTok: 15, outputUsdPerMTok: 75 },
   // Anthropic's most capable tier. Mythos 5 (Project Glasswing) shares the sheet.
+  // The 5.1 pair prices the same per base token as the 5 pair but reads cache at
+  // 0.025x rather than the standard 0.1x, so they cannot be plain table rows —
+  // without the override a cache-heavy Fable 5.1 turn costs 4x what it should,
+  // and cache reads dominate an agentic turn.
+  "claude-fable-5-1": { inputUsdPerMTok: 10, outputUsdPerMTok: 50, cacheReadMultiplier: 0.025 },
+  "claude-mythos-5-1": { inputUsdPerMTok: 10, outputUsdPerMTok: 50, cacheReadMultiplier: 0.025 },
   "claude-fable-5": { inputUsdPerMTok: 10, outputUsdPerMTok: 50 },
   "claude-mythos-5": { inputUsdPerMTok: 10, outputUsdPerMTok: 50 },
   // OpenAI
@@ -8597,6 +8760,20 @@ function hasDeliveredSkill(bundle) {
     bundle.primary_skill || bundle.supporting_skills.length > 0 || bundle.required_core?.some((item) => item.kind === "skill") || bundle.pinned?.some((item) => item.kind === "skill")
   );
 }
+function buildCurrentWorkFromResult(result) {
+  const b = result.bundle;
+  return buildCurrentWork({
+    sessionWorking: (b.session_working ?? []).map((i) => ({ title: i.title, body: i.body })),
+    workInFlight: b.work_in_flight ?? [],
+    recentFileEdits: b.recent_file_edits ?? [],
+    deployInProgress: b.deploy_in_progress ?? [],
+    collisionWarnings: b.collision_warnings ?? [],
+    editConflicts: b.edit_conflicts ?? [],
+    openThreads: (b.open_threads ?? []).map((i) => ({ title: i.title, body: i.body })),
+    decisions: (b.decisions ?? []).map((i) => ({ title: i.title, body: i.body })),
+    activeComponent: result.active_component?.name ?? null
+  });
+}
 function compileBundle(result, parsedTask, agent) {
   const b = result.bundle;
   const out = [];
@@ -8779,6 +8956,10 @@ function compileBundle(result, parsedTask, agent) {
       );
     }
     out.push("");
+    const currentWork = buildCurrentWorkFromResult(result);
+    if (hasCurrentWork(currentWork)) {
+      out.push(renderCurrentWork(currentWork));
+    }
     if (hasRequiredCoreLane(b)) {
       out.push(renderRequiredCore(b.required_core ?? [], b.required_core_status));
     }
@@ -8884,6 +9065,24 @@ function compileBundle(result, parsedTask, agent) {
           out.push(`    # proposed (unreviewed) from this PR: "${p.title}" [${p.kind}]`);
         }
       }
+      out.push("");
+    }
+    const editConflicts = b.edit_conflicts ?? [];
+    if (editConflicts.length > 0) {
+      out.push("## ACTIVE EDIT OWNERSHIP \u2014 RESOLUTION REQUIRED");
+      out.push("");
+      out.push(
+        "# These are transactional broker conflicts, not historical warnings. Do not bypass them with a host Accept."
+      );
+      for (const conflict of editConflicts) {
+        const other = conflict.role === "owner" ? `waiter ${conflict.contender_session_short}` : `owner ${conflict.owner_session_short}`;
+        out.push(
+          `  - ${conflict.path} \xB7 you are ${conflict.role} \xB7 ${other} \xB7 conflict ${conflict.id}`
+        );
+      }
+      out.push(
+        "# Use memlin_edit_coordination with yield, handoff, reconciled, or takeover-after-release."
+      );
       out.push("");
     }
     const collisions = b.collision_warnings ?? [];
