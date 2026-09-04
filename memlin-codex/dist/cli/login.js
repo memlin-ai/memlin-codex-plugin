@@ -3526,6 +3526,7 @@ var require_gray_matter = __commonJS({
 
 // packages/plugin-core/src/companion-client.ts
 import http from "node:http";
+import crypto2 from "node:crypto";
 import os8 from "node:os";
 import path11 from "node:path";
 function companionSocketPath(env = process.env) {
@@ -3601,8 +3602,8 @@ async function companionRequest(method, body, opts = {}) {
     req.end(payload);
   });
 }
-async function companionStatus() {
-  const status = await companionRequest("status.get", {});
+async function companionStatus(opts = {}) {
+  const status = await companionRequest("status.get", {}, opts);
   if (!status) return null;
   if (status.protocol < MIN_COMPANION_PROTOCOL || status.protocol > MAX_COMPANION_PROTOCOL) {
     return null;
@@ -3623,6 +3624,13 @@ var init_companion_client = __esm({
     DEFAULT_CALL_TIMEOUT_MS = 1e3;
     CALL_TIMEOUTS = {
       "workspace.resolve": 2e3,
+      "resolve.start": 750,
+      "resolve.reuse": 4500,
+      "resolve.reserve": 750,
+      "resolve.reserve-late": 750,
+      "resolve.commit": 750,
+      "resolve.release": 500,
+      "resolve.report": 500,
       "sync.now": 5e3,
       "login.start": 1e4,
       // Local-store reads walk the materialized doc tree on disk.
@@ -3954,6 +3962,7 @@ import { randomUUID as randomUUID3 } from "node:crypto";
 
 // packages/plugin-core/src/memlin-api-client.ts
 import { readFileSync } from "node:fs";
+import crypto from "node:crypto";
 import os3 from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -4033,7 +4042,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.45";
+  cachedAgentVersion = "0.2.46";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -4046,6 +4055,7 @@ var NATIVE_MEMORY_BATCH_SIZE = 20;
 var NATIVE_MEMORY_BATCH_CONCURRENCY = 3;
 var NATIVE_MEMORY_REQUEST_TIMEOUT_MS = 9e4;
 var NATIVE_MEMORY_BATCH_INDEX = "# Native memory satellite batch\n";
+var RESOLVE_V2_MAX_LINE_BYTES = 2 * 1024 * 1024;
 var RETRIABLE_STATUS = /* @__PURE__ */ new Set([408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524]);
 var RETRIABLE_NETWORK_CODES = /* @__PURE__ */ new Set([
   "ECONNRESET",
@@ -4093,20 +4103,103 @@ function unreachableError(url, cause, timeoutMs) {
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+function delayWithSignal(ms, signal) {
+  if (!signal) return delay(ms);
+  if (signal.aborted) return Promise.reject(signal.reason ?? new Error("request aborted"));
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(done, ms);
+    function done() {
+      signal?.removeEventListener("abort", aborted);
+      resolve();
+    }
+    function aborted() {
+      clearTimeout(timer);
+      reject(signal?.reason ?? new Error("request aborted"));
+    }
+    signal.addEventListener("abort", aborted, { once: true });
+  });
+}
+function resolveV2Event(value) {
+  if (!value || typeof value !== "object") {
+    throw new Error("Memlin progressive resolver returned a non-object event");
+  }
+  const candidate = value;
+  if (candidate.type !== "hot" && candidate.type !== "full" && candidate.type !== "failed" || typeof candidate.resolve_id !== "string" || typeof candidate.turn_id !== "string" || typeof candidate.trace_id !== "string" || typeof candidate.account_id !== "string" || candidate.project_id !== null && typeof candidate.project_id !== "string" || !candidate.timing || typeof candidate.timing.total_ms !== "number" || !candidate.metrics || typeof candidate.metrics.db_calls !== "number") {
+    throw new Error("Memlin progressive resolver returned a malformed event");
+  }
+  if ((candidate.type === "hot" || candidate.type === "full") && !candidate.payload) {
+    throw new Error(`Memlin progressive resolver returned ${candidate.type} without a payload`);
+  }
+  if (candidate.type === "failed" && !candidate.error) {
+    throw new Error("Memlin progressive resolver returned failed without an error receipt");
+  }
+  return candidate;
+}
+async function* parseNdjsonEvents(body) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    for (; ; ) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      for (; ; ) {
+        const newline = buffer.indexOf("\n");
+        if (newline < 0) break;
+        const rawLine = buffer.slice(0, newline);
+        buffer = buffer.slice(newline + 1);
+        if (Buffer.byteLength(rawLine) > RESOLVE_V2_MAX_LINE_BYTES) {
+          throw new Error("Memlin progressive resolver returned an oversized event");
+        }
+        const line = rawLine.trim();
+        if (!line) continue;
+        let parsed;
+        try {
+          parsed = JSON.parse(line);
+        } catch {
+          throw new Error("Memlin progressive resolver returned invalid NDJSON");
+        }
+        yield resolveV2Event(parsed);
+      }
+      if (Buffer.byteLength(buffer) > RESOLVE_V2_MAX_LINE_BYTES) {
+        throw new Error("Memlin progressive resolver returned an oversized event");
+      }
+    }
+    buffer += decoder.decode();
+    if (Buffer.byteLength(buffer) > RESOLVE_V2_MAX_LINE_BYTES) {
+      throw new Error("Memlin progressive resolver returned an oversized event");
+    }
+    const tail = buffer.trim();
+    if (tail) {
+      let parsed;
+      try {
+        parsed = JSON.parse(tail);
+      } catch {
+        throw new Error("Memlin progressive resolver returned invalid NDJSON");
+      }
+      yield resolveV2Event(parsed);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
 var MemlinApiClient = class {
   constructor(cfg) {
     this.cfg = cfg;
   }
   cfg;
   // ---------- low-level ----------
-  async authHeaders(includeAccount = true) {
+  async authHeaders(includeAccount = true, override = {}) {
     const token = await this.cfg.getAccessToken();
+    const kind = override.agentKind ?? resolveHost().kind;
+    const version = override.agentKind === void 0 ? agentVersion() : override.agentVersion ?? "dev";
     const h = {
       Authorization: `Bearer ${token}`,
-      [AGENT_KIND_HEADER]: resolveHost().kind,
+      [AGENT_KIND_HEADER]: kind,
       [AGENT_DEVICE_HEADER]: agentDevice(),
-      [AGENT_VERSION_HEADER]: agentVersion(),
-      [AGENT_CAPABILITIES_HEADER]: agentCapabilities().join(","),
+      [AGENT_VERSION_HEADER]: version,
+      [AGENT_CAPABILITIES_HEADER]: (override.agentKind ? AGENT_EXPECTED_CAPABILITIES[kind] : agentCapabilities()).join(","),
       [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os3.platform(),
       [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os3.arch()
     };
@@ -4117,7 +4210,7 @@ var MemlinApiClient = class {
   }
   async request(method, pathAndQuery, body, opts = {}) {
     const url = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
-    const baseHeaders = await this.authHeaders(opts.includeAccount ?? true);
+    const baseHeaders = await this.authHeaders(opts.includeAccount ?? true, opts);
     if (opts.accountId) {
       baseHeaders["Memlin-Account-Id"] = opts.accountId;
     }
@@ -4136,11 +4229,12 @@ var MemlinApiClient = class {
       let res;
       let text;
       try {
+        const timeoutSignal = AbortSignal.timeout(timeoutMs);
         res = await fetch(url, {
           method,
           headers,
           // A dead socket must abort rather than hang the caller forever.
-          signal: AbortSignal.timeout(timeoutMs),
+          signal: opts.signal ? AbortSignal.any([opts.signal, timeoutSignal]) : timeoutSignal,
           ...body !== void 0 ? { body: JSON.stringify(body) } : {}
         });
         text = await res.text();
@@ -4165,7 +4259,10 @@ var MemlinApiClient = class {
       if (!res.ok) {
         const serverError = parsed?.error;
         const errMsg = typeof serverError === "string" && serverError ? singleLine(serverError, 300) : describeOpaqueBody(res.status, text);
-        throw new MemlinApiError(`${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`, res.status);
+        throw new MemlinApiError(
+          `${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`,
+          res.status
+        );
       }
       return parsed;
     }
@@ -4173,6 +4270,61 @@ var MemlinApiClient = class {
   backoffMs(attempt) {
     const base = this.cfg.retryBaseDelayMs ?? DEFAULT_RETRY_BASE_DELAY_MS;
     return base * 2 ** (attempt - 1);
+  }
+  async openResolveV2Stream(method, pathAndQuery, body, opts = {}) {
+    const url = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
+    const headers = await this.authHeaders(true, opts);
+    if (opts.accountId) headers["Memlin-Account-Id"] = opts.accountId;
+    headers.Accept = "application/x-ndjson";
+    if (body !== void 0) headers["Content-Type"] = "application/json";
+    if (opts.traceId) {
+      const normalized = opts.traceId.replaceAll("-", "").toLowerCase();
+      const traceId = /^[0-9a-f]{32}$/.test(normalized) ? normalized : crypto.createHash("sha256").update(opts.traceId).digest("hex").slice(0, 32);
+      headers.traceparent = `00-${traceId}-${crypto.randomBytes(8).toString("hex")}-01`;
+    }
+    const timeoutMs = Math.max(
+      1,
+      opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
+    );
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
+    const signal = opts.signal ? AbortSignal.any([opts.signal, timeoutSignal]) : timeoutSignal;
+    let response;
+    try {
+      response = await fetch(url, {
+        method,
+        headers,
+        signal,
+        ...body !== void 0 ? { body: JSON.stringify(body) } : {}
+      });
+    } catch (error) {
+      throw unreachableError(url, error, timeoutMs);
+    }
+    if (response.ok) {
+      const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+      if (!contentType.includes("application/x-ndjson")) {
+        await response.body?.cancel().catch(() => void 0);
+        throw new Error("Memlin progressive resolver returned an unexpected response type");
+      }
+      return response;
+    }
+    const text = await response.text().catch(() => "");
+    let serverError;
+    try {
+      const parsed = JSON.parse(text);
+      serverError = typeof parsed.error === "string" ? parsed.error : parsed.error?.message ?? parsed.error?.code;
+    } catch {
+    }
+    const detail = response.status >= 500 ? `HTTP ${response.status} (upstream response suppressed)` : serverError ? singleLine(serverError, 300) : describeOpaqueBody(response.status, text);
+    throw new MemlinApiError(
+      `${method} ${pathAndQuery} \u2192 ${response.status}: ${detail}`,
+      response.status
+    );
+  }
+  async *readResolveV2Response(response) {
+    if (!response.body) {
+      throw new Error("Memlin progressive resolver returned an empty response body");
+    }
+    yield* parseNdjsonEvents(response.body);
   }
   // ---------- endpoints ----------
   /** GET /me — identity + account list. No account header sent (this is the discovery call). */
@@ -4407,6 +4559,128 @@ var MemlinApiClient = class {
     return res.documents;
   }
   /**
+   * POST /resolve/v2 — one authenticated progressive NDJSON stream.
+   *
+   * A transport reset after the server claimed the id is recovered through
+   * GET replay, never by starting another POST with a fresh identity. Duplicate
+   * events from the replay are suppressed by phase.
+   */
+  async *resolveV2(args, opts = {}) {
+    const seen = /* @__PURE__ */ new Set();
+    let terminal = false;
+    let postError;
+    try {
+      const response = await this.openResolveV2Stream("POST", "/resolve/v2", args, opts);
+      for await (const event of this.readResolveV2Response(response)) {
+        if (event.resolve_id !== args.resolve_id || event.turn_id !== args.turn_id) {
+          throw new Error("Memlin progressive resolver returned an event for another turn");
+        }
+        if (event.type === "failed" && event.error?.code === "RESOLVE_V2_UNAVAILABLE" && !seen.has("hot") && !seen.has("full")) {
+          throw new MemlinApiError("POST /resolve/v2 \u2192 404: progressive resolve unavailable", 404);
+        }
+        if (event.type === "failed" && event.error?.code === "PENDING") continue;
+        if (!seen.has(event.type)) {
+          seen.add(event.type);
+          yield event;
+        }
+        if (event.type === "full" || event.type === "failed") terminal = true;
+      }
+    } catch (error) {
+      postError = error;
+    }
+    if (terminal) return;
+    if (opts.signal?.aborted) throw postError ?? opts.signal.reason;
+    if (postError instanceof MemlinApiError && (postError.status === 404 || postError.status === 405 || postError.status === 501)) {
+      throw postError;
+    }
+    const requestedDeadline = Date.parse(args.deadline_at);
+    const replayDeadline = Number.isFinite(requestedDeadline) ? requestedDeadline : Date.now() + (opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS);
+    const replayDelays = [50, 100, 200, 350, 500];
+    const replayIdentity = new URLSearchParams({
+      turn_id: args.turn_id,
+      session_id: args.session_id ?? ""
+    });
+    let replayError;
+    for (let attempt = 0; !terminal && Date.now() < replayDeadline; attempt += 1) {
+      if (opts.signal?.aborted) throw postError ?? opts.signal.reason;
+      try {
+        const response = await this.openResolveV2Stream(
+          "GET",
+          `/resolve/v2/${encodeURIComponent(args.resolve_id)}?${replayIdentity.toString()}`,
+          void 0,
+          {
+            ...opts,
+            requestTimeoutMs: Math.max(1, replayDeadline - Date.now())
+          }
+        );
+        for await (const event of this.readResolveV2Response(response)) {
+          if (event.resolve_id !== args.resolve_id || event.turn_id !== args.turn_id) {
+            throw new Error(
+              "Memlin progressive resolver replay returned an event for another turn"
+            );
+          }
+          if (event.type === "failed" && event.error?.code === "PENDING") continue;
+          if (!seen.has(event.type)) {
+            seen.add(event.type);
+            yield event;
+          }
+          if (event.type === "full" || event.type === "failed") terminal = true;
+        }
+        replayError = void 0;
+      } catch (error) {
+        replayError = error;
+        const retryable = !(error instanceof MemlinApiError) || error.status === 408 || error.status === 429 || error.status >= 500;
+        if (!retryable) {
+          if (seen.has("hot") || seen.has("full")) {
+            throw new Error(
+              "Memlin progressive resolver replay was rejected after resolution started"
+            );
+          }
+          throw postError ?? error;
+        }
+      }
+      if (terminal) return;
+      const remaining = replayDeadline - Date.now();
+      if (remaining <= 0) break;
+      await delayWithSignal(
+        Math.min(replayDelays[Math.min(attempt, replayDelays.length - 1)], remaining),
+        opts.signal
+      );
+    }
+    throw postError ?? replayError ?? new Error("Memlin progressive resolver did not reach a terminal phase before its deadline");
+  }
+  /** Read stored phases without starting a resolver operation. */
+  async *replayResolveV2(resolveId, expected, opts = {}) {
+    const identity = new URLSearchParams({
+      turn_id: expected.turn_id,
+      session_id: expected.session_id ?? ""
+    });
+    const response = await this.openResolveV2Stream(
+      "GET",
+      `/resolve/v2/${encodeURIComponent(resolveId)}?${identity.toString()}`,
+      void 0,
+      opts
+    );
+    for await (const event of this.readResolveV2Response(response)) {
+      if (event.resolve_id !== resolveId || event.turn_id !== expected.turn_id) {
+        throw new Error("Memlin progressive resolver replay returned an event for another turn");
+      }
+      yield event;
+    }
+  }
+  /** Hook-emitted delivery truth for a progressive resolve. The route accepts
+   * only this sanitized detail allowlist; prompts and source content never
+   * enter telemetry. */
+  async reportResolveV2Delivery(resolveId, input, opts = {}) {
+    return this.request("POST", `/resolve/v2/${encodeURIComponent(resolveId)}/delivery`, input, {
+      accountId: opts.accountId,
+      requestTimeoutMs: opts.requestTimeoutMs ?? 2e3,
+      signal: opts.signal,
+      agentKind: opts.agentKind,
+      agentVersion: opts.agentVersion
+    });
+  }
+  /**
    * POST /resolve — the marquee context-assembly endpoint.
    *
    * `cwd` and `git_remote` let the server infer the caller's active component
@@ -4416,7 +4690,11 @@ var MemlinApiClient = class {
    */
   async resolve(args, opts = {}) {
     return this.request("POST", "/resolve", args, {
-      accountId: opts.accountId
+      accountId: opts.accountId,
+      requestTimeoutMs: opts.requestTimeoutMs,
+      signal: opts.signal,
+      agentKind: opts.agentKind,
+      agentVersion: opts.agentVersion
     });
   }
   /**
@@ -4454,11 +4732,13 @@ var MemlinApiClient = class {
     return this.request("PUT", "/account/enforce-done-deployed", { enabled }, opts);
   }
   /**
-   * POST /deploy-guard — acquire or release the per-project deploy lease.
+   * POST /deploy-guard — acquire, release, status, or queue the per-project
+   * deploy lease / waiter line.
    *
-   * The PreToolUse deploy hook calls `acquire` before a deploy command runs;
-   * the PostToolUse hook calls `release` after. `acquired: false` means another
-   * session already holds an active lease (the hook then warns or blocks).
+   * The PreToolUse deploy hook calls `acquire` before a raw deploy command
+   * runs; laptop ship scripts call acquire themselves and wait on collision.
+   * `queue` parks a waiter when acquire misses. `acquired: false` means
+   * another session already holds an active lease.
    * project_id is passed explicitly — the hook resolves it from cwd first.
    */
   async deployGuard(input, opts = {}) {
@@ -4484,12 +4764,9 @@ var MemlinApiClient = class {
   }
   /** GET /audit/<id>/replay — reconstruct a past resolve's exact bundle. */
   async replayAudit(auditId, opts = {}) {
-    return this.request(
-      "GET",
-      `/audit/${auditId}/replay`,
-      void 0,
-      { accountId: opts.accountId }
-    );
+    return this.request("GET", `/audit/${auditId}/replay`, void 0, {
+      accountId: opts.accountId
+    });
   }
   /** GET /audit/<id>/explain — per-item decomposition of a past resolve's
    *  ranking arithmetic (similarity, kind weight, component boost, rerank,

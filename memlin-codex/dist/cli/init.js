@@ -143,6 +143,7 @@ function decodeJwtPayload(jwt) {
 
 // packages/plugin-core/src/memlin-api-client.ts
 import { readFileSync } from "node:fs";
+import crypto from "node:crypto";
 import os3 from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -153,6 +154,7 @@ import path3 from "node:path";
 
 // packages/plugin-core/src/memlin-api-client.ts
 var DEFAULT_API_URL = "https://memlin.ai/api/v1";
+var RESOLVE_V2_MAX_LINE_BYTES = 2 * 1024 * 1024;
 
 // packages/plugin-core/src/workspace-binding.ts
 import { randomUUID as randomUUID2 } from "node:crypto";

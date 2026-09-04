@@ -3239,8 +3239,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path19) {
-      let input = path19;
+    function removeDotSegments(path20) {
+      let input = path20;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -3492,8 +3492,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path19, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path19 && path19 !== "/" ? path19 : void 0;
+        const [path20, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path20 && path20 !== "/" ? path20 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -7328,13 +7328,13 @@ function __disposeResources(env) {
   }
   return next();
 }
-function __rewriteRelativeImportExtension(path19, preserveJsx) {
-  if (typeof path19 === "string" && /^\.\.?\//.test(path19)) {
-    return path19.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m2, tsx, d2, ext, cm) {
+function __rewriteRelativeImportExtension(path20, preserveJsx) {
+  if (typeof path20 === "string" && /^\.\.?\//.test(path20)) {
+    return path20.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m2, tsx, d2, ext, cm) {
       return tsx ? preserveJsx ? ".jsx" : ".js" : d2 && (!ext || !cm) ? m2 : d2 + ext + "." + cm.toLowerCase() + "js";
     });
   }
-  return path19;
+  return path20;
 }
 var extendStatics, __assign, __createBinding, __setModuleDefault, ownKeys, _SuppressedError, tslib_es6_default;
 var init_tslib_es6 = __esm({
@@ -20632,14 +20632,14 @@ var require_url_state_machine = __commonJS({
       return url.replace(/\u0009|\u000A|\u000D/g, "");
     }
     function shortenPath(url) {
-      const path19 = url.path;
-      if (path19.length === 0) {
+      const path20 = url.path;
+      if (path20.length === 0) {
         return;
       }
-      if (url.scheme === "file" && path19.length === 1 && isNormalizedWindowsDriveLetter(path19[0])) {
+      if (url.scheme === "file" && path20.length === 1 && isNormalizedWindowsDriveLetter(path20[0])) {
         return;
       }
-      path19.pop();
+      path20.pop();
     }
     function includesCredentials(url) {
       return url.username !== "" || url.password !== "";
@@ -26220,14 +26220,14 @@ __export(fileFromPath_exports, {
 });
 import { statSync, createReadStream, promises as fs } from "fs";
 import { basename } from "path";
-function createFileFromPath(path19, { mtimeMs, size }, filenameOrOptions, options2 = {}) {
+function createFileFromPath(path20, { mtimeMs, size }, filenameOrOptions, options2 = {}) {
   let filename;
   if (isPlainObject_default2(filenameOrOptions)) {
     [options2, filename] = [filenameOrOptions, void 0];
   } else {
     filename = filenameOrOptions;
   }
-  const file = new FileFromPath({ path: path19, size, lastModified: mtimeMs });
+  const file = new FileFromPath({ path: path20, size, lastModified: mtimeMs });
   if (!filename) {
     filename = file.name;
   }
@@ -26236,13 +26236,13 @@ function createFileFromPath(path19, { mtimeMs, size }, filenameOrOptions, option
     lastModified: file.lastModified
   });
 }
-function fileFromPathSync(path19, filenameOrOptions, options2 = {}) {
-  const stats = statSync(path19);
-  return createFileFromPath(path19, stats, filenameOrOptions, options2);
+function fileFromPathSync(path20, filenameOrOptions, options2 = {}) {
+  const stats = statSync(path20);
+  return createFileFromPath(path20, stats, filenameOrOptions, options2);
 }
-async function fileFromPath2(path19, filenameOrOptions, options2) {
-  const stats = await fs.stat(path19);
-  return createFileFromPath(path19, stats, filenameOrOptions, options2);
+async function fileFromPath2(path20, filenameOrOptions, options2) {
+  const stats = await fs.stat(path20);
+  return createFileFromPath(path20, stats, filenameOrOptions, options2);
 }
 var import_node_domexception, __classPrivateFieldSet5, __classPrivateFieldGet6, _FileFromPath_path, _FileFromPath_start, MESSAGE, FileFromPath;
 var init_fileFromPath = __esm({
@@ -31246,6 +31246,8 @@ var require_diff_match_patch = __commonJS({
 // packages/plugin-core/dist/companion-client.js
 var companion_client_exports = {};
 __export(companion_client_exports, {
+  CODEX_ADDITIONAL_CONTEXT_MAX_BYTES: () => CODEX_ADDITIONAL_CONTEXT_MAX_BYTES,
+  CODEX_HOOK_RESOLVE_PROFILE: () => CODEX_HOOK_RESOLVE_PROFILE,
   COMPANION_PROTOCOL: () => COMPANION_PROTOCOL,
   COMPANION_SOCKET_ENV: () => COMPANION_SOCKET_ENV,
   IS_COMPANION_ENV: () => IS_COMPANION_ENV,
@@ -31253,22 +31255,33 @@ __export(companion_client_exports, {
   MIN_COMPANION_PROTOCOL: () => MIN_COMPANION_PROTOCOL,
   NO_COMPANION_ENV: () => NO_COMPANION_ENV,
   USE_COMPANION_ENV: () => USE_COMPANION_ENV,
+  companionCommitResolveDelivery: () => companionCommitResolveDelivery,
   companionDelegationEnabled: () => companionDelegationEnabled,
   companionForDelegation: () => companionForDelegation,
   companionGetToken: () => companionGetToken,
   companionReadLocal: () => companionReadLocal,
+  companionReleaseResolveDelivery: () => companionReleaseResolveDelivery,
+  companionReportResolveDelivery: () => companionReportResolveDelivery,
   companionReportSession: () => companionReportSession,
   companionRequest: () => companionRequest,
+  companionReserveLateResolveDelivery: () => companionReserveLateResolveDelivery,
+  companionReserveResolveDelivery: () => companionReserveResolveDelivery,
+  companionResolveJoin: () => companionResolveJoin,
+  companionResolveReuse: () => companionResolveReuse,
+  companionResolveStart: () => companionResolveStart,
+  companionResolveTake: () => companionResolveTake,
   companionResolveWorkspace: () => companionResolveWorkspace,
   companionRunDir: () => companionRunDir,
   companionSearchLocal: () => companionSearchLocal,
   companionSocketPath: () => companionSocketPath,
   companionStatus: () => companionStatus,
   companionSyncNow: () => companionSyncNow,
+  deriveResolveId: () => deriveResolveId,
   isCompanionHealthyForDelegation: () => isCompanionHealthyForDelegation,
   resetCompanionClientCache: () => resetCompanionClientCache
 });
 import http from "node:http";
+import crypto2 from "node:crypto";
 import os from "node:os";
 import path2 from "node:path";
 function companionSocketPath(env = process.env) {
@@ -31281,6 +31294,13 @@ function companionSocketPath(env = process.env) {
 }
 function companionRunDir() {
   return path2.join(os.homedir(), ".config", "memlin", "run");
+}
+function deriveResolveId(input) {
+  const digest2 = crypto2.createHash("sha256").update("memlin.resolve.v2\0").update(JSON.stringify([input.accountId, input.host, input.sessionId ?? null, input.turnId])).digest().subarray(0, 16);
+  digest2[6] = digest2[6] & 15 | 80;
+  digest2[8] = digest2[8] & 63 | 128;
+  const hex = digest2.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 function companionDisabled(env = process.env) {
   const off = env[NO_COMPANION_ENV];
@@ -31347,8 +31367,8 @@ async function companionRequest(method, body, opts = {}) {
     req.end(payload);
   });
 }
-async function companionStatus() {
-  const status = await companionRequest("status.get", {});
+async function companionStatus(opts = {}) {
+  const status = await companionRequest("status.get", {}, opts);
   if (!status) return null;
   if (status.protocol < MIN_COMPANION_PROTOCOL || status.protocol > MAX_COMPANION_PROTOCOL) {
     return null;
@@ -31371,6 +31391,39 @@ async function companionSearchLocal(req) {
 }
 async function companionReadLocal(req) {
   return companionRequest("memory.read", req);
+}
+async function companionResolveStart(req, opts = {}) {
+  return companionRequest("resolve.start", req, opts);
+}
+async function companionResolveTake(req) {
+  return companionRequest("resolve.take", req, {
+    timeoutMs: Math.max(250, req.wait_ms + 250)
+  });
+}
+async function companionResolveJoin(req) {
+  return companionRequest("resolve.join", req, {
+    timeoutMs: Math.max(250, req.wait_ms + 250)
+  });
+}
+async function companionResolveReuse(req) {
+  return companionRequest("resolve.reuse", req, {
+    timeoutMs: Math.max(250, Math.min(4500, req.wait_ms + 500))
+  });
+}
+async function companionReserveResolveDelivery(req, opts = {}) {
+  return companionRequest("resolve.reserve", req, opts);
+}
+async function companionReserveLateResolveDelivery(req, opts = {}) {
+  return companionRequest("resolve.reserve-late", req, opts);
+}
+async function companionCommitResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.commit", req, opts))?.accepted ?? null;
+}
+async function companionReleaseResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.release", req, opts))?.released ?? null;
+}
+async function companionReportResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.report", req, opts))?.accepted ?? null;
 }
 async function companionReportSession(req) {
   return (await companionRequest("session.report", req))?.registered ?? false;
@@ -31396,7 +31449,7 @@ async function companionForDelegation() {
 function resetCompanionClientCache() {
   socketDeadUntil = 0;
 }
-var COMPANION_PROTOCOL, MIN_COMPANION_PROTOCOL, MAX_COMPANION_PROTOCOL, NO_COMPANION_ENV, IS_COMPANION_ENV, COMPANION_SOCKET_ENV, CONNECT_TIMEOUT_MS, DEFAULT_CALL_TIMEOUT_MS, CALL_TIMEOUTS, socketDeadUntil, SOCKET_DEAD_TTL_MS, USE_COMPANION_ENV;
+var COMPANION_PROTOCOL, MIN_COMPANION_PROTOCOL, MAX_COMPANION_PROTOCOL, NO_COMPANION_ENV, IS_COMPANION_ENV, COMPANION_SOCKET_ENV, CODEX_HOOK_RESOLVE_PROFILE, CODEX_ADDITIONAL_CONTEXT_MAX_BYTES, CONNECT_TIMEOUT_MS, DEFAULT_CALL_TIMEOUT_MS, CALL_TIMEOUTS, socketDeadUntil, SOCKET_DEAD_TTL_MS, USE_COMPANION_ENV;
 var init_companion_client = __esm({
   "packages/plugin-core/dist/companion-client.js"() {
     "use strict";
@@ -31406,10 +31459,19 @@ var init_companion_client = __esm({
     NO_COMPANION_ENV = "MEMLIN_NO_DAEMON";
     IS_COMPANION_ENV = "MEMLIN_DAEMON";
     COMPANION_SOCKET_ENV = "MEMLIN_COMPANION_SOCKET";
+    CODEX_HOOK_RESOLVE_PROFILE = "codex-hook-v1:tokens=2200";
+    CODEX_ADDITIONAL_CONTEXT_MAX_BYTES = 2200;
     CONNECT_TIMEOUT_MS = 150;
     DEFAULT_CALL_TIMEOUT_MS = 1e3;
     CALL_TIMEOUTS = {
       "workspace.resolve": 2e3,
+      "resolve.start": 750,
+      "resolve.reuse": 4500,
+      "resolve.reserve": 750,
+      "resolve.reserve-late": 750,
+      "resolve.commit": 750,
+      "resolve.release": 500,
+      "resolve.report": 500,
       "sync.now": 5e3,
       "login.start": 1e4,
       // Local-store reads walk the materialized doc tree on disk.
@@ -31424,10 +31486,11 @@ var init_companion_client = __esm({
 
 // apps/mcp-server/src/index.ts
 import { execSync as execSync4 } from "node:child_process";
-import { readFileSync as readFileSync5 } from "node:fs";
-import path18, { dirname as dirname2, join as join2 } from "node:path";
+import { randomUUID as randomUUID4 } from "node:crypto";
+import { readFileSync as readFileSync6 } from "node:fs";
+import path19, { dirname as dirname2, join as join2 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
-import os11 from "node:os";
+import os12 from "node:os";
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -31907,8 +31970,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path19, errorMaps, issueData } = params;
-  const fullPath = [...path19, ...issueData.path || []];
+  const { data, path: path20, errorMaps, issueData } = params;
+  const fullPath = [...path20, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -32024,11 +32087,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path19, key) {
+  constructor(parent, value, path20, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path19;
+    this._path = path20;
     this._key = key;
   }
   get path() {
@@ -35665,10 +35728,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path19) {
-  if (!path19)
+function getElementAtPath(obj, path20) {
+  if (!path20)
     return obj;
-  return path19.reduce((acc, key) => acc?.[key], obj);
+  return path20.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -35988,11 +36051,11 @@ function aborted(x2, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path19, issues) {
+function prefixIssues(path20, issues) {
   return issues.map((iss) => {
     var _a2;
     (_a2 = iss).path ?? (_a2.path = []);
-    iss.path.unshift(path19);
+    iss.path.unshift(path20);
     return iss;
   });
 }
@@ -47540,8 +47603,8 @@ var IcebergError = class extends Error {
     return this.status === 419;
   }
 };
-function buildUrl(baseUrl, path19, query) {
-  const url = new URL(path19, baseUrl);
+function buildUrl(baseUrl, path20, query) {
+  const url = new URL(path20, baseUrl);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value !== void 0) {
@@ -47571,12 +47634,12 @@ function createFetchClient(options2) {
   return {
     async request({
       method,
-      path: path19,
+      path: path20,
       query,
       body,
       headers
     }) {
-      const url = buildUrl(options2.baseUrl, path19, query);
+      const url = buildUrl(options2.baseUrl, path20, query);
       const authHeaders2 = await buildAuthHeaders(options2.auth);
       const res = await fetchFn(url, {
         method,
@@ -48424,7 +48487,7 @@ var StorageFileApi = class extends BaseApiClient {
   * @param path The relative file path. Should be of the format `folder/subfolder/filename.png`. The bucket must already exist before attempting to upload.
   * @param fileBody The body of the file to be stored in the bucket.
   */
-  async uploadOrUpdate(method, path19, fileBody, fileOptions) {
+  async uploadOrUpdate(method, path20, fileBody, fileOptions) {
     var _this = this;
     return _this.handleOperation(async () => {
       let body;
@@ -48448,7 +48511,7 @@ var StorageFileApi = class extends BaseApiClient {
         if ((typeof ReadableStream !== "undefined" && body instanceof ReadableStream || body && typeof body === "object" && "pipe" in body && typeof body.pipe === "function") && !options2.duplex) options2.duplex = "half";
       }
       if (fileOptions === null || fileOptions === void 0 ? void 0 : fileOptions.headers) for (const [key, value] of Object.entries(fileOptions.headers)) headers = setHeader(headers, key, value);
-      const cleanPath = _this._removeEmptyFolders(path19);
+      const cleanPath = _this._removeEmptyFolders(path20);
       const _path = _this._getFinalPath(cleanPath);
       const data = await (method == "PUT" ? put : post)(_this.fetch, `${_this.url}/object/${_path}`, body, _objectSpread22({ headers }, (options2 === null || options2 === void 0 ? void 0 : options2.duplex) ? { duplex: options2.duplex } : {}));
       return {
@@ -48510,8 +48573,8 @@ var StorageFileApi = class extends BaseApiClient {
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   * - For React Native, using either `Blob`, `File` or `FormData` does not work as intended. Upload file using `ArrayBuffer` from base64 file data instead, see example below.
   */
-  async upload(path19, fileBody, fileOptions) {
-    return this.uploadOrUpdate("POST", path19, fileBody, fileOptions);
+  async upload(path20, fileBody, fileOptions) {
+    return this.uploadOrUpdate("POST", path20, fileBody, fileOptions);
   }
   /**
   * Upload a file with a token generated from `createSignedUploadUrl`.
@@ -48551,9 +48614,9 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: none
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async uploadToSignedUrl(path19, token, fileBody, fileOptions) {
+  async uploadToSignedUrl(path20, token, fileBody, fileOptions) {
     var _this3 = this;
-    const cleanPath = _this3._removeEmptyFolders(path19);
+    const cleanPath = _this3._removeEmptyFolders(path20);
     const _path = _this3._getFinalPath(cleanPath);
     const url = new URL(_this3.url + `/object/upload/sign/${_path}`);
     url.searchParams.set("token", token);
@@ -48622,10 +48685,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `insert`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async createSignedUploadUrl(path19, options2) {
+  async createSignedUploadUrl(path20, options2) {
     var _this4 = this;
     return _this4.handleOperation(async () => {
-      let _path = _this4._getFinalPath(path19);
+      let _path = _this4._getFinalPath(path20);
       const headers = _objectSpread22({}, _this4.headers);
       if (options2 === null || options2 === void 0 ? void 0 : options2.upsert) headers["x-upsert"] = "true";
       const data = await post(_this4.fetch, `${_this4.url}/object/upload/sign/${_path}`, {}, { headers });
@@ -48634,7 +48697,7 @@ var StorageFileApi = class extends BaseApiClient {
       if (!token) throw new StorageError("No token returned by API");
       return {
         signedUrl: url.toString(),
-        path: path19,
+        path: path20,
         token
       };
     });
@@ -48694,8 +48757,8 @@ var StorageFileApi = class extends BaseApiClient {
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   * - For React Native, using either `Blob`, `File` or `FormData` does not work as intended. Update file using `ArrayBuffer` from base64 file data instead, see example below.
   */
-  async update(path19, fileBody, fileOptions) {
-    return this.uploadOrUpdate("PUT", path19, fileBody, fileOptions);
+  async update(path20, fileBody, fileOptions) {
+    return this.uploadOrUpdate("PUT", path20, fileBody, fileOptions);
   }
   /**
   * Moves an existing file to a new path in the same bucket.
@@ -48846,10 +48909,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async createSignedUrl(path19, expiresIn, options2) {
+  async createSignedUrl(path20, expiresIn, options2) {
     var _this8 = this;
     return _this8.handleOperation(async () => {
-      let _path = _this8._getFinalPath(path19);
+      let _path = _this8._getFinalPath(path20);
       const hasTransform = typeof (options2 === null || options2 === void 0 ? void 0 : options2.transform) === "object" && options2.transform !== null && Object.keys(options2.transform).length > 0;
       let data = await post(_this8.fetch, `${_this8.url}/object/sign/${_path}`, _objectSpread22({ expiresIn }, hasTransform ? { transform: options2.transform } : {}), { headers: _this8.headers });
       const query = new URLSearchParams();
@@ -48985,13 +49048,13 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  download(path19, options2, parameters) {
+  download(path20, options2, parameters) {
     const renderPath = typeof (options2 === null || options2 === void 0 ? void 0 : options2.transform) === "object" && options2.transform !== null && Object.keys(options2.transform).length > 0 ? "render/image/authenticated" : "object";
     const query = new URLSearchParams();
     if (options2 === null || options2 === void 0 ? void 0 : options2.transform) this.applyTransformOptsToQuery(query, options2.transform);
     if ((options2 === null || options2 === void 0 ? void 0 : options2.cacheNonce) != null) query.set("cacheNonce", String(options2.cacheNonce));
     const queryString = query.toString();
-    const _path = this._getFinalPath(path19);
+    const _path = this._getFinalPath(path20);
     const downloadFn = () => get(this.fetch, `${this.url}/${renderPath}/${_path}${queryString ? `?${queryString}` : ""}`, {
       headers: this.headers,
       noResolveJson: true
@@ -49022,9 +49085,9 @@ var StorageFileApi = class extends BaseApiClient {
   * }
   * ```
   */
-  async info(path19) {
+  async info(path20) {
     var _this10 = this;
-    const _path = _this10._getFinalPath(path19);
+    const _path = _this10._getFinalPath(path20);
     return _this10.handleOperation(async () => {
       return recursiveToCamel(await get(_this10.fetch, `${_this10.url}/object/info/${_path}`, { headers: _this10.headers }));
     });
@@ -49045,9 +49108,9 @@ var StorageFileApi = class extends BaseApiClient {
   *   .exists('folder/avatar1.png')
   * ```
   */
-  async exists(path19) {
+  async exists(path20) {
     var _this11 = this;
-    const _path = _this11._getFinalPath(path19);
+    const _path = _this11._getFinalPath(path20);
     try {
       await head(_this11.fetch, `${_this11.url}/object/${_path}`, { headers: _this11.headers });
       return {
@@ -49126,8 +49189,8 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: none
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  getPublicUrl(path19, options2) {
-    const _path = this._getFinalPath(path19);
+  getPublicUrl(path20, options2) {
+    const _path = this._getFinalPath(path20);
     const query = new URLSearchParams();
     if (options2 === null || options2 === void 0 ? void 0 : options2.download) query.set("download", options2.download === true ? "" : options2.download);
     if (options2 === null || options2 === void 0 ? void 0 : options2.transform) this.applyTransformOptsToQuery(query, options2.transform);
@@ -49266,10 +49329,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async list(path19, options2, parameters) {
+  async list(path20, options2, parameters) {
     var _this13 = this;
     return _this13.handleOperation(async () => {
-      const body = _objectSpread22(_objectSpread22(_objectSpread22({}, DEFAULT_SEARCH_OPTIONS), options2), {}, { prefix: path19 || "" });
+      const body = _objectSpread22(_objectSpread22(_objectSpread22({}, DEFAULT_SEARCH_OPTIONS), options2), {}, { prefix: path20 || "" });
       return await post(_this13.fetch, `${_this13.url}/object/list/${_this13.bucketId}`, body, { headers: _this13.headers }, parameters);
     });
   }
@@ -49334,11 +49397,11 @@ var StorageFileApi = class extends BaseApiClient {
     if (typeof Buffer !== "undefined") return Buffer.from(data).toString("base64");
     return btoa(data);
   }
-  _getFinalPath(path19) {
-    return `${this.bucketId}/${path19.replace(/^\/+/, "")}`;
+  _getFinalPath(path20) {
+    return `${this.bucketId}/${path20.replace(/^\/+/, "")}`;
   }
-  _removeEmptyFolders(path19) {
-    return path19.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
+  _removeEmptyFolders(path20) {
+    return path20.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
   }
   /** Modifies the `query`, appending values the from `transform` */
   applyTransformOptsToQuery(query, transform2) {
@@ -51994,13 +52057,13 @@ var MultipartBody = class {
 // node_modules/.pnpm/openai@4.104.0_ws@8.20.1_zod@3.25.76/node_modules/openai/_shims/node-runtime.mjs
 import { ReadableStream as ReadableStream4 } from "node:stream/web";
 var fileFromPathWarned = false;
-async function fileFromPath3(path19, ...args) {
+async function fileFromPath3(path20, ...args) {
   const { fileFromPath: _fileFromPath } = await Promise.resolve().then(() => (init_fileFromPath(), fileFromPath_exports));
   if (!fileFromPathWarned) {
-    console.warn(`fileFromPath is deprecated; use fs.createReadStream(${JSON.stringify(path19)}) instead`);
+    console.warn(`fileFromPath is deprecated; use fs.createReadStream(${JSON.stringify(path20)}) instead`);
     fileFromPathWarned = true;
   }
-  return await _fileFromPath(path19, ...args);
+  return await _fileFromPath(path20, ...args);
 }
 var defaultHttpAgent = new import_agentkeepalive.default({ keepAlive: true, timeout: 5 * 60 * 1e3 });
 var defaultHttpsAgent = new import_agentkeepalive.default.HttpsAgent({ keepAlive: true, timeout: 5 * 60 * 1e3 });
@@ -52784,29 +52847,29 @@ var APIClient = class {
   defaultIdempotencyKey() {
     return `stainless-node-retry-${uuid4()}`;
   }
-  get(path19, opts) {
-    return this.methodRequest("get", path19, opts);
+  get(path20, opts) {
+    return this.methodRequest("get", path20, opts);
   }
-  post(path19, opts) {
-    return this.methodRequest("post", path19, opts);
+  post(path20, opts) {
+    return this.methodRequest("post", path20, opts);
   }
-  patch(path19, opts) {
-    return this.methodRequest("patch", path19, opts);
+  patch(path20, opts) {
+    return this.methodRequest("patch", path20, opts);
   }
-  put(path19, opts) {
-    return this.methodRequest("put", path19, opts);
+  put(path20, opts) {
+    return this.methodRequest("put", path20, opts);
   }
-  delete(path19, opts) {
-    return this.methodRequest("delete", path19, opts);
+  delete(path20, opts) {
+    return this.methodRequest("delete", path20, opts);
   }
-  methodRequest(method, path19, opts) {
+  methodRequest(method, path20, opts) {
     return this.request(Promise.resolve(opts).then(async (opts2) => {
       const body = opts2 && isBlobLike(opts2?.body) ? new DataView(await opts2.body.arrayBuffer()) : opts2?.body instanceof DataView ? opts2.body : opts2?.body instanceof ArrayBuffer ? new DataView(opts2.body) : opts2 && ArrayBuffer.isView(opts2?.body) ? new DataView(opts2.body.buffer) : opts2?.body;
-      return { method, path: path19, ...opts2, body };
+      return { method, path: path20, ...opts2, body };
     }));
   }
-  getAPIList(path19, Page2, opts) {
-    return this.requestAPIList(Page2, { method: "get", path: path19, ...opts });
+  getAPIList(path20, Page2, opts) {
+    return this.requestAPIList(Page2, { method: "get", path: path20, ...opts });
   }
   calculateContentLength(body) {
     if (typeof body === "string") {
@@ -52825,10 +52888,10 @@ var APIClient = class {
   }
   buildRequest(inputOptions, { retryCount = 0 } = {}) {
     const options2 = { ...inputOptions };
-    const { method, path: path19, query, headers = {} } = options2;
+    const { method, path: path20, query, headers = {} } = options2;
     const body = ArrayBuffer.isView(options2.body) || options2.__binaryRequest && typeof options2.body === "string" ? options2.body : isMultipartBody(options2.body) ? options2.body.body : options2.body ? JSON.stringify(options2.body, null, 2) : null;
     const contentLength = this.calculateContentLength(body);
-    const url = this.buildURL(path19, query);
+    const url = this.buildURL(path20, query);
     if ("timeout" in options2)
       validatePositiveInteger("timeout", options2.timeout);
     options2.timeout = options2.timeout ?? this.timeout;
@@ -52944,8 +53007,8 @@ var APIClient = class {
     const request = this.makeRequest(options2, null);
     return new PagePromise(this, request, Page2);
   }
-  buildURL(path19, query) {
-    const url = isAbsoluteURL(path19) ? new URL(path19) : new URL(this.baseURL + (this.baseURL.endsWith("/") && path19.startsWith("/") ? path19.slice(1) : path19));
+  buildURL(path20, query) {
+    const url = isAbsoluteURL(path20) ? new URL(path20) : new URL(this.baseURL + (this.baseURL.endsWith("/") && path20.startsWith("/") ? path20.slice(1) : path20));
     const defaultQuery = this.defaultQuery();
     if (!isEmptyObj(defaultQuery)) {
       query = { ...defaultQuery, ...query };
@@ -58933,8 +58996,8 @@ function validateActionInput(input, schema) {
   return { valid: errors.length === 0, errors };
 }
 function renderPromptTemplate(template, input) {
-  return template.replace(/\{\{\s*input\.([a-zA-Z0-9_.]+)\s*\}\}/g, (_match, path19) => {
-    const parts = String(path19).split(".");
+  return template.replace(/\{\{\s*input\.([a-zA-Z0-9_.]+)\s*\}\}/g, (_match, path20) => {
+    const parts = String(path20).split(".");
     let cur = input;
     for (const p2 of parts) {
       if (cur && typeof cur === "object" && p2 in cur) {
@@ -59666,19 +59729,22 @@ function getClient() {
   return client;
 }
 var EMBED_INPUT_CHAR_CAP = 24e3;
-async function embedWith(c2, text) {
+async function embedWith(c2, text, signal) {
   const input = text.slice(0, EMBED_INPUT_CHAR_CAP);
-  const res = await c2.embeddings.create({
-    model: EMBEDDING_MODEL,
-    input,
-    dimensions: EMBEDDING_DIMENSIONS
-  });
+  const res = await c2.embeddings.create(
+    {
+      model: EMBEDDING_MODEL,
+      input,
+      dimensions: EMBEDDING_DIMENSIONS
+    },
+    { signal }
+  );
   const vec = res.data[0]?.embedding;
   if (!vec) throw new Error("embedding API returned no vector");
   return vec;
 }
-async function embed(text) {
-  return embedWith(getClient(), text);
+async function embed(text, signal) {
+  return embedWith(getClient(), text, signal);
 }
 
 // packages/sync-core/src/diff.ts
@@ -59832,6 +59898,10 @@ var TOOLS = [
         task: {
           type: "string",
           description: 'Specific, concrete task description. "review this code for security" not "help with auth".'
+        },
+        hook_resolve_ref: {
+          type: "string",
+          description: "Codex only: copy the opaque memlin-resolve-ref marker from the current hook context so this tool joins that exact turn instead of starting a duplicate resolve."
         },
         project_id: {
           anyOf: [{ type: "string" }, { type: "null" }],
@@ -60449,554 +60519,80 @@ var TOOLS = [
   }
 ];
 
-// packages/mcp-tools/src/context.ts
-async function resolveProjectFilter(ctx, requested) {
-  if (!requested) return ctx.projectId ?? null;
-  if (requested === ctx.projectId) return requested;
-  const { data, error: error2 } = await ctx.supabase.from("projects").select("id").eq("id", requested).eq("account_id", ctx.accountId).maybeSingle();
-  if (error2 || !data) {
-    throw new Error(
-      `project_id ${requested} does not belong to the connected account (${ctx.accountId}). Point this connection at that project's account first \u2014 e.g. \`memlin link --account <account>\` \u2014 rather than passing a project id from another workspace.`
-    );
-  }
-  return requested;
-}
+// packages/mcp-tools/src/resolver.ts
+import { createHash } from "node:crypto";
 
-// packages/mcp-tools/src/curation.ts
-var CurationError = class extends Error {
-  code;
-  constructor(code, message) {
-    super(message);
-    this.name = "CurationError";
-    this.code = code;
-  }
-};
-var ACTION_TARGET = {
-  approve: "approved",
-  archive: "archived",
-  // Unarchive restores to draft (the only legal move out of archived) —
-  // the doc re-enters the curation funnel rather than jumping straight
-  // back to approved.
-  unarchive: "draft"
-};
-function decideStatusChange(args) {
-  const { action, currentStatus, role } = args;
-  if (role === "viewer") {
-    throw new CurationError("forbidden", "viewer role cannot curate documents");
-  }
-  if (action === "approve" && role !== "owner" && role !== "admin") {
-    throw new CurationError("forbidden", "approving a document is owner/admin-only");
-  }
-  if (action === "unarchive" && currentStatus !== "archived") {
-    throw new CurationError("invalid_transition", "document is not archived");
-  }
-  const to = ACTION_TARGET[action];
-  if (currentStatus === to) {
-    throw new CurationError(
-      "invalid_transition",
-      `document is already ${currentStatus}`
-    );
-  }
-  const allowed = DOCUMENT_STATUS_TRANSITIONS[currentStatus] ?? [];
-  if (!allowed.includes(to)) {
-    throw new CurationError(
-      "invalid_transition",
-      `invalid transition: ${currentStatus} \u2192 ${to}`
-    );
-  }
-  return { to };
-}
-var SetStatusArgs = external_exports.object({
-  document_id: external_exports.string().uuid(),
-  action: external_exports.enum(["approve", "archive", "unarchive"])
-});
-async function setDocumentStatus(ctx, rawArgs) {
-  let args;
-  try {
-    args = SetStatusArgs.parse(rawArgs);
-  } catch (e2) {
-    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
-  }
-  const role = ctx.callerRole ?? "viewer";
-  const { data: doc, error: readErr } = await ctx.supabase.from("documents").select("id, account_id, scope, created_by, kind, title, status, metadata").eq("id", args.document_id).maybeSingle();
-  if (readErr) throw new CurationError("not_found", `document lookup failed: ${readErr.message}`);
-  if (!doc || doc.account_id !== ctx.accountId) {
-    throw new CurationError("not_found", "document not found in this account");
-  }
-  const row = doc;
-  if (row.scope === "personal" && row.created_by && ctx.userId !== row.created_by) {
-    throw new CurationError("forbidden", "personal-scope documents can only be curated by their creator");
-  }
-  const { to } = decideStatusChange({ action: args.action, currentStatus: row.status, role });
-  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
-  const actor = ctx.userId ?? "api";
-  const meta = { ...row.metadata ?? {} };
-  let metadataStatusActivated = false;
-  if (args.action === "approve") {
-    meta.approved_at = nowIso;
-    meta.approved_by = actor;
-    if (meta.status === "proposed") {
-      meta.status = "active";
-      meta.accepted_at = nowIso;
-      meta.accepted_by_user_sub = actor;
-      metadataStatusActivated = true;
-    }
-  } else if (args.action === "archive") {
-    meta.lifecycle_action = "archived";
-    meta.lifecycle_archived_at = nowIso;
-    meta.lifecycle_archived_by_user_sub = actor;
-  } else {
-    meta.lifecycle_action = "unarchived";
-    meta.lifecycle_unarchived_at = nowIso;
-    meta.lifecycle_unarchived_by_user_sub = actor;
-    if (meta.status === "superseded" || meta.status === "archived") {
-      meta.status = "active";
-      metadataStatusActivated = true;
-    }
-  }
-  const { error: updateErr } = await ctx.supabase.from("documents").update({ status: to, metadata: meta }).eq("id", row.id).eq("account_id", ctx.accountId);
-  if (updateErr) {
-    throw new CurationError("forbidden", `status update failed: ${updateErr.message}`);
-  }
-  return {
-    id: row.id,
-    kind: row.kind,
-    title: row.title,
-    from: row.status,
-    to,
-    metadata_status_activated: metadataStatusActivated
-  };
-}
-async function applyCanonicalMerge(ctx, args) {
-  const count = (m2) => m2 && typeof m2.corroboration_count === "number" ? m2.corroboration_count : 0;
-  const canonicalMeta = args.canonical.metadata ?? {};
-  const summedCorroboration = Math.max(count(canonicalMeta), 1) + args.twins.reduce((s2, t2) => s2 + Math.max(count(t2.metadata), 1), 0);
-  let newVersionNumber = null;
-  const builtMetadata = args.buildCanonicalMetadata(summedCorroboration);
-  if (args.content !== null) {
-    const { data, error: writeErr } = await ctx.supabase.rpc("write_document", {
-      p_document_id: args.canonical.id,
-      p_account_id: ctx.accountId,
-      p_project_id: args.canonical.project_id ?? null,
-      p_scope: args.canonical.scope,
-      p_kind: args.canonical.kind,
-      p_title: args.canonical.title,
-      p_path: args.canonical.path ?? null,
-      p_content: args.content,
-      p_embedding: null,
-      p_metadata: builtMetadata,
-      p_commit_message: args.commitMessage,
-      p_yjs_state_b64: null,
-      // buildCanonicalMetadata returns the FULL object — replace semantics
-      // (no merge flag). Attribution rides only on the service-token path.
-      ...ctx.serviceTokenId ? { p_author_id: ctx.userId ?? null, p_service_token_id: ctx.serviceTokenId } : {}
-    });
-    if (writeErr) {
-      throw new CurationError("forbidden", `merge apply failed: ${writeErr.message}`);
-    }
-    const rows = data;
-    newVersionNumber = rows?.[0]?.version_number ?? null;
-  } else {
-    const { error: metaErr } = await ctx.supabase.from("documents").update({ metadata: builtMetadata }).eq("id", args.canonical.id).eq("account_id", ctx.accountId);
-    if (metaErr) {
-      throw new CurationError("forbidden", `merge metadata update failed: ${metaErr.message}`);
-    }
-  }
-  for (const twin of args.twins) {
-    const twinMeta = twin.metadata ?? {};
-    const { error: archiveErr } = await ctx.supabase.from("documents").update({
-      status: "archived",
-      metadata: {
-        ...twinMeta,
-        status: "superseded",
-        superseded_by: args.canonical.id,
-        superseded_at: args.nowIso,
-        superseded_reason: args.supersededReason
-      }
-    }).eq("id", twin.id).eq("account_id", ctx.accountId);
-    if (archiveErr) {
-      throw new CurationError("forbidden", `twin archive failed: ${archiveErr.message}`);
-    }
-  }
-  return { newVersionNumber, summedCorroboration };
-}
-var MergeArgs = external_exports.object({
-  canonical_id: external_exports.string().uuid(),
-  duplicate_ids: external_exports.array(external_exports.string().uuid()).min(1).max(50),
-  /** Optional canonical body replacing the keeper's content (new version).
-   *  Omit when the keeper's existing body already is the merged truth —
-   *  the merge is then metadata-only and creates no version. */
-  merged_content: external_exports.string().min(1).optional(),
-  commit_message: external_exports.string().max(500).optional()
-});
-async function mergeDocuments(ctx, rawArgs) {
-  let args;
-  try {
-    args = MergeArgs.parse(rawArgs);
-  } catch (e2) {
-    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
-  }
-  const role = ctx.callerRole ?? "viewer";
-  if (role === "viewer") {
-    throw new CurationError("forbidden", "viewer role cannot merge documents");
-  }
-  const { data: canonicalRow, error: canonicalErr } = await ctx.supabase.from("documents").select("id, account_id, project_id, scope, kind, title, path, status, metadata").eq("id", args.canonical_id).maybeSingle();
-  if (canonicalErr) {
-    throw new CurationError("not_found", `canonical lookup failed: ${canonicalErr.message}`);
-  }
-  if (!canonicalRow || canonicalRow.account_id !== ctx.accountId) {
-    throw new CurationError("not_found", "canonical document not found in this account");
-  }
-  const canonical2 = canonicalRow;
-  if (canonical2.scope === "personal") {
-    throw new CurationError("forbidden", "personal-scope documents cannot be merge targets");
-  }
-  if (canonical2.status === "archived") {
-    throw new CurationError("invalid_transition", "canonical document is archived \u2014 unarchive it first");
-  }
-  const requestedIds = args.duplicate_ids.filter((id) => id !== args.canonical_id);
-  const skipped = args.duplicate_ids.filter((id) => id === args.canonical_id).map((id) => ({ id, reason: "is_canonical" }));
-  const { data: dupRows, error: dupErr } = await ctx.supabase.from("documents").select("id, kind, scope, status, metadata").eq("account_id", ctx.accountId).in("id", requestedIds);
-  if (dupErr) throw new CurationError("not_found", `duplicate lookup failed: ${dupErr.message}`);
-  const found = new Map(
-    (dupRows ?? []).map(
-      (r2) => [r2.id, r2]
-    )
-  );
-  const twins = [];
-  for (const id of requestedIds) {
-    const row = found.get(id);
-    if (!row) {
-      skipped.push({ id, reason: "not_found" });
-      continue;
-    }
-    if (row.kind !== canonical2.kind) {
-      skipped.push({ id, reason: "kind_mismatch" });
-      continue;
-    }
-    if (row.scope === "personal") {
-      skipped.push({ id, reason: "personal_scope" });
-      continue;
-    }
-    const meta = row.metadata ?? {};
-    if (meta.superseded_by === args.canonical_id) {
-      skipped.push({ id, reason: "already_merged" });
-      continue;
-    }
-    twins.push({ id: row.id, metadata: row.metadata });
-  }
-  if (twins.length === 0) {
-    return {
-      canonical_id: canonical2.id,
-      archived_ids: [],
-      skipped,
-      new_version_number: null,
-      corroboration_count: canonical2.metadata && typeof canonical2.metadata.corroboration_count === "number" ? canonical2.metadata.corroboration_count : 1
-    };
-  }
-  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
-  const canonicalMeta = canonical2.metadata ?? {};
-  const priorMergedFrom = Array.isArray(canonicalMeta.merged_from) ? canonicalMeta.merged_from.filter((v2) => typeof v2 === "string") : [];
-  const { newVersionNumber, summedCorroboration } = await applyCanonicalMerge(ctx, {
-    canonical: canonical2,
-    twins,
-    content: args.merged_content ?? null,
-    buildCanonicalMetadata: (sum) => ({
-      ...canonicalMeta,
-      // metadata.status stays as-is — making a doc live (or approved) is a
-      // deliberate separate action (setDocumentStatus), not a merge side
-      // effect.
-      merged_from: [...priorMergedFrom, ...twins.map((t2) => t2.id)],
-      merged_at: nowIso,
-      merged_via: "api",
-      corroboration_count: sum,
-      ...args.merged_content ? { embedding_stale: true } : {}
-    }),
-    commitMessage: args.commit_message ?? `merge ${twins.length} duplicate ${canonical2.kind} doc(s)`,
-    supersededReason: "merged",
-    nowIso
-  });
-  return {
-    canonical_id: canonical2.id,
-    archived_ids: twins.map((t2) => t2.id),
-    skipped,
-    new_version_number: newVersionNumber,
-    corroboration_count: summedCorroboration
-  };
-}
-var AUTO_MERGE_SAFE_THRESHOLD = 0.92;
-var SWEEP_DEFAULT_THRESHOLD = 0.85;
-var SWEEP_DOC_CAP = 800;
-var SWEEP_KINDS = ["decision", "memory", "skill"];
-function canonicalRank(a2, b2) {
-  const aApproved = a2.status === "approved" ? 1 : 0;
-  const bApproved = b2.status === "approved" ? 1 : 0;
-  if (aApproved !== bApproved) return bApproved - aApproved;
-  if (a2.corroboration_count !== b2.corroboration_count) {
-    return b2.corroboration_count - a2.corroboration_count;
-  }
-  return a2.updated_at < b2.updated_at ? 1 : a2.updated_at > b2.updated_at ? -1 : 0;
-}
-function clusterPairs(kind2, pairs, docs) {
-  const neighbours = /* @__PURE__ */ new Map();
-  for (const p2 of pairs) {
-    if (!docs.has(p2.id_a) || !docs.has(p2.id_b)) continue;
-    if (!neighbours.has(p2.id_a)) neighbours.set(p2.id_a, /* @__PURE__ */ new Map());
-    if (!neighbours.has(p2.id_b)) neighbours.set(p2.id_b, /* @__PURE__ */ new Map());
-    neighbours.get(p2.id_a).set(p2.id_b, p2.similarity);
-    neighbours.get(p2.id_b).set(p2.id_a, p2.similarity);
-  }
-  const ranked = [...neighbours.keys()].map((id) => docs.get(id)).sort(canonicalRank);
-  const claimed = /* @__PURE__ */ new Set();
-  const clusters = [];
-  for (const leader of ranked) {
-    if (claimed.has(leader.id)) continue;
-    claimed.add(leader.id);
-    const members = [];
-    for (const [otherId, similarity] of neighbours.get(leader.id) ?? []) {
-      if (claimed.has(otherId)) continue;
-      claimed.add(otherId);
-      members.push({ ...docs.get(otherId), similarity_to_canonical: similarity });
-    }
-    if (members.length === 0) continue;
-    members.sort((a2, b2) => b2.similarity_to_canonical - a2.similarity_to_canonical);
-    const avg = members.reduce((s2, m2) => s2 + m2.similarity_to_canonical, 0) / members.length;
-    clusters.push({
-      kind: kind2,
-      suggested_canonical_id: leader.id,
-      canonical: leader,
-      members,
-      avg_similarity: Math.round(avg * 1e3) / 1e3,
-      auto_merge_safe: members.every(
-        (m2) => m2.similarity_to_canonical >= AUTO_MERGE_SAFE_THRESHOLD
-      )
-    });
-  }
-  clusters.sort((a2, b2) => b2.members.length - a2.members.length);
-  return clusters;
-}
-var SweepArgs = external_exports.object({
-  project_id: external_exports.string().uuid().optional(),
-  kinds: external_exports.array(external_exports.enum(SWEEP_KINDS)).min(1).optional(),
-  threshold: external_exports.number().min(0.8).max(0.99).optional()
-});
-async function sweepDuplicates(ctx, rawArgs) {
-  let args;
-  try {
-    args = SweepArgs.parse(rawArgs ?? {});
-  } catch (e2) {
-    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
-  }
-  const kinds = args.kinds ?? [...SWEEP_KINDS];
-  const threshold = args.threshold ?? SWEEP_DEFAULT_THRESHOLD;
-  const clusters = [];
-  const scanned = {};
-  let truncated = false;
-  let vectorlessCount = 0;
-  for (const kind2 of kinds) {
-    let query = ctx.supabase.from("documents").select("id, title, status, updated_at, metadata").eq("account_id", ctx.accountId).eq("kind", kind2).neq("status", "archived").not("embedding", "is", null).or("metadata->>status.is.null,metadata->>status.eq.active");
-    if (args.project_id) query = query.eq("project_id", args.project_id);
-    const { data, error: error2 } = await query.order("updated_at", { ascending: false }).limit(SWEEP_DOC_CAP);
-    if (error2) throw new CurationError("invalid_args", `sweep candidate read failed: ${error2.message}`);
-    try {
-      let vectorlessQuery = ctx.supabase.from("documents").select("id", { count: "exact", head: true }).eq("account_id", ctx.accountId).eq("kind", kind2).neq("status", "archived").is("embedding", null).or("metadata->>status.is.null,metadata->>status.eq.active");
-      if (args.project_id) vectorlessQuery = vectorlessQuery.eq("project_id", args.project_id);
-      const { count } = await vectorlessQuery;
-      vectorlessCount += count ?? 0;
-    } catch {
-    }
-    const rows = data ?? [];
-    if (rows.length === SWEEP_DOC_CAP) truncated = true;
-    const docs = /* @__PURE__ */ new Map();
-    for (const r2 of rows) {
-      const meta = r2.metadata ?? {};
-      docs.set(r2.id, {
-        id: r2.id,
-        title: r2.title,
-        status: r2.status,
-        metadata_status: typeof meta.status === "string" ? meta.status : null,
-        updated_at: r2.updated_at,
-        corroboration_count: typeof meta.corroboration_count === "number" ? meta.corroboration_count : 1
-      });
-    }
-    scanned[kind2] = docs.size;
-    if (docs.size < 2) continue;
-    const rpcArgs = {
-      p_account_id: ctx.accountId,
-      p_ids: [...docs.keys()],
-      p_threshold: threshold
-    };
-    let { data: pairData, error: pairErr } = await ctx.supabase.rpc(
-      "document_similarity_pairs",
-      rpcArgs
-    );
-    if (pairErr && /permission denied/i.test(pairErr.message) && ctx.privilegedSupabase) {
-      ({ data: pairData, error: pairErr } = await ctx.privilegedSupabase.rpc(
-        "document_similarity_pairs",
-        rpcArgs
-      ));
-    }
-    if (pairErr) {
-      throw new CurationError("invalid_args", `similarity sweep failed: ${pairErr.message}`);
-    }
-    clusters.push(...clusterPairs(kind2, pairData ?? [], docs));
-  }
-  clusters.sort((a2, b2) => b2.members.length - a2.members.length);
-  return { clusters, scanned, truncated, vectorless_count: vectorlessCount, threshold };
-}
+// packages/mcp-tools/src/rerank.ts
+var SYSTEM_PROMPT = `You are a code-context relevance ranker.
 
-// packages/mcp-tools/src/origin.ts
-function deriveDocOrigin(metadata) {
-  const meta = metadata ?? {};
-  const proposedBy = typeof meta.proposed_by === "string" ? meta.proposed_by : "";
-  if (meta.source === "repo:function" || proposedBy === "scribe:repo") return "scanner";
-  if (proposedBy.startsWith("scribe:") || proposedBy === "correction" || meta.scribe_run_id != null) {
-    return "scribe";
-  }
-  if (meta.imported_from != null || meta.installed_via != null || meta.library_source != null) {
-    return "import";
-  }
-  return "human";
-}
-var NoiseSweepArgs = external_exports.object({
-  project_id: external_exports.string().uuid().optional(),
-  dry_run: external_exports.boolean().default(true),
-  /** Docs a human explicitly accepted (inbox accept stamps accepted_at)
-   *  are presumed wanted — skipped unless this is set. */
-  include_accepted: external_exports.boolean().default(false)
-});
+A developer's AI agent is about to work on a task. Below are candidate items
+the resolver pulled from the workspace's memory + skills + goals + schemas + decisions.
+Score each one on how directly useful it would be to the agent doing THIS
+task. Higher score = more directly applicable. Skills that exactly match
+the problem domain score highest; broad-context items score lower; items
+that are tangentially related score lowest.
 
-// packages/mcp-tools/src/custom-metadata.ts
-var CUSTOM_KEY_RE = /^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,63}$/;
-var CUSTOM_MAX_BYTES = 8 * 1024;
-var CUSTOM_MAX_DEPTH = 3;
-var CUSTOM_MAX_KEYS = 64;
-var MetadataValidationError = class extends Error {
-  code = "custom_metadata_invalid";
-  issues;
-  // `field` names the metadata key that failed — 'custom' historically, and
-  // 'trigger' since trigger-bound memories landed. The code stays
-  // 'custom_metadata_invalid' so existing wire-level consumers keep matching.
-  constructor(issues, field = "custom") {
-    super(`invalid metadata.${field}: ${issues[0] ?? "validation failed"}`);
-    this.name = "MetadataValidationError";
-    this.issues = issues;
-  }
-};
-var ISO_DATEISH = /^\d{4}-\d{2}-\d{2}([T ].*)?$/;
-var ArtifactSchema = external_exports.object({
-  path: external_exports.string().min(1).max(512).optional(),
-  url: external_exports.string().url().max(2048).optional(),
-  kind: external_exports.string().min(1).max(64).optional(),
-  sha: external_exports.string().max(128).optional()
-}).refine((a2) => a2.path || a2.url, { message: "artifact needs a path or a url" });
-var TYPED_KEYS = {
-  expected_outcome: external_exports.union([
-    external_exports.string().min(1).max(2e3),
-    external_exports.object({
-      text: external_exports.string().max(2e3).optional(),
-      metric: external_exports.string().max(128).optional(),
-      direction: external_exports.string().max(16).optional(),
-      magnitude: external_exports.number().optional(),
-      window: external_exports.string().max(128).optional()
-    }).passthrough()
-  ]),
-  review_by: external_exports.string().regex(ISO_DATEISH, "review_by must be an ISO date (YYYY-MM-DD\u2026)"),
-  artifacts: external_exports.array(ArtifactSchema).max(20),
-  occurred_at: external_exports.string().regex(ISO_DATEISH, "occurred_at must be an ISO date (YYYY-MM-DD\u2026)"),
-  entities: external_exports.array(external_exports.string().min(1).max(64)).max(32),
-  thread_status: external_exports.enum(["open", "resolved", "n/a"]),
-  resolves: external_exports.string().uuid()
-};
-function depthOf(value, depth = 0) {
-  if (depth > CUSTOM_MAX_DEPTH) return depth;
-  if (Array.isArray(value)) {
-    let max = depth + 1;
-    for (const v2 of value) max = Math.max(max, depthOf(v2, depth + 1));
-    return max;
-  }
-  if (value && typeof value === "object") {
-    let max = depth + 1;
-    for (const v2 of Object.values(value)) {
-      max = Math.max(max, depthOf(v2, depth + 1));
-    }
-    return max;
-  }
-  return depth;
+Output JSON ONLY, no prose:
+{ "scores": [ { "n": 1, "score": 0.0-1.0 }, { "n": 2, "score": ... } ] }
+
+Rules:
+- Score every candidate. Missing entries are treated as score=0.
+- Be decisive \u2014 a long flat list of 0.5s is useless. Use the full range.
+- 0.85+ means "essential for this task"
+- 0.60-0.85 "highly relevant"
+- 0.30-0.60 "context-only, not load-bearing"
+- below 0.30 "off-topic for this task, drop it"
+- The agent shouldn't see surplus context; aggressively penalize off-topic items.`;
+function buildUserMessage(task, candidates) {
+  const numbered = candidates.map(
+    // No .slice() here — the caller already sized the excerpt
+    // (RERANK_EXCERPT_CHARS). A second hard-coded 500-char slice made bumping
+    // that constant a silent no-op.
+    (c2, i2) => `${i2 + 1}. [${c2.kind}] "${c2.title}"
+   ${c2.excerpt.replace(/\s+/g, " ")}`
+  ).join("\n\n");
+  return [
+    "<task>",
+    task,
+    "</task>",
+    "",
+    "<candidates>",
+    numbered,
+    "</candidates>",
+    "",
+    "Return JSON only."
+  ].join("\n");
 }
-function jsonSafe(value) {
-  if (value === null) return true;
-  const t2 = typeof value;
-  if (t2 === "string" || t2 === "boolean") return true;
-  if (t2 === "number") return Number.isFinite(value);
-  if (Array.isArray(value)) return value.every(jsonSafe);
-  if (t2 === "object") {
-    return Object.values(value).every(
-      (v2) => v2 !== void 0 && jsonSafe(v2)
-    );
+function parseScores(raw, candidates) {
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) return {};
+  let parsed = {};
+  try {
+    parsed = JSON.parse(match[0]);
+  } catch {
+    return {};
   }
-  return false;
+  const out = {};
+  for (const entry of parsed.scores ?? []) {
+    if (typeof entry.n !== "number" || typeof entry.score !== "number") continue;
+    const idx = entry.n - 1;
+    const candidate = candidates[idx];
+    if (!candidate) continue;
+    const score = entry.score > 1 ? entry.score / 100 : entry.score;
+    out[candidate.id] = Math.max(0, Math.min(1, score));
+  }
+  return out;
 }
-function validateCustomMetadata(custom3) {
-  const issues = [];
-  if (custom3 === null || typeof custom3 !== "object" || Array.isArray(custom3)) {
-    throw new MetadataValidationError(["custom must be an object of named values"]);
+async function rerankCandidates(task, candidates, chat) {
+  const startedAt = Date.now();
+  if (candidates.length === 0) {
+    return { scores: {}, latency_ms: 0 };
   }
-  const obj = custom3;
-  const keys = Object.keys(obj);
-  if (keys.length === 0) return {};
-  if (keys.length > CUSTOM_MAX_KEYS) {
-    issues.push(`too many keys (${keys.length} > ${CUSTOM_MAX_KEYS})`);
-  }
-  for (const key of keys) {
-    if (!CUSTOM_KEY_RE.test(key)) {
-      issues.push(`key "${key}" must match ${CUSTOM_KEY_RE}`);
-      continue;
-    }
-    const value = obj[key];
-    if (!jsonSafe(value)) {
-      issues.push(`key "${key}" holds a non-JSON-serializable value`);
-      continue;
-    }
-    const typed = TYPED_KEYS[key];
-    if (typed) {
-      const parsed = typed.safeParse(value);
-      if (!parsed.success) {
-        issues.push(`key "${key}": ${parsed.error.issues[0]?.message ?? "invalid shape"}`);
-      }
-    }
-  }
-  const size = JSON.stringify(obj).length;
-  if (size > CUSTOM_MAX_BYTES) {
-    issues.push(
-      `custom exceeds ${CUSTOM_MAX_BYTES} bytes (got ${size}) \u2014 store large payloads externally and reference them`
-    );
-  }
-  if (depthOf(obj) > CUSTOM_MAX_DEPTH) {
-    issues.push(`custom nests deeper than ${CUSTOM_MAX_DEPTH} levels`);
-  }
-  if (issues.length > 0) throw new MetadataValidationError(issues);
-  return obj;
-}
-var ScalarSchema = external_exports.union([external_exports.string(), external_exports.number(), external_exports.boolean()]);
-var MetadataFilterSchema = external_exports.record(
-  external_exports.string().regex(CUSTOM_KEY_RE),
-  external_exports.union([ScalarSchema, external_exports.object({ in: external_exports.array(ScalarSchema).min(1).max(32) }).strict()])
-).refine((f2) => Object.keys(f2).length >= 1 && Object.keys(f2).length <= 8, {
-  message: "metadata_filter takes 1-8 keys"
-});
-function matchesCustomFilter(custom3, filter) {
-  if (custom3 === null || typeof custom3 !== "object" || Array.isArray(custom3)) return false;
-  const obj = custom3;
-  for (const [key, condition] of Object.entries(filter)) {
-    const value = obj[key];
-    const candidates = typeof condition === "object" && condition !== null && "in" in condition ? condition.in : [condition];
-    const hit = candidates.some(
-      (c2) => Array.isArray(value) ? value.includes(c2) : value === c2
-    );
-    if (!hit) return false;
-  }
-  return true;
+  const user = buildUserMessage(task, candidates);
+  const maxTokens = Math.min(2048, 128 + candidates.length * 32);
+  const raw = await chat(SYSTEM_PROMPT, user, { max_tokens: maxTokens });
+  const scores = parseScores(raw, candidates);
+  return { scores, latency_ms: Date.now() - startedAt };
 }
 
 // packages/actions-engine/src/execute.ts
@@ -61760,6 +61356,7 @@ async function rerankHosted(task, candidates, config2) {
   };
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs || DEFAULT_TIMEOUT_MS);
+  const requestSignal = config2.signal ? AbortSignal.any([controller.signal, config2.signal]) : controller.signal;
   const chunkFailures = [];
   try {
     const responses = await Promise.all(
@@ -61769,11 +61366,13 @@ async function rerankHosted(task, candidates, config2) {
             method: "POST",
             headers,
             body: buildBody(chunk.texts),
-            signal: controller.signal
+            signal: requestSignal
           });
           if (!res.ok) {
-            const errText = await res.text().catch(() => "");
-            throw new Error(`Hosted reranker HTTP ${res.status}: ${errText.slice(0, 200)}`);
+            await res.body?.cancel().catch(() => void 0);
+            throw Object.assign(new Error(`Hosted reranker HTTP ${res.status}`), {
+              statusCode: res.status
+            });
           }
           const data = await res.json();
           return { chunk, chunkScores: parseChunkScores(chunk, data) };
@@ -61802,11 +61401,5880 @@ async function rerankHosted(task, candidates, config2) {
   } catch (error2) {
     clearTimeout(timeoutId);
     const cause = chunkFailures.length > 0 ? chunkFailures[0].error : error2;
-    if (cause instanceof Error && cause.name === "AbortError") {
+    if (cause instanceof Error && cause.name === "AbortError" && !config2.signal?.aborted) {
       throw new Error(`Hosted reranker request to ${url} timed out.`);
     }
     throw cause;
   }
+}
+
+// packages/mcp-tools/src/feedback-overlay.ts
+async function assembleFeedbackOverlay(args) {
+  const perLane = args.perLaneLimit ?? 6;
+  const windowDays = args.windowDays ?? 30;
+  const threshold = args.similarityThreshold ?? 0.6;
+  const sinceIso = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1e3).toISOString();
+  const [semantic, byTarget] = await Promise.all([
+    fetchSemanticLane(args, threshold, perLane, sinceIso),
+    fetchTargetLane(args, perLane, sinceIso)
+  ]);
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const lane of [semantic, byTarget]) {
+    for (const item of lane) {
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      out.push(item);
+    }
+  }
+  return out.sort((a2, b2) => b2.similarity - a2.similarity).slice(0, perLane * 2);
+}
+async function fetchSemanticLane(args, threshold, perLane, sinceIso) {
+  if (!args.taskEmbedding || args.taskEmbedding.length === 0) return [];
+  const { data, error: error2 } = await args.supabase.from("documents").select(
+    `id, title, metadata, embedding, created_at,
+       document_versions!documents_current_version_fk ( content )`
+  ).eq("account_id", args.accountId).eq("kind", "feedback").eq("metadata->>status", "active").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(Math.max(perLane * 4, 50));
+  if (error2) {
+    console.warn(`[feedback-overlay] semantic load failed: ${error2.message}`);
+    return [];
+  }
+  const rows = data ?? [];
+  const scored = rows.map((r2) => ({ row: r2, score: cosine(args.taskEmbedding, r2.embedding) })).filter((s2) => s2.score >= threshold).sort((a2, b2) => b2.score - a2.score).slice(0, perLane);
+  return scored.map((s2) => rowToItem(s2.row, "semantic", s2.score));
+}
+async function fetchTargetLane(args, perLane, sinceIso) {
+  if (args.bundleMemoryIds.length === 0) return [];
+  const { data, error: error2 } = await args.supabase.from("documents").select(
+    `id, title, metadata, created_at,
+       document_versions!documents_current_version_fk ( content )`
+  ).eq("account_id", args.accountId).eq("kind", "feedback").in("metadata->target->>id", args.bundleMemoryIds).gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(perLane);
+  if (error2) {
+    console.warn(`[feedback-overlay] target lane failed: ${error2.message}`);
+    return [];
+  }
+  const rows = data ?? [];
+  return rows.map((r2) => rowToItem(r2, "target_link", 1));
+}
+function rowToItem(row, lane, similarity) {
+  const v2 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+  const meta = row.metadata ?? {};
+  const reporter = meta.reporter ?? null;
+  const target = meta.target ?? null;
+  const sentiment = meta.sentiment === "positive" || meta.sentiment === "neutral" || meta.sentiment === "negative" ? meta.sentiment : null;
+  return {
+    id: row.id,
+    title: row.title,
+    body: v2?.content ?? "",
+    rating: typeof meta.rating === "number" ? meta.rating : null,
+    sentiment,
+    source: typeof meta.source === "string" ? meta.source : "unknown",
+    reporter_display_name: reporter?.display_name ?? null,
+    target_kind: target?.kind ?? null,
+    target_id: target?.id ?? null,
+    cluster_id: typeof meta.cluster_id === "string" ? meta.cluster_id : null,
+    similarity,
+    source_lane: lane,
+    created_at: row.created_at
+  };
+}
+function cosine(a2, b2) {
+  if (!b2 || a2.length !== b2.length) return 0;
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  for (let i2 = 0; i2 < a2.length; i2++) {
+    const ai = a2[i2] ?? 0;
+    const bi = b2[i2] ?? 0;
+    dot += ai * bi;
+    na += ai * ai;
+    nb += bi * bi;
+  }
+  const denom = Math.sqrt(na) * Math.sqrt(nb);
+  return denom === 0 ? 0 : dot / denom;
+}
+
+// packages/mcp-tools/src/resolver.ts
+function ageDaysSince(observedAt, nowMs) {
+  const then = Date.parse(observedAt);
+  if (Number.isNaN(then)) return 0;
+  return Math.max(0, Math.floor((nowMs - then) / 864e5));
+}
+function isMissingResolveCandidatesRpc(error2) {
+  if (!error2) return false;
+  return error2.code === "PGRST202" || error2.code === "42883" || /could not find the function|function .*resolve_candidates_v2.*does not exist/i.test(
+    error2.message ?? ""
+  );
+}
+function isDirectResolverDocumentEligible(row, context, options2 = {}) {
+  if (row.account_id !== context.accountId) return false;
+  if (row.locked_to_owners !== false) return false;
+  const projectId = context.projectId ?? null;
+  if (row.scope === "personal") {
+    if (!context.userId || row.created_by !== context.userId) return false;
+  } else if (row.scope === "project") {
+    if (projectId && row.project_id !== projectId) return false;
+  } else if (row.scope !== "team") {
+    return false;
+  }
+  const association = options2.projectAssociation ?? "scope";
+  if (association === "account-or-active-project") {
+    const rowProjectId = row.project_id;
+    if (projectId && rowProjectId !== null && rowProjectId !== void 0 && rowProjectId !== projectId) {
+      return false;
+    }
+  } else if (association === "active-project") {
+    if (!projectId || row.project_id !== projectId) return false;
+  }
+  const expectedKinds = Array.isArray(options2.expectedKind) ? options2.expectedKind : options2.expectedKind ? [options2.expectedKind] : null;
+  if (expectedKinds && (typeof row.kind !== "string" || !expectedKinds.includes(row.kind))) {
+    return false;
+  }
+  const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata) ? row.metadata : {};
+  const lifecycle = options2.lifecycle ?? "recall";
+  if (lifecycle === "sql-live") return row.status !== "archived";
+  if (lifecycle === "proposed") {
+    return row.status !== "archived" && metadata.status === "proposed";
+  }
+  if (typeof row.kind !== "string") return false;
+  return isEligibleForRecall({
+    status: typeof row.status === "string" ? row.status : null,
+    metadataStatus: typeof metadata.status === "string" ? metadata.status : null,
+    metadataSupersededBy: typeof metadata.superseded_by === "string" ? metadata.superseded_by : null,
+    id: typeof row.id === "string" ? row.id : null,
+    kind: row.kind
+  });
+}
+var AGENT_KIND_ALIASES = /* @__PURE__ */ new Map([
+  ["anthropic-claude-code", "claude-code"],
+  ["claude-code-cli", "claude-code"],
+  ["claudecode", "claude-code"],
+  ["codex-cli", "codex"],
+  ["openai-codex", "codex"],
+  ["gemini-cli", "gemini"],
+  ["vs-code", "vscode"],
+  ["visual-studio-code", "vscode"]
+]);
+function normalizeSkillAgentKind(value) {
+  const normalized = value.normalize("NFKC").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  return AGENT_KIND_ALIASES.get(normalized) ?? normalized;
+}
+function skillTargetAgents(metadata) {
+  const raw = metadata?.["target-agents"];
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((value) => typeof value === "string").map((value) => value.trim()).filter(Boolean);
+}
+function isSkillTargetedToAgent(metadata, agentKind2) {
+  const targets = skillTargetAgents(metadata);
+  if (targets.length === 0 || !agentKind2?.trim()) return true;
+  const normalizedAgent = normalizeSkillAgentKind(agentKind2);
+  return targets.some((target) => {
+    if (target === "*") return true;
+    const normalizedTarget = normalizeSkillAgentKind(target);
+    return normalizedTarget === "all" || normalizedTarget === normalizedAgent;
+  });
+}
+function antiExampleText(value) {
+  if (typeof value === "string") return value.trim();
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const text = value.text;
+    return typeof text === "string" ? text.trim() : "";
+  }
+  return "";
+}
+function normalizedBehaviorText(value) {
+  return value.normalize("NFKC").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+}
+function matchingSkillAntiExample(task, metadata) {
+  const raw = metadata?.["anti-examples"];
+  if (!Array.isArray(raw)) return null;
+  const normalizedTask = normalizedBehaviorText(task);
+  if (!normalizedTask) return null;
+  const taskTokens2 = normalizedTask.split(" ");
+  const taskSet = new Set(taskTokens2);
+  for (const value of raw) {
+    const original = antiExampleText(value);
+    const normalizedCase = normalizedBehaviorText(original);
+    if (!normalizedCase) continue;
+    if (normalizedTask === normalizedCase) return original;
+    const caseTokens = normalizedCase.split(" ");
+    if (caseTokens.length >= 3 && ` ${normalizedTask} `.includes(` ${normalizedCase} `)) {
+      return original;
+    }
+    const meaningful = caseTokens.filter((token) => token.length >= 3);
+    if (meaningful.length < 5) continue;
+    const overlap = meaningful.filter((token) => taskSet.has(token)).length;
+    if (overlap / meaningful.length < 0.9 || overlap < 4) continue;
+    let sharedAdjacentPairs = 0;
+    for (let i2 = 0; i2 < caseTokens.length - 1; i2++) {
+      const pair = `${caseTokens[i2]} ${caseTokens[i2 + 1]}`;
+      if (` ${normalizedTask} `.includes(` ${pair} `)) sharedAdjacentPairs++;
+    }
+    if (sharedAdjacentPairs >= 2) return original;
+  }
+  return null;
+}
+function deterministicCanaryBucket(identityKey, skillId) {
+  const hex = createHash("sha256").update(`${identityKey}\0${skillId}`).digest("hex").slice(0, 13);
+  return Number.parseInt(hex, 16) / 4503599627370496;
+}
+var CONCURRENT_WINDOW_MS = 20 * 6e4;
+var CONCURRENT_MAX = 5;
+var DEPLOY_WINDOW_MS = 12 * 6e4;
+var WORK_SIMILARITY_GATE = 0.62;
+var WORK_PATH_MATCH_MAX = 3;
+var OWN_EDIT_WINDOW_MS = 2 * 60 * 6e4;
+var DOC_PATH_MATCH_MAX = 2;
+var DOC_PATH_BODY_CAP = 6e3;
+var AUTHOR_DOC_MATCH_MAX = 3;
+var AUTHOR_MENTION_MAX = 2;
+var AUTHOR_NAME_MIN_LEN = 3;
+var AMBIGUOUS_NAME_TOKENS = /* @__PURE__ */ new Set([
+  "will",
+  "bill",
+  "grant",
+  "mark",
+  "art",
+  "sue",
+  "ray",
+  "rob",
+  "dawn",
+  "may",
+  "june",
+  "april",
+  "august",
+  "hope",
+  "joy",
+  "frank",
+  "jack",
+  "pat",
+  "max",
+  "guy",
+  "rose",
+  "lane",
+  "dean",
+  "chase"
+]);
+var RECALL_FLOOR_MARGIN = 0.1;
+var RECALL_FLOOR_MIN = 0.25;
+var CONCURRENT_PR_WINDOW_MS = 24 * 60 * 6e4;
+var CONCURRENT_PR_MAX = 3;
+var DUP_SIMILARITY_GATE = 0.86;
+function parsePgVector(v2) {
+  if (Array.isArray(v2)) return v2;
+  if (typeof v2 !== "string") return null;
+  try {
+    const arr = JSON.parse(v2);
+    return Array.isArray(arr) ? arr : null;
+  } catch {
+    return null;
+  }
+}
+function cosineSim(a2, b2) {
+  if (a2.length !== b2.length) return 0;
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  for (let i2 = 0; i2 < a2.length; i2++) {
+    dot += a2[i2] * b2[i2];
+    na += a2[i2] * a2[i2];
+    nb += b2[i2] * b2[i2];
+  }
+  if (na === 0 || nb === 0) return 0;
+  return dot / (Math.sqrt(na) * Math.sqrt(nb));
+}
+var TASK_OVERLAP_PROMOTE = 0.34;
+var TASK_OVERLAP_MIN_SHARED = 2;
+var TASK_STOPWORDS = /* @__PURE__ */ new Set([
+  "this",
+  "that",
+  "with",
+  "from",
+  "have",
+  "want",
+  "need",
+  "make",
+  "sure",
+  "just",
+  "into",
+  "your",
+  "their",
+  "about",
+  "which",
+  "when",
+  "will",
+  "should",
+  "would",
+  "could",
+  "there",
+  "here",
+  "then",
+  "them",
+  "they",
+  "what",
+  "were",
+  "also",
+  "some",
+  "more",
+  "than",
+  "only",
+  "going",
+  "still",
+  "like",
+  "really",
+  "right",
+  "cause"
+]);
+function taskTokens(task) {
+  return new Set(
+    task.toLowerCase().split(/[^a-z0-9]+/).filter((t2) => t2.length >= 4 && !TASK_STOPWORDS.has(t2))
+  );
+}
+function taskOverlap(a2, b2) {
+  const ta = taskTokens(a2);
+  const tb = taskTokens(b2);
+  if (ta.size === 0 || tb.size === 0) return { score: 0, shared: 0 };
+  let shared = 0;
+  for (const t2 of ta) if (tb.has(t2)) shared++;
+  return { score: shared / Math.min(ta.size, tb.size), shared };
+}
+function buildCollisionWarnings(concurrent, activeComponentName, currentTask) {
+  if (concurrent.length === 0) return [];
+  const others = concurrent.filter((entry) => entry.same_user !== true);
+  if (others.length === 0) return [];
+  const currentArea = activeComponentName ?? null;
+  const warnings = [];
+  const dupes = others.filter(
+    (entry) => typeof entry.task_similarity === "number" && entry.task_similarity >= DUP_SIMILARITY_GATE
+  );
+  const dupeKeys = new Set(dupes.map((entry) => entry.session_short ?? entry.task));
+  if (dupes.length > 0) {
+    const pct = Math.round(
+      Math.max(...dupes.map((entry) => entry.task_similarity)) * 100
+    );
+    warnings.push({
+      component: currentArea,
+      guidance: `Likely DUPLICATE work: another live session is running a near-identical task (${pct}% match). Check what they're building before you continue \u2014 you may be redoing it. Coordinate, take their branch, or split off a non-overlapping slice.`,
+      entries: dupes
+    });
+  }
+  const rest = others.filter((entry) => !dupeKeys.has(entry.session_short ?? entry.task));
+  let overlapping;
+  let area;
+  if (currentArea) {
+    overlapping = rest.filter((entry) => (entry.component ?? null) === currentArea);
+    area = `component "${currentArea}"`;
+  } else {
+    overlapping = rest.filter((entry) => {
+      if ((entry.component ?? null) !== null) return false;
+      const { score, shared } = taskOverlap(currentTask, entry.task);
+      return score >= TASK_OVERLAP_PROMOTE && shared >= TASK_OVERLAP_MIN_SHARED;
+    });
+    area = "the same work area";
+  }
+  if (overlapping.length > 0) {
+    warnings.push({
+      component: currentArea,
+      guidance: `Possible collision: another agent is active in ${area}. Route around their task, wait for it to finish, or split your work into a separate branch/worktree before editing the same files.`,
+      entries: overlapping
+    });
+  }
+  return warnings;
+}
+async function assembleConcurrentWork(ctx, projectId, ownSessionId, componentNameById, queryVec) {
+  if (!projectId) return [];
+  const sinceIso = new Date(Date.now() - CONCURRENT_WINDOW_MS).toISOString();
+  const { data, error: error2 } = await ctx.supabase.from("usage_events").select("id, created_at, user_id, metadata").eq("account_id", ctx.accountId).eq("event_type", "resolve.invocation").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(300);
+  if (error2 || !data) {
+    console.warn(
+      `[resolver] concurrent-work query failed: ${error2?.message ?? "no rows"} \u2014 proceeding without it`
+    );
+    return [];
+  }
+  const latest = /* @__PURE__ */ new Map();
+  for (const row of data) {
+    const meta = row.metadata ?? {};
+    if (meta.project_id !== projectId) continue;
+    const sid = typeof meta.session_id === "string" ? meta.session_id : null;
+    if (!sid || sid === ownSessionId) continue;
+    if (!latest.has(sid))
+      latest.set(sid, { id: row.id, meta, at: row.created_at, userId: row.user_id ?? null });
+  }
+  const embById = /* @__PURE__ */ new Map();
+  if (queryVec && latest.size > 0) {
+    const ids = [...latest.values()].map((r2) => r2.id);
+    const { data: embRows, error: embErr } = await ctx.supabase.from("usage_events").select("id, task_embedding").in("id", ids);
+    if (embErr) {
+      console.warn(
+        `[resolver] concurrent-work embedding fetch failed: ${embErr.message} \u2014 proceeding without similarity`
+      );
+    } else {
+      for (const r2 of embRows ?? []) {
+        const v2 = parsePgVector(r2.task_embedding);
+        if (v2 && v2.length === queryVec.length) embById.set(String(r2.id), v2);
+      }
+    }
+  }
+  const now = Date.now();
+  const entries = [];
+  for (const [sid, { id, meta, at: at2, userId }] of latest) {
+    const compId = typeof meta.active_component_id === "string" ? meta.active_component_id : null;
+    const component = compId ? componentNameById.get(compId)?.name ?? null : null;
+    const task = typeof meta.task === "string" ? meta.task.slice(0, 140) : "";
+    const v2 = embById.get(String(id));
+    const task_similarity = queryVec && v2 ? Math.round(cosineSim(queryVec, v2) * 100) / 100 : void 0;
+    entries.push({
+      source: "resolve",
+      component,
+      task,
+      task_similarity,
+      minutes_ago: Math.max(0, Math.round((now - new Date(at2).getTime()) / 6e4)),
+      session_short: sid.slice(0, 8),
+      agent_kind: typeof meta.agent_kind === "string" ? meta.agent_kind : null,
+      // "Your own other window" — surfaced, but never escalated to a collision.
+      same_user: userId != null && userId === (ctx.userId ?? null)
+    });
+  }
+  const { data: claims, error: claimsErr } = await ctx.supabase.from("component_claims").select("component_id, task, path, expires_at, created_at").eq("project_id", projectId).is("released_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("expires_at", { ascending: true }).limit(20);
+  if (claimsErr) {
+    console.warn(
+      `[resolver] component-claims query failed: ${claimsErr.message} \u2014 proceeding without claims`
+    );
+  } else {
+    for (const claim of claims ?? []) {
+      const component = claim.component_id ? componentNameById.get(claim.component_id)?.name ?? null : null;
+      entries.push({
+        source: "claim",
+        component,
+        task: (claim.task ?? claim.path ?? "claimed work area").slice(0, 140),
+        minutes_ago: Math.max(0, Math.round((now - new Date(claim.created_at).getTime()) / 6e4))
+      });
+    }
+  }
+  entries.sort((a2, b2) => a2.minutes_ago - b2.minutes_ago);
+  return entries.slice(0, CONCURRENT_MAX);
+}
+var FILE_ACTIVITY_WINDOW_MS = 15 * 6e4;
+var FILE_ACTIVITY_MAX = 8;
+async function assembleFileActivity(ctx, projectId, ownSessionId, ownUserId) {
+  if (!projectId) return [];
+  const sinceIso = new Date(Date.now() - FILE_ACTIVITY_WINDOW_MS).toISOString();
+  const { data, error: error2 } = await ctx.supabase.from("usage_events").select("created_at, user_id, metadata").eq("account_id", ctx.accountId).eq("event_type", "edit.activity").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(300);
+  if (error2 || !data) {
+    return [];
+  }
+  const now = Date.now();
+  const seen = /* @__PURE__ */ new Set();
+  const edits = [];
+  for (const row of data) {
+    const meta = row.metadata ?? {};
+    if (meta.project_id !== projectId) continue;
+    const sid = typeof meta.session_id === "string" ? meta.session_id : null;
+    if (sid && sid === ownSessionId) continue;
+    const paths = Array.isArray(meta.paths) ? meta.paths : [];
+    const agentKind2 = typeof meta.agent_kind === "string" ? meta.agent_kind : null;
+    const sameUser = row.user_id != null && row.user_id === ownUserId;
+    const minutesAgo = Math.max(0, Math.round((now - new Date(row.created_at).getTime()) / 6e4));
+    for (const p2 of paths) {
+      if (typeof p2 !== "string" || !p2) continue;
+      if (seen.has(p2)) continue;
+      seen.add(p2);
+      edits.push({
+        path: p2,
+        session_short: sid ? sid.slice(0, 8) : null,
+        agent_kind: agentKind2,
+        same_user: sameUser,
+        minutes_ago: minutesAgo
+      });
+      if (edits.length >= FILE_ACTIVITY_MAX) return edits;
+    }
+  }
+  return edits;
+}
+async function assembleEditOwnership(ctx, projectId, ownSessionId) {
+  if (!projectId || !ownSessionId) return [];
+  const { data, error: error2 } = await ctx.supabase.from("edit_conflicts").select("id, path, owner_session_id, contender_session_id, reason, created_at").eq("account_id", ctx.accountId).eq("project_id", projectId).eq("status", "open").or(`owner_session_id.eq.${ownSessionId},contender_session_id.eq.${ownSessionId}`).order("created_at", { ascending: false }).limit(20);
+  if (error2 || !data) return [];
+  return data.map((row) => ({
+    id: row.id,
+    path: row.path,
+    role: row.owner_session_id === ownSessionId ? "owner" : "contender",
+    owner_session_short: row.owner_session_id.slice(0, 12),
+    contender_session_short: row.contender_session_id.slice(0, 12),
+    reason: row.reason,
+    created_at: row.created_at
+  }));
+}
+async function assembleDeployInProgress(ctx, projectId, ownSessionId, componentNameById) {
+  if (!projectId) return [];
+  const now = Date.now();
+  const latest = /* @__PURE__ */ new Map();
+  const { data: leases, error: leaseErr } = await ctx.supabase.from("deploy_leases").select("session_id, task, acquired_at, expires_at, released_at").eq("account_id", ctx.accountId).eq("project_id", projectId).is("released_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString());
+  if (leaseErr) {
+    console.warn(
+      `[resolver] deploy-lease read failed: ${leaseErr.message} \u2014 falling back to activity`
+    );
+  } else {
+    for (const row of leases ?? []) {
+      const sid = typeof row.session_id === "string" ? row.session_id : null;
+      if (!sid || sid === ownSessionId) continue;
+      const task = typeof row.task === "string" ? row.task : "";
+      if (!isLiveShipSignal(task)) continue;
+      latest.set(sid, {
+        task: task.slice(0, 140),
+        at: typeof row.acquired_at === "string" ? row.acquired_at : (/* @__PURE__ */ new Date()).toISOString(),
+        component: null
+      });
+    }
+  }
+  if (latest.size === 0) {
+    const sinceIso = new Date(now - DEPLOY_WINDOW_MS).toISOString();
+    const { data, error: error2 } = await ctx.supabase.from("usage_events").select("created_at, metadata").eq("account_id", ctx.accountId).eq("event_type", "deploy.activity").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(300);
+    if (error2) {
+      console.warn(
+        `[resolver] deploy-in-progress query failed: ${error2.message} \u2014 proceeding without it`
+      );
+    } else if (data) {
+      for (const row of data) {
+        const meta = row.metadata ?? {};
+        if (meta.project_id !== projectId) continue;
+        const sid = typeof meta.session_id === "string" ? meta.session_id : null;
+        if (!sid || sid === ownSessionId) continue;
+        const task = typeof meta.task === "string" ? meta.task : "";
+        if (!isLiveShipSignal(task, meta)) continue;
+        if (!latest.has(sid)) {
+          const compId = typeof meta.active_component_id === "string" ? meta.active_component_id : null;
+          latest.set(sid, {
+            task: task.slice(0, 140),
+            at: row.created_at,
+            component: compId ? componentNameById.get(compId)?.name ?? null : null
+          });
+        }
+      }
+    }
+  }
+  const entries = [];
+  for (const [sid, { task, at: at2, component }] of latest) {
+    entries.push({
+      session_short: sid.slice(0, 6),
+      task,
+      component,
+      minutes_ago: Math.max(0, Math.round((now - new Date(at2).getTime()) / 6e4))
+    });
+  }
+  entries.sort((a2, b2) => a2.minutes_ago - b2.minutes_ago);
+  return entries.slice(0, CONCURRENT_MAX);
+}
+async function assembleDeployWaiters(ctx, projectId, ownSessionId) {
+  if (!projectId) return { others: [], own: null };
+  const { data, error: error2 } = await ctx.supabase.from("deploy_waiters").select("session_id, task, git_sha, release_id, service, status, queued_at, expires_at").eq("account_id", ctx.accountId).eq("project_id", projectId).in("status", ["waiting", "ready"]).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("queued_at", { ascending: true }).limit(20);
+  if (error2 || !data) {
+    if (error2) {
+      console.warn(
+        `[resolver] deploy-waiters read failed: ${error2.message} \u2014 proceeding without it`
+      );
+    }
+    return { others: [], own: null };
+  }
+  const now = Date.now();
+  const others = [];
+  let own = null;
+  for (const row of data) {
+    const sid = typeof row.session_id === "string" ? row.session_id : null;
+    const status = row.status === "ready" ? "ready" : row.status === "waiting" ? "waiting" : null;
+    if (!sid || !status) continue;
+    const minutesQueued = row.queued_at ? Math.max(0, Math.round((now - new Date(row.queued_at).getTime()) / 6e4)) : 0;
+    const task = typeof row.task === "string" && row.task ? row.task.slice(0, 140) : "(deploy)";
+    const gitSha = typeof row.git_sha === "string" ? row.git_sha : null;
+    const releaseId = typeof row.release_id === "string" ? row.release_id : null;
+    const service = row.service === "web" || row.service === "admin" || row.service === "scanners" ? row.service : null;
+    if (ownSessionId && sid === ownSessionId) {
+      own = {
+        status,
+        task,
+        git_sha: gitSha,
+        release_id: releaseId,
+        service,
+        minutes_queued: minutesQueued
+      };
+      continue;
+    }
+    others.push({
+      session_short: sid.slice(0, 6),
+      task,
+      git_sha: gitSha,
+      release_id: releaseId,
+      service,
+      status,
+      minutes_queued: minutesQueued
+    });
+  }
+  return { others, own };
+}
+async function assembleWorkInFlight(ctx, projectId, queryVec) {
+  if (!queryVec) return [];
+  const { data, error: error2 } = await ctx.supabase.rpc("search_work_items", {
+    p_account_id: ctx.accountId,
+    p_project_id: projectId,
+    p_query_embedding: queryVec,
+    p_limit: CONCURRENT_MAX
+  });
+  if (error2 || !data) {
+    if (error2) {
+      console.warn(
+        `[resolver] work-in-flight query failed: ${error2.message} \u2014 proceeding without it`
+      );
+    }
+    return [];
+  }
+  const now = Date.now();
+  const rows = data;
+  const entries = [];
+  for (const r2 of rows) {
+    if (typeof r2.similarity !== "number" || r2.similarity < WORK_SIMILARITY_GATE) continue;
+    const stamp = r2.state === "merged" ? r2.merged_at : r2.pr_updated_at;
+    const ageDays = stamp ? Math.max(0, Math.round((now - new Date(stamp).getTime()) / 864e5)) : 0;
+    entries.push({
+      state: r2.state === "merged" ? "merged" : "open",
+      number: r2.number,
+      title: typeof r2.title === "string" ? r2.title.slice(0, 140) : "",
+      url: r2.url ?? null,
+      author_login: r2.author_login ?? null,
+      head_ref: r2.head_ref ?? null,
+      repo_full_name: r2.repo_full_name,
+      similarity: Math.round(r2.similarity * 100) / 100,
+      age_days: ageDays
+    });
+  }
+  return entries;
+}
+function dirsOfPaths(paths) {
+  const dirs = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const p2 of paths) {
+    if (typeof p2 !== "string" || !p2) continue;
+    const clean = p2.replace(/^\.?\//, "").trim();
+    if (!clean) continue;
+    const segs = clean.split("/");
+    segs.pop();
+    const d2 = segs.length === 0 ? "." : segs.slice(0, 3).join("/");
+    if (seen.has(d2)) continue;
+    seen.add(d2);
+    dirs.push(d2);
+    if (dirs.length >= 30) break;
+  }
+  return dirs;
+}
+function extractPathTokens(task) {
+  const out = [];
+  const re2 = /(?:^|[\s`'"(,;])((?:[\w.@-]+\/)+[\w.@*-]+)/g;
+  let m2;
+  while ((m2 = re2.exec(task)) !== null && out.length < 10) {
+    const tok = m2[1].replace(/[.,;:)]+$/, "");
+    if (/^https?:/.test(tok) || tok.includes("//")) continue;
+    out.push(tok);
+  }
+  return out;
+}
+function wordMatchPosition(haystackLower, needleLower) {
+  if (needleLower.length < AUTHOR_NAME_MIN_LEN) return -1;
+  const escaped = needleLower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const m2 = new RegExp(`(?:^|[^\\p{L}\\p{N}_])(${escaped})(?=$|[^\\p{L}\\p{N}_])`, "u").exec(
+    haystackLower
+  );
+  return m2 ? m2.index + m2[0].indexOf(m2[1]) : -1;
+}
+function detectMentionedMembers(task, members) {
+  if (!task || members.length === 0) return [];
+  const haystack = task.toLowerCase();
+  const found = /* @__PURE__ */ new Map();
+  for (const member of members) {
+    const displayName = member.display_name?.trim() ?? "";
+    const nameTokens = displayName.toLowerCase().split(/\s+/).filter(Boolean);
+    const emailLocal = member.email?.split("@")[0]?.toLowerCase() ?? "";
+    let hit = null;
+    if (nameTokens.length >= 2) {
+      const pos = wordMatchPosition(haystack, nameTokens.join(" "));
+      if (pos >= 0) hit = { matched_on: "full_name", position: pos };
+    }
+    if (!hit && nameTokens[0] && !AMBIGUOUS_NAME_TOKENS.has(nameTokens[0])) {
+      const pos = wordMatchPosition(haystack, nameTokens[0]);
+      if (pos >= 0) hit = { matched_on: "first_name", position: pos };
+    }
+    if (!hit && emailLocal && !AMBIGUOUS_NAME_TOKENS.has(emailLocal)) {
+      for (const candidate of [.../* @__PURE__ */ new Set([emailLocal, emailLocal.split(".")[0] ?? ""])]) {
+        if (!candidate || AMBIGUOUS_NAME_TOKENS.has(candidate)) continue;
+        const pos = wordMatchPosition(haystack, candidate);
+        if (pos >= 0) {
+          hit = { matched_on: "email_local", position: pos };
+          break;
+        }
+      }
+    }
+    if (!hit) continue;
+    const existing = found.get(member.user_id);
+    if (!existing || hit.position < existing.position) {
+      found.set(member.user_id, {
+        user_id: member.user_id,
+        name: displayName || emailLocal || member.user_id,
+        matched_on: hit.matched_on,
+        position: hit.position
+      });
+    }
+  }
+  return [...found.values()].sort((a2, b2) => a2.position - b2.position).slice(0, AUTHOR_MENTION_MAX);
+}
+function patternPrefixDirs(patterns) {
+  const out = [];
+  for (const pat of patterns) {
+    if (typeof pat !== "string" || !pat) continue;
+    const segs = [];
+    for (const seg of pat.replace(/^\.?\//, "").split("/")) {
+      if (!seg || /[*?[\]{}]/.test(seg)) break;
+      segs.push(seg);
+      if (segs.length >= 3) break;
+    }
+    if (segs.length > 0) out.push(segs.join("/"));
+  }
+  return [...new Set(out)];
+}
+async function assembleOwnEditPaths(ctx, projectId, ownSessionId) {
+  if (!projectId || !ownSessionId) return [];
+  const sinceIso = new Date(Date.now() - OWN_EDIT_WINDOW_MS).toISOString();
+  const { data, error: error2 } = await ctx.supabase.from("usage_events").select("metadata").eq("account_id", ctx.accountId).eq("event_type", "edit.activity").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(300);
+  if (error2 || !data) return [];
+  const paths = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const row of data) {
+    const meta = row.metadata ?? {};
+    if (meta.project_id !== projectId) continue;
+    if (meta.session_id !== ownSessionId) continue;
+    for (const p2 of Array.isArray(meta.paths) ? meta.paths : []) {
+      if (typeof p2 !== "string" || !p2 || seen.has(p2)) continue;
+      seen.add(p2);
+      paths.push(p2);
+      if (paths.length >= 50) return paths;
+    }
+  }
+  return paths;
+}
+async function assembleWorkTouchingMyFiles(ctx, projectId, myDirs) {
+  if (myDirs.length === 0) return [];
+  const { data, error: error2 } = await ctx.supabase.rpc("search_work_items_by_paths", {
+    p_account_id: ctx.accountId,
+    p_project_id: projectId,
+    p_dirs: myDirs,
+    p_limit: WORK_PATH_MATCH_MAX
+  });
+  if (error2 || !data) {
+    if (error2 && error2.code !== "PGRST202") {
+      console.warn(
+        `[resolver] path-matched work query failed: ${error2.message} \u2014 proceeding without it`
+      );
+    }
+    return [];
+  }
+  const now = Date.now();
+  const entries = [];
+  for (const r2 of data) {
+    const ageDays = r2.pr_updated_at ? Math.max(0, Math.round((now - new Date(r2.pr_updated_at).getTime()) / 864e5)) : 0;
+    entries.push({
+      state: "open",
+      number: r2.number,
+      title: typeof r2.title === "string" ? r2.title.slice(0, 140) : "",
+      url: r2.url ?? null,
+      author_login: r2.author_login ?? null,
+      head_ref: r2.head_ref ?? null,
+      repo_full_name: r2.repo_full_name,
+      similarity: 0,
+      age_days: ageDays,
+      match: "paths",
+      overlap_paths: (r2.matched_dirs ?? []).slice(0, 6)
+    });
+  }
+  return entries;
+}
+function mergeWorkInFlight(semantic, pathMatched) {
+  const out = semantic.map((e2) => ({
+    ...e2,
+    match: e2.match ?? "semantic"
+  }));
+  const byKey = new Map(out.map((e2) => [`${e2.repo_full_name}#${e2.number}`, e2]));
+  for (const p2 of pathMatched) {
+    const existing = byKey.get(`${p2.repo_full_name}#${p2.number}`);
+    if (existing) {
+      existing.match = "both";
+      existing.overlap_paths = p2.overlap_paths;
+    } else {
+      out.push(p2);
+    }
+  }
+  return out;
+}
+async function assembleOpenPrPresence(ctx, projectId, ownSessionId, ownUserId) {
+  if (!projectId) return [];
+  const { data: prRows, error: prErr } = await ctx.supabase.from("work_items").select("head_ref, number").eq("account_id", ctx.accountId).eq("project_id", projectId).eq("state", "open").not("head_ref", "is", null).limit(100);
+  if (prErr || !prRows || prRows.length === 0) return [];
+  const prByBranch = new Map(
+    prRows.map((r2) => [r2.head_ref, r2.number])
+  );
+  const sinceIso = new Date(Date.now() - CONCURRENT_PR_WINDOW_MS).toISOString();
+  const { data, error: error2 } = await ctx.supabase.from("usage_events").select("created_at, user_id, metadata").eq("account_id", ctx.accountId).eq("event_type", "resolve.invocation").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(500);
+  if (error2 || !data) return [];
+  const now = Date.now();
+  const entries = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const row of data) {
+    const meta = row.metadata ?? {};
+    if (meta.project_id !== projectId) continue;
+    const sid = typeof meta.session_id === "string" ? meta.session_id : null;
+    if (!sid || sid === ownSessionId || seen.has(sid)) continue;
+    const branch = typeof meta.git_branch === "string" ? meta.git_branch : null;
+    if (!branch || !prByBranch.has(branch)) continue;
+    seen.add(sid);
+    entries.push({
+      component: null,
+      task: typeof meta.task === "string" ? meta.task.slice(0, 140) : "",
+      minutes_ago: Math.max(0, Math.round((now - new Date(row.created_at).getTime()) / 6e4)),
+      session_short: sid.slice(0, 8),
+      agent_kind: typeof meta.agent_kind === "string" ? meta.agent_kind : null,
+      same_user: row.user_id != null && row.user_id === ownUserId,
+      presence: "open_pr",
+      open_pr_number: prByBranch.get(branch)
+    });
+    if (entries.length >= CONCURRENT_PR_MAX) break;
+  }
+  return entries;
+}
+async function attachWorkItemProposals(ctx, entries, projectId = ctx.projectId ?? null) {
+  const open = entries.filter((e2) => e2.state === "open").slice(0, 3);
+  await Promise.all(
+    open.map(async (entry) => {
+      try {
+        const { data } = await ctx.supabase.from("documents").select(
+          "id, account_id, created_by, locked_to_owners, scope, project_id, status, title, kind, metadata"
+        ).eq("account_id", ctx.accountId).eq("locked_to_owners", false).eq("metadata->>status", "proposed").eq("metadata->source_ref->>repo_full_name", entry.repo_full_name).eq("metadata->source_ref->>pr_number", String(entry.number)).limit(2);
+        const rows = (data ?? []).filter(
+          (row) => isDirectResolverDocumentEligible(
+            row,
+            { accountId: ctx.accountId, userId: ctx.userId, projectId },
+            {
+              lifecycle: "proposed",
+              projectAssociation: projectId ? "active-project" : "scope"
+            }
+          )
+        );
+        if (rows.length > 0) {
+          entry.proposals = rows.map((r2) => ({ title: r2.title.slice(0, 120), kind: r2.kind }));
+        }
+      } catch {
+      }
+    })
+  );
+}
+async function assembleDocsTouchingMyFiles(ctx, projectId, myDirs, excludeIds, applicability = {}) {
+  if (myDirs.length === 0) return [];
+  const { data, error: error2 } = await ctx.supabase.rpc("search_documents_by_paths", {
+    p_account_id: ctx.accountId,
+    p_project_id: projectId,
+    p_dirs: myDirs,
+    p_limit: DOC_PATH_MATCH_MAX + excludeIds.size
+  });
+  if (error2 || !data) {
+    if (error2 && error2.code !== "PGRST202") {
+      console.warn(
+        `[resolver] path-matched docs query failed: ${error2.message} \u2014 proceeding without it`
+      );
+    }
+    return [];
+  }
+  const pathRows = data;
+  const pathIds = [...new Set(pathRows.map((row) => row.id).filter(Boolean))];
+  if (pathIds.length === 0) return [];
+  const { data: visibilityRows, error: visibilityErr } = await ctx.supabase.from("documents").select(
+    "id, account_id, created_by, locked_to_owners, scope, project_id, status, kind, metadata"
+  ).eq("account_id", ctx.accountId).eq("locked_to_owners", false).in("id", pathIds);
+  if (visibilityErr) {
+    console.warn(
+      `[resolver] path-matched docs visibility fetch failed: ${visibilityErr.message} \u2014 dropping path matches`
+    );
+    return [];
+  }
+  const visibleRowById = /* @__PURE__ */ new Map();
+  for (const row of visibilityRows ?? []) {
+    if (isDirectResolverDocumentEligible(row, {
+      accountId: ctx.accountId,
+      userId: ctx.userId,
+      projectId
+    }) && typeof row.id === "string" && typeof row.kind === "string") {
+      visibleRowById.set(row.id, row);
+    }
+  }
+  const items = [];
+  for (const r2 of pathRows) {
+    if (excludeIds.has(r2.id)) continue;
+    const visibility = visibleRowById.get(r2.id);
+    if (visibility?.kind !== r2.kind) continue;
+    if (r2.kind !== "memory" && r2.kind !== "skill" && r2.kind !== "decision" && r2.kind !== "schema" && r2.kind !== "goal")
+      continue;
+    const metadata = visibility.metadata && typeof visibility.metadata === "object" && !Array.isArray(visibility.metadata) ? visibility.metadata : {};
+    if (r2.kind === "skill" && !isSkillTargetedToAgent(metadata, applicability.agentKind)) {
+      applicability.onOmitted?.({
+        id: r2.id,
+        kind: "skill",
+        title: r2.title,
+        similarity: 0,
+        reason: "agent_target_mismatch",
+        detail: `path-matched skill targets [${skillTargetAgents(metadata).join(", ")}], not agent ${applicability.agentKind}`,
+        path: r2.path
+      });
+      continue;
+    }
+    const antiExample = r2.kind === "skill" && !applicability.requiredIds?.has(r2.id) && applicability.task ? matchingSkillAntiExample(applicability.task, metadata) : null;
+    if (antiExample) {
+      applicability.onOmitted?.({
+        id: r2.id,
+        kind: "skill",
+        title: r2.title,
+        similarity: 0,
+        reason: "anti_example_match",
+        detail: `path-matched task high-precision matched skill anti-example: ${antiExample.slice(0, 240)}`,
+        path: r2.path
+      });
+      continue;
+    }
+    const rawBody = r2.body ?? "";
+    items.push({
+      id: r2.id,
+      kind: r2.kind,
+      title: r2.title,
+      body: rawBody.length > DOC_PATH_BODY_CAP ? `${rawBody.slice(0, DOC_PATH_BODY_CAP)}
+\u2026 (truncated \u2014 path-matched doc)` : rawBody,
+      similarity: 0,
+      citation: {
+        path: r2.path,
+        version_number: r2.version_number ?? 1,
+        updated_at: r2.updated_at,
+        author_id: r2.author_id
+      },
+      component_id: null,
+      component_name: null,
+      match_source: "paths",
+      overlap_paths: (r2.matched_dirs ?? []).slice(0, 6)
+    });
+    if (items.length >= DOC_PATH_MATCH_MAX) break;
+  }
+  return items;
+}
+async function assembleDocsAuthoredBy(ctx, projectId, members, excludeIds, applicability = {}) {
+  if (members.length === 0) return [];
+  const nameByUserId = new Map(members.map((m2) => [m2.user_id, m2.name]));
+  const memberIds = [...nameByUserId.keys()];
+  const fetchLimit = AUTHOR_DOC_MATCH_MAX * 4 + excludeIds.size;
+  const docColumns = `id, account_id, created_by, locked_to_owners, scope, project_id, status,
+       kind, title, path, updated_at, metadata`;
+  const versionEmbed = "document_versions!documents_current_version_fk";
+  const [strong, fallback] = await Promise.all([
+    ctx.supabase.from("documents").select(`${docColumns}, ${versionEmbed}!inner ( content, version_number, author_id )`).eq("account_id", ctx.accountId).eq("locked_to_owners", false).neq("status", "archived").in("document_versions.author_id", memberIds).order("updated_at", { ascending: false }).limit(fetchLimit),
+    ctx.supabase.from("documents").select(`${docColumns}, ${versionEmbed} ( content, version_number, author_id )`).eq("account_id", ctx.accountId).eq("locked_to_owners", false).neq("status", "archived").or(
+      `created_by.in.(${memberIds.join(",")}),metadata->>proposed_by_user_id.in.(${memberIds.join(",")})`
+    ).order("updated_at", { ascending: false }).limit(fetchLimit)
+  ]);
+  for (const q2 of [strong, fallback]) {
+    if (q2.error) {
+      console.warn(
+        `[resolver] author-attributed docs query failed: ${q2.error.message} \u2014 proceeding without it`
+      );
+    }
+  }
+  const seenIds = /* @__PURE__ */ new Set();
+  const rows = [];
+  for (const raw of [...strong.data ?? [], ...fallback.data ?? []]) {
+    const id = typeof raw.id === "string" ? raw.id : null;
+    if (!id || seenIds.has(id)) continue;
+    seenIds.add(id);
+    rows.push(raw);
+  }
+  rows.sort((a2, b2) => String(b2.updated_at ?? "").localeCompare(String(a2.updated_at ?? "")));
+  const items = [];
+  for (const raw of rows) {
+    const id = typeof raw.id === "string" ? raw.id : null;
+    const kind2 = typeof raw.kind === "string" ? raw.kind : null;
+    if (!id || excludeIds.has(id)) continue;
+    if (kind2 !== "memory" && kind2 !== "skill" && kind2 !== "decision" && kind2 !== "schema" && kind2 !== "goal")
+      continue;
+    if (!isDirectResolverDocumentEligible(raw, {
+      accountId: ctx.accountId,
+      userId: ctx.userId,
+      projectId
+    }))
+      continue;
+    const version4 = Array.isArray(raw.document_versions) ? raw.document_versions[0] : raw.document_versions;
+    const metadata = raw.metadata && typeof raw.metadata === "object" && !Array.isArray(raw.metadata) ? raw.metadata : {};
+    const proposedBy = typeof metadata.proposed_by_user_id === "string" ? metadata.proposed_by_user_id : null;
+    const attributedTo = [version4?.author_id ?? null, raw.created_by ?? null, proposedBy].find(
+      (candidate) => typeof candidate === "string" && nameByUserId.has(candidate)
+    );
+    const authorName = attributedTo ? nameByUserId.get(attributedTo) : void 0;
+    if (!attributedTo || !authorName) continue;
+    const title = typeof raw.title === "string" ? raw.title : "";
+    const path20 = typeof raw.path === "string" ? raw.path : null;
+    if (kind2 === "skill" && !isSkillTargetedToAgent(metadata, applicability.agentKind)) {
+      applicability.onOmitted?.({
+        id,
+        kind: "skill",
+        title,
+        similarity: 0,
+        reason: "agent_target_mismatch",
+        detail: `author-attributed skill targets [${skillTargetAgents(metadata).join(", ")}], not agent ${applicability.agentKind}`,
+        path: path20
+      });
+      continue;
+    }
+    const antiExample = kind2 === "skill" && !applicability.requiredIds?.has(id) && applicability.task ? matchingSkillAntiExample(applicability.task, metadata) : null;
+    if (antiExample) {
+      applicability.onOmitted?.({
+        id,
+        kind: "skill",
+        title,
+        similarity: 0,
+        reason: "anti_example_match",
+        detail: `author-attributed task high-precision matched skill anti-example: ${antiExample.slice(0, 240)}`,
+        path: path20
+      });
+      continue;
+    }
+    const rawBody = version4?.content ?? "";
+    items.push({
+      id,
+      kind: kind2,
+      title,
+      body: rawBody.length > DOC_PATH_BODY_CAP ? `${rawBody.slice(0, DOC_PATH_BODY_CAP)}
+\u2026 (truncated \u2014 author-attributed doc)` : rawBody,
+      similarity: 0,
+      citation: {
+        path: path20,
+        version_number: version4?.version_number ?? 1,
+        updated_at: typeof raw.updated_at === "string" ? raw.updated_at : "",
+        // The citation reports the version's true author (possibly null on
+        // pre-stamping captures); author_match reports who the doc was
+        // ATTRIBUTED to, which may come from a fallback door.
+        author_id: version4?.author_id ?? null
+      },
+      component_id: null,
+      component_name: null,
+      match_source: "author",
+      author_match: { user_id: attributedTo, name: authorName }
+    });
+    if (items.length >= AUTHOR_DOC_MATCH_MAX) break;
+  }
+  return items;
+}
+async function recordDeployActivity(ctx, deploy) {
+  try {
+    await ctx.supabase.rpc("record_usage_event", {
+      p_account_id: ctx.accountId,
+      p_event_type: "deploy.activity",
+      p_units: 1,
+      p_user_id: ctx.userId ?? null,
+      p_metadata: {
+        session_id: deploy.sessionId,
+        project_id: deploy.projectId,
+        task: sanitizeAuditTask(deploy.task).task,
+        active_component_id: deploy.activeComponentId,
+        active_component_name: deploy.activeComponentName,
+        agent_kind: deploy.agentKind,
+        // Carry the install id so the dashboard's liveness patch can attribute
+        // the deploy back to the agent that's deploying (it keys off
+        // agent_installation_id first, then agent_kind+user_id).
+        agent_installation_id: deploy.agentInstallationId,
+        source: "resolve"
+      }
+    });
+  } catch (e2) {
+    console.warn(
+      `[resolver] deploy.activity record failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding`
+    );
+  }
+}
+function wantsClaimGuardrails(task) {
+  return /\b(marketing|sales|landing page|copy|claim|claims|pricing|customer|support|competitive|competitor|positioning|objection)\b/i.test(
+    task
+  );
+}
+var BRAND_VOCAB = /\b(brand|branding|copy|copywriting|tagline|slogan|tone|voice|logo|colou?rs?|palette|typography|font|design|microcopy|headline|blog|email|newsletter|announcement|social|tweet|post|deck|slides?|website|homepage|hero|empty state|ui text|user[- ]facing)\b/i;
+var BRAND_DEMOTABLE_CATEGORIES = /* @__PURE__ */ new Set([
+  "bug",
+  "refactor",
+  "test",
+  "migration",
+  "infra",
+  "chore"
+]);
+function taskLooksBrandRelated(task) {
+  if (wantsClaimGuardrails(task)) return true;
+  if (BRAND_VOCAB.test(task)) return true;
+  return !BRAND_DEMOTABLE_CATEGORIES.has(classifyTask(task));
+}
+async function assembleClaimGuardrails(ctx, projectId) {
+  let query = ctx.supabase.from("documents").select(
+    `id, account_id, created_by, locked_to_owners, scope, project_id, status,
+       kind, title, path, metadata, updated_at,
+       document_versions!documents_current_version_fk ( content, version_number, author_id )`
+  ).eq("account_id", ctx.accountId).eq("kind", "memory").not("metadata->>claim_guardrail", "is", null).eq("locked_to_owners", false).limit(50);
+  if (projectId) query = query.or(`project_id.is.null,project_id.eq.${projectId}`);
+  else query = query.is("project_id", null);
+  const { data, error: error2 } = await query;
+  if (error2) {
+    console.warn(`[resolver] claim guardrails fetch failed: ${error2.message}`);
+    return null;
+  }
+  const out = { approved: [], blocked: [], competitor_facts: [] };
+  for (const row of data ?? []) {
+    if (!isDirectResolverDocumentEligible(
+      row,
+      { accountId: ctx.accountId, userId: ctx.userId, projectId },
+      { projectAssociation: "account-or-active-project", expectedKind: "memory" }
+    )) {
+      continue;
+    }
+    const metadata = row.metadata ?? {};
+    const guardrail = metadata.claim_guardrail;
+    if (guardrail !== "approved" && guardrail !== "blocked" && guardrail !== "competitor_facts")
+      continue;
+    const version4 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+    const item = {
+      id: row.id,
+      kind: "memory",
+      title: row.title,
+      body: version4?.content ?? "",
+      similarity: 1,
+      citation: {
+        path: row.path ?? null,
+        version_number: version4?.version_number ?? 1,
+        updated_at: row.updated_at,
+        author_id: version4?.author_id ?? null
+      },
+      component_id: null,
+      component_name: null
+    };
+    if (guardrail === "approved") out.approved.push(item);
+    else if (guardrail === "blocked") out.blocked.push(item);
+    else out.competitor_facts.push(item);
+  }
+  return out.approved.length || out.blocked.length || out.competitor_facts.length ? out : null;
+}
+async function assemblePinned(ctx, projectId, agentKind2 = null, onTargetMismatch) {
+  let query = ctx.supabase.from("documents").select(
+    `id, account_id, created_by, locked_to_owners, scope, project_id, kind, title,
+       path, status, metadata, updated_at,
+       document_versions!documents_current_version_fk ( content, version_number, author_id )`
+  ).eq("account_id", ctx.accountId).eq("metadata->>pinned", "true").eq("locked_to_owners", false).limit(50);
+  if (projectId) query = query.or(`project_id.is.null,project_id.eq.${projectId}`);
+  else query = query.is("project_id", null);
+  const { data, error: error2 } = await query;
+  if (error2) {
+    console.warn(`[resolver] pinned fetch failed: ${error2.message}`);
+    return [];
+  }
+  const out = [];
+  for (const row of data ?? []) {
+    const metadata = row.metadata ?? {};
+    if (metadata.pinned !== true) continue;
+    if (!isDirectResolverDocumentEligible(
+      row,
+      { accountId: ctx.accountId, userId: ctx.userId, projectId },
+      {
+        projectAssociation: "account-or-active-project",
+        expectedKind: ["skill", "memory", "goal", "schema", "decision"]
+      }
+    )) {
+      continue;
+    }
+    if (row.kind === "skill" && !isSkillTargetedToAgent(metadata, agentKind2)) {
+      onTargetMismatch?.(row, skillTargetAgents(metadata));
+      continue;
+    }
+    const version4 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+    out.push({
+      id: row.id,
+      kind: row.kind,
+      title: row.title,
+      body: version4?.content ?? "",
+      similarity: 1,
+      citation: {
+        path: row.path ?? null,
+        version_number: version4?.version_number ?? 1,
+        updated_at: row.updated_at,
+        author_id: version4?.author_id ?? null
+      },
+      component_id: null,
+      component_name: null
+    });
+  }
+  out.sort((a2, b2) => {
+    const byUpdated = b2.citation.updated_at.localeCompare(a2.citation.updated_at);
+    return byUpdated !== 0 ? byUpdated : a2.id.localeCompare(b2.id);
+  });
+  return out;
+}
+var SESSION_WORKING_MAX_TOKENS = 600;
+async function assembleSessionWorking(ctx, sessionId, projectId) {
+  let query = ctx.supabase.from("documents").select(
+    `id, account_id, created_by, locked_to_owners, scope, project_id, kind, title,
+       path, status, metadata, updated_at,
+       document_versions!documents_current_version_fk ( content, version_number, author_id )`
+  ).eq("account_id", ctx.accountId).eq("kind", "memory").eq("memory_type", "working").eq("metadata->>session_id", sessionId).eq("locked_to_owners", false).limit(5);
+  if (projectId) query = query.or(`project_id.is.null,project_id.eq.${projectId}`);
+  else query = query.is("project_id", null);
+  const { data, error: error2 } = await query;
+  if (error2) {
+    console.warn(`[resolver] session working fetch failed: ${error2.message}`);
+    return [];
+  }
+  const out = [];
+  let used = 0;
+  for (const row of data ?? []) {
+    const metadata = row.metadata ?? {};
+    if (metadata.memory_type !== "working") continue;
+    if (metadata.session_id !== sessionId) continue;
+    if (!isDirectResolverDocumentEligible(
+      row,
+      { accountId: ctx.accountId, userId: ctx.userId, projectId },
+      {
+        projectAssociation: "account-or-active-project",
+        expectedKind: ["memory"]
+      }
+    )) {
+      continue;
+    }
+    const version4 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+    const body = version4?.content ?? "";
+    const cost = estimateTokens(body);
+    if (out.length > 0 && used + cost > SESSION_WORKING_MAX_TOKENS) break;
+    used += cost;
+    out.push({
+      id: row.id,
+      kind: "memory",
+      title: row.title,
+      body,
+      similarity: 1,
+      citation: {
+        path: row.path ?? null,
+        version_number: version4?.version_number ?? 1,
+        updated_at: row.updated_at ?? "",
+        author_id: version4?.author_id ?? null
+      },
+      component_id: null,
+      component_name: null,
+      memory_type: "working"
+    });
+  }
+  return out;
+}
+function buildDeliveredContextCounts(deliveredItems) {
+  const laneCount = (...lanes) => {
+    const accepted = new Set(lanes);
+    return deliveredItems.reduce(
+      (count, item) => count + (accepted.has(item.source_lane) ? 1 : 0),
+      0
+    );
+  };
+  return {
+    memory: laneCount("memory"),
+    skills: laneCount("primary_skill", "supporting_skill"),
+    goals: laneCount("goal"),
+    schemas: laneCount("schema"),
+    decisions: laneCount("decision"),
+    required: laneCount("required"),
+    pinned: laneCount("pinned"),
+    session_working: laneCount("session_working"),
+    open_threads: laneCount("open_thread"),
+    pack_context: laneCount("pack_context"),
+    claim_guardrails: laneCount(
+      "claim_guardrail_approved",
+      "claim_guardrail_blocked",
+      "claim_guardrail_competitor_fact"
+    ),
+    total: deliveredItems.length
+  };
+}
+function deliveredInclusionReason(item, fallback) {
+  if (item.below_gate) return "recall_floor";
+  if (item.match_source === "paths") return "path_overlap";
+  if (item.match_source === "author") return "author_attribution";
+  return fallback;
+}
+function dedupeResolveBundleDocumentLanes(bundle) {
+  const seen = /* @__PURE__ */ new Set();
+  const keepFirst = (items) => items.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+  bundle.required_core = keepFirst(bundle.required_core);
+  bundle.pinned = keepFirst(bundle.pinned);
+  bundle.session_working = keepFirst(bundle.session_working);
+  bundle.open_threads = keepFirst(bundle.open_threads);
+  bundle.pack_context = keepFirst(bundle.pack_context);
+  if (bundle.claim_guardrails) {
+    bundle.claim_guardrails.approved = keepFirst(bundle.claim_guardrails.approved);
+    bundle.claim_guardrails.blocked = keepFirst(bundle.claim_guardrails.blocked);
+    bundle.claim_guardrails.competitor_facts = keepFirst(bundle.claim_guardrails.competitor_facts);
+    if (bundle.claim_guardrails.approved.length === 0 && bundle.claim_guardrails.blocked.length === 0 && bundle.claim_guardrails.competitor_facts.length === 0) {
+      bundle.claim_guardrails = null;
+    }
+  }
+  if (bundle.primary_skill) {
+    const [primary] = keepFirst([bundle.primary_skill]);
+    bundle.primary_skill = primary ?? null;
+  }
+  bundle.supporting_skills = keepFirst(bundle.supporting_skills);
+  bundle.goals = keepFirst(bundle.goals);
+  bundle.decisions = keepFirst(bundle.decisions);
+  bundle.schemas = keepFirst(bundle.schemas);
+  bundle.memory = keepFirst(bundle.memory);
+  return bundle;
+}
+function buildDeliveredItemSnapshots(bundle) {
+  const snapshots = [];
+  const seen = /* @__PURE__ */ new Set();
+  const add = (items, laneFor, roleFor, reasonFor) => {
+    let laneRank = 0;
+    items.forEach((item) => {
+      if (seen.has(item.id)) return;
+      seen.add(item.id);
+      laneRank += 1;
+      snapshots.push({
+        document_id: item.id,
+        kind: item.kind,
+        title: item.title,
+        content: item.body,
+        source_lane: laneFor(item),
+        role: roleFor(item),
+        receipt_index: snapshots.length + 1,
+        lane_rank: laneRank,
+        inclusion_reason: reasonFor(item),
+        estimated_tokens: estimateTokens(item.body),
+        similarity: item.similarity,
+        version_number: item.citation.version_number,
+        ...item.version_tag ? { version_tag: item.version_tag } : {},
+        path: item.citation.path,
+        updated_at: item.citation.updated_at,
+        author_id: item.citation.author_id,
+        component_id: item.component_id,
+        component_name: item.component_name,
+        repo: item.repo ?? null,
+        ...item.below_gate ? { below_gate: true } : {},
+        ...item.match_source ? { match_source: item.match_source } : {},
+        ...item.overlap_paths ? { overlap_paths: item.overlap_paths } : {},
+        ...item.author_match ? { author_match: item.author_match } : {},
+        ...item.authority_tier !== void 0 ? { authority_tier: item.authority_tier } : {},
+        ...item.pack ? { pack: item.pack } : {},
+        ...item.thread ? { thread: item.thread } : {}
+      });
+    });
+  };
+  add(
+    bundle.required_core,
+    () => "required",
+    () => "required",
+    () => "governance_required"
+  );
+  add(
+    bundle.pinned,
+    () => "pinned",
+    () => "directive",
+    () => "force_included_pin"
+  );
+  add(
+    bundle.session_working,
+    () => "session_working",
+    () => "session_working",
+    () => "session_id_match"
+  );
+  add(
+    bundle.open_threads,
+    () => "open_thread",
+    () => "open_thread",
+    () => "entity_and_status_match"
+  );
+  add(
+    bundle.pack_context,
+    () => "pack_context",
+    () => "pack_context",
+    () => "subscribed_pack_retrieval"
+  );
+  if (bundle.claim_guardrails) {
+    add(
+      bundle.claim_guardrails.approved,
+      () => "claim_guardrail_approved",
+      () => "approved_claim",
+      () => "claim_guardrail_task_match"
+    );
+    add(
+      bundle.claim_guardrails.blocked,
+      () => "claim_guardrail_blocked",
+      () => "blocked_claim",
+      () => "claim_guardrail_task_match"
+    );
+    add(
+      bundle.claim_guardrails.competitor_facts,
+      () => "claim_guardrail_competitor_fact",
+      () => "competitor_fact",
+      () => "claim_guardrail_task_match"
+    );
+  }
+  if (bundle.primary_skill) {
+    add(
+      [bundle.primary_skill],
+      () => "primary_skill",
+      () => "primary",
+      (item) => deliveredInclusionReason(item, "ranked_primary_skill")
+    );
+  }
+  add(
+    bundle.supporting_skills,
+    () => "supporting_skill",
+    () => "supporting",
+    (item) => deliveredInclusionReason(item, "ranked_supporting_skill")
+  );
+  add(
+    bundle.goals,
+    () => "goal",
+    () => "goal",
+    (item) => deliveredInclusionReason(item, "ranked_retrieval")
+  );
+  add(
+    bundle.decisions,
+    () => "decision",
+    () => "decision",
+    (item) => deliveredInclusionReason(item, "ranked_retrieval")
+  );
+  add(
+    bundle.schemas,
+    () => "schema",
+    () => "schema",
+    (item) => deliveredInclusionReason(item, "ranked_retrieval")
+  );
+  add(
+    bundle.memory,
+    () => "memory",
+    () => "memory",
+    (item) => deliveredInclusionReason(item, "ranked_retrieval")
+  );
+  return snapshots;
+}
+var OMITTED_CANDIDATES_AUDIT_MAX = 40;
+function auditOmissionSample(omitted, cap = OMITTED_CANDIDATES_AUDIT_MAX) {
+  if (omitted.length <= cap) return omitted;
+  if (cap <= 0) return [];
+  const bucketKey = (omission) => omission.reason === "rerank_filtered" && omission.kind === "skill" ? "rerank_filtered:skill" : omission.reason;
+  const bucketOrder = [
+    "rerank_filtered:skill",
+    "rerank_filtered",
+    "pinned_overflow",
+    "agent_target_mismatch",
+    "anti_example_match",
+    "budget_excluded",
+    "marginal_value",
+    "redundant_duplicate",
+    "superseded_by_stamp",
+    "status_filtered",
+    "below_threshold"
+  ];
+  const buckets = /* @__PURE__ */ new Map();
+  for (const omission of omitted) {
+    const key = bucketKey(omission);
+    const bucket = buckets.get(key);
+    if (bucket) bucket.push(omission);
+    else buckets.set(key, [omission]);
+  }
+  const selected = /* @__PURE__ */ new Map();
+  let remaining = cap;
+  for (const key of bucketOrder) {
+    if (key === "below_threshold" || remaining === 0) continue;
+    const first = buckets.get(key)?.[0];
+    if (!first) continue;
+    selected.set(key, [first]);
+    remaining--;
+  }
+  for (const key of bucketOrder) {
+    if (remaining === 0) break;
+    const bucket = buckets.get(key) ?? [];
+    const alreadySelected = selected.get(key)?.length ?? 0;
+    const take = bucket.slice(alreadySelected, alreadySelected + remaining);
+    if (take.length === 0) continue;
+    selected.set(key, [...selected.get(key) ?? [], ...take]);
+    remaining -= take.length;
+  }
+  return bucketOrder.flatMap((key) => selected.get(key) ?? []).slice(0, cap);
+}
+var EmbeddingUnavailableError = class extends Error {
+  code = "EMBEDDING_UNAVAILABLE";
+  constructor(message) {
+    super(message);
+    this.name = "EmbeddingUnavailableError";
+  }
+};
+var EMBEDDING_CACHE = /* @__PURE__ */ new Map();
+var MAX_CACHE_SIZE = 1e3;
+function getCachedEmbedding(task) {
+  return EMBEDDING_CACHE.get(task);
+}
+function cacheEmbedding(task, embedding) {
+  if (EMBEDDING_CACHE.size >= MAX_CACHE_SIZE) {
+    const firstKey = EMBEDDING_CACHE.keys().next().value;
+    if (firstKey !== void 0) EMBEDDING_CACHE.delete(firstKey);
+  }
+  EMBEDDING_CACHE.set(task, embedding);
+}
+var AssembleBundleArgs = external_exports.object({
+  task: external_exports.string().min(1).max(4e3),
+  /** Local Codex hook-to-MCP correlation proof. The hosted resolver ignores
+   * it; the stdio adapter consumes it before any API fallback. */
+  hook_resolve_ref: external_exports.string().max(200).optional(),
+  project_id: external_exports.string().uuid().nullable().optional(),
+  max_tokens: external_exports.number().int().min(256).max(32e3).optional(),
+  kinds: external_exports.array(external_exports.enum(SEARCHABLE_KINDS)).optional(),
+  k_per_kind: external_exports.number().int().min(1).max(50).optional(),
+  cwd: external_exports.string().max(4096).nullable().optional(),
+  git_remote: external_exports.string().max(512).nullable().optional(),
+  /** Caller's current git branch. Recorded in the resolve audit so LATER
+   *  resolves can recognize "that session's work continues in open PR #N"
+   *  (axis C: branch ↔ work_items.head_ref match) long after the 20-minute
+   *  live window. Optional; older plugins simply don't send it. */
+  git_branch: external_exports.string().max(300).nullable().optional(),
+  /** Retrieval mode switch. Hybrid (cosine + BM25 via RRF) is the default
+   *  because skill names, tool names, and internal identifiers often need
+   *  exact-token matching in addition to semantic similarity. Set false to
+   *  force the older pure-cosine path for diagnostics or eval comparisons. */
+  hybrid: external_exports.boolean().optional(),
+  /** Search the `functions` catalog NATIVELY (search_functions_hybrid) and
+   *  swap out the per-function `documents` mirrors, instead of relying on those
+   *  mirror docs. Off by default — flip per-request (the recall bench does this
+   *  to validate the swap) or globally via the route once the bench confirms
+   *  recall is neutral-or-better. See migration 20260612190628. */
+  native_functions: external_exports.boolean().optional(),
+  /** Deep/thorough resolve: also search the BACKGROUND memory tier (the cold
+   *  pool of mid-confidence captures), not just the hot 'active' set. A normal
+   *  resolve stays active-only so it's sharp; a deep one can reach the long
+   *  tail. Explicit search sets this too. Default false. */
+  deep: external_exports.boolean().optional(),
+  interactive: external_exports.boolean().optional(),
+  skip_rerank: external_exports.boolean().optional(),
+  /** Skip the resolve-time redundancy collapse (near-duplicate clustering).
+   *  For diagnostics and eval comparisons, like skip_rerank. */
+  skip_dedupe: external_exports.boolean().optional(),
+  /** Skip the marginal-value cutoff (weak-tail trim). Diagnostics/evals. */
+  skip_marginal_cutoff: external_exports.boolean().optional(),
+  /** Pretend these document ids do not exist, for this resolve only.
+   *
+   * Diagnostic/backtest input — it changes nothing in the database. The corpus
+   * backtest uses it to answer "what would agents have received if these
+   * documents had been removed?" without removing anything: it replays real
+   * recorded tasks with and without the candidate set and diffs the delivered
+   * bundles. Removal is only approved when that diff is empty across every
+   * replayed task.
+   *
+   * Excluding a doc is NOT the same as it never having matched: dropping it
+   * shifts similarity normalization, the marginal-value cutoff, and pack
+   * interleaving, so an unused doc can still change which docs surface. That
+   * second-order effect is the whole point of measuring. */
+  exclude_document_ids: external_exports.array(external_exports.string().uuid()).max(2e4).optional(),
+  /** Explicit marginal-value cutoff fraction (0..1), overriding the account
+   *  setting. For eval sweeps and diagnostics; 0 disables. */
+  marginal_cutoff: external_exports.number().min(0).max(1).optional(),
+  /** Deprecated no-op. Open threads are always pulled (S1). Kept so older
+   *  clients that still send the flag don't fail schema validation. */
+  include_open_threads: external_exports.boolean().optional(),
+  /** Entities to match open threads against. When omitted, entities are
+   *  inferred by word-boundary matching thread entities in the task text. */
+  entities: external_exports.array(external_exports.string().min(1).max(64)).max(16).optional(),
+  /** Transport that initiated this resolve. Diagnostic only; it never changes
+   * retrieval, eligibility, or ranking behavior. */
+  invocation_source: external_exports.enum(["mcp_tool", "prompt_hook", "cli", "api", "web", "internal"]).optional(),
+  /** How the caller selected project scope. Diagnostic only; the server
+   * derives binding_status from the effective project plus this source. */
+  binding_source: external_exports.enum([
+    "explicit_project",
+    "workspace_pin",
+    "git_remote",
+    "local_path",
+    "startup_default",
+    "account_scope",
+    "unresolved"
+  ]).optional(),
+  /** Internal resolve-v2 operation identity. These fields are accepted only
+   * so the web data plane can use the consolidated, idempotently metered
+   * candidate RPC. Public legacy callers omit them and keep the old path. */
+  resolve_id: external_exports.string().min(1).max(200).optional(),
+  request_hash: external_exports.string().min(16).max(256).optional(),
+  deadline_at: external_exports.string().datetime({ offset: true }).optional()
+});
+function resolveRoutingAuditMetadata(args, projectId) {
+  const bindingSource = args.binding_source ?? (projectId ? "explicit_project" : args.cwd || args.git_remote ? "unresolved" : "account_scope");
+  return {
+    invocation_source: args.invocation_source ?? "internal",
+    binding_source: bindingSource,
+    binding_status: projectId ? "bound" : bindingSource === "account_scope" ? "account_scope" : "unbound"
+  };
+}
+var AWARENESS_FEED_TIMEOUT_MS = 2500;
+var BUDGET_MICRO_TOKENS = 1500;
+var BUDGET_STANDARD_TOKENS = 4e3;
+var BUDGET_DEEP_TOKENS = 8e3;
+var BUDGET_CORPUS_MIN_HISTORY = 10;
+var BUDGET_CORPUS_K = 5;
+var BUDGET_FLOOR = BUDGET_MICRO_TOKENS;
+var BUDGET_CEILING = BUDGET_DEEP_TOKENS;
+var PINNED_MAX_TOKENS = BUDGET_MICRO_TOKENS;
+var PINNED_BUDGET_FRACTION = 0.6;
+function inferBudget(task) {
+  const trimmed = task.trim();
+  const lower = trimmed.toLowerCase();
+  const len = trimmed.length;
+  const MICRO_OPENERS = /^(fix\s+typo|fix\s+the\s+typo|rename|what\s+is|what's|how\s+do\s+i|show\s+me\s+(the|where)|where\s+is|find\s+the?|what\s+does|delete\s+the)/;
+  const DEEP_OPENERS = /^(implement|design|build|refactor|migrate|architect|model|engineer|plan\s+out|end[-\s]to[-\s]end|from\s+scratch|build\s+out|wire\s+up|stand\s+up|spec\s+out)/;
+  const DEEP_PHRASES = /\b(end[-\s]to[-\s]end|from\s+scratch|across\s+the\s+stack|multi[-\s]step|full\s+pipeline|all\s+the\s+pieces)\b/;
+  if (len <= 60 && MICRO_OPENERS.test(lower)) {
+    return { tokens: BUDGET_MICRO_TOKENS, tier: "micro" };
+  }
+  if (len >= 200 || DEEP_OPENERS.test(lower) || DEEP_PHRASES.test(lower)) {
+    return { tokens: BUDGET_DEEP_TOKENS, tier: "deep" };
+  }
+  return { tokens: BUDGET_STANDARD_TOKENS, tier: "standard" };
+}
+function tierForTokens(tokens) {
+  const midMicroStandard = Math.round((BUDGET_MICRO_TOKENS + BUDGET_STANDARD_TOKENS) / 2);
+  const midStandardDeep = Math.round((BUDGET_STANDARD_TOKENS + BUDGET_DEEP_TOKENS) / 2);
+  if (tokens < midMicroStandard) return "micro";
+  if (tokens < midStandardDeep) return "standard";
+  return "deep";
+}
+async function inferBudgetFromCorpus(ctx, queryVec) {
+  if (!queryVec) return null;
+  const limit2 = Math.max(BUDGET_CORPUS_MIN_HISTORY, BUDGET_CORPUS_K * 2);
+  let rows = [];
+  try {
+    const { data, error: error2 } = await ctx.supabase.rpc("search_past_resolves", {
+      p_account_id: ctx.accountId,
+      p_query_embedding: queryVec,
+      p_limit: limit2
+    });
+    if (error2) {
+      if (!(error2.code === "PGRST202" || /could not find the function/i.test(error2.message))) {
+        console.warn(`[resolver] search_past_resolves failed: ${error2.message}`);
+      }
+      return null;
+    }
+    rows = data ?? [];
+  } catch (e2) {
+    console.warn(
+      `[resolver] search_past_resolves threw: ${e2 instanceof Error ? e2.message : String(e2)}`
+    );
+    return null;
+  }
+  if (rows.length < BUDGET_CORPUS_MIN_HISTORY) return null;
+  const neighbors = rows.slice(0, BUDGET_CORPUS_K);
+  const sum = neighbors.reduce((s2, n2) => s2 + (n2.tokens_used ?? 0), 0);
+  const avg = sum / neighbors.length;
+  if (!Number.isFinite(avg) || avg <= 0) return null;
+  const target = Math.round(avg * 1.25);
+  const tokens = Math.min(BUDGET_CEILING, Math.max(BUDGET_FLOOR, target));
+  return { tokens, tier: tierForTokens(tokens) };
+}
+var DEFAULT_K_PER_KIND = 20;
+var MIN_CANDIDATES_FOR_RERANK = 4;
+var RERANK_TIMEOUT_MS = 4e3;
+var RERANK_EXCERPT_CHARS = 500;
+var RERANK_MIN_COVERAGE = 0.5;
+var RERANK_SKILL_MIN_SCORE = 0.15;
+var SKILL_RERANK_CANDIDATE_THRESHOLD = 0.35;
+function skillRerankLaneEligible(thresholdsMode, customThresholds) {
+  if (thresholdsMode === "default") return true;
+  return (customThresholds?.["skill"] ?? KIND_THRESHOLDS.skill) === KIND_THRESHOLDS.skill;
+}
+var ADMISSION_JUDGE_TIMEOUT_MS = 4e3;
+function applyAdmissionJudgeScores(scores, judgeScores, provisionalIds) {
+  let applied = 0;
+  for (const id of provisionalIds) {
+    const s2 = judgeScores[id];
+    if (typeof s2 === "number" && Number.isFinite(s2)) {
+      scores[id] = s2;
+      applied += 1;
+    }
+  }
+  return applied;
+}
+var BRAND_GUIDELINES_LOGO_SIGNED_URL_TTL_SECONDS = 60 * 60;
+var KIND_THRESHOLDS = {
+  skill: 0.5,
+  memory: 0.4,
+  goal: 0.5,
+  schema: 0.5,
+  // Decisions sit between memory (facts) and goals (direction) — usually
+  // very load-bearing when surfaced. Permissive, like memory.
+  decision: 0.55
+};
+function passesCandidateThreshold(rankSimilarity, cosineEvidence, threshold) {
+  return typeof cosineEvidence === "number" && Number.isFinite(cosineEvidence) ? cosineEvidence >= threshold : rankSimilarity >= threshold;
+}
+var REDUNDANCY_COLLAPSE_THRESHOLD = 0.92;
+var REDUNDANCY_COLLAPSE_MIN = 0.85;
+var REDUNDANCY_COLLAPSE_KINDS = /* @__PURE__ */ new Set([
+  "memory",
+  "decision",
+  "skill"
+]);
+var DEDUPE_AUDIT_MAX_CLUSTERS = 20;
+var SHADOW_SAMPLE_RATE = Number(process.env.MEMLIN_SHADOW_SAMPLE_RATE ?? "0.1");
+var SHADOW_MAX_OBSERVATIONS = 10;
+var RANKER_VERSION = "r1.2026-09";
+function taskFingerprint(task) {
+  const normalized = task.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim().slice(0, 400);
+  return createHash("sha256").update(normalized).digest("hex").slice(0, 16);
+}
+var SURFACING_UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+var MARGINAL_CUTOFF_OFF = 0;
+var MARGINAL_CUTOFF_DEFAULT = 0.55;
+var FITNESS_BOOST_MIN_SIMILARITY = 0.5;
+var MARGINAL_CUTOFF_MAX = 0.95;
+var MARGINAL_CUTOFF_MIN_KEEP = 5;
+function resolveMarginalCutoff(raw) {
+  if (raw === void 0 || raw === null) return MARGINAL_CUTOFF_DEFAULT;
+  if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return MARGINAL_CUTOFF_OFF;
+  return Math.min(raw, MARGINAL_CUTOFF_MAX);
+}
+var KIND_WEIGHTS = {
+  skill: 1,
+  goal: 0.85,
+  decision: 0.8,
+  schema: 0.75,
+  memory: 0.65
+};
+var MEMORY_TYPE_WEIGHTS = {
+  correction: 1.3,
+  preference: 1.1,
+  fact: 1,
+  reference: 1,
+  // Episodes are recalled by entity + time through the open-threads lane,
+  // not by similarity ranking — neutral weight in the semantic lane.
+  episodic: 1,
+  // Session working memory is force-included by session_id only — never
+  // compete in the semantic lane (weight 0 + explicit skip below).
+  working: 0
+};
+var ACTIVE_COMPONENT_BOOST = 0.15;
+var SAME_REPO_BOOST = 0.1;
+var CROSS_REPO_DEMOTION = 0.6;
+var ROLE_MATCH_BOOST = 0.12;
+var APPROVED_STATUS_BOOST = 0.1;
+function estimateTokens(text) {
+  return Math.ceil(text.length / 4);
+}
+var DECAY_FRESH_DAYS = 30;
+var DECAY_STALE_DAYS = 365;
+var DECAY_FLOOR_MULTIPLIER = 0.6;
+var SKILL_DECAY_FRESH_DAYS = 180;
+var SKILL_DECAY_STALE_DAYS = 730;
+var SKILL_DECAY_FLOOR_MULTIPLIER = 0.85;
+var DECAY_PROFILES = {
+  memory: {
+    fresh_days: DECAY_FRESH_DAYS,
+    stale_days: DECAY_STALE_DAYS,
+    floor: DECAY_FLOOR_MULTIPLIER
+  },
+  skill: {
+    fresh_days: SKILL_DECAY_FRESH_DAYS,
+    stale_days: SKILL_DECAY_STALE_DAYS,
+    floor: SKILL_DECAY_FLOOR_MULTIPLIER
+  }
+};
+function applyProfile(profile, updated_at, now) {
+  if (!updated_at) return 1;
+  const ts = Date.parse(updated_at);
+  if (!Number.isFinite(ts)) return 1;
+  const ageDays = (now - ts) / 864e5;
+  if (ageDays <= profile.fresh_days) return 1;
+  if (ageDays >= profile.stale_days) return profile.floor;
+  const t2 = (ageDays - profile.fresh_days) / (profile.stale_days - profile.fresh_days);
+  return 1 + t2 * (profile.floor - 1);
+}
+function decayMultiplierForKind(kind2, updated_at, now = Date.now()) {
+  const profile = DECAY_PROFILES[kind2];
+  if (!profile) return 1;
+  return applyProfile(profile, updated_at, now);
+}
+async function loadFitnessMultipliers(ctx, candidateIds, resolveTaskCategory) {
+  const multipliers = /* @__PURE__ */ new Map();
+  if (candidateIds.length === 0) return multipliers;
+  try {
+    const { data: outcomes, error: outErr } = await ctx.supabase.from("usage_events").select("metadata, created_at").eq("account_id", ctx.accountId).eq("event_type", "resolve.outcome").order("created_at", { ascending: false }).limit(100);
+    if (outErr || !outcomes || outcomes.length === 0) return multipliers;
+    const auditIds = outcomes.map((o2) => o2.metadata?.audit_id).filter((id) => typeof id === "string" && /^[0-9a-f-]{36}$/i.test(id));
+    if (auditIds.length === 0) return multipliers;
+    const { data: invocations, error: invErr } = await ctx.supabase.from("usage_events").select("id, metadata").in("id", auditIds);
+    if (invErr || !invocations || invocations.length === 0) return multipliers;
+    const auditToItems = /* @__PURE__ */ new Map();
+    for (const inv of invocations) {
+      const meta = inv.metadata;
+      const deliveredItems = meta?.delivered_items;
+      const items = meta?.items;
+      const itemIds = meta?.item_ids;
+      const legacyIds = Array.isArray(items) ? items.map((i2) => i2?.id).filter((id) => typeof id === "string") : Array.isArray(itemIds) ? itemIds.filter((id) => typeof id === "string") : [];
+      let ids = legacyIds;
+      let skillIds = /* @__PURE__ */ new Set();
+      if (Array.isArray(deliveredItems)) {
+        ids = [
+          ...new Set(
+            deliveredItems.map((i2) => {
+              const row = i2;
+              return row?.document_id ?? row?.id;
+            }).filter((id) => typeof id === "string")
+          )
+        ];
+        skillIds = new Set(
+          deliveredItems.map((i2) => {
+            const row = i2;
+            if (row?.kind !== "skill") return null;
+            return row.document_id ?? row.id;
+          }).filter((id) => typeof id === "string")
+        );
+        if (deliveredItems.length > 0 && ids.length === 0) {
+          ids = legacyIds;
+          skillIds = /* @__PURE__ */ new Set();
+        }
+      }
+      if (ids.length > 0) auditToItems.set(inv.id, { ids, skillIds });
+    }
+    const posCounts = /* @__PURE__ */ new Map();
+    const negCounts = /* @__PURE__ */ new Map();
+    for (const outcome of outcomes) {
+      const meta = outcome.metadata;
+      const aid = meta?.audit_id;
+      if (typeof aid !== "string") continue;
+      const delivered = auditToItems.get(aid);
+      if (!delivered) continue;
+      const credits = weightedOutcomeItemCredits({
+        deliveredIds: delivered.ids,
+        skillIds: delivered.skillIds,
+        meta
+      });
+      accumulateWeightedOutcomeCounts(meta, credits, resolveTaskCategory, posCounts, negCounts);
+    }
+    for (const cid of candidateIds) {
+      multipliers.set(cid, fitnessFromCounts(posCounts.get(cid) ?? 0, negCounts.get(cid) ?? 0));
+    }
+  } catch (err) {
+    console.warn(
+      `[resolver] loadFitnessMultipliers failed: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+  return multipliers;
+}
+async function hydrateCandidateBodies(ctx, candidateIds, functionBodyById, functionComponentById) {
+  const bodyMap = /* @__PURE__ */ new Map();
+  const componentIdByDoc = /* @__PURE__ */ new Map();
+  const rolesByDoc = /* @__PURE__ */ new Map();
+  const componentScopedByDoc = /* @__PURE__ */ new Map();
+  const canaryContentMap = /* @__PURE__ */ new Map();
+  if (candidateIds.length > 0) {
+    const { data: docRows, error: docErr } = await ctx.supabase.from("documents").select(
+      `id, current_version_id, component_id, metadata,
+         document_versions!documents_current_version_fk ( content )`
+    ).eq("account_id", ctx.accountId).eq("locked_to_owners", false).in("id", candidateIds);
+    if (docErr) {
+      console.warn(
+        `[resolver] body fetch failed: ${docErr.message} \u2014 proceeding with empty bodies`
+      );
+    } else {
+      const canaryVersionIds = [];
+      for (const row of docRows ?? []) {
+        const r2 = row;
+        const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
+        bodyMap.set(r2.id, v2?.content ?? "");
+        componentIdByDoc.set(r2.id, r2.component_id ?? null);
+        const m2 = r2.metadata;
+        const metaRoles = m2?.roles;
+        rolesByDoc.set(
+          r2.id,
+          Array.isArray(metaRoles) ? metaRoles.filter((x2) => typeof x2 === "string") : []
+        );
+        componentScopedByDoc.set(r2.id, m2?.component_scoped === true);
+        if (m2?.canary_version_id && typeof m2.canary_version_id === "string") {
+          canaryVersionIds.push(m2.canary_version_id);
+        }
+      }
+      for (const [id, body] of functionBodyById) {
+        if (!bodyMap.has(id)) {
+          bodyMap.set(id, body);
+          componentIdByDoc.set(id, functionComponentById.get(id) ?? null);
+          rolesByDoc.set(id, []);
+          componentScopedByDoc.set(id, false);
+        }
+      }
+      if (canaryVersionIds.length > 0) {
+        const { data: vRows, error: vErr } = await ctx.supabase.from("document_versions").select("id, content, version_number").in("id", canaryVersionIds);
+        if (vErr) {
+          console.warn(`[resolver] canary version fetch failed: ${vErr.message}`);
+        } else {
+          for (const v2 of vRows ?? []) {
+            canaryContentMap.set(v2.id, {
+              content: v2.content,
+              version_number: v2.version_number
+            });
+          }
+        }
+      }
+    }
+  }
+  return { bodyMap, componentIdByDoc, rolesByDoc, componentScopedByDoc, canaryContentMap };
+}
+function matchPathPattern(cwd, pattern) {
+  if (!cwd || !pattern) return null;
+  const c2 = cwd.replace(/\\/g, "/").replace(/\/+$/, "");
+  let p2 = pattern.replace(/\/+$/, "");
+  p2 = p2.replace(/\/?\*{1,2}$/, "");
+  let anchored = true;
+  if (p2.startsWith("**/")) {
+    p2 = p2.slice(3);
+    anchored = false;
+  } else if (p2.startsWith("*/")) {
+    p2 = p2.slice(2);
+    anchored = false;
+  }
+  p2 = p2.replace(/\/+$/, "");
+  if (!p2) return null;
+  if (anchored) {
+    if (c2.includes(p2)) return p2.length;
+    return null;
+  }
+  if (c2.includes(p2)) return p2.length;
+  return null;
+}
+function inferActiveRepo(args) {
+  const { repoNames } = args;
+  const normalizedRemote = normalizeGitRemote(args.gitRemote ?? null);
+  if (normalizedRemote) {
+    const hits = repoNames.filter((r2) => remoteMatchesRepo(normalizedRemote, r2));
+    if (hits.length === 1) return hits[0] ?? null;
+  }
+  if (args.cwd) {
+    const segments = new Set(args.cwd.toLowerCase().split(/[\\/]/).filter(Boolean));
+    const hits = repoNames.filter((r2) => {
+      const base = r2.split("/").pop()?.toLowerCase();
+      return !!base && segments.has(base);
+    });
+    if (hits.length === 1) return hits[0] ?? null;
+  }
+  {
+    const taskLower = args.task.toLowerCase();
+    let best = null;
+    let bestLen = -1;
+    let tied = false;
+    for (const r2 of repoNames) {
+      const base = r2.split("/").pop()?.toLowerCase();
+      if (!base) continue;
+      if (!taskLower.includes(`${base}/`)) continue;
+      if (base.length > bestLen) {
+        best = r2;
+        bestLen = base.length;
+        tied = false;
+      } else if (base.length === bestLen && r2 !== best) {
+        tied = true;
+      }
+    }
+    if (best && !tied) return best;
+  }
+  return args.activeComponentRepo ?? null;
+}
+function emptyProjectBrainPolicy() {
+  return {
+    overridesBySource: /* @__PURE__ */ new Map(),
+    blockedIds: [],
+    overridePairs: [],
+    inheritedDefaultIds: [],
+    requiredIds: [],
+    requiredChainIds: /* @__PURE__ */ new Set(),
+    optionalChainIds: /* @__PURE__ */ new Set(),
+    errors: []
+  };
+}
+function projectBrainPolicyFromV2(ctx) {
+  const snapshot = ctx.resolveV2DataPlane?.policy;
+  if (!snapshot) return null;
+  const governance = snapshot.governance ?? {};
+  const policy = emptyProjectBrainPolicy();
+  for (const id of governance.required_ids ?? []) {
+    if (typeof id === "string") policy.requiredChainIds.add(id);
+  }
+  for (const id of governance.optional_ids ?? []) {
+    if (typeof id === "string" && !policy.requiredChainIds.has(id)) {
+      policy.optionalChainIds.add(id);
+    }
+  }
+  for (const id of governance.blocked_ids ?? []) {
+    if (typeof id === "string") policy.blockedIds.push(id);
+  }
+  for (const raw of governance.overrides ?? []) {
+    if (typeof raw.source_document_id !== "string" || raw.action !== "block" && raw.action !== "override") {
+      continue;
+    }
+    policy.overridesBySource.set(raw.source_document_id, {
+      source_document_id: raw.source_document_id,
+      action: raw.action,
+      replacement_document_id: typeof raw.replacement_document_id === "string" ? raw.replacement_document_id : null
+    });
+  }
+  policy.errors = (snapshot.receipt?.errors ?? []).filter(
+    (value) => typeof value === "string"
+  );
+  return policy;
+}
+function resolvedItemFromV2PolicyRow(raw) {
+  if (typeof raw.id !== "string" || typeof raw.title !== "string" || typeof raw.body !== "string" || !SEARCHABLE_KINDS.includes(raw.kind)) {
+    return null;
+  }
+  return {
+    id: raw.id,
+    kind: raw.kind,
+    title: raw.title,
+    body: raw.body,
+    similarity: 1,
+    citation: {
+      path: typeof raw.path === "string" ? raw.path : null,
+      version_number: typeof raw.version_number === "number" && Number.isFinite(raw.version_number) ? raw.version_number : 1,
+      updated_at: typeof raw.updated_at === "string" ? raw.updated_at : "",
+      author_id: typeof raw.author_id === "string" ? raw.author_id : null
+    },
+    component_id: null,
+    component_name: null
+  };
+}
+function v2ReceiptIds(values) {
+  if (!Array.isArray(values)) return [];
+  return [...new Set(values.filter((value) => typeof value === "string"))];
+}
+function requiredCoreFromV2Policy(ctx) {
+  const snapshot = ctx.resolveV2DataPlane?.policy;
+  if (!snapshot) return null;
+  const seen = /* @__PURE__ */ new Set();
+  const items = [];
+  for (const row of [...snapshot.overview ?? [], ...snapshot.required ?? []]) {
+    const item = resolvedItemFromV2PolicyRow(row);
+    if (!item || seen.has(item.id)) continue;
+    seen.add(item.id);
+    items.push(item);
+  }
+  const receipt = snapshot.receipt ?? {};
+  const expectedIds = v2ReceiptIds(receipt.expected_ids);
+  const sourceDeliveredIds = new Set(v2ReceiptIds(receipt.delivered_ids));
+  const materializedIds = new Set(items.map((item) => item.id));
+  const deliveredIds = expectedIds.filter(
+    (id) => sourceDeliveredIds.has(id) && materializedIds.has(id)
+  );
+  const missingIds = expectedIds.filter((id) => !deliveredIds.includes(id));
+  for (const id of v2ReceiptIds(receipt.missing_ids)) {
+    if (!missingIds.includes(id)) missingIds.push(id);
+  }
+  const errors = v2ReceiptIds(receipt.errors);
+  if (missingIds.length > 0 && receipt.complete === true) {
+    errors.push("Resolve/v2 policy omitted one or more required documents.");
+  }
+  return {
+    items,
+    status: {
+      complete: receipt.complete === true && missingIds.length === 0 && errors.length === 0,
+      expected_ids: expectedIds,
+      delivered_ids: deliveredIds,
+      missing_ids: missingIds,
+      errors
+    }
+  };
+}
+function pinnedFromV2Policy(ctx) {
+  const rows = ctx.resolveV2DataPlane?.policy.pins;
+  if (!rows) return null;
+  const seen = /* @__PURE__ */ new Set();
+  const out = rows.flatMap((row) => {
+    const item = resolvedItemFromV2PolicyRow(row);
+    if (!item || seen.has(item.id)) return [];
+    seen.add(item.id);
+    return [item];
+  });
+  out.sort((a2, b2) => {
+    const byUpdated = b2.citation.updated_at.localeCompare(a2.citation.updated_at);
+    return byUpdated !== 0 ? byUpdated : a2.id.localeCompare(b2.id);
+  });
+  return out;
+}
+function validateV2PinReceipt(ctx, requiredItems, pinnedItems, status) {
+  const receipt = ctx.resolveV2DataPlane?.policy.receipt;
+  const hasPinReceipt = Array.isArray(receipt?.pin_expected_ids) || Array.isArray(receipt?.pin_delivered_ids) || Array.isArray(receipt?.pin_missing_ids);
+  if (!receipt || !hasPinReceipt) return status;
+  const expectedIds = v2ReceiptIds(receipt.pin_expected_ids);
+  const sourceDeliveredIds = new Set(v2ReceiptIds(receipt.pin_delivered_ids));
+  const materializedIds = /* @__PURE__ */ new Set([
+    ...requiredItems.map((item) => item.id),
+    ...pinnedItems.map((item) => item.id)
+  ]);
+  const deliveredIds = expectedIds.filter(
+    (id) => sourceDeliveredIds.has(id) && materializedIds.has(id)
+  );
+  const missingIds = expectedIds.filter((id) => !deliveredIds.includes(id));
+  for (const id of v2ReceiptIds(receipt.pin_missing_ids)) {
+    if (!missingIds.includes(id)) missingIds.push(id);
+  }
+  const errors = [...status.errors];
+  if (missingIds.length > 0 && receipt.complete === true) {
+    errors.push("Resolve/v2 policy omitted one or more mandatory pins.");
+  }
+  return {
+    ...status,
+    complete: status.complete && receipt.complete === true && missingIds.length === 0 && errors.length === 0,
+    pin_expected_ids: expectedIds,
+    pin_delivered_ids: deliveredIds,
+    pin_missing_ids: missingIds,
+    errors: [...new Set(errors)]
+  };
+}
+async function getProjectTeamId(ctx, projectId) {
+  if (!projectId) return { teamId: null, error: null };
+  const { data, error: error2 } = await ctx.supabase.from("projects").select("team_id").eq("id", projectId).maybeSingle();
+  if (error2) {
+    return { teamId: null, error: `projects.team_id: ${error2.message}` };
+  }
+  return {
+    teamId: data ? (data.team_id ?? null) || null : null,
+    error: null
+  };
+}
+function isProjectBrainInheritedDoc(projectId, candidate, row) {
+  if (!projectId) return false;
+  if (candidate.kind !== "memory" && candidate.kind !== "skill") return false;
+  return (row?.project_id ?? null) === null && (row?.scope === "team" || row?.scope === "personal");
+}
+async function loadProjectBrainPolicy(ctx, projectId, teamId = null, userId = null, initialErrors = []) {
+  const policy = emptyProjectBrainPolicy();
+  policy.errors.push(...initialErrors);
+  if (projectId) {
+    const { data, error: error2 } = await ctx.supabase.from("project_brain_overrides").select("source_document_id, action, replacement_document_id").eq("project_id", projectId);
+    if (error2) {
+      policy.errors.push(`project_brain_overrides: ${error2.message}`);
+      console.warn(
+        `[resolver] project brain overrides fetch failed: ${error2.message} \u2014 proceeding without legacy overrides`
+      );
+    } else {
+      for (const row of data ?? []) {
+        policy.overridesBySource.set(row.source_document_id, row);
+      }
+    }
+  }
+  const teamIds = /* @__PURE__ */ new Set();
+  if (teamId) teamIds.add(teamId);
+  if (userId) {
+    const { data: tm, error: tmErr } = await ctx.supabase.from("team_members").select("team_id").eq("user_id", userId);
+    if (tmErr) {
+      policy.errors.push(`team_members: ${tmErr.message}`);
+    } else {
+      for (const r2 of tm ?? []) teamIds.add(r2.team_id);
+    }
+  }
+  const { data: pols, error: polErr } = await ctx.supabase.from("governance_policies").select("governed_document_id, level, level_ref_id, requirement").eq("account_id", ctx.accountId).eq("active", true);
+  if (polErr) {
+    policy.errors.push(`governance_policies: ${polErr.message}`);
+    if (!/does not exist|relation|PGRST20\d/i.test(polErr.message)) {
+      console.warn(`[resolver] governance_policies fetch failed: ${polErr.message}`);
+    }
+  } else {
+    for (const row of pols ?? []) {
+      const applies = row.level === "org" || row.level === "team" && !!row.level_ref_id && teamIds.has(row.level_ref_id) || row.level === "project" && !!projectId && row.level_ref_id === projectId;
+      if (!applies) continue;
+      if (row.requirement === "required") policy.requiredChainIds.add(row.governed_document_id);
+      else policy.optionalChainIds.add(row.governed_document_id);
+    }
+    for (const id of policy.requiredChainIds) policy.optionalChainIds.delete(id);
+  }
+  const optoutScopes = [
+    ["team", teamId],
+    ["project", projectId],
+    ["individual", userId]
+  ];
+  for (const [lvl, ref] of optoutScopes) {
+    if (!ref) continue;
+    const { data, error: error2 } = await ctx.supabase.from("governance_optouts").select("source_document_id, action, replacement_document_id").eq("account_id", ctx.accountId).eq("scope_level", lvl).eq("scope_ref_id", ref);
+    if (error2) {
+      policy.errors.push(`governance_optouts.${lvl}: ${error2.message}`);
+      if (!/does not exist|relation|PGRST20\d/i.test(error2.message)) {
+        console.warn(`[resolver] governance_optouts (${lvl}) fetch failed: ${error2.message}`);
+      }
+      continue;
+    }
+    for (const row of data ?? []) {
+      if (policy.requiredChainIds.has(row.source_document_id)) continue;
+      policy.overridesBySource.set(row.source_document_id, row);
+    }
+  }
+  policy.errors = [...new Set(policy.errors)];
+  return policy;
+}
+function directDocumentToResolvedItem(row) {
+  const version4 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+  return {
+    id: row.id,
+    kind: row.kind,
+    title: row.title,
+    body: version4?.content ?? "",
+    similarity: 1,
+    citation: {
+      path: row.path ?? null,
+      version_number: version4?.version_number ?? 1,
+      updated_at: row.updated_at,
+      author_id: version4?.author_id ?? null
+    },
+    component_id: null,
+    component_name: null
+  };
+}
+async function assembleRequiredCore(ctx, requiredChainIds, projectId, policyErrors = [], agentKind2 = null) {
+  const governanceIds = [...requiredChainIds].sort();
+  const select = `id, account_id, created_by, locked_to_owners, scope, project_id, kind, title,
+       path, status, metadata, updated_at,
+       document_versions!documents_current_version_fk ( content, version_number, author_id )`;
+  const governedRead = governanceIds.length ? ctx.supabase.from("documents").select(select).eq("account_id", ctx.accountId).eq("locked_to_owners", false).in("id", governanceIds) : Promise.resolve({ data: [], error: null });
+  const overviewRead = projectId ? ctx.supabase.from("documents").select(select).eq("account_id", ctx.accountId).eq("locked_to_owners", false).eq("project_id", projectId).eq("metadata->>project_brain_role", "overview").limit(20) : Promise.resolve({ data: [], error: null });
+  const [governed, overviews] = await Promise.all([governedRead, overviewRead]);
+  const errors = [...policyErrors];
+  if (governed.error) {
+    errors.push(`required documents: ${governed.error.message}`);
+    console.warn(`[resolver] required-governed fetch failed: ${governed.error.message}`);
+  }
+  if (overviews.error) {
+    errors.push(`project overview: ${overviews.error.message}`);
+    console.warn(`[resolver] project-overview fetch failed: ${overviews.error.message}`);
+  }
+  const itemById = /* @__PURE__ */ new Map();
+  const expectedIds = [];
+  const expected = /* @__PURE__ */ new Set();
+  const expect = (id) => {
+    if (!expected.has(id)) {
+      expected.add(id);
+      expectedIds.push(id);
+    }
+  };
+  const overviewRows = (overviews.data ?? []).sort(
+    (a2, b2) => String(a2.id).localeCompare(String(b2.id))
+  );
+  for (const row of overviewRows) {
+    const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata) ? row.metadata : {};
+    if (metadata.project_brain_role !== "overview") continue;
+    if (!isDirectResolverDocumentEligible(
+      row,
+      { accountId: ctx.accountId, userId: ctx.userId, projectId },
+      { projectAssociation: "active-project", expectedKind: SEARCHABLE_KINDS }
+    )) {
+      continue;
+    }
+    const item = directDocumentToResolvedItem(row);
+    expect(item.id);
+    itemById.set(item.id, item);
+  }
+  for (const id of governanceIds) expect(id);
+  for (const row of governed.data ?? []) {
+    if (!expected.has(String(row.id))) continue;
+    if (!isDirectResolverDocumentEligible(
+      row,
+      { accountId: ctx.accountId, userId: ctx.userId, projectId },
+      {
+        projectAssociation: "account-or-active-project",
+        expectedKind: SEARCHABLE_KINDS
+      }
+    )) {
+      continue;
+    }
+    const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata) ? row.metadata : {};
+    if (row.kind === "skill" && !isSkillTargetedToAgent(metadata, agentKind2)) {
+      errors.push(
+        `required skill ${String(row.id)} targets [${skillTargetAgents(metadata).join(", ")}], not agent ${agentKind2}`
+      );
+      continue;
+    }
+    const item = directDocumentToResolvedItem(row);
+    itemById.set(item.id, item);
+  }
+  const items = expectedIds.flatMap((id) => {
+    const item = itemById.get(id);
+    return item ? [item] : [];
+  });
+  const deliveredIds = items.map((item) => item.id);
+  const delivered = new Set(deliveredIds);
+  const missingIds = expectedIds.filter((id) => !delivered.has(id));
+  const uniqueErrors = [...new Set(errors)];
+  return {
+    items,
+    status: {
+      complete: missingIds.length === 0 && uniqueErrors.length === 0,
+      expected_ids: expectedIds,
+      delivered_ids: deliveredIds,
+      missing_ids: missingIds,
+      errors: uniqueErrors
+    }
+  };
+}
+var ARCH_FUNCTION_CAP = 30;
+async function assembleArchitecture(ctx, projectId, component, componentNameById) {
+  const arch = {
+    component_name: component.name,
+    component_slug: component.slug,
+    functions: [],
+    functions_truncated: false,
+    depends_on: [],
+    depended_on_by: [],
+    data: [],
+    api_calls: []
+  };
+  const { data: fnRows, error: fnErr } = await ctx.supabase.from("functions").select("name, kind, purpose").eq("project_id", projectId).eq("component_id", component.id).order("name", { ascending: true }).limit(ARCH_FUNCTION_CAP + 1);
+  if (fnErr) {
+    console.warn(`[resolver] architecture functions fetch failed: ${fnErr.message}`);
+  } else {
+    const rows = fnRows ?? [];
+    arch.functions_truncated = rows.length > ARCH_FUNCTION_CAP;
+    arch.functions = rows.slice(0, ARCH_FUNCTION_CAP).map((r2) => ({
+      name: r2.name,
+      kind: r2.kind,
+      purpose: (r2.purpose ?? "").slice(0, 140)
+    }));
+  }
+  const { data: contractRows, error: cErr } = await ctx.supabase.from("component_contracts").select("consumer_component_id, provider_component_id, edge_kinds").eq("project_id", projectId).or(`consumer_component_id.eq.${component.id},provider_component_id.eq.${component.id}`);
+  if (cErr) {
+    console.warn(`[resolver] architecture contracts fetch failed: ${cErr.message}`);
+  } else {
+    for (const row of contractRows ?? []) {
+      const kinds = row.edge_kinds ?? [];
+      if (row.consumer_component_id === component.id) {
+        const provider = componentNameById.get(row.provider_component_id);
+        if (provider) arch.depends_on.push({ component: provider.name, edge_kinds: kinds });
+      } else if (row.provider_component_id === component.id) {
+        const consumer = componentNameById.get(row.consumer_component_id);
+        if (consumer) {
+          arch.depended_on_by.push({ component: consumer.name, edge_kinds: kinds });
+        }
+      }
+    }
+  }
+  const { data: dataRows, error: dErr } = await ctx.supabase.from("component_table_contracts").select("table_identifier, access").eq("project_id", projectId).eq("consumer_component_id", component.id);
+  if (dErr) {
+    console.warn(`[resolver] architecture data-contracts fetch failed: ${dErr.message}`);
+  } else {
+    for (const row of dataRows ?? []) {
+      arch.data.push({ table: row.table_identifier, access: row.access ?? [], schema: null });
+    }
+  }
+  if (arch.data.length > 0) {
+    const tableNames = [...new Set(arch.data.map((d2) => d2.table))];
+    const { data: schemaDocs, error: sErr } = await ctx.supabase.from("documents").select(
+      "id, account_id, created_by, locked_to_owners, scope, project_id, status, kind, title, path, metadata"
+    ).eq("account_id", ctx.accountId).eq("project_id", projectId).eq("kind", "schema").eq("locked_to_owners", false).in("title", tableNames);
+    if (sErr) {
+      console.warn(`[resolver] architecture schema-doc fetch failed: ${sErr.message}`);
+    } else {
+      const byTable = /* @__PURE__ */ new Map();
+      for (const d2 of schemaDocs ?? []) {
+        if (!isDirectResolverDocumentEligible(
+          d2,
+          { accountId: ctx.accountId, userId: ctx.userId, projectId },
+          { projectAssociation: "active-project", expectedKind: "schema" }
+        )) {
+          continue;
+        }
+        if (typeof d2.id !== "string" || typeof d2.title !== "string") continue;
+        const ref = {
+          id: d2.id,
+          title: d2.title,
+          path: typeof d2.path === "string" ? d2.path : null
+        };
+        byTable.set(d2.title, ref);
+        const metadata = d2.metadata ?? {};
+        const objName = metadata.db_object_name;
+        if (typeof objName === "string") byTable.set(objName, ref);
+      }
+      for (const item of arch.data) {
+        item.schema = byTable.get(item.table) ?? null;
+      }
+    }
+  }
+  try {
+    arch.api_calls = await assembleApiCalls(ctx, projectId, component, componentNameById);
+  } catch (e2) {
+    console.warn(
+      `[resolver] api-call lineage failed: ${e2 instanceof Error ? e2.message : String(e2)}`
+    );
+  }
+  return arch;
+}
+function normalizeRoutePath(p2) {
+  if (!p2) return null;
+  let s2 = (p2.split(/[?#]/)[0] ?? "").toLowerCase();
+  s2 = s2.replace(/\{[^}]+\}/g, ":param").replace(/:[a-z0-9_]+/g, ":param").replace(/\/{2,}/g, "/");
+  if (s2.length > 1) s2 = s2.replace(/\/$/, "");
+  return s2.startsWith("/") ? s2 : `/${s2}`;
+}
+async function assembleApiCalls(ctx, projectId, component, componentNameById) {
+  const { data: fnRows } = await ctx.supabase.from("functions").select("id").eq("project_id", projectId).eq("component_id", component.id).limit(1e3);
+  const fnIds = (fnRows ?? []).map((r2) => r2.id);
+  const nodeIds = [];
+  if (fnIds.length > 0) {
+    const { data: nodeRows } = await ctx.supabase.from("code_nodes").select("id").eq("project_id", projectId).in("function_id", fnIds).limit(2e3);
+    for (const r2 of nodeRows ?? []) nodeIds.push(r2.id);
+  }
+  if (component.slug) {
+    const { data: compNodes } = await ctx.supabase.from("code_nodes").select("id").eq("project_id", projectId).eq("kind", "component").eq("identifier", component.slug).limit(5);
+    for (const r2 of compNodes ?? []) nodeIds.push(r2.id);
+  }
+  if (nodeIds.length === 0) return [];
+  const { data: edgeRows } = await ctx.supabase.from("code_edges").select("dst_node_id").eq("project_id", projectId).eq("edge_kind", "calls_http").in("src_node_id", nodeIds).limit(500);
+  const dstIds = [
+    ...new Set((edgeRows ?? []).map((r2) => r2.dst_node_id))
+  ];
+  if (dstIds.length === 0) return [];
+  const { data: epRows } = await ctx.supabase.from("code_nodes").select("identifier, metadata").in("id", dstIds);
+  const endpoints = (epRows ?? []).map((r2) => {
+    const row = r2;
+    return { path: row.identifier, method: row.metadata?.method ?? null };
+  });
+  if (endpoints.length === 0) return [];
+  const { data: routeRows } = await ctx.supabase.from("functions").select("name, component_id, file_path, route_path").eq("project_id", projectId).eq("kind", "api_route").not("route_path", "is", null).limit(5e3);
+  const routeByPath = /* @__PURE__ */ new Map();
+  for (const r2 of routeRows ?? []) {
+    const norm = normalizeRoutePath(r2.route_path);
+    if (norm && !routeByPath.has(norm)) {
+      routeByPath.set(norm, { name: r2.name, componentId: r2.component_id, filePath: r2.file_path });
+    }
+  }
+  const surfaced = endpoints.slice(0, 20).map((ep) => ({
+    ep,
+    match: routeByPath.get(normalizeRoutePath(ep.path) ?? "") ?? null
+  }));
+  const tablesByFile = /* @__PURE__ */ new Map();
+  const routeFiles = [
+    ...new Set(surfaced.map((s2) => s2.match?.filePath).filter((f2) => !!f2))
+  ];
+  if (routeFiles.length > 0) {
+    const { data: fileNodes } = await ctx.supabase.from("code_nodes").select("id, file_path").eq("project_id", projectId).in("file_path", routeFiles).limit(4e3);
+    const fileByNode = /* @__PURE__ */ new Map();
+    const fileNodeIds = [];
+    for (const n2 of fileNodes ?? []) {
+      fileByNode.set(n2.id, n2.file_path);
+      fileNodeIds.push(n2.id);
+    }
+    if (fileNodeIds.length > 0) {
+      const { data: callEdges } = await ctx.supabase.from("code_edges").select("src_node_id, dst_node_id").eq("project_id", projectId).eq("edge_kind", "calls").in("src_node_id", fileNodeIds).limit(4e3);
+      const filesByCallee = /* @__PURE__ */ new Map();
+      const calleeIds = [];
+      for (const e2 of callEdges ?? []) {
+        const f2 = fileByNode.get(e2.src_node_id);
+        if (!f2) continue;
+        if (!filesByCallee.has(e2.dst_node_id)) filesByCallee.set(e2.dst_node_id, /* @__PURE__ */ new Set());
+        filesByCallee.get(e2.dst_node_id).add(f2);
+        calleeIds.push(e2.dst_node_id);
+      }
+      const tableSrc = [.../* @__PURE__ */ new Set([...fileNodeIds, ...calleeIds])];
+      const { data: tEdges } = await ctx.supabase.from("code_edges").select("src_node_id, dst_node_id").eq("project_id", projectId).in("edge_kind", ["reads_table", "writes_table"]).in("src_node_id", tableSrc).limit(6e3);
+      const dstBySrc = /* @__PURE__ */ new Map();
+      const tableDst = /* @__PURE__ */ new Set();
+      for (const e2 of tEdges ?? []) {
+        if (!dstBySrc.has(e2.src_node_id)) dstBySrc.set(e2.src_node_id, []);
+        dstBySrc.get(e2.src_node_id).push(e2.dst_node_id);
+        tableDst.add(e2.dst_node_id);
+      }
+      const tableName = /* @__PURE__ */ new Map();
+      if (tableDst.size > 0) {
+        const { data: tNodes } = await ctx.supabase.from("code_nodes").select("id, identifier").eq("kind", "db_table").in("id", [...tableDst]).limit(6e3);
+        for (const t2 of tNodes ?? []) {
+          tableName.set(t2.id, t2.identifier);
+        }
+      }
+      const add = (file, dstId) => {
+        const nm = tableName.get(dstId);
+        if (!nm) return;
+        if (!tablesByFile.has(file)) tablesByFile.set(file, /* @__PURE__ */ new Set());
+        tablesByFile.get(file).add(nm);
+      };
+      for (const [srcId, dsts] of dstBySrc) {
+        const direct = fileByNode.get(srcId);
+        if (direct) for (const d2 of dsts) add(direct, d2);
+        const viaCall = filesByCallee.get(srcId);
+        if (viaCall) for (const f2 of viaCall) for (const d2 of dsts) add(f2, d2);
+      }
+    }
+  }
+  const out = [];
+  for (const { ep, match } of surfaced) {
+    if (!match) {
+      out.push({ path: ep.path, method: ep.method, served_by: null });
+      continue;
+    }
+    const compName = match.componentId ? componentNameById.get(match.componentId)?.name ?? null : null;
+    const tables = match.filePath ? [...tablesByFile.get(match.filePath) ?? []].slice(0, 25) : [];
+    out.push({
+      path: ep.path,
+      method: ep.method,
+      served_by: { route: match.name, component: compName, tables }
+    });
+  }
+  return out;
+}
+var REACTIVATION_MIN_SIMILARITY = 0.5;
+var REACTIVATION_LIMIT = 5;
+async function maybeReactivateColdMatches(ctx, accountId, queryVec) {
+  if (REACTIVATION_LIMIT <= 0) return 0;
+  const rpcArgs = {
+    p_account_id: accountId,
+    p_query_embedding: queryVec,
+    p_threshold: REACTIVATION_MIN_SIMILARITY,
+    p_limit: REACTIVATION_LIMIT
+  };
+  try {
+    let { data, error: error2 } = await ctx.supabase.rpc("reactivate_unused_archive_matches", rpcArgs);
+    if (error2 && /permission denied/i.test(error2.message) && ctx.privilegedSupabase) {
+      ({ data, error: error2 } = await ctx.privilegedSupabase.rpc(
+        "reactivate_unused_archive_matches",
+        rpcArgs
+      ));
+    }
+    if (error2) {
+      console.warn(`[resolver] reactivation lane skipped: ${error2.message}`);
+      return 0;
+    }
+    const revived = Array.isArray(data) ? data.length : 0;
+    if (revived > 0) {
+      console.warn(`[resolver] reactivated ${revived} cold doc(s) matching this task`);
+    }
+    return revived;
+  } catch (e2) {
+    console.warn(
+      `[resolver] reactivation lane error: ${e2 instanceof Error ? e2.message : String(e2)}`
+    );
+    return 0;
+  }
+}
+function makeAwarenessFeed(audit) {
+  return async (name, fallback, run) => {
+    if (audit.deterministic) return fallback;
+    let timeout;
+    try {
+      return await Promise.race([
+        run(),
+        new Promise((_resolve, reject) => {
+          timeout = setTimeout(
+            () => reject(new Error(`timed out after ${AWARENESS_FEED_TIMEOUT_MS}ms`)),
+            AWARENESS_FEED_TIMEOUT_MS
+          );
+        })
+      ]);
+    } catch (e2) {
+      console.warn(
+        `[resolver] ${name} failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without it`
+      );
+      return fallback;
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
+  };
+}
+async function assembleBundle(ctx, rawArgs, audit = {}) {
+  const bundleStartedAt = Date.now();
+  let embeddingMs = 0;
+  let embeddingCacheHit = false;
+  let budgetRpcMs = null;
+  let budgetWaitMs = 0;
+  let enrichmentMs = 0;
+  let hydrationMs = 0;
+  const args = AssembleBundleArgs.parse(rawArgs);
+  const excludeDocumentIds = new Set(args.exclude_document_ids ?? []);
+  const kPerKind = args.k_per_kind ?? DEFAULT_K_PER_KIND;
+  const projectId = args.project_id ?? ctx.projectId ?? null;
+  const governanceUserId = ctx.userId ?? null;
+  const requestedKinds = args.kinds ? [...args.kinds] : [...SEARCHABLE_KINDS];
+  if (!ctx.embed) {
+    throw new EmbeddingUnavailableError(
+      "resolver requires server-side embeddings; set OPENAI_API_KEY"
+    );
+  }
+  const prefetchedProjectBrain = projectBrainPolicyFromV2(ctx);
+  const projectTeamPromise = prefetchedProjectBrain ? Promise.resolve({ teamId: null, error: null }) : getProjectTeamId(ctx, projectId);
+  const projectBrainPolicyPromise = prefetchedProjectBrain ? Promise.resolve(prefetchedProjectBrain) : projectTeamPromise.then(
+    (projectTeam) => loadProjectBrainPolicy(
+      ctx,
+      projectId,
+      projectTeam.teamId,
+      governanceUserId,
+      projectTeam.error ? [projectTeam.error] : []
+    )
+  );
+  let customThresholds = null;
+  let thresholdsMode = "default";
+  let brandContextMode = "always";
+  const accountSettingsPromise = (async () => {
+    if (ctx.resolveV2DataPlane) {
+      return {
+        accThresholds: {
+          similarity_thresholds: ctx.resolveV2DataPlane.runtime.similarity_thresholds ?? null,
+          brand_context_mode: ctx.resolveV2DataPlane.runtime.brand_context_mode ?? "always"
+        },
+        accThresholdsErr: null
+      };
+    }
+    const res = await ctx.supabase.from("accounts").select("similarity_thresholds, brand_context_mode").eq("id", ctx.accountId).maybeSingle();
+    if (res.error && /brand_context_mode/i.test(res.error.message)) {
+      const fallback = await ctx.supabase.from("accounts").select("similarity_thresholds").eq("id", ctx.accountId).maybeSingle();
+      return { accThresholds: fallback.data, accThresholdsErr: fallback.error };
+    }
+    return { accThresholds: res.data, accThresholdsErr: res.error };
+  })();
+  const embeddingStartedAt = Date.now();
+  const cachedVec = getCachedEmbedding(args.task);
+  const embeddingPromise = cachedVec ? (() => {
+    embeddingCacheHit = true;
+    embeddingMs = Date.now() - embeddingStartedAt;
+    return Promise.resolve(cachedVec);
+  })() : ctx.embed(args.task).then((vec) => {
+    cacheEmbedding(args.task, vec);
+    return vec;
+  }).catch((e2) => {
+    throw new EmbeddingUnavailableError(
+      `embedding call failed: ${e2 instanceof Error ? e2.message : String(e2)}`
+    );
+  }).finally(() => {
+    embeddingMs = Date.now() - embeddingStartedAt;
+  });
+  const [{ accThresholds, accThresholdsErr }, projectBrainPolicy, queryVec] = await Promise.all([
+    accountSettingsPromise,
+    projectBrainPolicyPromise,
+    embeddingPromise
+  ]);
+  if (accThresholdsErr) {
+    console.warn(`[resolver] similarity-thresholds lookup failed: ${accThresholdsErr.message}`);
+  } else if (accThresholds && accThresholds.similarity_thresholds) {
+    const rawThresh = accThresholds.similarity_thresholds;
+    if (rawThresh.mode === "custom" || rawThresh.mode === "learned") {
+      customThresholds = rawThresh.thresholds ?? null;
+      thresholdsMode = rawThresh.mode;
+    }
+  }
+  if (accThresholds && accThresholds.brand_context_mode === "auto") {
+    brandContextMode = "auto";
+  }
+  const reactivationDone = audit.readOnly ? Promise.resolve() : maybeReactivateColdMatches(ctx, ctx.accountId, queryVec);
+  const corpusBudgetPromise = args.max_tokens === void 0 ? (() => {
+    const startedAt = Date.now();
+    return inferBudgetFromCorpus(ctx, queryVec).catch((e2) => {
+      console.warn(
+        `[resolver] inferBudgetFromCorpus rejected: ${e2 instanceof Error ? e2.message : String(e2)}`
+      );
+      return null;
+    }).finally(() => {
+      budgetRpcMs = Date.now() - startedAt;
+    });
+  })() : null;
+  const useHybrid = args.hybrid !== false;
+  const RRF_TO_SIMILARITY_SCALE = 30;
+  const searchFanoutStartedAt = Date.now();
+  let usedConsolidatedCandidates = false;
+  const consolidatedCandidateById = /* @__PURE__ */ new Map();
+  let kindResults = null;
+  if (useHybrid && args.resolve_id && args.request_hash) {
+    const { data, error: error2 } = await ctx.supabase.rpc("resolve_candidates_v2", {
+      p_account_id: ctx.accountId,
+      p_project_id: projectId,
+      p_query_embedding: queryVec,
+      p_query_text: args.task,
+      p_resolve_id: args.resolve_id,
+      p_request_hash: args.request_hash,
+      p_kinds: requestedKinds,
+      p_scopes: null,
+      p_per_kind_limit: kPerKind,
+      p_title_limit: Math.min(50, kPerKind * 4),
+      p_include_background: args.deep === true,
+      p_audit_query_preview: sanitizeAuditTask(args.task).task || null,
+      p_user_id: governanceUserId,
+      p_agent_kind: audit.agentKind ?? ctx.agentKind ?? null,
+      p_excerpt_chars: RERANK_EXCERPT_CHARS,
+      // V2's readOnly flag suppresses the legacy assembler's scattered writes;
+      // search metering is owned by this idempotent RPC/run claim instead.
+      p_meter: true,
+      p_deadline_at: args.deadline_at ?? null
+    });
+    if (!error2 && Array.isArray(data)) {
+      usedConsolidatedCandidates = true;
+      const grouped = new Map(requestedKinds.map((kind2) => [kind2, []]));
+      for (const raw of data) {
+        if (!requestedKinds.includes(raw.kind)) continue;
+        const titleMatch = raw.title_match === true;
+        const row = {
+          ...raw,
+          similarity: titleMatch ? 1 : typeof raw.rrf_score === "number" ? raw.rrf_score * RRF_TO_SIMILARITY_SCALE : raw.similarity,
+          // Legacy title-fallback rows deliberately carry no cosine evidence:
+          // an exact title is its own high-precision admission signal.
+          cosine_sim: titleMatch ? void 0 : raw.cosine_sim
+        };
+        grouped.get(row.kind)?.push(row);
+        consolidatedCandidateById.set(row.id, row);
+      }
+      kindResults = requestedKinds.map((kind2) => ({ kind: kind2, rows: grouped.get(kind2) ?? [] }));
+    } else if (isMissingResolveCandidatesRpc(error2)) {
+      console.warn(
+        `[resolver] resolve_candidates_v2 unavailable (${error2?.message ?? "invalid response"}) \u2014 using legacy fanout`
+      );
+    } else {
+      const failure = new Error("resolve_candidates_v2 failed");
+      if (error2?.code) Object.assign(failure, { code: error2.code });
+      throw failure;
+    }
+  }
+  if (!kindResults) {
+    kindResults = await Promise.all(
+      requestedKinds.map(async (kind2) => {
+        const rpcName = useHybrid ? "search_documents_hybrid" : "search_documents";
+        const rpcArgs = {
+          p_account_id: ctx.accountId,
+          p_project_id: projectId,
+          p_query_embedding: queryVec,
+          p_kinds: [kind2],
+          p_scopes: null,
+          p_limit: kPerKind
+        };
+        if (useHybrid) {
+          rpcArgs.p_query_text = args.task;
+          rpcArgs.p_audit_query_preview = sanitizeAuditTask(args.task).task || null;
+          rpcArgs.p_include_background = args.deep === true;
+        }
+        const { data, error: error2 } = await ctx.supabase.rpc(rpcName, rpcArgs);
+        if (error2) {
+          console.warn(`[resolver] ${rpcName} failed for kind=${kind2}: ${error2.message}`);
+          return { kind: kind2, rows: [] };
+        }
+        const rows = data ?? [];
+        if (useHybrid) {
+          for (const r2 of rows) {
+            if (typeof r2.rrf_score === "number") {
+              r2.similarity = r2.rrf_score * RRF_TO_SIMILARITY_SCALE;
+            }
+          }
+        }
+        const titleMatches = [];
+        const titleNeedle = args.task.trim();
+        if (titleNeedle.length >= 8) {
+          const q2 = ctx.supabase.from("documents").select(
+            `id, account_id, created_by, locked_to_owners, status, title, kind, scope,
+             project_id, path, updated_at, created_at, metadata,
+             document_versions!documents_current_version_fk ( version_number, author_id )`
+          ).eq("account_id", ctx.accountId).eq("kind", kind2).ilike("title", `%${titleNeedle}%`).eq("locked_to_owners", false).limit(Math.min(50, kPerKind * 4));
+          const { data: titleData, error: titleErr } = await q2;
+          if (!titleErr) {
+            for (const r2 of titleData ?? []) {
+              if (!isDirectResolverDocumentEligible(
+                r2,
+                { accountId: ctx.accountId, userId: ctx.userId, projectId },
+                { expectedKind: kind2 }
+              )) {
+                continue;
+              }
+              const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
+              titleMatches.push({
+                id: r2.id,
+                title: r2.title,
+                kind: r2.kind,
+                scope: r2.scope,
+                similarity: 1,
+                path: r2.path ?? null,
+                version_number: v2?.version_number ?? 1,
+                updated_at: r2.updated_at,
+                created_at: r2.created_at,
+                author_id: v2?.author_id ?? null
+              });
+              if (titleMatches.length >= kPerKind) break;
+            }
+          }
+        }
+        const merged = /* @__PURE__ */ new Map();
+        for (const row of [...titleMatches, ...rows]) {
+          const existing = merged.get(row.id);
+          if (!existing || row.similarity > existing.similarity) merged.set(row.id, row);
+        }
+        return { kind: kind2, rows: [...merged.values()] };
+      })
+    );
+  }
+  const searchFanoutMs = Date.now() - searchFanoutStartedAt;
+  const nativeFunctions = args.native_functions === true && !!projectId && requestedKinds.includes("memory");
+  const functionBodyById = /* @__PURE__ */ new Map();
+  const functionComponentById = /* @__PURE__ */ new Map();
+  if (nativeFunctions) {
+    const { data: fnData, error: fnErr } = await ctx.supabase.rpc("search_functions_hybrid", {
+      p_account_id: ctx.accountId,
+      p_project_id: projectId,
+      p_query_embedding: queryVec,
+      p_query_text: args.task,
+      p_limit: kPerKind
+    });
+    if (fnErr) {
+      console.warn(`[resolver] search_functions_hybrid failed: ${fnErr.message}`);
+    } else {
+      const memEntry = kindResults.find((k2) => k2.kind === "memory");
+      for (const r2 of fnData ?? []) {
+        functionBodyById.set(r2.id, r2.purpose ?? "");
+        functionComponentById.set(r2.id, r2.component_id);
+        const label = r2.kind === "api_route" ? "Route" : r2.kind === "page" ? "Page" : r2.kind === "hook" ? "Hook" : "Function";
+        memEntry?.rows.push({
+          id: r2.id,
+          title: `${label}: ${r2.name}`.slice(0, 200),
+          kind: "memory",
+          scope: "project",
+          similarity: r2.rrf_score * RRF_TO_SIMILARITY_SCALE,
+          path: r2.file_path,
+          version_number: 1,
+          updated_at: r2.updated_at,
+          created_at: r2.updated_at,
+          author_id: null
+        });
+      }
+    }
+  }
+  const candidates = [];
+  const omittedCandidates = [];
+  const candidateIdsNeedingStatus = [];
+  const belowThresholdIds = [];
+  const skipRerank = args.skip_rerank === true || args.interactive === true;
+  const rerankerConfigured = !!(ctx.hostedRerank || ctx.rerank);
+  const canUseRerankAdmission = rerankerConfigured && !skipRerank;
+  for (const { kind: kind2, rows } of kindResults) {
+    const threshold = customThresholds?.[kind2] ?? KIND_THRESHOLDS[kind2];
+    for (const r2 of rows) {
+      const hasCosineEvidence = typeof r2.cosine_sim === "number" && Number.isFinite(r2.cosine_sim);
+      const thresholdScore = hasCosineEvidence ? r2.cosine_sim : r2.similarity;
+      const passesConfiguredThreshold = passesCandidateThreshold(
+        r2.similarity,
+        r2.cosine_sim,
+        threshold
+      );
+      const hasAbsoluteEvidence = hasCosineEvidence || !useHybrid;
+      const rerankAdmission = !passesConfiguredThreshold && kind2 === "skill" && skillRerankLaneEligible(thresholdsMode, customThresholds) && canUseRerankAdmission && hasAbsoluteEvidence && thresholdScore >= SKILL_RERANK_CANDIDATE_THRESHOLD ? { thresholdScore, configuredThreshold: threshold } : void 0;
+      if (!passesConfiguredThreshold && !rerankAdmission) {
+        omittedCandidates.push({
+          id: r2.id,
+          kind: kind2,
+          title: r2.title,
+          threshold_score: thresholdScore,
+          similarity: r2.similarity,
+          reason: "below_threshold",
+          detail: hasCosineEvidence ? `${kind2} cosine evidence ${r2.cosine_sim.toFixed(3)} missed threshold ${threshold.toFixed(3)} (rank score ${r2.similarity.toFixed(3)})` : `${kind2} similarity ${r2.similarity.toFixed(3)} missed threshold ${threshold.toFixed(3)}`,
+          path: r2.path
+        });
+        belowThresholdIds.push(r2.id);
+        continue;
+      }
+      candidateIdsNeedingStatus.push(r2.id);
+      candidates.push({
+        id: r2.id,
+        kind: kind2,
+        title: r2.title,
+        similarity: r2.similarity,
+        score: r2.similarity * KIND_WEIGHTS[kind2],
+        rerankAdmission,
+        citation: {
+          path: r2.path,
+          version_number: r2.version_number,
+          updated_at: r2.updated_at,
+          author_id: r2.author_id
+        },
+        componentId: null,
+        componentName: null,
+        // Decay off created_at, not updated_at: a corpus-wide maintenance write
+        // (e.g. a backfill) bumps updated_at and would silently reset every
+        // doc's decay clock to "fresh" — exactly what neutralized decay
+        // fleet-wide. created_at is the doc's true age. citation.updated_at
+        // above stays as the "last modified" provenance shown to users.
+        decayMultiplier: decayMultiplierForKind(kind2, r2.created_at),
+        createdAt: r2.created_at
+      });
+    }
+  }
+  const metadataById = /* @__PURE__ */ new Map();
+  const approvedColumnIds = /* @__PURE__ */ new Set();
+  const poolStatusIds = belowThresholdIds.length > 0 ? [.../* @__PURE__ */ new Set([...candidateIdsNeedingStatus, ...belowThresholdIds])] : candidateIdsNeedingStatus;
+  const belowThresholdActiveIds = /* @__PURE__ */ new Set();
+  const belowThresholdIdSet = new Set(belowThresholdIds);
+  if (poolStatusIds.length > 0) {
+    const statusRead = usedConsolidatedCandidates ? {
+      data: poolStatusIds.flatMap((id) => {
+        const row = consolidatedCandidateById.get(id);
+        return row ? [
+          {
+            id: row.id,
+            account_id: ctx.accountId,
+            created_by: row.scope === "personal" ? ctx.userId ?? null : null,
+            locked_to_owners: false,
+            status: row.status ?? null,
+            kind: row.kind,
+            metadata: row.metadata ?? null,
+            project_id: row.project_id ?? null,
+            scope: row.scope
+          }
+        ] : [];
+      }),
+      error: null
+    } : await ctx.supabase.from("documents").select(
+      "id, account_id, created_by, locked_to_owners, status, kind, metadata, project_id, scope"
+    ).eq("account_id", ctx.accountId).eq("locked_to_owners", false).in("id", poolStatusIds);
+    const { data: statusRows, error: statusErr } = statusRead;
+    if (statusErr) {
+      console.warn(
+        `[resolver] status/visibility fetch failed: ${statusErr.message} \u2014 dropping document candidates`
+      );
+      for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
+        const c2 = candidates[i2];
+        if (c2 && !functionBodyById.has(c2.id)) {
+          omittedCandidates.push({
+            id: c2.id,
+            kind: c2.kind,
+            title: c2.title,
+            similarity: c2.similarity,
+            reason: "status_filtered",
+            detail: `${c2.kind} direct visibility/status could not be verified`,
+            path: c2.citation.path
+          });
+          candidates.splice(i2, 1);
+        }
+      }
+    } else {
+      const statusById = /* @__PURE__ */ new Map();
+      const scopeRowById = /* @__PURE__ */ new Map();
+      const candidateKindById = new Map(
+        candidates.map((candidate) => [candidate.id, candidate.kind])
+      );
+      for (const r2 of statusRows ?? []) {
+        const expectedKind = candidateKindById.get(r2.id);
+        if (!expectedKind && belowThresholdIdSet.has(r2.id)) {
+          const visible = !ctx.serviceTokenId || isDirectResolverDocumentEligible(
+            r2,
+            { accountId: ctx.accountId, userId: ctx.userId, projectId },
+            {
+              expectedKind: r2.kind,
+              projectAssociation: "account-or-active-project"
+            }
+          );
+          if (visible && r2.status !== "archived") belowThresholdActiveIds.add(r2.id);
+          continue;
+        }
+        if (!expectedKind || ctx.serviceTokenId && !isDirectResolverDocumentEligible(
+          r2,
+          { accountId: ctx.accountId, userId: ctx.userId, projectId },
+          {
+            expectedKind,
+            projectAssociation: "account-or-active-project"
+          }
+        )) {
+          continue;
+        }
+        statusById.set(r2.id, r2.status);
+        metadataById.set(r2.id, r2.metadata);
+        scopeRowById.set(r2.id, { project_id: r2.project_id, scope: r2.scope });
+      }
+      for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
+        const c2 = candidates[i2];
+        if (!c2) continue;
+        if (!functionBodyById.has(c2.id) && !statusById.has(c2.id)) {
+          omittedCandidates.push({
+            id: c2.id,
+            kind: c2.kind,
+            title: c2.title,
+            similarity: c2.similarity,
+            reason: "status_filtered",
+            detail: `${c2.kind} direct visibility/status could not be verified`,
+            path: c2.citation.path
+          });
+          candidates.splice(i2, 1);
+          continue;
+        }
+        const status = statusById.get(c2.id) ?? null;
+        const meta = metadataById.get(c2.id);
+        const scopeRow = scopeRowById.get(c2.id);
+        if (nativeFunctions && meta?.source === "repo:function") {
+          omittedCandidates.push({
+            id: c2.id,
+            kind: c2.kind,
+            title: c2.title,
+            similarity: c2.similarity,
+            reason: "status_filtered",
+            detail: "function mirror superseded by native function search",
+            path: c2.citation.path
+          });
+          candidates.splice(i2, 1);
+          continue;
+        }
+        if (c2.kind === "memory" && typeof meta?.memory_type === "string") {
+          c2.memory_type = normalizeMemoryType(meta.memory_type);
+        }
+        if (c2.kind === "memory" && c2.memory_type === "working") {
+          omittedCandidates.push({
+            id: c2.id,
+            kind: c2.kind,
+            title: c2.title,
+            similarity: c2.similarity,
+            reason: "status_filtered",
+            detail: "session working memory is force-included by session_id, not semantic rank",
+            path: c2.citation.path
+          });
+          candidates.splice(i2, 1);
+          continue;
+        }
+        const inherited = isProjectBrainInheritedDoc(projectId, c2, scopeRow);
+        const inheritedDefault = meta?.default_for_projects === true || projectBrainPolicy.optionalChainIds.has(c2.id);
+        const inheritedRequired = meta?.required_for_projects === true || projectBrainPolicy.requiredChainIds.has(c2.id);
+        c2.authorityTier = authorityTier({
+          kind: c2.kind,
+          requiredGovernance: inheritedRequired,
+          approved: status === "approved",
+          memoryType: c2.memory_type ?? null
+        });
+        if (excludeDocumentIds.size > 0 && excludeDocumentIds.has(c2.id)) {
+          omittedCandidates.push({
+            id: c2.id,
+            kind: c2.kind,
+            title: c2.title,
+            similarity: c2.similarity,
+            reason: "status_filtered",
+            detail: "excluded by exclude_document_ids (backtest)",
+            path: c2.citation.path
+          });
+          candidates.splice(i2, 1);
+          continue;
+        }
+        if (status === "archived") {
+          omittedCandidates.push({
+            id: c2.id,
+            kind: c2.kind,
+            title: c2.title,
+            similarity: c2.similarity,
+            reason: "status_filtered",
+            detail: "document is archived",
+            path: c2.citation.path
+          });
+          candidates.splice(i2, 1);
+          continue;
+        }
+        const metaStatus = typeof meta?.status === "string" ? meta.status : null;
+        const backgroundAllowed = args.deep === true && metaStatus === "background";
+        if (metaStatus && metaStatus !== "active" && !backgroundAllowed) {
+          omittedCandidates.push({
+            id: c2.id,
+            kind: c2.kind,
+            title: c2.title,
+            similarity: c2.similarity,
+            reason: "status_filtered",
+            detail: `metadata.status is '${metaStatus}' (not active)`,
+            path: c2.citation.path
+          });
+          candidates.splice(i2, 1);
+          continue;
+        }
+        const supersededBy = typeof meta?.superseded_by === "string" ? meta.superseded_by.trim() : "";
+        if (!metaStatus && supersededBy && supersededBy !== c2.id) {
+          omittedCandidates.push({
+            id: c2.id,
+            kind: c2.kind,
+            title: c2.title,
+            similarity: c2.similarity,
+            reason: "superseded_by_stamp",
+            detail: `metadata.superseded_by points at ${supersededBy} (superseded without a status stamp)`,
+            path: c2.citation.path
+          });
+          candidates.splice(i2, 1);
+          continue;
+        }
+        const optout = projectBrainPolicy.overridesBySource.get(c2.id);
+        if (optout && !inheritedRequired) {
+          if (optout.action === "block") {
+            projectBrainPolicy.blockedIds.push(c2.id);
+            omittedCandidates.push({
+              id: c2.id,
+              kind: c2.kind,
+              title: c2.title,
+              similarity: c2.similarity,
+              reason: "status_filtered",
+              detail: "opted out by your team / project / you",
+              path: c2.citation.path
+            });
+            candidates.splice(i2, 1);
+            continue;
+          }
+          if (optout.action === "override" && optout.replacement_document_id) {
+            projectBrainPolicy.overridePairs.push({
+              source_document_id: c2.id,
+              replacement_document_id: optout.replacement_document_id
+            });
+            omittedCandidates.push({
+              id: c2.id,
+              kind: c2.kind,
+              title: c2.title,
+              similarity: c2.similarity,
+              reason: "status_filtered",
+              detail: `overridden by document ${optout.replacement_document_id}`,
+              path: c2.citation.path
+            });
+            candidates.splice(i2, 1);
+            continue;
+          }
+        }
+        if (inherited && !inheritedDefault && !inheritedRequired) {
+          omittedCandidates.push({
+            id: c2.id,
+            kind: c2.kind,
+            title: c2.title,
+            similarity: c2.similarity,
+            reason: "status_filtered",
+            detail: "account-level memory/skill is not marked default_for_projects",
+            path: c2.citation.path
+          });
+          candidates.splice(i2, 1);
+          continue;
+        }
+        if (inheritedDefault) projectBrainPolicy.inheritedDefaultIds.push(c2.id);
+        if (inheritedRequired) projectBrainPolicy.requiredIds.push(c2.id);
+        if ((c2.kind === "goal" || c2.kind === "skill") && status !== "approved") {
+          omittedCandidates.push({
+            id: c2.id,
+            kind: c2.kind,
+            title: c2.title,
+            similarity: c2.similarity,
+            reason: "status_filtered",
+            detail: `${c2.kind} status is ${status ?? "missing"}, not approved`,
+            path: c2.citation.path
+          });
+          candidates.splice(i2, 1);
+          continue;
+        }
+        if (c2.kind === "skill" && !isSkillTargetedToAgent(meta, audit.agentKind)) {
+          const targets = skillTargetAgents(meta);
+          omittedCandidates.push({
+            id: c2.id,
+            kind: c2.kind,
+            title: c2.title,
+            similarity: c2.similarity,
+            reason: "agent_target_mismatch",
+            detail: `skill targets [${targets.join(", ")}], not agent ${audit.agentKind}`,
+            path: c2.citation.path
+          });
+          candidates.splice(i2, 1);
+          continue;
+        }
+        const antiExample = c2.kind === "skill" && !inheritedRequired ? matchingSkillAntiExample(args.task, meta) : null;
+        if (antiExample) {
+          omittedCandidates.push({
+            id: c2.id,
+            kind: c2.kind,
+            title: c2.title,
+            similarity: c2.similarity,
+            reason: "anti_example_match",
+            detail: `task high-precision matched skill anti-example: ${antiExample.slice(0, 240)}`,
+            path: c2.citation.path
+          });
+          candidates.splice(i2, 1);
+          continue;
+        }
+        if ((c2.kind === "memory" || c2.kind === "decision") && status === "approved") {
+          approvedColumnIds.add(c2.id);
+        }
+      }
+      const replacementIds = projectBrainPolicy.overridePairs.map((p2) => p2.replacement_document_id).filter((id) => !candidates.some((c2) => c2.id === id));
+      if (replacementIds.length > 0) {
+        const { data: replacementRows, error: replacementErr } = await ctx.supabase.from("documents").select(
+          `id, account_id, created_by, locked_to_owners, scope, project_id, title,
+             kind, path, status, metadata, updated_at, created_at,
+             document_versions!documents_current_version_fk ( version_number, author_id )`
+        ).eq("account_id", ctx.accountId).eq("locked_to_owners", false).in("id", replacementIds);
+        if (replacementErr) {
+          console.warn(
+            `[resolver] project brain override replacement fetch failed: ${replacementErr.message}`
+          );
+        } else {
+          for (const row of replacementRows ?? []) {
+            if (!isDirectResolverDocumentEligible(
+              row,
+              { accountId: ctx.accountId, userId: ctx.userId, projectId },
+              {
+                projectAssociation: "account-or-active-project",
+                expectedKind: ["memory", "skill"]
+              }
+            )) {
+              continue;
+            }
+            if (row.kind === "skill" && !isSkillTargetedToAgent(row.metadata, audit.agentKind)) {
+              const targets = skillTargetAgents(row.metadata);
+              omittedCandidates.push({
+                id: row.id,
+                kind: row.kind,
+                title: row.title,
+                similarity: 1,
+                reason: "agent_target_mismatch",
+                detail: `override skill targets [${targets.join(", ")}], not agent ${audit.agentKind}`,
+                path: row.path
+              });
+              continue;
+            }
+            const replacementAnti = row.kind === "skill" && !projectBrainPolicy.requiredChainIds.has(row.id) ? matchingSkillAntiExample(args.task, row.metadata) : null;
+            if (replacementAnti) {
+              omittedCandidates.push({
+                id: row.id,
+                kind: row.kind,
+                title: row.title,
+                similarity: 1,
+                reason: "anti_example_match",
+                detail: `task high-precision matched override skill anti-example: ${replacementAnti.slice(0, 240)}`,
+                path: row.path
+              });
+              continue;
+            }
+            metadataById.set(row.id, row.metadata);
+            const v2 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+            candidates.push({
+              id: row.id,
+              kind: row.kind,
+              title: row.title,
+              similarity: 1,
+              score: KIND_WEIGHTS[row.kind],
+              citation: {
+                path: row.path,
+                version_number: v2?.version_number ?? 1,
+                updated_at: row.updated_at,
+                author_id: v2?.author_id ?? null
+              },
+              componentId: null,
+              componentName: null,
+              // created_at, not updated_at — see the search-candidate build.
+              decayMultiplier: decayMultiplierForKind(row.kind, row.created_at),
+              createdAt: row.created_at
+            });
+          }
+        }
+      }
+      for (const c2 of candidates) {
+        const meta = metadataById.get(c2.id);
+        if (meta && meta.evergreen === true) {
+          c2.decayMultiplier = 1;
+        }
+      }
+    }
+  }
+  let rerankAuditScores = null;
+  let rerankLatencyMs = null;
+  let rerankFallbackReason = null;
+  let rerankProvider = null;
+  let admissionJudge = null;
+  let bodyMap = /* @__PURE__ */ new Map();
+  let componentIdByDoc = /* @__PURE__ */ new Map();
+  let rolesByDoc = /* @__PURE__ */ new Map();
+  let componentScopedByDoc = /* @__PURE__ */ new Map();
+  let canaryContentMap = /* @__PURE__ */ new Map();
+  if (usedConsolidatedCandidates) {
+    for (const [id, row] of consolidatedCandidateById) {
+      bodyMap.set(id, row.excerpt ?? "");
+    }
+    for (const [id, body] of functionBodyById) bodyMap.set(id, body);
+  } else {
+    const hydrationStartedAt = Date.now();
+    ({ bodyMap, componentIdByDoc, rolesByDoc, componentScopedByDoc, canaryContentMap } = await hydrateCandidateBodies(
+      ctx,
+      // Legacy candidate rows do not carry content_chars, so below-threshold
+      // bodies remain part of this fetch for the observed savings baseline.
+      [...candidates.map((c2) => c2.id), ...belowThresholdActiveIds],
+      functionBodyById,
+      functionComponentById
+    ));
+    hydrationMs += Date.now() - hydrationStartedAt;
+  }
+  const poolIds = [...candidates.map((c2) => c2.id), ...belowThresholdActiveIds];
+  const candidatePoolCount = poolIds.length;
+  const candidatePoolTokens = poolIds.reduce((sum, id) => {
+    const contentChars = consolidatedCandidateById.get(id)?.content_chars;
+    return sum + (usedConsolidatedCandidates && typeof contentChars === "number" ? Math.ceil(contentChars / 4) : estimateTokens(bodyMap.get(id) ?? ""));
+  }, 0);
+  const candidatePoolAdmittedCount = candidates.length;
+  const candidatePoolBelowThresholdCount = belowThresholdActiveIds.size;
+  const skillRerankAdmissionCandidateIds = candidates.filter((candidate) => candidate.rerankAdmission).map((candidate) => candidate.id);
+  const dropUnverifiedRerankAdmissions = (detail) => {
+    for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
+      const candidate = candidates[i2];
+      if (!candidate?.rerankAdmission) continue;
+      omittedCandidates.push({
+        id: candidate.id,
+        kind: candidate.kind,
+        title: candidate.title,
+        threshold_score: candidate.rerankAdmission.thresholdScore,
+        similarity: candidate.similarity,
+        reason: "rerank_filtered",
+        detail,
+        path: candidate.citation.path
+      });
+      candidates.splice(i2, 1);
+    }
+  };
+  const hasProvisionalSkill = skillRerankAdmissionCandidateIds.length > 0;
+  if (rerankerConfigured && (candidates.length >= MIN_CANDIDATES_FOR_RERANK || hasProvisionalSkill) && !skipRerank) {
+    const rerankInputs = candidates.map((c2) => ({
+      id: c2.id,
+      kind: c2.kind,
+      title: c2.title,
+      excerpt: (bodyMap.get(c2.id) ?? "").slice(0, RERANK_EXCERPT_CHARS)
+    }));
+    try {
+      let scores;
+      let latencyMs;
+      if (ctx.hostedRerank) {
+        rerankProvider = ctx.hostedRerank.provider;
+        const startedAt = Date.now();
+        scores = await Promise.race([
+          rerankHosted(args.task, rerankInputs, ctx.hostedRerank),
+          new Promise(
+            (_2, reject) => setTimeout(() => reject(new Error("hosted rerank timeout")), RERANK_TIMEOUT_MS)
+          )
+        ]);
+        latencyMs = Date.now() - startedAt;
+      } else {
+        rerankProvider = "llm";
+        const result = await Promise.race([
+          rerankCandidates(args.task, rerankInputs, ctx.rerank),
+          new Promise(
+            (_2, reject) => setTimeout(() => reject(new Error("llm rerank timeout")), RERANK_TIMEOUT_MS)
+          )
+        ]);
+        scores = result.scores;
+        latencyMs = result.latency_ms;
+      }
+      rerankLatencyMs = latencyMs;
+      const scoredCount = Object.keys(scores).length;
+      const coverage = candidates.length > 0 ? scoredCount / candidates.length : 0;
+      if (scoredCount === 0 || coverage < RERANK_MIN_COVERAGE) {
+        rerankFallbackReason = scoredCount === 0 ? "rerank_empty" : "rerank_partial";
+        console.warn(
+          `[resolver] rerank scored ${scoredCount}/${candidates.length} candidates (< quorum) \u2014 keeping cosine ordering`
+        );
+        dropUnverifiedRerankAdmissions(
+          `provisional skill dropped because reranker returned ${rerankFallbackReason}`
+        );
+      } else {
+        if (ctx.hostedRerank && ctx.rerank) {
+          const provisional = candidates.filter((c2) => c2.rerankAdmission);
+          if (provisional.length > 0) {
+            const judgeInputs = provisional.map((c2) => ({
+              id: c2.id,
+              kind: c2.kind,
+              title: c2.title,
+              excerpt: (bodyMap.get(c2.id) ?? "").slice(0, RERANK_EXCERPT_CHARS)
+            }));
+            try {
+              const judge = await Promise.race([
+                rerankCandidates(args.task, judgeInputs, ctx.rerank),
+                new Promise(
+                  (_2, reject) => setTimeout(
+                    () => reject(new Error("admission judge timeout")),
+                    ADMISSION_JUDGE_TIMEOUT_MS
+                  )
+                )
+              ]);
+              const applied = applyAdmissionJudgeScores(
+                scores,
+                judge.scores,
+                provisional.map((c2) => c2.id)
+              );
+              admissionJudge = {
+                attempted: provisional.length,
+                scored: applied,
+                latency_ms: judge.latency_ms,
+                error: null
+              };
+            } catch (e2) {
+              admissionJudge = {
+                attempted: provisional.length,
+                scored: 0,
+                latency_ms: null,
+                error: e2 instanceof Error ? e2.message : String(e2)
+              };
+            }
+          }
+        }
+        rerankAuditScores = scores;
+        for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
+          const c2 = candidates[i2];
+          const newScore = scores[c2.id];
+          const belowSkillAdmissionFloor = c2.kind === "skill" && !projectBrainPolicy.requiredChainIds.has(c2.id) && newScore !== void 0 && newScore < RERANK_SKILL_MIN_SCORE;
+          if (newScore === void 0 || newScore <= 0 || belowSkillAdmissionFloor) {
+            omittedCandidates.push({
+              id: c2.id,
+              kind: c2.kind,
+              title: c2.title,
+              similarity: c2.similarity,
+              reason: "rerank_filtered",
+              detail: belowSkillAdmissionFloor ? `skill rerank score ${newScore.toFixed(3)} is below the ${RERANK_SKILL_MIN_SCORE.toFixed(2)} application floor` : "reranker omitted or scored this candidate at 0",
+              path: c2.citation.path
+            });
+            candidates.splice(i2, 1);
+            continue;
+          }
+          c2.score = newScore * KIND_WEIGHTS[c2.kind];
+        }
+      }
+    } catch (e2) {
+      const rerankFailure = e2 instanceof HostedRerankResponseError ? e2.fallbackReason : e2 instanceof Error ? e2.name : "unknown";
+      console.warn(`[resolver] rerank failed (${rerankFailure}) \u2014 falling back to cosine`);
+      rerankAuditScores = null;
+      rerankLatencyMs = null;
+      rerankFallbackReason = e2 instanceof HostedRerankResponseError ? e2.fallbackReason : "rerank_error";
+      dropUnverifiedRerankAdmissions(
+        rerankFallbackReason === "rerank_error" ? "provisional skill dropped because reranker failed; configured threshold remains authoritative" : `provisional skill dropped because reranker returned ${rerankFallbackReason}`
+      );
+    }
+  }
+  if (usedConsolidatedCandidates) {
+    if (ctx.resolveV2DataPlane) {
+      const nearMissIds = omittedCandidates.filter((candidate) => candidate.reason === "below_threshold").sort((a2, b2) => (b2.threshold_score ?? b2.similarity) - (a2.threshold_score ?? a2.similarity)).slice(0, 3).map((candidate) => candidate.id);
+      const enrichmentStartedAt = Date.now();
+      const enrichment = await ctx.resolveV2DataPlane.loadEnrichment({
+        queryEmbedding: queryVec,
+        candidateIds: candidates.map((candidate) => candidate.id),
+        nearMissIds,
+        task: args.task,
+        projectId,
+        sessionId: audit.sessionId ?? null,
+        cwd: args.cwd ?? null,
+        gitRemote: args.git_remote ?? null,
+        agentKind: audit.agentKind ?? ctx.agentKind ?? null
+      });
+      enrichmentMs += Date.now() - enrichmentStartedAt;
+      ctx.resolveV2DataPlane.runtime.document_count = enrichment.documentCount;
+      ctx.resolveV2DataPlane.runtime.corpus_bucket = enrichment.corpusBucket;
+    }
+    const hydrationStartedAt = Date.now();
+    ({ bodyMap, componentIdByDoc, rolesByDoc, componentScopedByDoc, canaryContentMap } = await hydrateCandidateBodies(
+      ctx,
+      candidates.map((candidate) => candidate.id),
+      functionBodyById,
+      functionComponentById
+    ));
+    hydrationMs += Date.now() - hydrationStartedAt;
+  }
+  const candidateIds = candidates.map((c2) => c2.id);
+  const fitnessMultipliers = await loadFitnessMultipliers(
+    ctx,
+    candidateIds,
+    classifyTask(args.task)
+  );
+  for (const c2 of candidates) {
+    c2.fitnessMultiplier = fitnessMultipliers.get(c2.id) ?? 1;
+  }
+  let activeComponentId = null;
+  let activeComponentName = null;
+  let activeComponentSlug = null;
+  let activeComponent = null;
+  const componentNameById = /* @__PURE__ */ new Map();
+  const componentRepoById = /* @__PURE__ */ new Map();
+  if (projectId) {
+    const { data: compRows, error: compErr } = await ctx.supabase.from("components").select("id, name, slug, path_patterns, repo").eq("project_id", projectId);
+    if (compErr) {
+      console.warn(
+        `[resolver] components lookup failed: ${compErr.message} \u2014 proceeding without component boost`
+      );
+    } else if (compRows && compRows.length > 0) {
+      for (const row of compRows) {
+        componentNameById.set(row.id, { name: row.name, slug: row.slug });
+        componentRepoById.set(row.id, row.repo ?? null);
+      }
+      if (args.cwd) {
+        let bestLen = -1;
+        for (const row of compRows) {
+          const patterns = row.path_patterns ?? [];
+          for (const pat of patterns) {
+            const len = matchPathPattern(args.cwd, pat);
+            if (len !== null && len > bestLen) {
+              bestLen = len;
+              activeComponentId = row.id;
+              activeComponentName = row.name;
+              activeComponentSlug = row.slug;
+            }
+          }
+        }
+      }
+      if (!activeComponentId) {
+        let bestLen = -1;
+        for (const row of compRows) {
+          for (const pat of row.path_patterns ?? []) {
+            const dir = pat === "**" ? "" : pat.replace(/\/\*\*$/, "");
+            if (dir.length === 0) continue;
+            if (dir.length > bestLen && args.task.includes(dir)) {
+              bestLen = dir.length;
+              activeComponentId = row.id;
+              activeComponentName = row.name;
+              activeComponentSlug = row.slug;
+            }
+          }
+        }
+      }
+      if (activeComponentId && activeComponentName) {
+        activeComponent = {
+          id: activeComponentId,
+          name: activeComponentName,
+          slug: activeComponentSlug
+        };
+      }
+    }
+  }
+  let activeRepo = null;
+  {
+    const distinctRepos = /* @__PURE__ */ new Set();
+    for (const r2 of componentRepoById.values()) if (r2) distinctRepos.add(r2);
+    if (projectId && distinctRepos.size > 1) {
+      const { data: repoRows, error: repoErr } = await ctx.supabase.from("project_github_repos").select("repo_full_name").eq("project_id", projectId);
+      if (repoErr) {
+        console.warn(
+          `[resolver] project repos lookup failed: ${repoErr.message} \u2014 proceeding repo-neutral`
+        );
+      } else {
+        const repoNames = (repoRows ?? []).map((r2) => r2.repo_full_name).filter((r2) => typeof r2 === "string" && r2.length > 0);
+        activeRepo = inferActiveRepo({
+          gitRemote: args.git_remote ?? null,
+          cwd: args.cwd ?? null,
+          task: args.task,
+          repoNames,
+          activeComponentRepo: activeComponentId ? componentRepoById.get(activeComponentId) ?? null : null
+        });
+      }
+    }
+  }
+  let userRoles = [];
+  if (ctx.userId) {
+    const { data: memberRow, error: memberErr } = await ctx.supabase.from("account_members").select("functional_roles, inferred_roles").eq("account_id", ctx.accountId).eq("user_id", ctx.userId).maybeSingle();
+    if (memberErr) {
+      console.warn(
+        `[resolver] member roles fetch failed: ${memberErr.message} \u2014 proceeding without role boost`
+      );
+    } else {
+      const m2 = memberRow ?? {};
+      const merged = /* @__PURE__ */ new Set();
+      for (const src of [m2.functional_roles, m2.inferred_roles]) {
+        if (Array.isArray(src)) {
+          for (const r2 of src) if (typeof r2 === "string") merged.add(r2);
+        }
+      }
+      userRoles = [...merged];
+    }
+  }
+  for (const c2 of candidates) {
+    const compId = componentIdByDoc.get(c2.id) ?? null;
+    c2.componentId = compId;
+    if (compId) {
+      const info = componentNameById.get(compId);
+      c2.componentName = info?.name ?? null;
+      c2.repo = componentRepoById.get(compId) ?? null;
+    }
+    if (activeComponentId && compId === activeComponentId) {
+      c2.score += ACTIVE_COMPONENT_BOOST * KIND_WEIGHTS[c2.kind];
+    } else if (activeRepo && c2.repo === activeRepo) {
+      c2.score += SAME_REPO_BOOST * KIND_WEIGHTS[c2.kind];
+    }
+    if (activeRepo && c2.repo && c2.repo !== activeRepo && (c2.kind === "memory" || c2.kind === "skill")) {
+      c2.score *= CROSS_REPO_DEMOTION;
+    }
+  }
+  for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
+    const c2 = candidates[i2];
+    if (!c2) continue;
+    if (!componentScopedByDoc.get(c2.id)) continue;
+    if (c2.kind !== "memory" && c2.kind !== "skill") continue;
+    if (c2.componentId && c2.componentId === activeComponentId) continue;
+    omittedCandidates.push({
+      id: c2.id,
+      kind: c2.kind,
+      title: c2.title,
+      similarity: c2.similarity,
+      reason: "status_filtered",
+      detail: !c2.componentId ? "component-scoped doc has no component_id (misconfigured)" : activeComponentId ? "component-scoped doc outside the active component" : "component-scoped doc requires an active component (none inferred)",
+      path: c2.citation.path
+    });
+    candidates.splice(i2, 1);
+  }
+  if (userRoles.length > 0) {
+    for (const c2 of candidates) {
+      const docRoles = rolesByDoc.get(c2.id) ?? [];
+      if (docRoles.some((r2) => userRoles.includes(r2))) {
+        c2.score += ROLE_MATCH_BOOST * KIND_WEIGHTS[c2.kind];
+      }
+    }
+  }
+  if (approvedColumnIds.size > 0) {
+    for (const c2 of candidates) {
+      if (approvedColumnIds.has(c2.id)) {
+        c2.score += APPROVED_STATUS_BOOST * KIND_WEIGHTS[c2.kind];
+      }
+    }
+  }
+  let pinnedItems = [];
+  const prefetchedPins = pinnedFromV2Policy(ctx);
+  const pinsAdmittedByV2Policy = prefetchedPins !== null;
+  if (prefetchedPins) {
+    pinnedItems = prefetchedPins;
+  } else {
+    try {
+      pinnedItems = await assemblePinned(
+        ctx,
+        projectId,
+        audit.agentKind ?? null,
+        (row, targets) => {
+          omittedCandidates.push({
+            id: row.id,
+            kind: "skill",
+            title: row.title,
+            similarity: 1,
+            reason: "agent_target_mismatch",
+            detail: `pinned skill targets [${targets.join(", ")}], not agent ${audit.agentKind}`,
+            path: row.path ?? null
+          });
+        }
+      );
+    } catch (e2) {
+      console.warn(
+        `[resolver] pinned assembly failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without pins`
+      );
+    }
+  }
+  let requiredCoreItems = [];
+  let requiredCoreStatus = {
+    complete: projectBrainPolicy.errors.length === 0,
+    expected_ids: [],
+    delivered_ids: [],
+    missing_ids: [],
+    errors: [...projectBrainPolicy.errors]
+  };
+  try {
+    const required2 = requiredCoreFromV2Policy(ctx) ?? await assembleRequiredCore(
+      ctx,
+      projectBrainPolicy.requiredChainIds,
+      projectId,
+      projectBrainPolicy.errors,
+      audit.agentKind ?? null
+    );
+    requiredCoreItems = required2.items;
+    requiredCoreStatus = required2.status;
+  } catch (e2) {
+    const message = e2 instanceof Error ? e2.message : String(e2);
+    requiredCoreStatus = {
+      complete: false,
+      expected_ids: [...projectBrainPolicy.requiredChainIds].sort(),
+      delivered_ids: [],
+      missing_ids: [...projectBrainPolicy.requiredChainIds].sort(),
+      errors: [.../* @__PURE__ */ new Set([...projectBrainPolicy.errors, `required-core assembly: ${message}`])]
+    };
+    console.warn(`[resolver] required-core assembly failed: ${message}`);
+  }
+  const requiredCoreIds = new Set(requiredCoreItems.map((item) => item.id));
+  if (requiredCoreIds.size > 0) {
+    pinnedItems = pinnedItems.filter((item) => !requiredCoreIds.has(item.id));
+  }
+  if (pinnedItems.length > 0 || requiredCoreItems.length > 0) {
+    const alwaysOnIds = /* @__PURE__ */ new Set([
+      ...pinnedItems.map((item) => item.id),
+      ...requiredCoreItems.map((item) => item.id)
+    ]);
+    for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
+      const c2 = candidates[i2];
+      if (c2 && alwaysOnIds.has(c2.id)) candidates.splice(i2, 1);
+    }
+  }
+  const memoryTypeMultiplier = (c2) => c2.kind === "memory" && c2.memory_type ? MEMORY_TYPE_WEIGHTS[c2.memory_type] : 1;
+  const gatedFitness = (c2) => {
+    const f2 = c2.fitnessMultiplier ?? 1;
+    if (f2 <= 1) return f2;
+    return c2.similarity >= FITNESS_BOOST_MIN_SIMILARITY ? f2 : 1;
+  };
+  const effectiveScore = (c2) => c2.score * c2.decayMultiplier * gatedFitness(c2) * memoryTypeMultiplier(c2);
+  const byPrecedence = byAuthorityThenScore(
+    (c2) => c2.authorityTier ?? AUTHORITY_TIER.HISTORICAL,
+    effectiveScore
+  );
+  const dedupeThresholdRaw = customThresholds?.dedupe;
+  const dedupeThreshold = typeof dedupeThresholdRaw === "number" ? dedupeThresholdRaw >= 2 ? null : Math.max(dedupeThresholdRaw, REDUNDANCY_COLLAPSE_MIN) : REDUNDANCY_COLLAPSE_THRESHOLD;
+  const dedupeClusters = [];
+  let dedupeDroppedCount = 0;
+  let dedupeTokensSaved = 0;
+  const dedupeEligibleIds = candidates.filter((c2) => REDUNDANCY_COLLAPSE_KINDS.has(c2.kind)).map((c2) => c2.id);
+  if (!args.skip_dedupe && dedupeThreshold !== null && dedupeEligibleIds.length >= 2) {
+    try {
+      const { data: pairRows, error: pairErr } = await ctx.supabase.rpc(
+        "document_similarity_pairs",
+        {
+          p_account_id: ctx.accountId,
+          p_ids: dedupeEligibleIds,
+          p_threshold: dedupeThreshold
+        }
+      );
+      if (pairErr) {
+        console.warn(
+          `[resolver] similarity-pairs lookup failed: ${pairErr.message} \u2014 skipping redundancy collapse`
+        );
+      } else if (Array.isArray(pairRows) && pairRows.length > 0) {
+        const neighbours = /* @__PURE__ */ new Map();
+        const simByPair = /* @__PURE__ */ new Map();
+        for (const row of pairRows) {
+          if (!neighbours.has(row.id_a)) neighbours.set(row.id_a, /* @__PURE__ */ new Set());
+          if (!neighbours.has(row.id_b)) neighbours.set(row.id_b, /* @__PURE__ */ new Set());
+          neighbours.get(row.id_a).add(row.id_b);
+          neighbours.get(row.id_b).add(row.id_a);
+          simByPair.set(`${row.id_a}:${row.id_b}`, row.similarity);
+          simByPair.set(`${row.id_b}:${row.id_a}`, row.similarity);
+        }
+        const byId = new Map(candidates.map((c2) => [c2.id, c2]));
+        const claimed = /* @__PURE__ */ new Set();
+        const dropInfo = /* @__PURE__ */ new Map();
+        const collapseTier = (c2) => {
+          const t2 = c2.authorityTier ?? AUTHORITY_TIER.HISTORICAL;
+          return t2 <= AUTHORITY_TIER.USER_CORRECTION ? t2 : AUTHORITY_TIER.HISTORICAL;
+        };
+        const ranked = candidates.filter((c2) => neighbours.has(c2.id)).sort(byAuthorityThenScore(collapseTier, effectiveScore));
+        for (const leader of ranked) {
+          if (claimed.has(leader.id)) continue;
+          claimed.add(leader.id);
+          const members = [];
+          for (const nId of neighbours.get(leader.id) ?? []) {
+            if (claimed.has(nId)) continue;
+            const twin = byId.get(nId);
+            if (!twin) continue;
+            claimed.add(nId);
+            members.push(twin);
+          }
+          if (members.length === 0) continue;
+          let keeper = leader;
+          if (leader.kind === "decision") {
+            const leaderTier = leader.authorityTier ?? AUTHORITY_TIER.HISTORICAL;
+            for (const m2 of members) {
+              if (m2.kind !== "decision") continue;
+              if ((m2.authorityTier ?? AUTHORITY_TIER.HISTORICAL) !== leaderTier) continue;
+              const mAt = Date.parse(m2.createdAt ?? "");
+              const kAt = Date.parse(keeper.createdAt ?? "");
+              if (Number.isFinite(mAt) && Number.isFinite(kAt) && mAt > kAt) keeper = m2;
+            }
+          }
+          const keptNewerDecision = keeper !== leader;
+          const droppedMembers = keptNewerDecision ? [leader, ...members.filter((m2) => m2.id !== keeper.id)] : members;
+          const twins = [];
+          for (const twin of droppedMembers) {
+            const sim = simByPair.get(`${keeper.id}:${twin.id}`) ?? dedupeThreshold;
+            twins.push({
+              id: twin.id,
+              title: twin.title,
+              similarity: sim,
+              est_tokens: estimateTokens(bodyMap.get(twin.id) ?? "")
+            });
+            dropInfo.set(twin.id, {
+              keeperTitle: keeper.title,
+              similarity: sim,
+              keptNewerDecision
+            });
+          }
+          keeper.collapsedDuplicates = twins;
+          dedupeDroppedCount += twins.length;
+          dedupeTokensSaved += twins.reduce((s2, t2) => s2 + t2.est_tokens, 0);
+          dedupeClusters.push({
+            kept_id: keeper.id,
+            dropped: twins.map((t2) => ({
+              id: t2.id,
+              similarity: Number(t2.similarity.toFixed(4)),
+              est_tokens: t2.est_tokens
+            }))
+          });
+        }
+        for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
+          const c2 = candidates[i2];
+          if (!c2) continue;
+          const drop = dropInfo.get(c2.id);
+          if (!drop) continue;
+          omittedCandidates.push({
+            id: c2.id,
+            kind: c2.kind,
+            title: c2.title,
+            similarity: c2.similarity,
+            reason: "redundant_duplicate",
+            detail: `near-duplicate of "${drop.keeperTitle}" (cosine ${drop.similarity.toFixed(3)}) \u2014 ${drop.keptNewerDecision ? "kept the newer decision" : "kept the higher-scored copy"}`,
+            path: c2.citation.path
+          });
+          candidates.splice(i2, 1);
+        }
+      }
+    } catch (e2) {
+      console.warn(
+        `[resolver] redundancy collapse failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without collapse`
+      );
+    }
+  }
+  const skillCands = candidates.filter((c2) => c2.kind === "skill").sort(byPrecedence);
+  const primarySkill = skillCands[0] ?? null;
+  const budgetOrder = [];
+  if (primarySkill) budgetOrder.push(primarySkill);
+  const byScoreDesc = (a2, b2) => effectiveScore(b2) - effectiveScore(a2);
+  let rest = candidates.filter((c2) => !primarySkill || c2.id !== primarySkill.id).sort((a2, b2) => {
+    const aPriority = (a2.authorityTier ?? AUTHORITY_TIER.HISTORICAL) <= AUTHORITY_TIER.USER_CORRECTION;
+    const bPriority = (b2.authorityTier ?? AUTHORITY_TIER.HISTORICAL) <= AUTHORITY_TIER.USER_CORRECTION;
+    if (aPriority !== bPriority) return aPriority ? -1 : 1;
+    return byScoreDesc(a2, b2);
+  });
+  let marginalDroppedCount = 0;
+  let marginalTokensSaved = 0;
+  const marginalFraction = args.skip_marginal_cutoff ? MARGINAL_CUTOFF_OFF : resolveMarginalCutoff(args.marginal_cutoff ?? customThresholds?.marginal_cutoff);
+  if (marginalFraction > MARGINAL_CUTOFF_OFF && rest.length > MARGINAL_CUTOFF_MIN_KEEP) {
+    const kindTop = /* @__PURE__ */ new Map();
+    for (const c2 of rest) {
+      const s2 = effectiveScore(c2);
+      if (s2 > (kindTop.get(c2.kind) ?? -Infinity)) kindTop.set(c2.kind, s2);
+    }
+    const protectedIds = new Set(
+      [...rest].sort(byScoreDesc).slice(0, MARGINAL_CUTOFF_MIN_KEEP).map((c2) => c2.id)
+    );
+    for (const c2 of rest) {
+      if ((c2.authorityTier ?? AUTHORITY_TIER.HISTORICAL) <= AUTHORITY_TIER.USER_CORRECTION) {
+        protectedIds.add(c2.id);
+      }
+    }
+    const kept = [];
+    for (const c2 of rest) {
+      const ref = kindTop.get(c2.kind) ?? 0;
+      const isMarginal = !protectedIds.has(c2.id) && ref > 0 && effectiveScore(c2) < marginalFraction * ref;
+      if (!isMarginal) {
+        kept.push(c2);
+        continue;
+      }
+      marginalDroppedCount += 1;
+      marginalTokensSaved += estimateTokens(bodyMap.get(c2.id) ?? "");
+      omittedCandidates.push({
+        id: c2.id,
+        kind: c2.kind,
+        title: c2.title,
+        similarity: c2.similarity,
+        reason: "marginal_value",
+        detail: `effective score ${effectiveScore(c2).toFixed(3)} below ${(marginalFraction * 100).toFixed(0)}% of the best ${c2.kind} (${ref.toFixed(3)}) \u2014 trimmed as low marginal value`,
+        path: c2.citation.path
+      });
+    }
+    rest = kept;
+  }
+  budgetOrder.push(...rest);
+  let maxTokens;
+  let budgetTier;
+  let budgetSource;
+  let budgetFloorApplied = false;
+  if (args.max_tokens !== void 0) {
+    maxTokens = args.max_tokens;
+    budgetTier = "explicit";
+    budgetSource = "explicit";
+  } else {
+    const budgetWaitStartedAt = Date.now();
+    const fromCorpus = corpusBudgetPromise ? await corpusBudgetPromise : null;
+    budgetWaitMs = Date.now() - budgetWaitStartedAt;
+    if (fromCorpus) {
+      const heuristicTokens = inferBudget(args.task).tokens;
+      const floored = Math.max(fromCorpus.tokens, Math.round(heuristicTokens * 0.75));
+      maxTokens = Math.min(BUDGET_CEILING, floored);
+      budgetFloorApplied = maxTokens > fromCorpus.tokens;
+      budgetTier = tierForTokens(maxTokens);
+      budgetSource = "corpus";
+    } else {
+      const fromHeuristic = inferBudget(args.task);
+      maxTokens = fromHeuristic.tokens;
+      budgetTier = fromHeuristic.tier;
+      budgetSource = "heuristic";
+    }
+  }
+  const included = [];
+  const excluded = /* @__PURE__ */ new Set();
+  const requiredCoreTokens = requiredCoreItems.reduce(
+    (total, item) => total + estimateTokens(item.body),
+    0
+  );
+  let used = requiredCoreTokens;
+  let truncated = requiredCoreTokens > maxTokens;
+  const canaryIdentity = audit.sessionId ? { source: "session_id", key: `session_id:${audit.sessionId}` } : audit.agentInstallationId ? {
+    source: "agent_installation_id",
+    key: `agent_installation_id:${audit.agentInstallationId}`
+  } : ctx.userId ? { source: "user_id", key: `user_id:${ctx.userId}` } : { source: "account_fallback", key: `account_fallback:${ctx.accountId}` };
+  const canaryRoutingAudit = [];
+  const pinnedCap = Math.min(PINNED_MAX_TOKENS, Math.round(maxTokens * PINNED_BUDGET_FRACTION));
+  const pinnedIncluded = [];
+  let pinnedTokens = 0;
+  for (const p2 of pinnedItems) {
+    const cost = estimateTokens(p2.body);
+    if (!pinsAdmittedByV2Policy && pinnedIncluded.length > 0 && pinnedTokens + cost > pinnedCap) {
+      truncated = true;
+      omittedCandidates.push({
+        id: p2.id,
+        kind: p2.kind,
+        title: p2.title,
+        similarity: p2.similarity,
+        reason: "pinned_overflow",
+        detail: `pinned doc dropped \u2014 admitting it would exceed the pinned budget cap of ${pinnedCap} tokens`,
+        path: p2.citation.path
+      });
+      continue;
+    }
+    pinnedIncluded.push(p2);
+    used += cost;
+    pinnedTokens += cost;
+  }
+  if (pinsAdmittedByV2Policy) {
+    requiredCoreStatus = validateV2PinReceipt(
+      ctx,
+      requiredCoreItems,
+      pinnedIncluded,
+      requiredCoreStatus
+    );
+  }
+  for (const c2 of budgetOrder) {
+    let body = bodyMap.get(c2.id) ?? "";
+    const isPrimary = primarySkill?.id === c2.id;
+    const meta = metadataById.get(c2.id);
+    let resolvedVersionNumber = c2.citation.version_number;
+    let versionTag = "stable";
+    if (c2.kind === "skill" && meta && meta.canary_version_id && typeof meta.canary_version_id === "string") {
+      const configuredRatio = typeof meta.canary_ratio === "number" && Number.isFinite(meta.canary_ratio) ? meta.canary_ratio : 0.1;
+      const canaryRatio = Math.max(0, Math.min(1, configuredRatio));
+      const bucket = deterministicCanaryBucket(canaryIdentity.key, c2.id);
+      const canaryInfo = canaryContentMap.get(meta.canary_version_id);
+      if (bucket < canaryRatio && canaryInfo) {
+        body = canaryInfo.content;
+        resolvedVersionNumber = canaryInfo.version_number;
+        versionTag = "canary";
+      }
+      canaryRoutingAudit.push({
+        skill_id: c2.id,
+        identity_source: canaryIdentity.source,
+        bucket,
+        ratio: canaryRatio,
+        canary_version_id: meta.canary_version_id,
+        canary_available: Boolean(canaryInfo),
+        selected_version_tag: versionTag,
+        stable_version_number: c2.citation.version_number,
+        canary_version_number: canaryInfo?.version_number ?? null,
+        resolved_version_number: resolvedVersionNumber
+      });
+    }
+    const cost = estimateTokens(body);
+    if (!isPrimary && used + cost > maxTokens) {
+      truncated = true;
+      excluded.add(c2.id);
+      omittedCandidates.push({
+        id: c2.id,
+        kind: c2.kind,
+        title: c2.title,
+        similarity: c2.similarity,
+        reason: "budget_excluded",
+        detail: `estimated ${cost} tokens would exceed budget ${maxTokens}`,
+        path: c2.citation.path
+      });
+      continue;
+    }
+    if (isPrimary && cost > maxTokens) {
+      truncated = true;
+    }
+    included.push({
+      id: c2.id,
+      kind: c2.kind,
+      title: c2.title,
+      body,
+      similarity: c2.similarity,
+      citation: {
+        ...c2.citation,
+        version_number: resolvedVersionNumber
+      },
+      component_id: c2.componentId,
+      component_name: c2.componentName,
+      repo: c2.repo ?? null,
+      version_tag: versionTag,
+      collapsed_duplicates: c2.collapsedDuplicates?.length,
+      authority_tier: c2.authorityTier
+    });
+    used += cost;
+  }
+  if (included.length > 1) {
+    const lead = primarySkill && included[0]?.id === primarySkill.id ? included.shift() : null;
+    included.sort((a2, b2) => {
+      const t2 = (a2.authority_tier ?? AUTHORITY_TIER.HISTORICAL) - (b2.authority_tier ?? AUTHORITY_TIER.HISTORICAL);
+      if (t2 !== 0) return t2;
+      return b2.similarity - a2.similarity;
+    });
+    if (lead) included.unshift(lead);
+  }
+  const feed = makeAwarenessFeed(audit);
+  const feedsStartedAt = Date.now();
+  const [
+    brandGuidelinesRaw,
+    claimGuardrails,
+    architecture,
+    concurrentWork,
+    prPresence,
+    recentFileEdits,
+    editOwnership,
+    deployInProgress,
+    deployWaiterFeed,
+    semanticWorkInFlight,
+    myEditPaths,
+    componentDirs,
+    workspaceMembers
+  ] = await Promise.all([
+    // Brand-guidelines context. Always-on (not semantic) — fetched directly
+    // from the project's chosen pointer (or the account default) and merged
+    // with any project-level override doc.
+    feed("brand-guidelines fetch", null, async () => {
+      const componentInfoById = /* @__PURE__ */ new Map();
+      for (const [id, info] of componentNameById) {
+        componentInfoById.set(id, {
+          repo: componentRepoById.get(id) ?? null,
+          slug: info.slug
+        });
+      }
+      return assembleBrandGuidelines(ctx, {
+        accountId: ctx.accountId,
+        projectId,
+        activeComponentId,
+        activeRepo,
+        componentInfoById
+      });
+    }),
+    wantsClaimGuardrails(args.task) ? feed(
+      "claim-guardrails assembly",
+      null,
+      () => assembleClaimGuardrails(ctx, projectId)
+    ) : Promise.resolve(null),
+    // Code-graph architecture. When cwd matched a component, fold that
+    // component's functions + cross-component contracts into the bundle.
+    activeComponent && projectId ? feed(
+      "architecture assembly",
+      null,
+      () => assembleArchitecture(ctx, projectId, activeComponent, componentNameById)
+    ) : Promise.resolve(null),
+    // Concurrent-work awareness — other agents resolving on this project
+    // right now, so the bundle can flag who else is in the room.
+    feed(
+      "concurrent-work assembly",
+      [],
+      () => assembleConcurrentWork(
+        ctx,
+        projectId,
+        audit.sessionId ?? null,
+        componentNameById,
+        queryVec ?? null
+      )
+    ),
+    // Axis C. Durable presence: sessions quiet for hours whose branch has an
+    // OPEN PR. Fetched here, appended to concurrentWork AFTER collision
+    // promotion below — a 6-hour-old session is context, not contention.
+    feed(
+      "open-pr presence assembly",
+      [],
+      () => assembleOpenPrPresence(ctx, projectId, audit.sessionId ?? null, ctx.userId ?? null)
+    ),
+    // File-level activity — what OTHER sessions actually edited recently.
+    // Resolve-level concurrency says "someone's awake"; this says
+    // "resolver.ts was touched 3m ago."
+    feed(
+      "file-activity assembly",
+      [],
+      () => assembleFileActivity(ctx, projectId, audit.sessionId ?? null, ctx.userId ?? null)
+    ),
+    // Transactional ownership involving this session. Unlike the historical
+    // activity feed, these rows remain until yield/handoff/reconciliation.
+    feed(
+      "edit-ownership assembly",
+      [],
+      () => assembleEditOwnership(ctx, projectId, audit.sessionId ?? null)
+    ),
+    // Deploy-in-progress awareness — other agents that look like they're
+    // shipping right now. Distinct, louder signal than file collisions.
+    feed(
+      "deploy-in-progress assembly",
+      [],
+      () => assembleDeployInProgress(ctx, projectId, audit.sessionId ?? null, componentNameById)
+    ),
+    feed(
+      "deploy-waiters assembly",
+      { others: [], own: null },
+      () => assembleDeployWaiters(ctx, projectId, audit.sessionId ?? null)
+    ),
+    // Work-ledger awareness — open / recently-merged PRs whose title+body is
+    // semantically close to this task (the work_items ledger).
+    feed(
+      "work-in-flight assembly",
+      [],
+      () => assembleWorkInFlight(ctx, projectId, queryVec ?? null)
+    ),
+    // Axis A input: repo-relative paths THIS session edited recently.
+    feed(
+      "own-edit-paths assembly",
+      [],
+      () => assembleOwnEditPaths(ctx, projectId, audit.sessionId ?? null)
+    ),
+    // Axis A input: leading literal dirs of the active component's
+    // path_patterns.
+    activeComponentId ? feed("component path-patterns fetch", [], async () => {
+      const { data: compRow } = await ctx.supabase.from("components").select("path_patterns").eq("id", activeComponentId).maybeSingle();
+      return patternPrefixDirs(
+        compRow?.path_patterns ?? []
+      );
+    }) : Promise.resolve([]),
+    // Person-mention input: this account's member roster, so a task naming a
+    // teammate can recall their authored docs (10e-iii-b). Bounded and
+    // indexed; rides the parallel block so it costs no wall-clock.
+    //
+    // Via the account_member_identities RPC (security definer, membership
+    // self-guarded): users RLS is self-read-only, so a direct
+    // account_members→users embed returns TEAMMATES with null identities
+    // under the caller's client — the roster looked fine under service-role
+    // validation and arrived nameless in production (audit df72471c). Falls
+    // back to the direct embed for pre-migration databases, where
+    // service-role callers still see full identities.
+    feed("workspace-members fetch", [], async () => {
+      const { data: rpcRows, error: rpcErr } = await ctx.supabase.rpc("account_member_identities", {
+        p_account_id: ctx.accountId
+      });
+      let memberRows;
+      if (!rpcErr && rpcRows) {
+        memberRows = rpcRows.map((r2) => ({
+          user_id: r2.user_id,
+          users: { display_name: r2.display_name, email: r2.email }
+        }));
+      } else {
+        const { data: embedRows } = await ctx.supabase.from("account_members").select("user_id, users!account_members_user_id_fkey ( display_name, email )").eq("account_id", ctx.accountId).limit(500);
+        memberRows = embedRows ?? [];
+      }
+      return memberRows.map((row) => {
+        const user = Array.isArray(row.users) ? row.users[0] : row.users;
+        return {
+          user_id: typeof row.user_id === "string" ? row.user_id : "",
+          display_name: typeof user?.display_name === "string" ? user.display_name : null,
+          email: typeof user?.email === "string" ? user.email : null
+        };
+      }).filter((m2) => m2.user_id.length > 0);
+    })
+  ]);
+  const awarenessFeedsMs = Date.now() - feedsStartedAt;
+  let brandGuidelines = brandGuidelinesRaw;
+  if (brandGuidelines) {
+    const demote = brandContextMode === "auto" && !taskLooksBrandRelated(args.task);
+    brandGuidelines = demote ? { ...brandGuidelines, body: "", logo_urls: {}, mode: "pointer" } : { ...brandGuidelines, mode: "full" };
+  }
+  const collisionWarnings = buildCollisionWarnings(concurrentWork, activeComponentName, args.task);
+  {
+    const liveSessionIds = new Set(
+      concurrentWork.map((e2) => e2.session_short).filter((s2) => typeof s2 === "string" && s2.length > 0)
+    );
+    for (const e2 of prPresence) {
+      if (e2.session_short && liveSessionIds.has(e2.session_short)) continue;
+      concurrentWork.push(e2);
+    }
+  }
+  const pathRecallStartedAt = Date.now();
+  const myDirs = [
+    .../* @__PURE__ */ new Set([
+      ...dirsOfPaths(myEditPaths),
+      ...componentDirs,
+      ...dirsOfPaths(extractPathTokens(args.task))
+    ])
+  ].slice(0, 30);
+  const mentionedMembers = detectMentionedMembers(args.task, workspaceMembers);
+  const outOfBandExcludeIds = /* @__PURE__ */ new Set([
+    ...included.map((item) => item.id),
+    ...requiredCoreItems.map((item) => item.id),
+    ...pinnedIncluded.map((item) => item.id)
+  ]);
+  const outOfBandApplicability = {
+    task: args.task,
+    agentKind: audit.agentKind ?? null,
+    requiredIds: projectBrainPolicy.requiredChainIds,
+    onOmitted: (candidate) => omittedCandidates.push(candidate)
+  };
+  let authorRecallMs = 0;
+  const [pathMatchedWork, pathDocs, authorDocs] = await Promise.all([
+    feed(
+      "path-matched work assembly",
+      [],
+      () => assembleWorkTouchingMyFiles(ctx, projectId, myDirs)
+    ),
+    feed(
+      "path-matched docs assembly",
+      [],
+      () => assembleDocsTouchingMyFiles(
+        ctx,
+        projectId,
+        myDirs,
+        outOfBandExcludeIds,
+        outOfBandApplicability
+      )
+    ),
+    feed("author-attributed docs assembly", [], async () => {
+      if (mentionedMembers.length === 0) return [];
+      const startedAt = Date.now();
+      try {
+        return await assembleDocsAuthoredBy(
+          ctx,
+          projectId,
+          mentionedMembers,
+          outOfBandExcludeIds,
+          outOfBandApplicability
+        );
+      } finally {
+        authorRecallMs = Date.now() - startedAt;
+      }
+    })
+  ]);
+  const workInFlight = mergeWorkInFlight(semanticWorkInFlight, pathMatchedWork);
+  await feed(
+    "work-item proposals attach",
+    void 0,
+    () => attachWorkItemProposals(ctx, workInFlight, projectId)
+  );
+  let docPathMatches = 0;
+  for (const d2 of pathDocs) {
+    const cost = estimateTokens(d2.body);
+    if (used + cost > maxTokens) {
+      truncated = true;
+      omittedCandidates.push({
+        id: d2.id,
+        kind: d2.kind,
+        title: d2.title,
+        similarity: d2.similarity,
+        reason: "budget_excluded",
+        detail: `path-matched doc: estimated ${cost} tokens would exceed budget ${maxTokens}`,
+        path: d2.citation.path
+      });
+      continue;
+    }
+    included.push(d2);
+    used += cost;
+    docPathMatches += 1;
+  }
+  let authorDocMatches = 0;
+  const alreadyIncluded = new Set(included.map((item) => item.id));
+  for (const d2 of authorDocs) {
+    if (alreadyIncluded.has(d2.id)) continue;
+    const cost = estimateTokens(d2.body);
+    if (used + cost > maxTokens) {
+      truncated = true;
+      omittedCandidates.push({
+        id: d2.id,
+        kind: d2.kind,
+        title: d2.title,
+        similarity: d2.similarity,
+        reason: "budget_excluded",
+        detail: `author-attributed doc: estimated ${cost} tokens would exceed budget ${maxTokens}`,
+        path: d2.citation.path
+      });
+      continue;
+    }
+    included.push(d2);
+    used += cost;
+    authorDocMatches += 1;
+  }
+  const pathRecallMs = Date.now() - pathRecallStartedAt;
+  let floorIncludedId = null;
+  if (included.length === 0 && requiredCoreItems.length === 0 && pinnedIncluded.length === 0) {
+    const recallFloorFor = (kind2) => Math.max(
+      (customThresholds?.[kind2] ?? KIND_THRESHOLDS[kind2]) - RECALL_FLOOR_MARGIN,
+      RECALL_FLOOR_MIN
+    );
+    const floorCandidates = omittedCandidates.filter(
+      (o2) => o2.reason === "below_threshold" && (o2.threshold_score ?? o2.similarity) >= recallFloorFor(o2.kind)
+    ).sort(
+      (a2, b2) => (b2.threshold_score ?? b2.similarity) - recallFloorFor(b2.kind) - ((a2.threshold_score ?? a2.similarity) - recallFloorFor(a2.kind))
+    ).slice(0, 3);
+    for (const best of floorCandidates) {
+      if (floorIncludedId) break;
+      try {
+        const { data: row } = await ctx.supabase.from("documents").select(
+          `id, account_id, created_by, locked_to_owners, scope, project_id, status,
+             kind, title, path, updated_at, metadata,
+             document_versions!documents_current_version_fk ( content, version_number, author_id )`
+        ).eq("id", best.id).eq("account_id", ctx.accountId).eq("locked_to_owners", false).maybeSingle();
+        const floorEligible = row != null && row.id === best.id && isDirectResolverDocumentEligible(
+          row,
+          { accountId: ctx.accountId, userId: ctx.userId, projectId },
+          { expectedKind: best.kind }
+        );
+        if (row && floorEligible) {
+          const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata) ? row.metadata : {};
+          if (best.kind === "skill" && !isSkillTargetedToAgent(metadata, audit.agentKind)) {
+            omittedCandidates.push({
+              ...best,
+              reason: "agent_target_mismatch",
+              detail: `recall-floor skill targets [${skillTargetAgents(metadata).join(", ")}], not agent ${audit.agentKind}`
+            });
+            continue;
+          }
+          const antiExample = best.kind === "skill" && !projectBrainPolicy.requiredChainIds.has(best.id) ? matchingSkillAntiExample(args.task, metadata) : null;
+          if (antiExample) {
+            omittedCandidates.push({
+              ...best,
+              reason: "anti_example_match",
+              detail: `recall-floor task high-precision matched skill anti-example: ${antiExample.slice(0, 240)}`
+            });
+            continue;
+          }
+          const version4 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+          const rawBody = version4?.content ?? "";
+          included.push({
+            id: best.id,
+            kind: best.kind,
+            title: best.title,
+            body: rawBody.length > DOC_PATH_BODY_CAP ? `${rawBody.slice(0, DOC_PATH_BODY_CAP)}
+\u2026 (truncated)` : rawBody,
+            similarity: best.similarity,
+            citation: {
+              path: row.path ?? null,
+              version_number: version4?.version_number ?? 1,
+              updated_at: row.updated_at,
+              author_id: version4?.author_id ?? null
+            },
+            component_id: null,
+            component_name: null,
+            below_gate: true
+          });
+          floorIncludedId = best.id;
+        }
+      } catch (e2) {
+        console.warn(
+          `[resolver] recall-floor fetch failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 trying next near-miss`
+        );
+      }
+    }
+  }
+  const bySkill = included.filter((i2) => i2.kind === "skill");
+  const primary = primarySkill ? bySkill.find((i2) => i2.id === primarySkill.id) ?? null : null;
+  const supportingSkills = bySkill.filter((i2) => i2.id !== primary?.id);
+  const bundle = {
+    primary_skill: primary,
+    supporting_skills: supportingSkills,
+    memory: included.filter((i2) => i2.kind === "memory"),
+    goals: included.filter((i2) => i2.kind === "goal"),
+    schemas: included.filter((i2) => i2.kind === "schema"),
+    decisions: included.filter((i2) => i2.kind === "decision"),
+    brand_guidelines: brandGuidelines,
+    claim_guardrails: claimGuardrails,
+    required_core: requiredCoreItems,
+    required_core_status: requiredCoreStatus,
+    pinned: pinnedIncluded,
+    architecture,
+    concurrent_work: concurrentWork,
+    collision_warnings: collisionWarnings,
+    deploy_in_progress: deployInProgress,
+    deploy_waiters: deployWaiterFeed.others,
+    queued_deploy: deployWaiterFeed.own,
+    recent_file_edits: recentFileEdits,
+    edit_conflicts: editOwnership,
+    work_in_flight: workInFlight,
+    open_threads: [],
+    session_working: [],
+    pack_context: [],
+    recent_feedback: []
+  };
+  if (ctx.packCandidates) {
+    try {
+      const packKinds = ["skill", "decision", "schema"];
+      const candidates2 = await ctx.packCandidates(queryVec ?? null, packKinds);
+      if (Array.isArray(candidates2) && candidates2.length > 0) {
+        const leftover = Math.max(0, maxTokens - used);
+        const PACK_MAX_TOKENS = Math.min(1200, Math.floor(maxTokens * 0.25), leftover);
+        const localTitles = new Set(
+          included.map((i2) => `${i2.kind}:${i2.title.trim().toLowerCase()}`)
+        );
+        let packTokens = 0;
+        for (const c2 of candidates2) {
+          if (PACK_MAX_TOKENS <= 0) break;
+          if (bundle.pack_context.length >= 8) break;
+          if (localTitles.has(`${c2.kind}:${c2.title.trim().toLowerCase()}`)) continue;
+          const tokens = estimateTokens(c2.body);
+          if (packTokens + tokens > PACK_MAX_TOKENS) {
+            if (bundle.pack_context.length > 0) break;
+            if (tokens > leftover) break;
+          }
+          packTokens += tokens;
+          used += tokens;
+          bundle.pack_context.push({
+            id: c2.id,
+            kind: packKinds.includes(c2.kind) ? c2.kind : "skill",
+            title: c2.title,
+            body: c2.body,
+            similarity: c2.similarity,
+            citation: {
+              path: c2.path,
+              version_number: c2.version_number,
+              updated_at: "",
+              author_id: null
+            },
+            component_id: null,
+            component_name: null,
+            pack: {
+              slug: c2.pack.slug,
+              name: c2.pack.name,
+              version: c2.pack.version,
+              publisher_name: c2.pack.publisher_name
+            }
+          });
+        }
+      }
+    } catch {
+    }
+  }
+  if (audit.sessionId) {
+    try {
+      const working = await assembleSessionWorking(ctx, audit.sessionId, projectId);
+      const higherPriorityIds = /* @__PURE__ */ new Set([
+        ...bundle.required_core.map((item) => item.id),
+        ...bundle.pinned.map((item) => item.id)
+      ]);
+      for (const item of working) {
+        if (higherPriorityIds.has(item.id)) continue;
+        bundle.session_working.push(item);
+        higherPriorityIds.add(item.id);
+      }
+      if (bundle.session_working.length > 0) {
+        const workingIds = new Set(bundle.session_working.map((i2) => i2.id));
+        bundle.memory = bundle.memory.filter((m2) => !workingIds.has(m2.id));
+      }
+    } catch (e2) {
+      console.warn(
+        `[resolver] session working assembly failed: ${e2 instanceof Error ? e2.message : String(e2)}`
+      );
+    }
+  }
+  try {
+    const { data: threadRows, error: threadErr } = await ctx.supabase.rpc("list_open_threads", {
+      p_account_id: ctx.accountId,
+      p_entities: args.entities && args.entities.length > 0 ? args.entities : null,
+      p_status: "open",
+      p_project_id: projectId ?? null,
+      p_limit: 50
+    });
+    if (!threadErr && Array.isArray(threadRows)) {
+      const taskLower = ` ${args.task.toLowerCase()} `;
+      const higherPriorityIds = /* @__PURE__ */ new Set([
+        ...bundle.required_core.map((item) => item.id),
+        ...bundle.pinned.map((item) => item.id),
+        ...bundle.session_working.map((item) => item.id)
+      ]);
+      const OPEN_THREADS_MAX = 5;
+      const OPEN_THREADS_MAX_TOKENS = 1e3;
+      let threadTokens = 0;
+      for (const raw of threadRows) {
+        if (bundle.open_threads.length >= OPEN_THREADS_MAX) break;
+        const id = raw.id;
+        if (higherPriorityIds.has(id)) continue;
+        const entities = Array.isArray(raw.entities) ? raw.entities.filter((e2) => typeof e2 === "string") : [];
+        if (!args.entities || args.entities.length === 0) {
+          const hit = entities.some((e2) => {
+            const esc2 = e2.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            return new RegExp(`(?:^|\\W)${esc2}(?:\\W|$)`).test(taskLower);
+          });
+          if (!hit) continue;
+        }
+        const body = typeof raw.content === "string" ? raw.content : "";
+        const tokens = estimateTokens(body);
+        if (threadTokens + tokens > OPEN_THREADS_MAX_TOKENS && bundle.open_threads.length > 0) {
+          break;
+        }
+        threadTokens += tokens;
+        higherPriorityIds.add(id);
+        bundle.open_threads.push({
+          id,
+          kind: "memory",
+          title: raw.title ?? "",
+          body,
+          similarity: 0,
+          citation: {
+            path: raw.path ?? null,
+            version_number: raw.version_number ?? 1,
+            updated_at: raw.updated_at ?? "",
+            author_id: null
+          },
+          component_id: null,
+          component_name: null,
+          thread: {
+            status: "open",
+            occurred_at: raw.occurred_at ?? null,
+            entities,
+            resolves: raw.resolves ?? null
+          }
+        });
+      }
+    }
+  } catch {
+  }
+  dedupeResolveBundleDocumentLanes(bundle);
+  const deliveredSemanticIds = /* @__PURE__ */ new Set([
+    ...bundle.primary_skill ? [bundle.primary_skill.id] : [],
+    ...bundle.supporting_skills.map((item) => item.id),
+    ...bundle.goals.map((item) => item.id),
+    ...bundle.decisions.map((item) => item.id),
+    ...bundle.schemas.map((item) => item.id),
+    ...bundle.memory.map((item) => item.id)
+  ]);
+  const snapshottedSemanticIds = /* @__PURE__ */ new Set();
+  const uniqueIncluded = included.filter((item) => {
+    if (!deliveredSemanticIds.has(item.id) || snapshottedSemanticIds.has(item.id)) return false;
+    snapshottedSemanticIds.add(item.id);
+    return true;
+  });
+  included.splice(0, included.length, ...uniqueIncluded);
+  const decisionItems = [
+    ...bundle.decisions,
+    ...bundle.required_core.filter((item) => item.kind === "decision"),
+    ...bundle.pinned.filter((p2) => p2.kind === "decision")
+  ];
+  if (decisionItems.length > 0) {
+    try {
+      const { data: verRows, error: verErr } = await ctx.supabase.from("decision_verifications").select("document_id, verdict, observed_at, model_attribution").eq("account_id", ctx.accountId).in(
+        "document_id",
+        decisionItems.map((d2) => d2.id)
+      ).order("observed_at", { ascending: false }).limit(200);
+      if (!verErr && Array.isArray(verRows)) {
+        const latest = /* @__PURE__ */ new Map();
+        for (const r2 of verRows) {
+          const existing = latest.get(r2.document_id);
+          if (existing) {
+            existing.count += 1;
+          } else {
+            latest.set(r2.document_id, {
+              verdict: r2.verdict,
+              observed_at: r2.observed_at,
+              count: 1,
+              model_attribution: r2.model_attribution ?? null
+            });
+          }
+        }
+        for (const item of decisionItems) {
+          const v2 = latest.get(item.id);
+          if (v2 && (v2.verdict === "held" || v2.verdict === "broke" || v2.verdict === "inconclusive")) {
+            item.verification = {
+              verdict: v2.verdict,
+              observed_at: v2.observed_at,
+              count: v2.count,
+              model_attribution: v2.model_attribution ?? null
+            };
+          }
+        }
+      }
+    } catch {
+    }
+  }
+  if (userRoles.includes("support")) {
+    try {
+      const overlay = await assembleFeedbackOverlay({
+        supabase: ctx.supabase,
+        accountId: ctx.accountId,
+        taskEmbedding: queryVec ?? null,
+        bundleMemoryIds: bundle.memory.map((m2) => m2.id),
+        ...ctx.embed ? { embed: ctx.embed } : {}
+      });
+      bundle.recent_feedback = overlay;
+    } catch (e2) {
+      console.warn(
+        `[resolver] feedback overlay failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without it`
+      );
+    }
+  }
+  const enrichableItems = [
+    ...bundle.primary_skill ? [bundle.primary_skill] : [],
+    ...bundle.supporting_skills,
+    ...bundle.decisions,
+    ...bundle.memory,
+    ...bundle.schemas,
+    ...bundle.goals,
+    ...bundle.required_core,
+    ...bundle.pinned
+  ];
+  const contractBearing = enrichableItems.filter((d2) => hasMemlinContract(d2.body));
+  if (contractBearing.length > 0) {
+    try {
+      const { data: contractRows, error: contractErr } = await ctx.supabase.rpc(
+        "contract_verifications_for_documents",
+        {
+          p_account_id: ctx.accountId,
+          p_document_ids: contractBearing.map((d2) => d2.id)
+        }
+      );
+      const byDoc = /* @__PURE__ */ new Map();
+      if (!contractErr && Array.isArray(contractRows)) {
+        for (const r2 of contractRows) {
+          if (r2.status !== "verified" && r2.status !== "drifted") continue;
+          const gt2 = r2.ground_truth && typeof r2.ground_truth.kind === "string" && typeof r2.ground_truth.ref === "string" ? { kind: r2.ground_truth.kind, ref: r2.ground_truth.ref } : null;
+          byDoc.set(r2.document_id, {
+            status: r2.status,
+            observed_at: r2.observed_at,
+            document_version: r2.document_version,
+            drift_count: r2.drift_count ?? null,
+            ground_truth: gt2
+          });
+        }
+      }
+      const nowMs = Date.now();
+      for (const item of contractBearing) {
+        const c2 = byDoc.get(item.id);
+        if (c2) {
+          item.contract = {
+            status: c2.status,
+            observed_at: c2.observed_at,
+            age_days: ageDaysSince(c2.observed_at, nowMs),
+            document_version: c2.document_version,
+            drift_count: c2.drift_count,
+            ground_truth: c2.ground_truth
+          };
+        } else {
+          item.contract = {
+            status: "unverified",
+            observed_at: null,
+            age_days: null,
+            document_version: null,
+            drift_count: null,
+            ground_truth: null
+          };
+        }
+      }
+    } catch {
+    }
+  }
+  const resolvedAt = (/* @__PURE__ */ new Date()).toISOString();
+  let auditId = "";
+  const taskEmbedding = queryVec ?? null;
+  const deliveredItems = buildDeliveredItemSnapshots(bundle);
+  used = deliveredItems.reduce((total, item) => total + item.estimated_tokens, 0);
+  if (used > maxTokens) truncated = true;
+  const itemSnapshot = included.map((i2, idx) => ({
+    id: i2.id,
+    kind: i2.kind,
+    rank: idx + 1,
+    similarity: i2.similarity,
+    version_number: i2.citation.version_number,
+    path: i2.citation.path,
+    role: primary && i2.id === primary.id ? "primary" : i2.kind === "skill" ? "supporting" : i2.kind,
+    component_id: i2.component_id,
+    component_name: i2.component_name,
+    version_tag: i2.version_tag,
+    collapsed_duplicates: i2.collapsed_duplicates,
+    // Curation state at resolve time — drives the explain page's
+    // "approved canonical" annotation. Omitted (not false) when absent
+    // to keep pre-existing audit rows byte-identical in shape.
+    ...approvedColumnIds.has(i2.id) ? { approved: true } : {}
+  }));
+  const contextCounts = buildDeliveredContextCounts(deliveredItems);
+  const truncationReasons = /* @__PURE__ */ new Set();
+  if (requiredCoreTokens > maxTokens) truncationReasons.add("required_core_over_budget");
+  if (pinnedTokens > maxTokens) truncationReasons.add("pinned_content_over_budget");
+  if (omittedCandidates.some((candidate) => candidate.reason === "pinned_overflow"))
+    truncationReasons.add("pinned_cap_excluded");
+  const budgetExcluded = omittedCandidates.filter(
+    (candidate) => candidate.reason === "budget_excluded"
+  );
+  if (budgetExcluded.some((candidate) => candidate.detail.startsWith("path-matched doc:")))
+    truncationReasons.add("path_document_budget_excluded");
+  if (budgetExcluded.some((candidate) => !candidate.detail.startsWith("path-matched doc:")))
+    truncationReasons.add("ranked_document_budget_excluded");
+  if (primary && estimateTokens(primary.body) > maxTokens)
+    truncationReasons.add("primary_skill_over_budget");
+  if (used > maxTokens) truncationReasons.add("delivered_context_over_budget");
+  if (truncated && truncationReasons.size === 0) truncationReasons.add("other_budget_truncation");
+  const empty_context_reason = contextCounts.total > 0 ? null : omittedCandidates.length > 0 ? "all_candidates_filtered" : "no_candidates_found";
+  const auditTask = sanitizeAuditTask(args.task);
+  const auditCwd = sanitizeAuditCwd(args.cwd ?? null);
+  const auditMetadata = {
+    task: auditTask.task,
+    ...resolveRoutingAuditMetadata(args, projectId),
+    // Open-threads lane — always on; record which threads were pulled by entity.
+    include_open_threads: true,
+    thread_entities: args.entities ?? null,
+    open_thread_ids: bundle.open_threads.map((t2) => t2.id),
+    // Subscribed-pack lane — which packs/items fed this bundle, for audit
+    // replay attribution.
+    ...bundle.pack_context.length > 0 ? {
+      pack_item_ids: bundle.pack_context.map((p2) => p2.id),
+      packs_considered: [
+        ...new Set(bundle.pack_context.map((p2) => `${p2.pack?.slug}@v${p2.pack?.version}`))
+      ]
+    } : {},
+    // Task category — regex-based classifier (bug / feature / refactor /
+    // migration / test / docs / review / infra / chore / unknown). Surfaced
+    // on the Fleet table as a chip so a program manager can scan
+    // "Claude Code is on a migration, Cursor on a refactor" at a glance
+    // instead of reading raw task strings. Computed at write time so
+    // every resolve.invocation row carries its label; backfill script
+    // covers historical rows.
+    task_category: classifyTask(args.task),
+    ...auditTask.truncated ? { task_truncated: true } : {},
+    ...auditTask.redaction_hits.length > 0 ? { task_redaction_hits: auditTask.redaction_hits } : {},
+    project_id: projectId,
+    // Axis C: the caller's branch, so a LATER resolve can match this session
+    // to an open PR (work_items.head_ref) after the live window closes.
+    ...args.git_branch ? { git_branch: args.git_branch } : {},
+    // Axis-A telemetry: how the work_in_flight entries surfaced, so the
+    // dashboard can show the path-matched hit-rate (was the file-shaped door
+    // actually used, or did semantic alone cover it?).
+    ...workInFlight.length > 0 ? {
+      work_in_flight_matches: {
+        semantic: workInFlight.filter((w2) => (w2.match ?? "semantic") === "semantic").length,
+        paths: workInFlight.filter((w2) => w2.match === "paths").length,
+        both: workInFlight.filter((w2) => w2.match === "both").length
+      }
+    } : {},
+    // Recall telemetry: the top below-gate candidates with their exact scores
+    // (so audit explain/replay can say "memory X scored 0.57 vs gate 0.62"
+    // instead of just "0 items"), plus what the recall floor / path-doc legs
+    // contributed this resolve.
+    ...omittedCandidates.length > 0 ? {
+      near_misses: omittedCandidates.filter((o2) => o2.reason === "below_threshold").sort(
+        (a2, b2) => (b2.threshold_score ?? b2.similarity) - (a2.threshold_score ?? a2.similarity)
+      ).slice(0, 5).map((o2) => ({
+        id: o2.id,
+        kind: o2.kind,
+        title: o2.title.slice(0, 80),
+        similarity: Math.round((o2.threshold_score ?? o2.similarity) * 1e3) / 1e3,
+        ...o2.threshold_score !== void 0 ? { rank_similarity: Math.round(o2.similarity * 1e3) / 1e3 } : {}
+      }))
+    } : {},
+    ...docPathMatches > 0 ? { doc_path_matches: docPathMatches } : {},
+    // Person-attribution lane telemetry. Recorded whenever the task named a
+    // member — even with 0 doc matches — so "we recognized Davis but found
+    // nothing he authored" is distinguishable from "we never saw the name"
+    // (the capture-gap vs recall-gap distinction audit 8de7a744 needed).
+    ...mentionedMembers.length > 0 ? {
+      author_recall: {
+        members: mentionedMembers.map((m2) => ({
+          user_id: m2.user_id,
+          name: m2.name,
+          matched_on: m2.matched_on
+        })),
+        doc_matches: authorDocMatches
+      }
+    } : {},
+    ...floorIncludedId ? { recall_floor_included: floorIncludedId } : {},
+    // Latency telemetry — total assembly time plus the two awareness phases,
+    // measured server-side up to (not including) this audit write. Client
+    // hooks drop bundles that miss their delivery budget, so this is the
+    // number that says whether resolves are landing in agents' context or
+    // silently dying at the deadline. rerank_latency_ms (below) remains the
+    // rerank-only slice.
+    latency_ms: {
+      total: Date.now() - bundleStartedAt,
+      embedding: embeddingMs,
+      embedding_cache_hit: embeddingCacheHit,
+      search_fanout: searchFanoutMs,
+      enrichment: enrichmentMs,
+      hydration: hydrationMs,
+      budget_rpc: budgetRpcMs,
+      budget_wait: budgetWaitMs,
+      rerank: rerankLatencyMs,
+      awareness_feeds: awarenessFeedsMs,
+      path_recall: pathRecallMs,
+      author_recall: authorRecallMs
+    },
+    similarity_thresholds: {
+      skill: customThresholds?.skill ?? KIND_THRESHOLDS.skill,
+      memory: customThresholds?.memory ?? KIND_THRESHOLDS.memory,
+      goal: customThresholds?.goal ?? KIND_THRESHOLDS.goal,
+      schema: customThresholds?.schema ?? KIND_THRESHOLDS.schema,
+      decision: customThresholds?.decision ?? KIND_THRESHOLDS.decision,
+      // Redundancy-collapse threshold actually used this resolve; null when
+      // collapse was disabled via an account override >= 2.
+      dedupe: dedupeThreshold,
+      _mode: thresholdsMode
+    },
+    ...skillRerankAdmissionCandidateIds.length > 0 ? {
+      skill_rerank_admission: {
+        candidate_ids: skillRerankAdmissionCandidateIds,
+        delivered_ids: [primary, ...supportingSkills].filter((item) => Boolean(item)).map((item) => item.id).filter((id) => skillRerankAdmissionCandidateIds.includes(id)),
+        candidate_threshold: SKILL_RERANK_CANDIDATE_THRESHOLD,
+        application_floor: RERANK_SKILL_MIN_SCORE,
+        // LLM admission-judge telemetry; null when the judge did not run
+        // (no LLM channel, hosted rerank below quorum, or no provisional
+        // candidates survived to the scoring step).
+        judge: admissionJudge
+      }
+    } : {},
+    agent_kind: audit.agentKind ?? null,
+    agent_installation_id: audit.agentInstallationId ?? null,
+    session_id: audit.sessionId ?? null,
+    // Canonical delivery receipt. Unlike legacy `items`, this includes every
+    // document-bearing lane and snapshots the exact delivered content.
+    delivered_items: deliveredItems,
+    // New: full per-item snapshot drives audit replay.
+    items: itemSnapshot,
+    // Kept for backwards compat with existing audit timeline / billing
+    // aggregations that look up these flat ID arrays. Both shapes
+    // describe the same bundle.
+    primary_skill_id: primary?.id ?? null,
+    supporting_skill_ids: supportingSkills.map((i2) => i2.id),
+    memory_ids: bundle.memory.map((i2) => i2.id),
+    goal_ids: bundle.goals.map((i2) => i2.id),
+    schema_ids: bundle.schemas.map((i2) => i2.id),
+    required_core_ids: bundle.required_core.map((i2) => i2.id),
+    required_core_status: bundle.required_core_status,
+    required_core_tokens: requiredCoreTokens,
+    pinned_ids: bundle.pinned.map((i2) => i2.id),
+    pinned_tokens: pinnedTokens,
+    excluded_ids: [...excluded],
+    context_counts: contextCounts,
+    token_budget: maxTokens,
+    token_used: used,
+    // The observed savings baseline for THIS resolve: what the matched
+    // candidate pool would have cost to load wholesale (see the snapshot at
+    // hydration above). Savings = candidate_pool_tokens − token_used, summed
+    // over the window. Absent on pre-2026-09 rows, which fall back to the
+    // modeled estimate in usage-stats.tokensSavedEstimate.
+    candidate_pool_tokens: candidatePoolTokens,
+    candidate_pool_count: candidatePoolCount,
+    candidate_pool_admitted_count: candidatePoolAdmittedCount,
+    candidate_pool_below_threshold_count: candidatePoolBelowThresholdCount,
+    truncated,
+    truncation_reasons: [...truncationReasons],
+    budget_excluded_count: budgetExcluded.length,
+    active_component_id: activeComponentId,
+    active_component_name: activeComponentName,
+    active_repo: activeRepo,
+    project_brain: {
+      inherited_default_ids: [...new Set(projectBrainPolicy.inheritedDefaultIds)],
+      required_ids: [...new Set(projectBrainPolicy.requiredIds)],
+      blocked_ids: [...new Set(projectBrainPolicy.blockedIds)],
+      overrides: projectBrainPolicy.overridePairs
+    },
+    omitted_candidates_count: omittedCandidates.length,
+    omitted_candidates: auditOmissionSample(omittedCandidates),
+    empty_context_reason,
+    brand_guidelines_id: brandGuidelines?.brand_guidelines_id ?? null,
+    brand_guidelines_source: brandGuidelines?.source ?? null,
+    // 'pointer' when brand_context_mode='auto' demoted the profile to a
+    // one-line note for this (code-shaped) task; 'full' otherwise.
+    brand_guidelines_mode: brandGuidelines?.mode ?? null,
+    // Snapshot of the brand-guidelines version-at-resolve so replay can
+    // detect drift on this slice too (it's the always-on context).
+    brand_guidelines_updated_at: brandGuidelines?.updated_at ?? null,
+    cwd: auditCwd,
+    git_remote: args.git_remote ?? null,
+    // task_embedding is deliberately NOT mirrored into metadata: it's a 1536-
+    // float vector — ~86% of each audit row's JSON (~31KB) — and the
+    // authoritative copy is the indexed usage_events.task_embedding COLUMN
+    // (migration 0039, written via p_task_embedding below). Readers
+    // (search_past_resolves, the usage aggregator) use the column; the old
+    // metadata mirror was transitional dead weight on every resolve.
+    // Reranker telemetry — present when the 2-stage retrieval ran. Powers
+    // offline precision-at-K analysis + future learned-threshold tuning.
+    // null entries when the reranker wasn't wired or fell back to cosine.
+    rerank_used: rerankAuditScores !== null,
+    rerank_scores: rerankAuditScores,
+    rerank_latency_ms: rerankLatencyMs,
+    // Which reranker was attempted: a hosted provider name ('tei' = the
+    // self-hosted platform cross-encoder, 'cohere'/'jina'/'custom' =
+    // account-configured) or 'llm' for the chat-model (Haiku) path. null
+    // when rerank was never wired/attempted. Distinguishes hosted vs model
+    // rerank in dashboards, and stays set on failed attempts so
+    // rerank_fallback_reason spikes are attributable to their provider.
+    rerank_provider: rerankProvider,
+    // Sticky skill-canary decisions. Identity values are never persisted;
+    // only the identity source, deterministic bucket, clamped ratio, and exact
+    // selected version are recorded for replay/experiment analysis.
+    canary_routing: canaryRoutingAudit,
+    // Non-null when rerank was attempted but did NOT drive ranking (empty /
+    // partial / errored). Surfaces the fail-open guard in prod so a spike in
+    // 'rerank_empty'/'rerank_partial' is visible rather than a silent quality
+    // dip. null = rerank scored a quorum, or was never wired/attempted.
+    rerank_fallback_reason: rerankFallbackReason,
+    // Time-decay telemetry. Only candidates whose multiplier dipped below 1
+    // are recorded — keeps audit row size bounded (most candidates are
+    // fresh, especially in early-stage corpora). Empty array means no
+    // decay was applied to anything in this bundle. Stable shape regardless
+    // of which kinds opt into decay in the future.
+    decay_applied: candidates.filter((c2) => c2.decayMultiplier < 1).map((c2) => ({
+      id: c2.id,
+      kind: c2.kind,
+      multiplier: Number(c2.decayMultiplier.toFixed(4)),
+      updated_at: c2.citation.updated_at
+    })),
+    // Tier 3.7 — query-aware budget. Audit-log both the tier (label) and
+    // the source (mechanism) so the dashboard can show "how many resolves
+    // used the corpus signal vs the heuristic fallback" alongside the
+    // tier distribution.
+    budget_tier: budgetTier,
+    budget_source: budgetSource,
+    // True when the corpus estimate was raised by the task-shape floor (so the
+    // fleet-wide bundle-token cost of the de-collapse is measurable).
+    budget_floor_applied: budgetFloorApplied,
+    // Which ranker drove the search legs. 'semantic' = pure cosine via
+    // search_documents (when explicitly requested with hybrid=false);
+    // 'hybrid' = cosine + BM25 RRF via search_documents_hybrid. Dashboards can
+    // split hybrid- and semantic-cohort precision once the embedding
+    // cache is populated.
+    search_mode: useHybrid ? "hybrid" : "semantic",
+    // Redundancy-collapse telemetry — present when near-duplicate candidates
+    // were collapsed this resolve. Powers the "duplicates collapsed / tokens
+    // saved" usage stats and audit-explain's keeper annotations. Cluster list
+    // is bounded by DEDUPE_AUDIT_MAX_CLUSTERS to keep the audit row small.
+    dedupe: dedupeDroppedCount > 0 ? {
+      threshold: dedupeThreshold,
+      mode: typeof dedupeThresholdRaw === "number" ? thresholdsMode : "default",
+      dropped_count: dedupeDroppedCount,
+      est_tokens_saved: dedupeTokensSaved,
+      clusters: dedupeClusters.slice(0, DEDUPE_AUDIT_MAX_CLUSTERS)
+    } : null,
+    // Marginal-value cutoff telemetry — present when the weak tail was
+    // trimmed. Like dedupe, est_tokens_saved is the budget NOT spent (these
+    // items were dropped before the budget loop, not refilled).
+    marginal_cutoff: marginalDroppedCount > 0 ? {
+      fraction: marginalFraction,
+      dropped_count: marginalDroppedCount,
+      est_tokens_saved: marginalTokensSaved
+    } : null
+  };
+  const baseArgs = {
+    p_account_id: ctx.accountId,
+    p_event_type: "resolve.invocation",
+    p_units: 1,
+    p_user_id: ctx.userId ?? null,
+    p_metadata: auditMetadata
+  };
+  async function tryAuditCall(includeEmbedding) {
+    return ctx.supabase.rpc(
+      "record_usage_event",
+      includeEmbedding ? { ...baseArgs, p_task_embedding: taskEmbedding } : baseArgs
+    );
+  }
+  const auditWriteStartedAt = Date.now();
+  if (!audit.readOnly) {
+    try {
+      let { data: auditData, error: auditErr } = await tryAuditCall(true);
+      if (auditErr && (auditErr.code === "PGRST202" || /could not find the function|p_task_embedding/i.test(auditErr.message))) {
+        ({ data: auditData, error: auditErr } = await tryAuditCall(false));
+      }
+      if (auditErr) {
+        console.warn(`[resolver] audit log failed: ${auditErr.message}`);
+      } else if (typeof auditData === "string") {
+        auditId = auditData;
+      }
+    } catch (e2) {
+      console.warn(
+        `[resolver] audit log unexpected error: ${e2 instanceof Error ? e2.message : String(e2)}`
+      );
+    }
+  }
+  const auditWriteMs = Date.now() - auditWriteStartedAt;
+  const postAssemblyTasks = [reactivationDone];
+  if (!audit.readOnly && queryVec && SHADOW_SAMPLE_RATE > 0 && Math.random() < SHADOW_SAMPLE_RATE) {
+    postAssemblyTasks.push(
+      (async () => {
+        try {
+          const { data, error: error2 } = await ctx.supabase.rpc("search_documents_hybrid", {
+            p_account_id: ctx.accountId,
+            p_project_id: projectId,
+            p_query_embedding: queryVec,
+            p_query_text: args.task,
+            p_kinds: ["memory"],
+            p_scopes: null,
+            p_limit: SHADOW_MAX_OBSERVATIONS * 3,
+            p_include_background: true
+          });
+          if (error2 || !Array.isArray(data)) return;
+          const deliveredIdSet = new Set(
+            deliveredItems.filter((item) => item.source_lane !== "pack_context").map((item) => item.document_id)
+          );
+          const rows = data.filter(
+            (r2) => typeof r2.id === "string" && !deliveredIdSet.has(r2.id) && !String(r2.path ?? "").startsWith("sessions/")
+          );
+          if (rows.length === 0) return;
+          const deliveredScores = bundle.memory.map((m2) => m2.similarity).filter((n2) => typeof n2 === "number");
+          const weakestDelivered = deliveredScores.length > 0 ? Math.min(...deliveredScores) : null;
+          const taskCategory = classifyTask(args.task);
+          const taskFp = taskFingerprint(args.task);
+          const observations = rows.slice(0, SHADOW_MAX_OBSERVATIONS).map((r2, i2) => {
+            const score = typeof r2.cosine_sim === "number" ? r2.cosine_sim : 0;
+            return {
+              project_id: projectId,
+              document_id: r2.id,
+              task_category: taskCategory,
+              task_fingerprint: taskFp,
+              rank: i2 + 1,
+              score,
+              score_margin: weakestDelivered === null ? null : score - weakestDelivered,
+              // Near-identical to something already delivered is not new value.
+              active_covered: weakestDelivered !== null && deliveredScores.some((d2) => Math.abs(d2 - score) < 0.02),
+              ranker_version: RANKER_VERSION,
+              audit_id: auditId ?? null
+            };
+          });
+          const { error: insErr } = await ctx.supabase.rpc("record_shadow_observations", {
+            p_account_id: ctx.accountId,
+            p_rows: observations
+          });
+          if (insErr) {
+            console.warn(`[resolver] shadow observation failed: ${insErr.message} \u2014 proceeding`);
+          }
+        } catch (e2) {
+          console.warn(
+            `[resolver] shadow observation error: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding`
+          );
+        }
+      })()
+    );
+  }
+  const surfacedIds = [
+    ...new Set(
+      deliveredItems.filter((item) => item.source_lane !== "pack_context").map((item) => item.document_id).filter((id) => typeof id === "string" && SURFACING_UUID_RE.test(id))
+    )
+  ];
+  if (surfacedIds.length > 0 && !audit.readOnly) {
+    postAssemblyTasks.push(
+      (async () => {
+        try {
+          const { error: error2 } = await ctx.supabase.rpc("record_document_surfacing", {
+            p_account_id: ctx.accountId,
+            p_ids: surfacedIds
+          });
+          if (error2) {
+            console.warn(`[resolver] surfacing stamp failed: ${error2.message} \u2014 proceeding`);
+          }
+        } catch (e2) {
+          console.warn(
+            `[resolver] surfacing stamp unexpected error: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding`
+          );
+        }
+      })()
+    );
+  }
+  if (projectId && isForegroundDeployCommand(args.task) && !audit.readOnly) {
+    postAssemblyTasks.push(
+      recordDeployActivity(ctx, {
+        projectId,
+        sessionId: audit.sessionId ?? null,
+        task: args.task,
+        activeComponentId,
+        activeComponentName,
+        agentKind: audit.agentKind ?? null,
+        agentInstallationId: audit.agentInstallationId ?? null
+      })
+    );
+  }
+  if (audit.agentInstallationId && !audit.readOnly) {
+    postAssemblyTasks.push(
+      (async () => {
+        try {
+          await ctx.supabase.from("agent_installations").update({ last_sync_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", audit.agentInstallationId);
+        } catch (e2) {
+          console.warn(
+            `[resolver] last_sync_at stamp failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding`
+          );
+        }
+      })()
+    );
+  }
+  if (auditId && audit.agentInstallationId && ctx.userId && audit.sessionId && !audit.readOnly) {
+    postAssemblyTasks.push(
+      (async () => {
+        try {
+          const activityClient = ctx.privilegedSupabase ?? ctx.supabase;
+          const { error: activityErr } = await activityClient.rpc("record_agent_activity_batch", {
+            p_account_id: ctx.accountId,
+            p_user_id: ctx.userId,
+            p_agent_installation_id: audit.agentInstallationId,
+            p_agent_kind: audit.agentKind ?? ctx.agentKind ?? "unknown",
+            p_events: [
+              {
+                event_id: auditId,
+                event_name: "resolve",
+                occurred_at: resolvedAt,
+                session_id: audit.sessionId,
+                worker_id: "parent",
+                project_id: projectId ?? null,
+                modified_files: [],
+                metadata: { source: "resolver", invocation_source: args.invocation_source ?? null }
+              }
+            ]
+          });
+          if (activityErr) {
+            console.warn(`[resolver] activity floor write failed: ${activityErr.message}`);
+          }
+        } catch (e2) {
+          console.warn(
+            `[resolver] activity floor unexpected error: ${e2 instanceof Error ? e2.message : String(e2)}`
+          );
+        }
+      })()
+    );
+  }
+  if (auditId && !audit.readOnly) {
+    postAssemblyTasks.push(
+      (async () => {
+        try {
+          const bundleHash = createHash("sha256").update(JSON.stringify(bundle)).digest("hex");
+          const surfacedDecisions = bundle.decisions.map((d2) => d2.id).filter((id) => typeof id === "string");
+          const { error: snapErr } = await ctx.supabase.rpc("record_bundle_snapshot", {
+            p_audit_id: auditId,
+            p_account_id: ctx.accountId,
+            p_project_id: projectId ?? null,
+            // Same membership RLS as usage_events (0074) — must carry the same
+            // sanitized preview, not the raw prompt.
+            p_task: auditTask.task,
+            p_bundle: bundle,
+            p_bundle_hash: bundleHash,
+            p_surfaced_decisions: surfacedDecisions
+          });
+          if (snapErr) {
+            console.warn(`[resolver] bundle snapshot write failed: ${snapErr.message}`);
+          }
+        } catch (e2) {
+          console.warn(
+            `[resolver] bundle snapshot unexpected error: ${e2 instanceof Error ? e2.message : String(e2)}`
+          );
+        }
+      })()
+    );
+  }
+  const postAssemblyStartedAt = Date.now();
+  await Promise.all(postAssemblyTasks);
+  const postAssemblyMs = Date.now() - postAssemblyStartedAt;
+  return {
+    bundle,
+    token_budget: { limit: maxTokens, used, truncated },
+    audit_id: auditId,
+    resolved_at: resolvedAt,
+    active_component: activeComponent,
+    active_repo: activeRepo,
+    omitted_candidates: auditOmissionSample(omittedCandidates),
+    latency_ms: {
+      total: Date.now() - bundleStartedAt,
+      audit_write: auditWriteMs,
+      post_assembly: postAssemblyMs,
+      embedding: embeddingMs,
+      search_fanout: searchFanoutMs,
+      enrichment: enrichmentMs,
+      hydration: hydrationMs,
+      rerank: rerankLatencyMs,
+      awareness_feeds: awarenessFeedsMs
+    }
+  };
+}
+var BRAND_INACTIVE_STATUSES = /* @__PURE__ */ new Set(["proposed", "rejected", "archived", "merged"]);
+function isApprovedBrandLayer(metadata) {
+  const status = typeof metadata?.status === "string" ? metadata.status : "active";
+  return !BRAND_INACTIVE_STATUSES.has(status);
+}
+function pickBrandOverrideLayers(rows, args) {
+  const overrideId = rows.find((r2) => r2.component_id === null)?.id ?? null;
+  let surfaceId = null;
+  const surfaceRows = rows.filter((r2) => r2.component_id !== null);
+  if (surfaceRows.length > 0) {
+    if (args.activeComponentId) {
+      surfaceId = surfaceRows.find((r2) => r2.component_id === args.activeComponentId)?.id ?? null;
+    }
+    if (!surfaceId && args.activeRepo && args.componentInfoById) {
+      surfaceId = surfaceRows.find((r2) => {
+        const info = r2.component_id ? args.componentInfoById?.get(r2.component_id) : null;
+        return info?.repo === args.activeRepo && info?.slug === "root";
+      })?.id ?? null;
+    }
+  }
+  return { overrideId, surfaceId };
+}
+async function assembleBrandGuidelines(ctx, args) {
+  const { accountId, projectId } = args;
+  let parentId = null;
+  if (projectId) {
+    const { data: proj, error: error2 } = await ctx.supabase.from("projects").select("brand_guidelines_id").eq("id", projectId).eq("account_id", accountId).maybeSingle();
+    if (error2) {
+      console.warn(`[resolver] brand-guidelines: project lookup failed: ${error2.message}`);
+    } else if (proj) {
+      parentId = proj.brand_guidelines_id ?? null;
+    }
+  }
+  if (!parentId) {
+    const { data: acc, error: error2 } = await ctx.supabase.from("accounts").select("default_brand_guidelines_id").eq("id", accountId).maybeSingle();
+    if (error2) {
+      console.warn(`[resolver] brand-guidelines: account lookup failed: ${error2.message}`);
+    } else if (acc) {
+      parentId = acc.default_brand_guidelines_id ?? null;
+    }
+  }
+  let overrideId = null;
+  let surfaceId = null;
+  if (projectId) {
+    const { data: ovrRows, error: error2 } = await ctx.supabase.from("documents").select(
+      "id, account_id, created_by, locked_to_owners, scope, project_id, status, kind, component_id, metadata, updated_at"
+    ).eq("account_id", accountId).eq("project_id", projectId).eq("kind", "brand_guidelines").eq("locked_to_owners", false);
+    if (error2) {
+      console.warn(`[resolver] brand-guidelines: override lookup failed: ${error2.message}`);
+    } else {
+      const live = (ovrRows ?? []).filter((row) => {
+        const directRow = row;
+        if (!isDirectResolverDocumentEligible(
+          directRow,
+          { accountId, userId: ctx.userId, projectId },
+          {
+            lifecycle: "sql-live",
+            projectAssociation: "active-project",
+            expectedKind: "brand_guidelines"
+          }
+        )) {
+          return false;
+        }
+        return isApprovedBrandLayer(directRow.metadata);
+      });
+      live.sort((a2, b2) => a2.updated_at < b2.updated_at ? 1 : -1);
+      const picked = pickBrandOverrideLayers(live, {
+        activeComponentId: args.activeComponentId,
+        activeRepo: args.activeRepo,
+        componentInfoById: args.componentInfoById
+      });
+      overrideId = picked.overrideId;
+      surfaceId = picked.surfaceId;
+    }
+  }
+  if (!parentId && !overrideId && !surfaceId) return null;
+  const ids = [parentId, overrideId, surfaceId].filter((x2) => x2 !== null);
+  const { data: docRows, error: docErr } = await ctx.supabase.from("documents").select(
+    `id, account_id, created_by, locked_to_owners, scope, project_id, status, kind,
+       metadata, updated_at,
+       document_versions!documents_current_version_fk ( content )`
+  ).eq("account_id", accountId).eq("locked_to_owners", false).in("id", ids);
+  if (docErr) {
+    console.warn(`[resolver] brand-guidelines: document fetch failed: ${docErr.message}`);
+    return null;
+  }
+  const contentById = /* @__PURE__ */ new Map();
+  for (const row of docRows ?? []) {
+    const r2 = row;
+    if (!isDirectResolverDocumentEligible(
+      r2,
+      { accountId, userId: ctx.userId, projectId },
+      {
+        lifecycle: "sql-live",
+        projectAssociation: "account-or-active-project",
+        expectedKind: "brand_guidelines"
+      }
+    )) {
+      continue;
+    }
+    if (!isApprovedBrandLayer(r2.metadata ?? {})) continue;
+    const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
+    contentById.set(r2.id, {
+      content: v2?.content ?? "",
+      updated_at: r2.updated_at ?? (/* @__PURE__ */ new Date()).toISOString()
+    });
+  }
+  const parentDoc = parentId ? contentById.get(parentId) : null;
+  const overrideDoc = overrideId ? contentById.get(overrideId) : null;
+  const surfaceDoc = surfaceId ? contentById.get(surfaceId) : null;
+  const parentParsed = parentDoc ? parseBrandGuidelines(parentDoc.content) : null;
+  const overrideParsed = overrideDoc ? parseBrandGuidelines(overrideDoc.content) : null;
+  const surfaceParsed = surfaceDoc ? parseBrandGuidelines(surfaceDoc.content) : null;
+  let merged = parentParsed;
+  for (const layer of [overrideParsed, surfaceParsed]) {
+    if (!layer) continue;
+    merged = merged ? mergeBrandGuidelines(merged, layer) : layer;
+  }
+  if (!merged) return null;
+  const logoUrls = {};
+  const logos = merged.frontmatter.logos;
+  if (logos) {
+    const slots = [
+      ["primary_light", logos.primary_light?.storage_path],
+      ["primary_dark", logos.primary_dark?.storage_path],
+      ["favicon", logos.favicon?.storage_path]
+    ];
+    for (const [slot, path20] of slots) {
+      if (!path20) continue;
+      try {
+        const { data, error: error2 } = await ctx.supabase.storage.from("brand-guidelines-assets").createSignedUrl(path20, BRAND_GUIDELINES_LOGO_SIGNED_URL_TTL_SECONDS);
+        if (error2) {
+          console.warn(`[resolver] brand-guidelines: sign ${slot} failed: ${error2.message}`);
+        } else if (data?.signedUrl) {
+          logoUrls[slot] = data.signedUrl;
+        }
+      } catch (e2) {
+        console.warn(
+          `[resolver] brand-guidelines: sign ${slot} threw: ${e2 instanceof Error ? e2.message : String(e2)}`
+        );
+      }
+    }
+  }
+  const bodyParts = [];
+  if (merged.prefix.trim()) bodyParts.push(merged.prefix.trim());
+  for (const [heading, content] of Object.entries(merged.sections)) {
+    if (content.trim()) bodyParts.push(`## ${heading}
+
+${content.trim()}`);
+  }
+  const body = bodyParts.join("\n\n");
+  const layerCount = [parentParsed, overrideParsed, surfaceParsed].filter(Boolean).length;
+  const source = layerCount > 1 ? "merged" : surfaceParsed ? "surface_override" : overrideParsed ? "project_override" : "account";
+  const effectiveId = surfaceId ?? overrideId ?? parentId;
+  const effectiveUpdatedAt = surfaceDoc?.updated_at ?? overrideDoc?.updated_at ?? parentDoc?.updated_at ?? (/* @__PURE__ */ new Date()).toISOString();
+  return {
+    brand_guidelines_id: effectiveId,
+    frontmatter: merged.frontmatter,
+    body,
+    logo_urls: logoUrls,
+    source,
+    updated_at: effectiveUpdatedAt
+  };
+}
+
+// packages/mcp-tools/src/context.ts
+async function resolveProjectFilter(ctx, requested) {
+  if (!requested) return ctx.projectId ?? null;
+  if (requested === ctx.projectId) return requested;
+  const { data, error: error2 } = await ctx.supabase.from("projects").select("id").eq("id", requested).eq("account_id", ctx.accountId).maybeSingle();
+  if (error2 || !data) {
+    throw new Error(
+      `project_id ${requested} does not belong to the connected account (${ctx.accountId}). Point this connection at that project's account first \u2014 e.g. \`memlin link --account <account>\` \u2014 rather than passing a project id from another workspace.`
+    );
+  }
+  return requested;
+}
+
+// packages/mcp-tools/src/curation.ts
+var CurationError = class extends Error {
+  code;
+  constructor(code, message) {
+    super(message);
+    this.name = "CurationError";
+    this.code = code;
+  }
+};
+var ACTION_TARGET = {
+  approve: "approved",
+  archive: "archived",
+  // Unarchive restores to draft (the only legal move out of archived) —
+  // the doc re-enters the curation funnel rather than jumping straight
+  // back to approved.
+  unarchive: "draft"
+};
+function decideStatusChange(args) {
+  const { action, currentStatus, role } = args;
+  if (role === "viewer") {
+    throw new CurationError("forbidden", "viewer role cannot curate documents");
+  }
+  if (action === "approve" && role !== "owner" && role !== "admin") {
+    throw new CurationError("forbidden", "approving a document is owner/admin-only");
+  }
+  if (action === "unarchive" && currentStatus !== "archived") {
+    throw new CurationError("invalid_transition", "document is not archived");
+  }
+  const to = ACTION_TARGET[action];
+  if (currentStatus === to) {
+    throw new CurationError(
+      "invalid_transition",
+      `document is already ${currentStatus}`
+    );
+  }
+  const allowed = DOCUMENT_STATUS_TRANSITIONS[currentStatus] ?? [];
+  if (!allowed.includes(to)) {
+    throw new CurationError(
+      "invalid_transition",
+      `invalid transition: ${currentStatus} \u2192 ${to}`
+    );
+  }
+  return { to };
+}
+var SetStatusArgs = external_exports.object({
+  document_id: external_exports.string().uuid(),
+  action: external_exports.enum(["approve", "archive", "unarchive"])
+});
+async function setDocumentStatus(ctx, rawArgs) {
+  let args;
+  try {
+    args = SetStatusArgs.parse(rawArgs);
+  } catch (e2) {
+    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
+  }
+  const role = ctx.callerRole ?? "viewer";
+  const { data: doc, error: readErr } = await ctx.supabase.from("documents").select("id, account_id, scope, created_by, kind, title, status, metadata").eq("id", args.document_id).maybeSingle();
+  if (readErr) throw new CurationError("not_found", `document lookup failed: ${readErr.message}`);
+  if (!doc || doc.account_id !== ctx.accountId) {
+    throw new CurationError("not_found", "document not found in this account");
+  }
+  const row = doc;
+  if (row.scope === "personal" && row.created_by && ctx.userId !== row.created_by) {
+    throw new CurationError("forbidden", "personal-scope documents can only be curated by their creator");
+  }
+  const { to } = decideStatusChange({ action: args.action, currentStatus: row.status, role });
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const actor = ctx.userId ?? "api";
+  const meta = { ...row.metadata ?? {} };
+  let metadataStatusActivated = false;
+  if (args.action === "approve") {
+    meta.approved_at = nowIso;
+    meta.approved_by = actor;
+    if (meta.status === "proposed") {
+      meta.status = "active";
+      meta.accepted_at = nowIso;
+      meta.accepted_by_user_sub = actor;
+      metadataStatusActivated = true;
+    }
+  } else if (args.action === "archive") {
+    meta.lifecycle_action = "archived";
+    meta.lifecycle_archived_at = nowIso;
+    meta.lifecycle_archived_by_user_sub = actor;
+  } else {
+    meta.lifecycle_action = "unarchived";
+    meta.lifecycle_unarchived_at = nowIso;
+    meta.lifecycle_unarchived_by_user_sub = actor;
+    if (meta.status === "superseded" || meta.status === "archived") {
+      meta.status = "active";
+      metadataStatusActivated = true;
+    }
+  }
+  const { error: updateErr } = await ctx.supabase.from("documents").update({ status: to, metadata: meta }).eq("id", row.id).eq("account_id", ctx.accountId);
+  if (updateErr) {
+    throw new CurationError("forbidden", `status update failed: ${updateErr.message}`);
+  }
+  return {
+    id: row.id,
+    kind: row.kind,
+    title: row.title,
+    from: row.status,
+    to,
+    metadata_status_activated: metadataStatusActivated
+  };
+}
+async function applyCanonicalMerge(ctx, args) {
+  const count = (m2) => m2 && typeof m2.corroboration_count === "number" ? m2.corroboration_count : 0;
+  const canonicalMeta = args.canonical.metadata ?? {};
+  const summedCorroboration = Math.max(count(canonicalMeta), 1) + args.twins.reduce((s2, t2) => s2 + Math.max(count(t2.metadata), 1), 0);
+  let newVersionNumber = null;
+  const builtMetadata = args.buildCanonicalMetadata(summedCorroboration);
+  if (args.content !== null) {
+    const { data, error: writeErr } = await ctx.supabase.rpc("write_document", {
+      p_document_id: args.canonical.id,
+      p_account_id: ctx.accountId,
+      p_project_id: args.canonical.project_id ?? null,
+      p_scope: args.canonical.scope,
+      p_kind: args.canonical.kind,
+      p_title: args.canonical.title,
+      p_path: args.canonical.path ?? null,
+      p_content: args.content,
+      p_embedding: null,
+      p_metadata: builtMetadata,
+      p_commit_message: args.commitMessage,
+      p_yjs_state_b64: null,
+      // buildCanonicalMetadata returns the FULL object — replace semantics
+      // (no merge flag). Attribution rides only on the service-token path.
+      ...ctx.serviceTokenId ? { p_author_id: ctx.userId ?? null, p_service_token_id: ctx.serviceTokenId } : {}
+    });
+    if (writeErr) {
+      throw new CurationError("forbidden", `merge apply failed: ${writeErr.message}`);
+    }
+    const rows = data;
+    newVersionNumber = rows?.[0]?.version_number ?? null;
+  } else {
+    const { error: metaErr } = await ctx.supabase.from("documents").update({ metadata: builtMetadata }).eq("id", args.canonical.id).eq("account_id", ctx.accountId);
+    if (metaErr) {
+      throw new CurationError("forbidden", `merge metadata update failed: ${metaErr.message}`);
+    }
+  }
+  for (const twin of args.twins) {
+    const twinMeta = twin.metadata ?? {};
+    const { error: archiveErr } = await ctx.supabase.from("documents").update({
+      status: "archived",
+      metadata: {
+        ...twinMeta,
+        status: "superseded",
+        superseded_by: args.canonical.id,
+        superseded_at: args.nowIso,
+        superseded_reason: args.supersededReason
+      }
+    }).eq("id", twin.id).eq("account_id", ctx.accountId);
+    if (archiveErr) {
+      throw new CurationError("forbidden", `twin archive failed: ${archiveErr.message}`);
+    }
+  }
+  return { newVersionNumber, summedCorroboration };
+}
+var MergeArgs = external_exports.object({
+  canonical_id: external_exports.string().uuid(),
+  duplicate_ids: external_exports.array(external_exports.string().uuid()).min(1).max(50),
+  /** Optional canonical body replacing the keeper's content (new version).
+   *  Omit when the keeper's existing body already is the merged truth —
+   *  the merge is then metadata-only and creates no version. */
+  merged_content: external_exports.string().min(1).optional(),
+  commit_message: external_exports.string().max(500).optional()
+});
+async function mergeDocuments(ctx, rawArgs) {
+  let args;
+  try {
+    args = MergeArgs.parse(rawArgs);
+  } catch (e2) {
+    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
+  }
+  const role = ctx.callerRole ?? "viewer";
+  if (role === "viewer") {
+    throw new CurationError("forbidden", "viewer role cannot merge documents");
+  }
+  const { data: canonicalRow, error: canonicalErr } = await ctx.supabase.from("documents").select("id, account_id, project_id, scope, kind, title, path, status, metadata").eq("id", args.canonical_id).maybeSingle();
+  if (canonicalErr) {
+    throw new CurationError("not_found", `canonical lookup failed: ${canonicalErr.message}`);
+  }
+  if (!canonicalRow || canonicalRow.account_id !== ctx.accountId) {
+    throw new CurationError("not_found", "canonical document not found in this account");
+  }
+  const canonical2 = canonicalRow;
+  if (canonical2.scope === "personal") {
+    throw new CurationError("forbidden", "personal-scope documents cannot be merge targets");
+  }
+  if (canonical2.status === "archived") {
+    throw new CurationError("invalid_transition", "canonical document is archived \u2014 unarchive it first");
+  }
+  const requestedIds = args.duplicate_ids.filter((id) => id !== args.canonical_id);
+  const skipped = args.duplicate_ids.filter((id) => id === args.canonical_id).map((id) => ({ id, reason: "is_canonical" }));
+  const { data: dupRows, error: dupErr } = await ctx.supabase.from("documents").select("id, kind, scope, status, metadata").eq("account_id", ctx.accountId).in("id", requestedIds);
+  if (dupErr) throw new CurationError("not_found", `duplicate lookup failed: ${dupErr.message}`);
+  const found = new Map(
+    (dupRows ?? []).map(
+      (r2) => [r2.id, r2]
+    )
+  );
+  const twins = [];
+  for (const id of requestedIds) {
+    const row = found.get(id);
+    if (!row) {
+      skipped.push({ id, reason: "not_found" });
+      continue;
+    }
+    if (row.kind !== canonical2.kind) {
+      skipped.push({ id, reason: "kind_mismatch" });
+      continue;
+    }
+    if (row.scope === "personal") {
+      skipped.push({ id, reason: "personal_scope" });
+      continue;
+    }
+    const meta = row.metadata ?? {};
+    if (meta.superseded_by === args.canonical_id) {
+      skipped.push({ id, reason: "already_merged" });
+      continue;
+    }
+    twins.push({ id: row.id, metadata: row.metadata });
+  }
+  if (twins.length === 0) {
+    return {
+      canonical_id: canonical2.id,
+      archived_ids: [],
+      skipped,
+      new_version_number: null,
+      corroboration_count: canonical2.metadata && typeof canonical2.metadata.corroboration_count === "number" ? canonical2.metadata.corroboration_count : 1
+    };
+  }
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const canonicalMeta = canonical2.metadata ?? {};
+  const priorMergedFrom = Array.isArray(canonicalMeta.merged_from) ? canonicalMeta.merged_from.filter((v2) => typeof v2 === "string") : [];
+  const { newVersionNumber, summedCorroboration } = await applyCanonicalMerge(ctx, {
+    canonical: canonical2,
+    twins,
+    content: args.merged_content ?? null,
+    buildCanonicalMetadata: (sum) => ({
+      ...canonicalMeta,
+      // metadata.status stays as-is — making a doc live (or approved) is a
+      // deliberate separate action (setDocumentStatus), not a merge side
+      // effect.
+      merged_from: [...priorMergedFrom, ...twins.map((t2) => t2.id)],
+      merged_at: nowIso,
+      merged_via: "api",
+      corroboration_count: sum,
+      ...args.merged_content ? { embedding_stale: true } : {}
+    }),
+    commitMessage: args.commit_message ?? `merge ${twins.length} duplicate ${canonical2.kind} doc(s)`,
+    supersededReason: "merged",
+    nowIso
+  });
+  return {
+    canonical_id: canonical2.id,
+    archived_ids: twins.map((t2) => t2.id),
+    skipped,
+    new_version_number: newVersionNumber,
+    corroboration_count: summedCorroboration
+  };
+}
+var AUTO_MERGE_SAFE_THRESHOLD = 0.92;
+var SWEEP_DEFAULT_THRESHOLD = 0.85;
+var SWEEP_DOC_CAP = 800;
+var SWEEP_KINDS = ["decision", "memory", "skill"];
+function canonicalRank(a2, b2) {
+  const aApproved = a2.status === "approved" ? 1 : 0;
+  const bApproved = b2.status === "approved" ? 1 : 0;
+  if (aApproved !== bApproved) return bApproved - aApproved;
+  if (a2.corroboration_count !== b2.corroboration_count) {
+    return b2.corroboration_count - a2.corroboration_count;
+  }
+  return a2.updated_at < b2.updated_at ? 1 : a2.updated_at > b2.updated_at ? -1 : 0;
+}
+function clusterPairs(kind2, pairs, docs) {
+  const neighbours = /* @__PURE__ */ new Map();
+  for (const p2 of pairs) {
+    if (!docs.has(p2.id_a) || !docs.has(p2.id_b)) continue;
+    if (!neighbours.has(p2.id_a)) neighbours.set(p2.id_a, /* @__PURE__ */ new Map());
+    if (!neighbours.has(p2.id_b)) neighbours.set(p2.id_b, /* @__PURE__ */ new Map());
+    neighbours.get(p2.id_a).set(p2.id_b, p2.similarity);
+    neighbours.get(p2.id_b).set(p2.id_a, p2.similarity);
+  }
+  const ranked = [...neighbours.keys()].map((id) => docs.get(id)).sort(canonicalRank);
+  const claimed = /* @__PURE__ */ new Set();
+  const clusters = [];
+  for (const leader of ranked) {
+    if (claimed.has(leader.id)) continue;
+    claimed.add(leader.id);
+    const members = [];
+    for (const [otherId, similarity] of neighbours.get(leader.id) ?? []) {
+      if (claimed.has(otherId)) continue;
+      claimed.add(otherId);
+      members.push({ ...docs.get(otherId), similarity_to_canonical: similarity });
+    }
+    if (members.length === 0) continue;
+    members.sort((a2, b2) => b2.similarity_to_canonical - a2.similarity_to_canonical);
+    const avg = members.reduce((s2, m2) => s2 + m2.similarity_to_canonical, 0) / members.length;
+    clusters.push({
+      kind: kind2,
+      suggested_canonical_id: leader.id,
+      canonical: leader,
+      members,
+      avg_similarity: Math.round(avg * 1e3) / 1e3,
+      auto_merge_safe: members.every(
+        (m2) => m2.similarity_to_canonical >= AUTO_MERGE_SAFE_THRESHOLD
+      )
+    });
+  }
+  clusters.sort((a2, b2) => b2.members.length - a2.members.length);
+  return clusters;
+}
+var SweepArgs = external_exports.object({
+  project_id: external_exports.string().uuid().optional(),
+  kinds: external_exports.array(external_exports.enum(SWEEP_KINDS)).min(1).optional(),
+  threshold: external_exports.number().min(0.8).max(0.99).optional()
+});
+async function sweepDuplicates(ctx, rawArgs) {
+  let args;
+  try {
+    args = SweepArgs.parse(rawArgs ?? {});
+  } catch (e2) {
+    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
+  }
+  const kinds = args.kinds ?? [...SWEEP_KINDS];
+  const threshold = args.threshold ?? SWEEP_DEFAULT_THRESHOLD;
+  const clusters = [];
+  const scanned = {};
+  let truncated = false;
+  let vectorlessCount = 0;
+  for (const kind2 of kinds) {
+    let query = ctx.supabase.from("documents").select("id, title, status, updated_at, metadata").eq("account_id", ctx.accountId).eq("kind", kind2).neq("status", "archived").not("embedding", "is", null).or("metadata->>status.is.null,metadata->>status.eq.active");
+    if (args.project_id) query = query.eq("project_id", args.project_id);
+    const { data, error: error2 } = await query.order("updated_at", { ascending: false }).limit(SWEEP_DOC_CAP);
+    if (error2) throw new CurationError("invalid_args", `sweep candidate read failed: ${error2.message}`);
+    try {
+      let vectorlessQuery = ctx.supabase.from("documents").select("id", { count: "exact", head: true }).eq("account_id", ctx.accountId).eq("kind", kind2).neq("status", "archived").is("embedding", null).or("metadata->>status.is.null,metadata->>status.eq.active");
+      if (args.project_id) vectorlessQuery = vectorlessQuery.eq("project_id", args.project_id);
+      const { count } = await vectorlessQuery;
+      vectorlessCount += count ?? 0;
+    } catch {
+    }
+    const rows = data ?? [];
+    if (rows.length === SWEEP_DOC_CAP) truncated = true;
+    const docs = /* @__PURE__ */ new Map();
+    for (const r2 of rows) {
+      const meta = r2.metadata ?? {};
+      docs.set(r2.id, {
+        id: r2.id,
+        title: r2.title,
+        status: r2.status,
+        metadata_status: typeof meta.status === "string" ? meta.status : null,
+        updated_at: r2.updated_at,
+        corroboration_count: typeof meta.corroboration_count === "number" ? meta.corroboration_count : 1
+      });
+    }
+    scanned[kind2] = docs.size;
+    if (docs.size < 2) continue;
+    const rpcArgs = {
+      p_account_id: ctx.accountId,
+      p_ids: [...docs.keys()],
+      p_threshold: threshold
+    };
+    let { data: pairData, error: pairErr } = await ctx.supabase.rpc(
+      "document_similarity_pairs",
+      rpcArgs
+    );
+    if (pairErr && /permission denied/i.test(pairErr.message) && ctx.privilegedSupabase) {
+      ({ data: pairData, error: pairErr } = await ctx.privilegedSupabase.rpc(
+        "document_similarity_pairs",
+        rpcArgs
+      ));
+    }
+    if (pairErr) {
+      throw new CurationError("invalid_args", `similarity sweep failed: ${pairErr.message}`);
+    }
+    clusters.push(...clusterPairs(kind2, pairData ?? [], docs));
+  }
+  clusters.sort((a2, b2) => b2.members.length - a2.members.length);
+  return { clusters, scanned, truncated, vectorless_count: vectorlessCount, threshold };
+}
+
+// packages/mcp-tools/src/origin.ts
+function deriveDocOrigin(metadata) {
+  const meta = metadata ?? {};
+  const proposedBy = typeof meta.proposed_by === "string" ? meta.proposed_by : "";
+  if (meta.source === "repo:function" || proposedBy === "scribe:repo") return "scanner";
+  if (proposedBy.startsWith("scribe:") || proposedBy === "correction" || meta.scribe_run_id != null) {
+    return "scribe";
+  }
+  if (meta.imported_from != null || meta.installed_via != null || meta.library_source != null) {
+    return "import";
+  }
+  return "human";
+}
+var NoiseSweepArgs = external_exports.object({
+  project_id: external_exports.string().uuid().optional(),
+  dry_run: external_exports.boolean().default(true),
+  /** Docs a human explicitly accepted (inbox accept stamps accepted_at)
+   *  are presumed wanted — skipped unless this is set. */
+  include_accepted: external_exports.boolean().default(false)
+});
+
+// packages/mcp-tools/src/custom-metadata.ts
+var CUSTOM_KEY_RE = /^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,63}$/;
+var CUSTOM_MAX_BYTES = 8 * 1024;
+var CUSTOM_MAX_DEPTH = 3;
+var CUSTOM_MAX_KEYS = 64;
+var MetadataValidationError = class extends Error {
+  code = "custom_metadata_invalid";
+  issues;
+  // `field` names the metadata key that failed — 'custom' historically, and
+  // 'trigger' since trigger-bound memories landed. The code stays
+  // 'custom_metadata_invalid' so existing wire-level consumers keep matching.
+  constructor(issues, field = "custom") {
+    super(`invalid metadata.${field}: ${issues[0] ?? "validation failed"}`);
+    this.name = "MetadataValidationError";
+    this.issues = issues;
+  }
+};
+var ISO_DATEISH = /^\d{4}-\d{2}-\d{2}([T ].*)?$/;
+var ArtifactSchema = external_exports.object({
+  path: external_exports.string().min(1).max(512).optional(),
+  url: external_exports.string().url().max(2048).optional(),
+  kind: external_exports.string().min(1).max(64).optional(),
+  sha: external_exports.string().max(128).optional()
+}).refine((a2) => a2.path || a2.url, { message: "artifact needs a path or a url" });
+var TYPED_KEYS = {
+  expected_outcome: external_exports.union([
+    external_exports.string().min(1).max(2e3),
+    external_exports.object({
+      text: external_exports.string().max(2e3).optional(),
+      metric: external_exports.string().max(128).optional(),
+      direction: external_exports.string().max(16).optional(),
+      magnitude: external_exports.number().optional(),
+      window: external_exports.string().max(128).optional()
+    }).passthrough()
+  ]),
+  review_by: external_exports.string().regex(ISO_DATEISH, "review_by must be an ISO date (YYYY-MM-DD\u2026)"),
+  artifacts: external_exports.array(ArtifactSchema).max(20),
+  occurred_at: external_exports.string().regex(ISO_DATEISH, "occurred_at must be an ISO date (YYYY-MM-DD\u2026)"),
+  entities: external_exports.array(external_exports.string().min(1).max(64)).max(32),
+  thread_status: external_exports.enum(["open", "resolved", "n/a"]),
+  resolves: external_exports.string().uuid()
+};
+function depthOf(value, depth = 0) {
+  if (depth > CUSTOM_MAX_DEPTH) return depth;
+  if (Array.isArray(value)) {
+    let max = depth + 1;
+    for (const v2 of value) max = Math.max(max, depthOf(v2, depth + 1));
+    return max;
+  }
+  if (value && typeof value === "object") {
+    let max = depth + 1;
+    for (const v2 of Object.values(value)) {
+      max = Math.max(max, depthOf(v2, depth + 1));
+    }
+    return max;
+  }
+  return depth;
+}
+function jsonSafe(value) {
+  if (value === null) return true;
+  const t2 = typeof value;
+  if (t2 === "string" || t2 === "boolean") return true;
+  if (t2 === "number") return Number.isFinite(value);
+  if (Array.isArray(value)) return value.every(jsonSafe);
+  if (t2 === "object") {
+    return Object.values(value).every(
+      (v2) => v2 !== void 0 && jsonSafe(v2)
+    );
+  }
+  return false;
+}
+function validateCustomMetadata(custom3) {
+  const issues = [];
+  if (custom3 === null || typeof custom3 !== "object" || Array.isArray(custom3)) {
+    throw new MetadataValidationError(["custom must be an object of named values"]);
+  }
+  const obj = custom3;
+  const keys = Object.keys(obj);
+  if (keys.length === 0) return {};
+  if (keys.length > CUSTOM_MAX_KEYS) {
+    issues.push(`too many keys (${keys.length} > ${CUSTOM_MAX_KEYS})`);
+  }
+  for (const key of keys) {
+    if (!CUSTOM_KEY_RE.test(key)) {
+      issues.push(`key "${key}" must match ${CUSTOM_KEY_RE}`);
+      continue;
+    }
+    const value = obj[key];
+    if (!jsonSafe(value)) {
+      issues.push(`key "${key}" holds a non-JSON-serializable value`);
+      continue;
+    }
+    const typed = TYPED_KEYS[key];
+    if (typed) {
+      const parsed = typed.safeParse(value);
+      if (!parsed.success) {
+        issues.push(`key "${key}": ${parsed.error.issues[0]?.message ?? "invalid shape"}`);
+      }
+    }
+  }
+  const size = JSON.stringify(obj).length;
+  if (size > CUSTOM_MAX_BYTES) {
+    issues.push(
+      `custom exceeds ${CUSTOM_MAX_BYTES} bytes (got ${size}) \u2014 store large payloads externally and reference them`
+    );
+  }
+  if (depthOf(obj) > CUSTOM_MAX_DEPTH) {
+    issues.push(`custom nests deeper than ${CUSTOM_MAX_DEPTH} levels`);
+  }
+  if (issues.length > 0) throw new MetadataValidationError(issues);
+  return obj;
+}
+var ScalarSchema = external_exports.union([external_exports.string(), external_exports.number(), external_exports.boolean()]);
+var MetadataFilterSchema = external_exports.record(
+  external_exports.string().regex(CUSTOM_KEY_RE),
+  external_exports.union([ScalarSchema, external_exports.object({ in: external_exports.array(ScalarSchema).min(1).max(32) }).strict()])
+).refine((f2) => Object.keys(f2).length >= 1 && Object.keys(f2).length <= 8, {
+  message: "metadata_filter takes 1-8 keys"
+});
+function matchesCustomFilter(custom3, filter) {
+  if (custom3 === null || typeof custom3 !== "object" || Array.isArray(custom3)) return false;
+  const obj = custom3;
+  for (const [key, condition] of Object.entries(filter)) {
+    const value = obj[key];
+    const candidates = typeof condition === "object" && condition !== null && "in" in condition ? condition.in : [condition];
+    const hit = candidates.some(
+      (c2) => Array.isArray(value) ? value.includes(c2) : value === c2
+    );
+    if (!hit) return false;
+  }
+  return true;
 }
 
 // packages/mcp-tools/src/handlers.ts
@@ -62344,5031 +67812,6 @@ async function listActions(ctx, rawArgs) {
     });
   }
   return out;
-}
-
-// packages/mcp-tools/src/resolver.ts
-import { createHash } from "node:crypto";
-
-// packages/mcp-tools/src/rerank.ts
-var SYSTEM_PROMPT = `You are a code-context relevance ranker.
-
-A developer's AI agent is about to work on a task. Below are candidate items
-the resolver pulled from the workspace's memory + skills + goals + schemas + decisions.
-Score each one on how directly useful it would be to the agent doing THIS
-task. Higher score = more directly applicable. Skills that exactly match
-the problem domain score highest; broad-context items score lower; items
-that are tangentially related score lowest.
-
-Output JSON ONLY, no prose:
-{ "scores": [ { "n": 1, "score": 0.0-1.0 }, { "n": 2, "score": ... } ] }
-
-Rules:
-- Score every candidate. Missing entries are treated as score=0.
-- Be decisive \u2014 a long flat list of 0.5s is useless. Use the full range.
-- 0.85+ means "essential for this task"
-- 0.60-0.85 "highly relevant"
-- 0.30-0.60 "context-only, not load-bearing"
-- below 0.30 "off-topic for this task, drop it"
-- The agent shouldn't see surplus context; aggressively penalize off-topic items.`;
-function buildUserMessage(task, candidates) {
-  const numbered = candidates.map(
-    // No .slice() here — the caller already sized the excerpt
-    // (RERANK_EXCERPT_CHARS). A second hard-coded 500-char slice made bumping
-    // that constant a silent no-op.
-    (c2, i2) => `${i2 + 1}. [${c2.kind}] "${c2.title}"
-   ${c2.excerpt.replace(/\s+/g, " ")}`
-  ).join("\n\n");
-  return [
-    "<task>",
-    task,
-    "</task>",
-    "",
-    "<candidates>",
-    numbered,
-    "</candidates>",
-    "",
-    "Return JSON only."
-  ].join("\n");
-}
-function parseScores(raw, candidates) {
-  const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) return {};
-  let parsed = {};
-  try {
-    parsed = JSON.parse(match[0]);
-  } catch {
-    return {};
-  }
-  const out = {};
-  for (const entry of parsed.scores ?? []) {
-    if (typeof entry.n !== "number" || typeof entry.score !== "number") continue;
-    const idx = entry.n - 1;
-    const candidate = candidates[idx];
-    if (!candidate) continue;
-    const score = entry.score > 1 ? entry.score / 100 : entry.score;
-    out[candidate.id] = Math.max(0, Math.min(1, score));
-  }
-  return out;
-}
-async function rerankCandidates(task, candidates, chat) {
-  const startedAt = Date.now();
-  if (candidates.length === 0) {
-    return { scores: {}, latency_ms: 0 };
-  }
-  const user = buildUserMessage(task, candidates);
-  const maxTokens = Math.min(2048, 128 + candidates.length * 32);
-  const raw = await chat(SYSTEM_PROMPT, user, { max_tokens: maxTokens });
-  const scores = parseScores(raw, candidates);
-  return { scores, latency_ms: Date.now() - startedAt };
-}
-
-// packages/mcp-tools/src/feedback-overlay.ts
-async function assembleFeedbackOverlay(args) {
-  const perLane = args.perLaneLimit ?? 6;
-  const windowDays = args.windowDays ?? 30;
-  const threshold = args.similarityThreshold ?? 0.6;
-  const sinceIso = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1e3).toISOString();
-  const [semantic, byTarget] = await Promise.all([
-    fetchSemanticLane(args, threshold, perLane, sinceIso),
-    fetchTargetLane(args, perLane, sinceIso)
-  ]);
-  const seen = /* @__PURE__ */ new Set();
-  const out = [];
-  for (const lane of [semantic, byTarget]) {
-    for (const item of lane) {
-      if (seen.has(item.id)) continue;
-      seen.add(item.id);
-      out.push(item);
-    }
-  }
-  return out.sort((a2, b2) => b2.similarity - a2.similarity).slice(0, perLane * 2);
-}
-async function fetchSemanticLane(args, threshold, perLane, sinceIso) {
-  if (!args.taskEmbedding || args.taskEmbedding.length === 0) return [];
-  const { data, error: error2 } = await args.supabase.from("documents").select(
-    `id, title, metadata, embedding, created_at,
-       document_versions!documents_current_version_fk ( content )`
-  ).eq("account_id", args.accountId).eq("kind", "feedback").eq("metadata->>status", "active").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(Math.max(perLane * 4, 50));
-  if (error2) {
-    console.warn(`[feedback-overlay] semantic load failed: ${error2.message}`);
-    return [];
-  }
-  const rows = data ?? [];
-  const scored = rows.map((r2) => ({ row: r2, score: cosine(args.taskEmbedding, r2.embedding) })).filter((s2) => s2.score >= threshold).sort((a2, b2) => b2.score - a2.score).slice(0, perLane);
-  return scored.map((s2) => rowToItem(s2.row, "semantic", s2.score));
-}
-async function fetchTargetLane(args, perLane, sinceIso) {
-  if (args.bundleMemoryIds.length === 0) return [];
-  const { data, error: error2 } = await args.supabase.from("documents").select(
-    `id, title, metadata, created_at,
-       document_versions!documents_current_version_fk ( content )`
-  ).eq("account_id", args.accountId).eq("kind", "feedback").in("metadata->target->>id", args.bundleMemoryIds).gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(perLane);
-  if (error2) {
-    console.warn(`[feedback-overlay] target lane failed: ${error2.message}`);
-    return [];
-  }
-  const rows = data ?? [];
-  return rows.map((r2) => rowToItem(r2, "target_link", 1));
-}
-function rowToItem(row, lane, similarity) {
-  const v2 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
-  const meta = row.metadata ?? {};
-  const reporter = meta.reporter ?? null;
-  const target = meta.target ?? null;
-  const sentiment = meta.sentiment === "positive" || meta.sentiment === "neutral" || meta.sentiment === "negative" ? meta.sentiment : null;
-  return {
-    id: row.id,
-    title: row.title,
-    body: v2?.content ?? "",
-    rating: typeof meta.rating === "number" ? meta.rating : null,
-    sentiment,
-    source: typeof meta.source === "string" ? meta.source : "unknown",
-    reporter_display_name: reporter?.display_name ?? null,
-    target_kind: target?.kind ?? null,
-    target_id: target?.id ?? null,
-    cluster_id: typeof meta.cluster_id === "string" ? meta.cluster_id : null,
-    similarity,
-    source_lane: lane,
-    created_at: row.created_at
-  };
-}
-function cosine(a2, b2) {
-  if (!b2 || a2.length !== b2.length) return 0;
-  let dot = 0;
-  let na = 0;
-  let nb = 0;
-  for (let i2 = 0; i2 < a2.length; i2++) {
-    const ai = a2[i2] ?? 0;
-    const bi = b2[i2] ?? 0;
-    dot += ai * bi;
-    na += ai * ai;
-    nb += bi * bi;
-  }
-  const denom = Math.sqrt(na) * Math.sqrt(nb);
-  return denom === 0 ? 0 : dot / denom;
-}
-
-// packages/mcp-tools/src/resolver.ts
-function ageDaysSince(observedAt, nowMs) {
-  const then = Date.parse(observedAt);
-  if (Number.isNaN(then)) return 0;
-  return Math.max(0, Math.floor((nowMs - then) / 864e5));
-}
-function isDirectResolverDocumentEligible(row, context, options2 = {}) {
-  if (row.account_id !== context.accountId) return false;
-  if (row.locked_to_owners !== false) return false;
-  const projectId = context.projectId ?? null;
-  if (row.scope === "personal") {
-    if (!context.userId || row.created_by !== context.userId) return false;
-  } else if (row.scope === "project") {
-    if (projectId && row.project_id !== projectId) return false;
-  } else if (row.scope !== "team") {
-    return false;
-  }
-  const association = options2.projectAssociation ?? "scope";
-  if (association === "account-or-active-project") {
-    const rowProjectId = row.project_id;
-    if (projectId && rowProjectId !== null && rowProjectId !== void 0 && rowProjectId !== projectId) {
-      return false;
-    }
-  } else if (association === "active-project") {
-    if (!projectId || row.project_id !== projectId) return false;
-  }
-  const expectedKinds = Array.isArray(options2.expectedKind) ? options2.expectedKind : options2.expectedKind ? [options2.expectedKind] : null;
-  if (expectedKinds && (typeof row.kind !== "string" || !expectedKinds.includes(row.kind))) {
-    return false;
-  }
-  const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata) ? row.metadata : {};
-  const lifecycle = options2.lifecycle ?? "recall";
-  if (lifecycle === "sql-live") return row.status !== "archived";
-  if (lifecycle === "proposed") {
-    return row.status !== "archived" && metadata.status === "proposed";
-  }
-  if (typeof row.kind !== "string") return false;
-  return isEligibleForRecall({
-    status: typeof row.status === "string" ? row.status : null,
-    metadataStatus: typeof metadata.status === "string" ? metadata.status : null,
-    metadataSupersededBy: typeof metadata.superseded_by === "string" ? metadata.superseded_by : null,
-    id: typeof row.id === "string" ? row.id : null,
-    kind: row.kind
-  });
-}
-var AGENT_KIND_ALIASES = /* @__PURE__ */ new Map([
-  ["anthropic-claude-code", "claude-code"],
-  ["claude-code-cli", "claude-code"],
-  ["claudecode", "claude-code"],
-  ["codex-cli", "codex"],
-  ["openai-codex", "codex"],
-  ["gemini-cli", "gemini"],
-  ["vs-code", "vscode"],
-  ["visual-studio-code", "vscode"]
-]);
-function normalizeSkillAgentKind(value) {
-  const normalized = value.normalize("NFKC").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-  return AGENT_KIND_ALIASES.get(normalized) ?? normalized;
-}
-function skillTargetAgents(metadata) {
-  const raw = metadata?.["target-agents"];
-  if (!Array.isArray(raw)) return [];
-  return raw.filter((value) => typeof value === "string").map((value) => value.trim()).filter(Boolean);
-}
-function isSkillTargetedToAgent(metadata, agentKind2) {
-  const targets = skillTargetAgents(metadata);
-  if (targets.length === 0 || !agentKind2?.trim()) return true;
-  const normalizedAgent = normalizeSkillAgentKind(agentKind2);
-  return targets.some((target) => {
-    if (target === "*") return true;
-    const normalizedTarget = normalizeSkillAgentKind(target);
-    return normalizedTarget === "all" || normalizedTarget === normalizedAgent;
-  });
-}
-function antiExampleText(value) {
-  if (typeof value === "string") return value.trim();
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    const text = value.text;
-    return typeof text === "string" ? text.trim() : "";
-  }
-  return "";
-}
-function normalizedBehaviorText(value) {
-  return value.normalize("NFKC").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
-}
-function matchingSkillAntiExample(task, metadata) {
-  const raw = metadata?.["anti-examples"];
-  if (!Array.isArray(raw)) return null;
-  const normalizedTask = normalizedBehaviorText(task);
-  if (!normalizedTask) return null;
-  const taskTokens2 = normalizedTask.split(" ");
-  const taskSet = new Set(taskTokens2);
-  for (const value of raw) {
-    const original = antiExampleText(value);
-    const normalizedCase = normalizedBehaviorText(original);
-    if (!normalizedCase) continue;
-    if (normalizedTask === normalizedCase) return original;
-    const caseTokens = normalizedCase.split(" ");
-    if (caseTokens.length >= 3 && ` ${normalizedTask} `.includes(` ${normalizedCase} `)) {
-      return original;
-    }
-    const meaningful = caseTokens.filter((token) => token.length >= 3);
-    if (meaningful.length < 5) continue;
-    const overlap = meaningful.filter((token) => taskSet.has(token)).length;
-    if (overlap / meaningful.length < 0.9 || overlap < 4) continue;
-    let sharedAdjacentPairs = 0;
-    for (let i2 = 0; i2 < caseTokens.length - 1; i2++) {
-      const pair = `${caseTokens[i2]} ${caseTokens[i2 + 1]}`;
-      if (` ${normalizedTask} `.includes(` ${pair} `)) sharedAdjacentPairs++;
-    }
-    if (sharedAdjacentPairs >= 2) return original;
-  }
-  return null;
-}
-function deterministicCanaryBucket(identityKey, skillId) {
-  const hex = createHash("sha256").update(`${identityKey}\0${skillId}`).digest("hex").slice(0, 13);
-  return Number.parseInt(hex, 16) / 4503599627370496;
-}
-var CONCURRENT_WINDOW_MS = 20 * 6e4;
-var CONCURRENT_MAX = 5;
-var DEPLOY_WINDOW_MS = 12 * 6e4;
-var WORK_SIMILARITY_GATE = 0.62;
-var WORK_PATH_MATCH_MAX = 3;
-var OWN_EDIT_WINDOW_MS = 2 * 60 * 6e4;
-var DOC_PATH_MATCH_MAX = 2;
-var DOC_PATH_BODY_CAP = 6e3;
-var AUTHOR_DOC_MATCH_MAX = 3;
-var AUTHOR_MENTION_MAX = 2;
-var AUTHOR_NAME_MIN_LEN = 3;
-var AMBIGUOUS_NAME_TOKENS = /* @__PURE__ */ new Set([
-  "will",
-  "bill",
-  "grant",
-  "mark",
-  "art",
-  "sue",
-  "ray",
-  "rob",
-  "dawn",
-  "may",
-  "june",
-  "april",
-  "august",
-  "hope",
-  "joy",
-  "frank",
-  "jack",
-  "pat",
-  "max",
-  "guy",
-  "rose",
-  "lane",
-  "dean",
-  "chase"
-]);
-var RECALL_FLOOR_MARGIN = 0.1;
-var RECALL_FLOOR_MIN = 0.25;
-var CONCURRENT_PR_WINDOW_MS = 24 * 60 * 6e4;
-var CONCURRENT_PR_MAX = 3;
-var DUP_SIMILARITY_GATE = 0.86;
-function parsePgVector(v2) {
-  if (Array.isArray(v2)) return v2;
-  if (typeof v2 !== "string") return null;
-  try {
-    const arr = JSON.parse(v2);
-    return Array.isArray(arr) ? arr : null;
-  } catch {
-    return null;
-  }
-}
-function cosineSim(a2, b2) {
-  if (a2.length !== b2.length) return 0;
-  let dot = 0;
-  let na = 0;
-  let nb = 0;
-  for (let i2 = 0; i2 < a2.length; i2++) {
-    dot += a2[i2] * b2[i2];
-    na += a2[i2] * a2[i2];
-    nb += b2[i2] * b2[i2];
-  }
-  if (na === 0 || nb === 0) return 0;
-  return dot / (Math.sqrt(na) * Math.sqrt(nb));
-}
-var TASK_OVERLAP_PROMOTE = 0.34;
-var TASK_OVERLAP_MIN_SHARED = 2;
-var TASK_STOPWORDS = /* @__PURE__ */ new Set([
-  "this",
-  "that",
-  "with",
-  "from",
-  "have",
-  "want",
-  "need",
-  "make",
-  "sure",
-  "just",
-  "into",
-  "your",
-  "their",
-  "about",
-  "which",
-  "when",
-  "will",
-  "should",
-  "would",
-  "could",
-  "there",
-  "here",
-  "then",
-  "them",
-  "they",
-  "what",
-  "were",
-  "also",
-  "some",
-  "more",
-  "than",
-  "only",
-  "going",
-  "still",
-  "like",
-  "really",
-  "right",
-  "cause"
-]);
-function taskTokens(task) {
-  return new Set(
-    task.toLowerCase().split(/[^a-z0-9]+/).filter((t2) => t2.length >= 4 && !TASK_STOPWORDS.has(t2))
-  );
-}
-function taskOverlap(a2, b2) {
-  const ta = taskTokens(a2);
-  const tb = taskTokens(b2);
-  if (ta.size === 0 || tb.size === 0) return { score: 0, shared: 0 };
-  let shared = 0;
-  for (const t2 of ta) if (tb.has(t2)) shared++;
-  return { score: shared / Math.min(ta.size, tb.size), shared };
-}
-function buildCollisionWarnings(concurrent, activeComponentName, currentTask) {
-  if (concurrent.length === 0) return [];
-  const others = concurrent.filter((entry) => entry.same_user !== true);
-  if (others.length === 0) return [];
-  const currentArea = activeComponentName ?? null;
-  const warnings = [];
-  const dupes = others.filter(
-    (entry) => typeof entry.task_similarity === "number" && entry.task_similarity >= DUP_SIMILARITY_GATE
-  );
-  const dupeKeys = new Set(dupes.map((entry) => entry.session_short ?? entry.task));
-  if (dupes.length > 0) {
-    const pct = Math.round(
-      Math.max(...dupes.map((entry) => entry.task_similarity)) * 100
-    );
-    warnings.push({
-      component: currentArea,
-      guidance: `Likely DUPLICATE work: another live session is running a near-identical task (${pct}% match). Check what they're building before you continue \u2014 you may be redoing it. Coordinate, take their branch, or split off a non-overlapping slice.`,
-      entries: dupes
-    });
-  }
-  const rest = others.filter((entry) => !dupeKeys.has(entry.session_short ?? entry.task));
-  let overlapping;
-  let area;
-  if (currentArea) {
-    overlapping = rest.filter((entry) => (entry.component ?? null) === currentArea);
-    area = `component "${currentArea}"`;
-  } else {
-    overlapping = rest.filter((entry) => {
-      if ((entry.component ?? null) !== null) return false;
-      const { score, shared } = taskOverlap(currentTask, entry.task);
-      return score >= TASK_OVERLAP_PROMOTE && shared >= TASK_OVERLAP_MIN_SHARED;
-    });
-    area = "the same work area";
-  }
-  if (overlapping.length > 0) {
-    warnings.push({
-      component: currentArea,
-      guidance: `Possible collision: another agent is active in ${area}. Route around their task, wait for it to finish, or split your work into a separate branch/worktree before editing the same files.`,
-      entries: overlapping
-    });
-  }
-  return warnings;
-}
-async function assembleConcurrentWork(ctx, projectId, ownSessionId, componentNameById, queryVec) {
-  if (!projectId) return [];
-  const sinceIso = new Date(Date.now() - CONCURRENT_WINDOW_MS).toISOString();
-  const { data, error: error2 } = await ctx.supabase.from("usage_events").select("id, created_at, user_id, metadata").eq("account_id", ctx.accountId).eq("event_type", "resolve.invocation").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(300);
-  if (error2 || !data) {
-    console.warn(
-      `[resolver] concurrent-work query failed: ${error2?.message ?? "no rows"} \u2014 proceeding without it`
-    );
-    return [];
-  }
-  const latest = /* @__PURE__ */ new Map();
-  for (const row of data) {
-    const meta = row.metadata ?? {};
-    if (meta.project_id !== projectId) continue;
-    const sid = typeof meta.session_id === "string" ? meta.session_id : null;
-    if (!sid || sid === ownSessionId) continue;
-    if (!latest.has(sid))
-      latest.set(sid, { id: row.id, meta, at: row.created_at, userId: row.user_id ?? null });
-  }
-  const embById = /* @__PURE__ */ new Map();
-  if (queryVec && latest.size > 0) {
-    const ids = [...latest.values()].map((r2) => r2.id);
-    const { data: embRows, error: embErr } = await ctx.supabase.from("usage_events").select("id, task_embedding").in("id", ids);
-    if (embErr) {
-      console.warn(
-        `[resolver] concurrent-work embedding fetch failed: ${embErr.message} \u2014 proceeding without similarity`
-      );
-    } else {
-      for (const r2 of embRows ?? []) {
-        const v2 = parsePgVector(r2.task_embedding);
-        if (v2 && v2.length === queryVec.length) embById.set(String(r2.id), v2);
-      }
-    }
-  }
-  const now = Date.now();
-  const entries = [];
-  for (const [sid, { id, meta, at: at2, userId }] of latest) {
-    const compId = typeof meta.active_component_id === "string" ? meta.active_component_id : null;
-    const component = compId ? componentNameById.get(compId)?.name ?? null : null;
-    const task = typeof meta.task === "string" ? meta.task.slice(0, 140) : "";
-    const v2 = embById.get(String(id));
-    const task_similarity = queryVec && v2 ? Math.round(cosineSim(queryVec, v2) * 100) / 100 : void 0;
-    entries.push({
-      source: "resolve",
-      component,
-      task,
-      task_similarity,
-      minutes_ago: Math.max(0, Math.round((now - new Date(at2).getTime()) / 6e4)),
-      session_short: sid.slice(0, 8),
-      agent_kind: typeof meta.agent_kind === "string" ? meta.agent_kind : null,
-      // "Your own other window" — surfaced, but never escalated to a collision.
-      same_user: userId != null && userId === (ctx.userId ?? null)
-    });
-  }
-  const { data: claims, error: claimsErr } = await ctx.supabase.from("component_claims").select("component_id, task, path, expires_at, created_at").eq("project_id", projectId).is("released_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("expires_at", { ascending: true }).limit(20);
-  if (claimsErr) {
-    console.warn(
-      `[resolver] component-claims query failed: ${claimsErr.message} \u2014 proceeding without claims`
-    );
-  } else {
-    for (const claim of claims ?? []) {
-      const component = claim.component_id ? componentNameById.get(claim.component_id)?.name ?? null : null;
-      entries.push({
-        source: "claim",
-        component,
-        task: (claim.task ?? claim.path ?? "claimed work area").slice(0, 140),
-        minutes_ago: Math.max(0, Math.round((now - new Date(claim.created_at).getTime()) / 6e4))
-      });
-    }
-  }
-  entries.sort((a2, b2) => a2.minutes_ago - b2.minutes_ago);
-  return entries.slice(0, CONCURRENT_MAX);
-}
-var FILE_ACTIVITY_WINDOW_MS = 15 * 6e4;
-var FILE_ACTIVITY_MAX = 8;
-async function assembleFileActivity(ctx, projectId, ownSessionId, ownUserId) {
-  if (!projectId) return [];
-  const sinceIso = new Date(Date.now() - FILE_ACTIVITY_WINDOW_MS).toISOString();
-  const { data, error: error2 } = await ctx.supabase.from("usage_events").select("created_at, user_id, metadata").eq("account_id", ctx.accountId).eq("event_type", "edit.activity").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(300);
-  if (error2 || !data) {
-    return [];
-  }
-  const now = Date.now();
-  const seen = /* @__PURE__ */ new Set();
-  const edits = [];
-  for (const row of data) {
-    const meta = row.metadata ?? {};
-    if (meta.project_id !== projectId) continue;
-    const sid = typeof meta.session_id === "string" ? meta.session_id : null;
-    if (sid && sid === ownSessionId) continue;
-    const paths = Array.isArray(meta.paths) ? meta.paths : [];
-    const agentKind2 = typeof meta.agent_kind === "string" ? meta.agent_kind : null;
-    const sameUser = row.user_id != null && row.user_id === ownUserId;
-    const minutesAgo = Math.max(0, Math.round((now - new Date(row.created_at).getTime()) / 6e4));
-    for (const p2 of paths) {
-      if (typeof p2 !== "string" || !p2) continue;
-      if (seen.has(p2)) continue;
-      seen.add(p2);
-      edits.push({
-        path: p2,
-        session_short: sid ? sid.slice(0, 8) : null,
-        agent_kind: agentKind2,
-        same_user: sameUser,
-        minutes_ago: minutesAgo
-      });
-      if (edits.length >= FILE_ACTIVITY_MAX) return edits;
-    }
-  }
-  return edits;
-}
-async function assembleEditOwnership(ctx, projectId, ownSessionId) {
-  if (!projectId || !ownSessionId) return [];
-  const { data, error: error2 } = await ctx.supabase.from("edit_conflicts").select("id, path, owner_session_id, contender_session_id, reason, created_at").eq("account_id", ctx.accountId).eq("project_id", projectId).eq("status", "open").or(`owner_session_id.eq.${ownSessionId},contender_session_id.eq.${ownSessionId}`).order("created_at", { ascending: false }).limit(20);
-  if (error2 || !data) return [];
-  return data.map((row) => ({
-    id: row.id,
-    path: row.path,
-    role: row.owner_session_id === ownSessionId ? "owner" : "contender",
-    owner_session_short: row.owner_session_id.slice(0, 12),
-    contender_session_short: row.contender_session_id.slice(0, 12),
-    reason: row.reason,
-    created_at: row.created_at
-  }));
-}
-async function assembleDeployInProgress(ctx, projectId, ownSessionId, componentNameById) {
-  if (!projectId) return [];
-  const now = Date.now();
-  const latest = /* @__PURE__ */ new Map();
-  const { data: leases, error: leaseErr } = await ctx.supabase.from("deploy_leases").select("session_id, task, acquired_at, expires_at, released_at").eq("account_id", ctx.accountId).eq("project_id", projectId).is("released_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString());
-  if (leaseErr) {
-    console.warn(
-      `[resolver] deploy-lease read failed: ${leaseErr.message} \u2014 falling back to activity`
-    );
-  } else {
-    for (const row of leases ?? []) {
-      const sid = typeof row.session_id === "string" ? row.session_id : null;
-      if (!sid || sid === ownSessionId) continue;
-      const task = typeof row.task === "string" ? row.task : "";
-      if (!isLiveShipSignal(task)) continue;
-      latest.set(sid, {
-        task: task.slice(0, 140),
-        at: typeof row.acquired_at === "string" ? row.acquired_at : (/* @__PURE__ */ new Date()).toISOString(),
-        component: null
-      });
-    }
-  }
-  if (latest.size === 0) {
-    const sinceIso = new Date(now - DEPLOY_WINDOW_MS).toISOString();
-    const { data, error: error2 } = await ctx.supabase.from("usage_events").select("created_at, metadata").eq("account_id", ctx.accountId).eq("event_type", "deploy.activity").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(300);
-    if (error2) {
-      console.warn(
-        `[resolver] deploy-in-progress query failed: ${error2.message} \u2014 proceeding without it`
-      );
-    } else if (data) {
-      for (const row of data) {
-        const meta = row.metadata ?? {};
-        if (meta.project_id !== projectId) continue;
-        const sid = typeof meta.session_id === "string" ? meta.session_id : null;
-        if (!sid || sid === ownSessionId) continue;
-        const task = typeof meta.task === "string" ? meta.task : "";
-        if (!isLiveShipSignal(task, meta)) continue;
-        if (!latest.has(sid)) {
-          const compId = typeof meta.active_component_id === "string" ? meta.active_component_id : null;
-          latest.set(sid, {
-            task: task.slice(0, 140),
-            at: row.created_at,
-            component: compId ? componentNameById.get(compId)?.name ?? null : null
-          });
-        }
-      }
-    }
-  }
-  const entries = [];
-  for (const [sid, { task, at: at2, component }] of latest) {
-    entries.push({
-      session_short: sid.slice(0, 6),
-      task,
-      component,
-      minutes_ago: Math.max(0, Math.round((now - new Date(at2).getTime()) / 6e4))
-    });
-  }
-  entries.sort((a2, b2) => a2.minutes_ago - b2.minutes_ago);
-  return entries.slice(0, CONCURRENT_MAX);
-}
-async function assembleWorkInFlight(ctx, projectId, queryVec) {
-  if (!queryVec) return [];
-  const { data, error: error2 } = await ctx.supabase.rpc("search_work_items", {
-    p_account_id: ctx.accountId,
-    p_project_id: projectId,
-    p_query_embedding: queryVec,
-    p_limit: CONCURRENT_MAX
-  });
-  if (error2 || !data) {
-    if (error2) {
-      console.warn(
-        `[resolver] work-in-flight query failed: ${error2.message} \u2014 proceeding without it`
-      );
-    }
-    return [];
-  }
-  const now = Date.now();
-  const rows = data;
-  const entries = [];
-  for (const r2 of rows) {
-    if (typeof r2.similarity !== "number" || r2.similarity < WORK_SIMILARITY_GATE) continue;
-    const stamp = r2.state === "merged" ? r2.merged_at : r2.pr_updated_at;
-    const ageDays = stamp ? Math.max(0, Math.round((now - new Date(stamp).getTime()) / 864e5)) : 0;
-    entries.push({
-      state: r2.state === "merged" ? "merged" : "open",
-      number: r2.number,
-      title: typeof r2.title === "string" ? r2.title.slice(0, 140) : "",
-      url: r2.url ?? null,
-      author_login: r2.author_login ?? null,
-      head_ref: r2.head_ref ?? null,
-      repo_full_name: r2.repo_full_name,
-      similarity: Math.round(r2.similarity * 100) / 100,
-      age_days: ageDays
-    });
-  }
-  return entries;
-}
-function dirsOfPaths(paths) {
-  const dirs = [];
-  const seen = /* @__PURE__ */ new Set();
-  for (const p2 of paths) {
-    if (typeof p2 !== "string" || !p2) continue;
-    const clean = p2.replace(/^\.?\//, "").trim();
-    if (!clean) continue;
-    const segs = clean.split("/");
-    segs.pop();
-    const d2 = segs.length === 0 ? "." : segs.slice(0, 3).join("/");
-    if (seen.has(d2)) continue;
-    seen.add(d2);
-    dirs.push(d2);
-    if (dirs.length >= 30) break;
-  }
-  return dirs;
-}
-function extractPathTokens(task) {
-  const out = [];
-  const re2 = /(?:^|[\s`'"(,;])((?:[\w.@-]+\/)+[\w.@*-]+)/g;
-  let m2;
-  while ((m2 = re2.exec(task)) !== null && out.length < 10) {
-    const tok = m2[1].replace(/[.,;:)]+$/, "");
-    if (/^https?:/.test(tok) || tok.includes("//")) continue;
-    out.push(tok);
-  }
-  return out;
-}
-function wordMatchPosition(haystackLower, needleLower) {
-  if (needleLower.length < AUTHOR_NAME_MIN_LEN) return -1;
-  const escaped = needleLower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const m2 = new RegExp(`(?:^|[^\\p{L}\\p{N}_])(${escaped})(?=$|[^\\p{L}\\p{N}_])`, "u").exec(
-    haystackLower
-  );
-  return m2 ? m2.index + m2[0].indexOf(m2[1]) : -1;
-}
-function detectMentionedMembers(task, members) {
-  if (!task || members.length === 0) return [];
-  const haystack = task.toLowerCase();
-  const found = /* @__PURE__ */ new Map();
-  for (const member of members) {
-    const displayName = member.display_name?.trim() ?? "";
-    const nameTokens = displayName.toLowerCase().split(/\s+/).filter(Boolean);
-    const emailLocal = member.email?.split("@")[0]?.toLowerCase() ?? "";
-    let hit = null;
-    if (nameTokens.length >= 2) {
-      const pos = wordMatchPosition(haystack, nameTokens.join(" "));
-      if (pos >= 0) hit = { matched_on: "full_name", position: pos };
-    }
-    if (!hit && nameTokens[0] && !AMBIGUOUS_NAME_TOKENS.has(nameTokens[0])) {
-      const pos = wordMatchPosition(haystack, nameTokens[0]);
-      if (pos >= 0) hit = { matched_on: "first_name", position: pos };
-    }
-    if (!hit && emailLocal && !AMBIGUOUS_NAME_TOKENS.has(emailLocal)) {
-      for (const candidate of [.../* @__PURE__ */ new Set([emailLocal, emailLocal.split(".")[0] ?? ""])]) {
-        if (!candidate || AMBIGUOUS_NAME_TOKENS.has(candidate)) continue;
-        const pos = wordMatchPosition(haystack, candidate);
-        if (pos >= 0) {
-          hit = { matched_on: "email_local", position: pos };
-          break;
-        }
-      }
-    }
-    if (!hit) continue;
-    const existing = found.get(member.user_id);
-    if (!existing || hit.position < existing.position) {
-      found.set(member.user_id, {
-        user_id: member.user_id,
-        name: displayName || emailLocal || member.user_id,
-        matched_on: hit.matched_on,
-        position: hit.position
-      });
-    }
-  }
-  return [...found.values()].sort((a2, b2) => a2.position - b2.position).slice(0, AUTHOR_MENTION_MAX);
-}
-function patternPrefixDirs(patterns) {
-  const out = [];
-  for (const pat of patterns) {
-    if (typeof pat !== "string" || !pat) continue;
-    const segs = [];
-    for (const seg of pat.replace(/^\.?\//, "").split("/")) {
-      if (!seg || /[*?[\]{}]/.test(seg)) break;
-      segs.push(seg);
-      if (segs.length >= 3) break;
-    }
-    if (segs.length > 0) out.push(segs.join("/"));
-  }
-  return [...new Set(out)];
-}
-async function assembleOwnEditPaths(ctx, projectId, ownSessionId) {
-  if (!projectId || !ownSessionId) return [];
-  const sinceIso = new Date(Date.now() - OWN_EDIT_WINDOW_MS).toISOString();
-  const { data, error: error2 } = await ctx.supabase.from("usage_events").select("metadata").eq("account_id", ctx.accountId).eq("event_type", "edit.activity").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(300);
-  if (error2 || !data) return [];
-  const paths = [];
-  const seen = /* @__PURE__ */ new Set();
-  for (const row of data) {
-    const meta = row.metadata ?? {};
-    if (meta.project_id !== projectId) continue;
-    if (meta.session_id !== ownSessionId) continue;
-    for (const p2 of Array.isArray(meta.paths) ? meta.paths : []) {
-      if (typeof p2 !== "string" || !p2 || seen.has(p2)) continue;
-      seen.add(p2);
-      paths.push(p2);
-      if (paths.length >= 50) return paths;
-    }
-  }
-  return paths;
-}
-async function assembleWorkTouchingMyFiles(ctx, projectId, myDirs) {
-  if (myDirs.length === 0) return [];
-  const { data, error: error2 } = await ctx.supabase.rpc("search_work_items_by_paths", {
-    p_account_id: ctx.accountId,
-    p_project_id: projectId,
-    p_dirs: myDirs,
-    p_limit: WORK_PATH_MATCH_MAX
-  });
-  if (error2 || !data) {
-    if (error2 && error2.code !== "PGRST202") {
-      console.warn(
-        `[resolver] path-matched work query failed: ${error2.message} \u2014 proceeding without it`
-      );
-    }
-    return [];
-  }
-  const now = Date.now();
-  const entries = [];
-  for (const r2 of data) {
-    const ageDays = r2.pr_updated_at ? Math.max(0, Math.round((now - new Date(r2.pr_updated_at).getTime()) / 864e5)) : 0;
-    entries.push({
-      state: "open",
-      number: r2.number,
-      title: typeof r2.title === "string" ? r2.title.slice(0, 140) : "",
-      url: r2.url ?? null,
-      author_login: r2.author_login ?? null,
-      head_ref: r2.head_ref ?? null,
-      repo_full_name: r2.repo_full_name,
-      similarity: 0,
-      age_days: ageDays,
-      match: "paths",
-      overlap_paths: (r2.matched_dirs ?? []).slice(0, 6)
-    });
-  }
-  return entries;
-}
-function mergeWorkInFlight(semantic, pathMatched) {
-  const out = semantic.map((e2) => ({
-    ...e2,
-    match: e2.match ?? "semantic"
-  }));
-  const byKey = new Map(out.map((e2) => [`${e2.repo_full_name}#${e2.number}`, e2]));
-  for (const p2 of pathMatched) {
-    const existing = byKey.get(`${p2.repo_full_name}#${p2.number}`);
-    if (existing) {
-      existing.match = "both";
-      existing.overlap_paths = p2.overlap_paths;
-    } else {
-      out.push(p2);
-    }
-  }
-  return out;
-}
-async function assembleOpenPrPresence(ctx, projectId, ownSessionId, ownUserId) {
-  if (!projectId) return [];
-  const { data: prRows, error: prErr } = await ctx.supabase.from("work_items").select("head_ref, number").eq("account_id", ctx.accountId).eq("project_id", projectId).eq("state", "open").not("head_ref", "is", null).limit(100);
-  if (prErr || !prRows || prRows.length === 0) return [];
-  const prByBranch = new Map(
-    prRows.map((r2) => [r2.head_ref, r2.number])
-  );
-  const sinceIso = new Date(Date.now() - CONCURRENT_PR_WINDOW_MS).toISOString();
-  const { data, error: error2 } = await ctx.supabase.from("usage_events").select("created_at, user_id, metadata").eq("account_id", ctx.accountId).eq("event_type", "resolve.invocation").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(500);
-  if (error2 || !data) return [];
-  const now = Date.now();
-  const entries = [];
-  const seen = /* @__PURE__ */ new Set();
-  for (const row of data) {
-    const meta = row.metadata ?? {};
-    if (meta.project_id !== projectId) continue;
-    const sid = typeof meta.session_id === "string" ? meta.session_id : null;
-    if (!sid || sid === ownSessionId || seen.has(sid)) continue;
-    const branch = typeof meta.git_branch === "string" ? meta.git_branch : null;
-    if (!branch || !prByBranch.has(branch)) continue;
-    seen.add(sid);
-    entries.push({
-      component: null,
-      task: typeof meta.task === "string" ? meta.task.slice(0, 140) : "",
-      minutes_ago: Math.max(0, Math.round((now - new Date(row.created_at).getTime()) / 6e4)),
-      session_short: sid.slice(0, 8),
-      agent_kind: typeof meta.agent_kind === "string" ? meta.agent_kind : null,
-      same_user: row.user_id != null && row.user_id === ownUserId,
-      presence: "open_pr",
-      open_pr_number: prByBranch.get(branch)
-    });
-    if (entries.length >= CONCURRENT_PR_MAX) break;
-  }
-  return entries;
-}
-async function attachWorkItemProposals(ctx, entries, projectId = ctx.projectId ?? null) {
-  const open = entries.filter((e2) => e2.state === "open").slice(0, 3);
-  await Promise.all(
-    open.map(async (entry) => {
-      try {
-        const { data } = await ctx.supabase.from("documents").select(
-          "id, account_id, created_by, locked_to_owners, scope, project_id, status, title, kind, metadata"
-        ).eq("account_id", ctx.accountId).eq("locked_to_owners", false).eq("metadata->>status", "proposed").eq("metadata->source_ref->>repo_full_name", entry.repo_full_name).eq("metadata->source_ref->>pr_number", String(entry.number)).limit(2);
-        const rows = (data ?? []).filter(
-          (row) => isDirectResolverDocumentEligible(
-            row,
-            { accountId: ctx.accountId, userId: ctx.userId, projectId },
-            {
-              lifecycle: "proposed",
-              projectAssociation: projectId ? "active-project" : "scope"
-            }
-          )
-        );
-        if (rows.length > 0) {
-          entry.proposals = rows.map((r2) => ({ title: r2.title.slice(0, 120), kind: r2.kind }));
-        }
-      } catch {
-      }
-    })
-  );
-}
-async function assembleDocsTouchingMyFiles(ctx, projectId, myDirs, excludeIds, applicability = {}) {
-  if (myDirs.length === 0) return [];
-  const { data, error: error2 } = await ctx.supabase.rpc("search_documents_by_paths", {
-    p_account_id: ctx.accountId,
-    p_project_id: projectId,
-    p_dirs: myDirs,
-    p_limit: DOC_PATH_MATCH_MAX + excludeIds.size
-  });
-  if (error2 || !data) {
-    if (error2 && error2.code !== "PGRST202") {
-      console.warn(
-        `[resolver] path-matched docs query failed: ${error2.message} \u2014 proceeding without it`
-      );
-    }
-    return [];
-  }
-  const pathRows = data;
-  const pathIds = [...new Set(pathRows.map((row) => row.id).filter(Boolean))];
-  if (pathIds.length === 0) return [];
-  const { data: visibilityRows, error: visibilityErr } = await ctx.supabase.from("documents").select(
-    "id, account_id, created_by, locked_to_owners, scope, project_id, status, kind, metadata"
-  ).eq("account_id", ctx.accountId).eq("locked_to_owners", false).in("id", pathIds);
-  if (visibilityErr) {
-    console.warn(
-      `[resolver] path-matched docs visibility fetch failed: ${visibilityErr.message} \u2014 dropping path matches`
-    );
-    return [];
-  }
-  const visibleRowById = /* @__PURE__ */ new Map();
-  for (const row of visibilityRows ?? []) {
-    if (isDirectResolverDocumentEligible(row, {
-      accountId: ctx.accountId,
-      userId: ctx.userId,
-      projectId
-    }) && typeof row.id === "string" && typeof row.kind === "string") {
-      visibleRowById.set(row.id, row);
-    }
-  }
-  const items = [];
-  for (const r2 of pathRows) {
-    if (excludeIds.has(r2.id)) continue;
-    const visibility = visibleRowById.get(r2.id);
-    if (visibility?.kind !== r2.kind) continue;
-    if (r2.kind !== "memory" && r2.kind !== "skill" && r2.kind !== "decision" && r2.kind !== "schema" && r2.kind !== "goal")
-      continue;
-    const metadata = visibility.metadata && typeof visibility.metadata === "object" && !Array.isArray(visibility.metadata) ? visibility.metadata : {};
-    if (r2.kind === "skill" && !isSkillTargetedToAgent(metadata, applicability.agentKind)) {
-      applicability.onOmitted?.({
-        id: r2.id,
-        kind: "skill",
-        title: r2.title,
-        similarity: 0,
-        reason: "agent_target_mismatch",
-        detail: `path-matched skill targets [${skillTargetAgents(metadata).join(", ")}], not agent ${applicability.agentKind}`,
-        path: r2.path
-      });
-      continue;
-    }
-    const antiExample = r2.kind === "skill" && !applicability.requiredIds?.has(r2.id) && applicability.task ? matchingSkillAntiExample(applicability.task, metadata) : null;
-    if (antiExample) {
-      applicability.onOmitted?.({
-        id: r2.id,
-        kind: "skill",
-        title: r2.title,
-        similarity: 0,
-        reason: "anti_example_match",
-        detail: `path-matched task high-precision matched skill anti-example: ${antiExample.slice(0, 240)}`,
-        path: r2.path
-      });
-      continue;
-    }
-    const rawBody = r2.body ?? "";
-    items.push({
-      id: r2.id,
-      kind: r2.kind,
-      title: r2.title,
-      body: rawBody.length > DOC_PATH_BODY_CAP ? `${rawBody.slice(0, DOC_PATH_BODY_CAP)}
-\u2026 (truncated \u2014 path-matched doc)` : rawBody,
-      similarity: 0,
-      citation: {
-        path: r2.path,
-        version_number: r2.version_number ?? 1,
-        updated_at: r2.updated_at,
-        author_id: r2.author_id
-      },
-      component_id: null,
-      component_name: null,
-      match_source: "paths",
-      overlap_paths: (r2.matched_dirs ?? []).slice(0, 6)
-    });
-    if (items.length >= DOC_PATH_MATCH_MAX) break;
-  }
-  return items;
-}
-async function assembleDocsAuthoredBy(ctx, projectId, members, excludeIds, applicability = {}) {
-  if (members.length === 0) return [];
-  const nameByUserId = new Map(members.map((m2) => [m2.user_id, m2.name]));
-  const memberIds = [...nameByUserId.keys()];
-  const fetchLimit = AUTHOR_DOC_MATCH_MAX * 4 + excludeIds.size;
-  const docColumns = `id, account_id, created_by, locked_to_owners, scope, project_id, status,
-       kind, title, path, updated_at, metadata`;
-  const versionEmbed = "document_versions!documents_current_version_fk";
-  const [strong, fallback] = await Promise.all([
-    ctx.supabase.from("documents").select(`${docColumns}, ${versionEmbed}!inner ( content, version_number, author_id )`).eq("account_id", ctx.accountId).eq("locked_to_owners", false).neq("status", "archived").in("document_versions.author_id", memberIds).order("updated_at", { ascending: false }).limit(fetchLimit),
-    ctx.supabase.from("documents").select(`${docColumns}, ${versionEmbed} ( content, version_number, author_id )`).eq("account_id", ctx.accountId).eq("locked_to_owners", false).neq("status", "archived").or(
-      `created_by.in.(${memberIds.join(",")}),metadata->>proposed_by_user_id.in.(${memberIds.join(",")})`
-    ).order("updated_at", { ascending: false }).limit(fetchLimit)
-  ]);
-  for (const q2 of [strong, fallback]) {
-    if (q2.error) {
-      console.warn(
-        `[resolver] author-attributed docs query failed: ${q2.error.message} \u2014 proceeding without it`
-      );
-    }
-  }
-  const seenIds = /* @__PURE__ */ new Set();
-  const rows = [];
-  for (const raw of [...strong.data ?? [], ...fallback.data ?? []]) {
-    const id = typeof raw.id === "string" ? raw.id : null;
-    if (!id || seenIds.has(id)) continue;
-    seenIds.add(id);
-    rows.push(raw);
-  }
-  rows.sort((a2, b2) => String(b2.updated_at ?? "").localeCompare(String(a2.updated_at ?? "")));
-  const items = [];
-  for (const raw of rows) {
-    const id = typeof raw.id === "string" ? raw.id : null;
-    const kind2 = typeof raw.kind === "string" ? raw.kind : null;
-    if (!id || excludeIds.has(id)) continue;
-    if (kind2 !== "memory" && kind2 !== "skill" && kind2 !== "decision" && kind2 !== "schema" && kind2 !== "goal")
-      continue;
-    if (!isDirectResolverDocumentEligible(raw, {
-      accountId: ctx.accountId,
-      userId: ctx.userId,
-      projectId
-    }))
-      continue;
-    const version4 = Array.isArray(raw.document_versions) ? raw.document_versions[0] : raw.document_versions;
-    const metadata = raw.metadata && typeof raw.metadata === "object" && !Array.isArray(raw.metadata) ? raw.metadata : {};
-    const proposedBy = typeof metadata.proposed_by_user_id === "string" ? metadata.proposed_by_user_id : null;
-    const attributedTo = [version4?.author_id ?? null, raw.created_by ?? null, proposedBy].find(
-      (candidate) => typeof candidate === "string" && nameByUserId.has(candidate)
-    );
-    const authorName = attributedTo ? nameByUserId.get(attributedTo) : void 0;
-    if (!attributedTo || !authorName) continue;
-    const title = typeof raw.title === "string" ? raw.title : "";
-    const path19 = typeof raw.path === "string" ? raw.path : null;
-    if (kind2 === "skill" && !isSkillTargetedToAgent(metadata, applicability.agentKind)) {
-      applicability.onOmitted?.({
-        id,
-        kind: "skill",
-        title,
-        similarity: 0,
-        reason: "agent_target_mismatch",
-        detail: `author-attributed skill targets [${skillTargetAgents(metadata).join(", ")}], not agent ${applicability.agentKind}`,
-        path: path19
-      });
-      continue;
-    }
-    const antiExample = kind2 === "skill" && !applicability.requiredIds?.has(id) && applicability.task ? matchingSkillAntiExample(applicability.task, metadata) : null;
-    if (antiExample) {
-      applicability.onOmitted?.({
-        id,
-        kind: "skill",
-        title,
-        similarity: 0,
-        reason: "anti_example_match",
-        detail: `author-attributed task high-precision matched skill anti-example: ${antiExample.slice(0, 240)}`,
-        path: path19
-      });
-      continue;
-    }
-    const rawBody = version4?.content ?? "";
-    items.push({
-      id,
-      kind: kind2,
-      title,
-      body: rawBody.length > DOC_PATH_BODY_CAP ? `${rawBody.slice(0, DOC_PATH_BODY_CAP)}
-\u2026 (truncated \u2014 author-attributed doc)` : rawBody,
-      similarity: 0,
-      citation: {
-        path: path19,
-        version_number: version4?.version_number ?? 1,
-        updated_at: typeof raw.updated_at === "string" ? raw.updated_at : "",
-        // The citation reports the version's true author (possibly null on
-        // pre-stamping captures); author_match reports who the doc was
-        // ATTRIBUTED to, which may come from a fallback door.
-        author_id: version4?.author_id ?? null
-      },
-      component_id: null,
-      component_name: null,
-      match_source: "author",
-      author_match: { user_id: attributedTo, name: authorName }
-    });
-    if (items.length >= AUTHOR_DOC_MATCH_MAX) break;
-  }
-  return items;
-}
-async function recordDeployActivity(ctx, deploy) {
-  try {
-    await ctx.supabase.rpc("record_usage_event", {
-      p_account_id: ctx.accountId,
-      p_event_type: "deploy.activity",
-      p_units: 1,
-      p_user_id: ctx.userId ?? null,
-      p_metadata: {
-        session_id: deploy.sessionId,
-        project_id: deploy.projectId,
-        task: sanitizeAuditTask(deploy.task).task,
-        active_component_id: deploy.activeComponentId,
-        active_component_name: deploy.activeComponentName,
-        agent_kind: deploy.agentKind,
-        // Carry the install id so the dashboard's liveness patch can attribute
-        // the deploy back to the agent that's deploying (it keys off
-        // agent_installation_id first, then agent_kind+user_id).
-        agent_installation_id: deploy.agentInstallationId,
-        source: "resolve"
-      }
-    });
-  } catch (e2) {
-    console.warn(
-      `[resolver] deploy.activity record failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding`
-    );
-  }
-}
-function wantsClaimGuardrails(task) {
-  return /\b(marketing|sales|landing page|copy|claim|claims|pricing|customer|support|competitive|competitor|positioning|objection)\b/i.test(
-    task
-  );
-}
-var BRAND_VOCAB = /\b(brand|branding|copy|copywriting|tagline|slogan|tone|voice|logo|colou?rs?|palette|typography|font|design|microcopy|headline|blog|email|newsletter|announcement|social|tweet|post|deck|slides?|website|homepage|hero|empty state|ui text|user[- ]facing)\b/i;
-var BRAND_DEMOTABLE_CATEGORIES = /* @__PURE__ */ new Set([
-  "bug",
-  "refactor",
-  "test",
-  "migration",
-  "infra",
-  "chore"
-]);
-function taskLooksBrandRelated(task) {
-  if (wantsClaimGuardrails(task)) return true;
-  if (BRAND_VOCAB.test(task)) return true;
-  return !BRAND_DEMOTABLE_CATEGORIES.has(classifyTask(task));
-}
-async function assembleClaimGuardrails(ctx, projectId) {
-  let query = ctx.supabase.from("documents").select(
-    `id, account_id, created_by, locked_to_owners, scope, project_id, status,
-       kind, title, path, metadata, updated_at,
-       document_versions!documents_current_version_fk ( content, version_number, author_id )`
-  ).eq("account_id", ctx.accountId).eq("kind", "memory").not("metadata->>claim_guardrail", "is", null).eq("locked_to_owners", false).limit(50);
-  if (projectId) query = query.or(`project_id.is.null,project_id.eq.${projectId}`);
-  else query = query.is("project_id", null);
-  const { data, error: error2 } = await query;
-  if (error2) {
-    console.warn(`[resolver] claim guardrails fetch failed: ${error2.message}`);
-    return null;
-  }
-  const out = { approved: [], blocked: [], competitor_facts: [] };
-  for (const row of data ?? []) {
-    if (!isDirectResolverDocumentEligible(
-      row,
-      { accountId: ctx.accountId, userId: ctx.userId, projectId },
-      { projectAssociation: "account-or-active-project", expectedKind: "memory" }
-    )) {
-      continue;
-    }
-    const metadata = row.metadata ?? {};
-    const guardrail = metadata.claim_guardrail;
-    if (guardrail !== "approved" && guardrail !== "blocked" && guardrail !== "competitor_facts")
-      continue;
-    const version4 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
-    const item = {
-      id: row.id,
-      kind: "memory",
-      title: row.title,
-      body: version4?.content ?? "",
-      similarity: 1,
-      citation: {
-        path: row.path ?? null,
-        version_number: version4?.version_number ?? 1,
-        updated_at: row.updated_at,
-        author_id: version4?.author_id ?? null
-      },
-      component_id: null,
-      component_name: null
-    };
-    if (guardrail === "approved") out.approved.push(item);
-    else if (guardrail === "blocked") out.blocked.push(item);
-    else out.competitor_facts.push(item);
-  }
-  return out.approved.length || out.blocked.length || out.competitor_facts.length ? out : null;
-}
-async function assemblePinned(ctx, projectId, agentKind2 = null, onTargetMismatch) {
-  let query = ctx.supabase.from("documents").select(
-    `id, account_id, created_by, locked_to_owners, scope, project_id, kind, title,
-       path, status, metadata, updated_at,
-       document_versions!documents_current_version_fk ( content, version_number, author_id )`
-  ).eq("account_id", ctx.accountId).eq("metadata->>pinned", "true").eq("locked_to_owners", false).limit(50);
-  if (projectId) query = query.or(`project_id.is.null,project_id.eq.${projectId}`);
-  else query = query.is("project_id", null);
-  const { data, error: error2 } = await query;
-  if (error2) {
-    console.warn(`[resolver] pinned fetch failed: ${error2.message}`);
-    return [];
-  }
-  const out = [];
-  for (const row of data ?? []) {
-    const metadata = row.metadata ?? {};
-    if (metadata.pinned !== true) continue;
-    if (!isDirectResolverDocumentEligible(
-      row,
-      { accountId: ctx.accountId, userId: ctx.userId, projectId },
-      {
-        projectAssociation: "account-or-active-project",
-        expectedKind: ["skill", "memory", "goal", "schema", "decision"]
-      }
-    )) {
-      continue;
-    }
-    if (row.kind === "skill" && !isSkillTargetedToAgent(metadata, agentKind2)) {
-      onTargetMismatch?.(row, skillTargetAgents(metadata));
-      continue;
-    }
-    const version4 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
-    out.push({
-      id: row.id,
-      kind: row.kind,
-      title: row.title,
-      body: version4?.content ?? "",
-      similarity: 1,
-      citation: {
-        path: row.path ?? null,
-        version_number: version4?.version_number ?? 1,
-        updated_at: row.updated_at,
-        author_id: version4?.author_id ?? null
-      },
-      component_id: null,
-      component_name: null
-    });
-  }
-  out.sort((a2, b2) => {
-    const byUpdated = b2.citation.updated_at.localeCompare(a2.citation.updated_at);
-    return byUpdated !== 0 ? byUpdated : a2.id.localeCompare(b2.id);
-  });
-  return out;
-}
-var SESSION_WORKING_MAX_TOKENS = 600;
-async function assembleSessionWorking(ctx, sessionId, projectId) {
-  let query = ctx.supabase.from("documents").select(
-    `id, account_id, created_by, locked_to_owners, scope, project_id, kind, title,
-       path, status, metadata, updated_at,
-       document_versions!documents_current_version_fk ( content, version_number, author_id )`
-  ).eq("account_id", ctx.accountId).eq("kind", "memory").eq("memory_type", "working").eq("metadata->>session_id", sessionId).eq("locked_to_owners", false).limit(5);
-  if (projectId) query = query.or(`project_id.is.null,project_id.eq.${projectId}`);
-  else query = query.is("project_id", null);
-  const { data, error: error2 } = await query;
-  if (error2) {
-    console.warn(`[resolver] session working fetch failed: ${error2.message}`);
-    return [];
-  }
-  const out = [];
-  let used = 0;
-  for (const row of data ?? []) {
-    const metadata = row.metadata ?? {};
-    if (metadata.memory_type !== "working") continue;
-    if (metadata.session_id !== sessionId) continue;
-    if (!isDirectResolverDocumentEligible(
-      row,
-      { accountId: ctx.accountId, userId: ctx.userId, projectId },
-      {
-        projectAssociation: "account-or-active-project",
-        expectedKind: ["memory"]
-      }
-    )) {
-      continue;
-    }
-    const version4 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
-    const body = version4?.content ?? "";
-    const cost = estimateTokens(body);
-    if (out.length > 0 && used + cost > SESSION_WORKING_MAX_TOKENS) break;
-    used += cost;
-    out.push({
-      id: row.id,
-      kind: "memory",
-      title: row.title,
-      body,
-      similarity: 1,
-      citation: {
-        path: row.path ?? null,
-        version_number: version4?.version_number ?? 1,
-        updated_at: row.updated_at ?? "",
-        author_id: version4?.author_id ?? null
-      },
-      component_id: null,
-      component_name: null,
-      memory_type: "working"
-    });
-  }
-  return out;
-}
-function buildDeliveredContextCounts(deliveredItems) {
-  const laneCount = (...lanes) => {
-    const accepted = new Set(lanes);
-    return deliveredItems.reduce(
-      (count, item) => count + (accepted.has(item.source_lane) ? 1 : 0),
-      0
-    );
-  };
-  return {
-    memory: laneCount("memory"),
-    skills: laneCount("primary_skill", "supporting_skill"),
-    goals: laneCount("goal"),
-    schemas: laneCount("schema"),
-    decisions: laneCount("decision"),
-    required: laneCount("required"),
-    pinned: laneCount("pinned"),
-    session_working: laneCount("session_working"),
-    open_threads: laneCount("open_thread"),
-    pack_context: laneCount("pack_context"),
-    claim_guardrails: laneCount(
-      "claim_guardrail_approved",
-      "claim_guardrail_blocked",
-      "claim_guardrail_competitor_fact"
-    ),
-    total: deliveredItems.length
-  };
-}
-function deliveredInclusionReason(item, fallback) {
-  if (item.below_gate) return "recall_floor";
-  if (item.match_source === "paths") return "path_overlap";
-  if (item.match_source === "author") return "author_attribution";
-  return fallback;
-}
-function dedupeResolveBundleDocumentLanes(bundle) {
-  const seen = /* @__PURE__ */ new Set();
-  const keepFirst = (items) => items.filter((item) => {
-    if (seen.has(item.id)) return false;
-    seen.add(item.id);
-    return true;
-  });
-  bundle.required_core = keepFirst(bundle.required_core);
-  bundle.pinned = keepFirst(bundle.pinned);
-  bundle.session_working = keepFirst(bundle.session_working);
-  bundle.open_threads = keepFirst(bundle.open_threads);
-  bundle.pack_context = keepFirst(bundle.pack_context);
-  if (bundle.claim_guardrails) {
-    bundle.claim_guardrails.approved = keepFirst(bundle.claim_guardrails.approved);
-    bundle.claim_guardrails.blocked = keepFirst(bundle.claim_guardrails.blocked);
-    bundle.claim_guardrails.competitor_facts = keepFirst(bundle.claim_guardrails.competitor_facts);
-    if (bundle.claim_guardrails.approved.length === 0 && bundle.claim_guardrails.blocked.length === 0 && bundle.claim_guardrails.competitor_facts.length === 0) {
-      bundle.claim_guardrails = null;
-    }
-  }
-  if (bundle.primary_skill) {
-    const [primary] = keepFirst([bundle.primary_skill]);
-    bundle.primary_skill = primary ?? null;
-  }
-  bundle.supporting_skills = keepFirst(bundle.supporting_skills);
-  bundle.goals = keepFirst(bundle.goals);
-  bundle.decisions = keepFirst(bundle.decisions);
-  bundle.schemas = keepFirst(bundle.schemas);
-  bundle.memory = keepFirst(bundle.memory);
-  return bundle;
-}
-function buildDeliveredItemSnapshots(bundle) {
-  const snapshots = [];
-  const seen = /* @__PURE__ */ new Set();
-  const add = (items, laneFor, roleFor, reasonFor) => {
-    let laneRank = 0;
-    items.forEach((item) => {
-      if (seen.has(item.id)) return;
-      seen.add(item.id);
-      laneRank += 1;
-      snapshots.push({
-        document_id: item.id,
-        kind: item.kind,
-        title: item.title,
-        content: item.body,
-        source_lane: laneFor(item),
-        role: roleFor(item),
-        receipt_index: snapshots.length + 1,
-        lane_rank: laneRank,
-        inclusion_reason: reasonFor(item),
-        estimated_tokens: estimateTokens(item.body),
-        similarity: item.similarity,
-        version_number: item.citation.version_number,
-        ...item.version_tag ? { version_tag: item.version_tag } : {},
-        path: item.citation.path,
-        updated_at: item.citation.updated_at,
-        author_id: item.citation.author_id,
-        component_id: item.component_id,
-        component_name: item.component_name,
-        repo: item.repo ?? null,
-        ...item.below_gate ? { below_gate: true } : {},
-        ...item.match_source ? { match_source: item.match_source } : {},
-        ...item.overlap_paths ? { overlap_paths: item.overlap_paths } : {},
-        ...item.author_match ? { author_match: item.author_match } : {},
-        ...item.authority_tier !== void 0 ? { authority_tier: item.authority_tier } : {},
-        ...item.pack ? { pack: item.pack } : {},
-        ...item.thread ? { thread: item.thread } : {}
-      });
-    });
-  };
-  add(
-    bundle.required_core,
-    () => "required",
-    () => "required",
-    () => "governance_required"
-  );
-  add(
-    bundle.pinned,
-    () => "pinned",
-    () => "directive",
-    () => "force_included_pin"
-  );
-  add(
-    bundle.session_working,
-    () => "session_working",
-    () => "session_working",
-    () => "session_id_match"
-  );
-  add(
-    bundle.open_threads,
-    () => "open_thread",
-    () => "open_thread",
-    () => "entity_and_status_match"
-  );
-  add(
-    bundle.pack_context,
-    () => "pack_context",
-    () => "pack_context",
-    () => "subscribed_pack_retrieval"
-  );
-  if (bundle.claim_guardrails) {
-    add(
-      bundle.claim_guardrails.approved,
-      () => "claim_guardrail_approved",
-      () => "approved_claim",
-      () => "claim_guardrail_task_match"
-    );
-    add(
-      bundle.claim_guardrails.blocked,
-      () => "claim_guardrail_blocked",
-      () => "blocked_claim",
-      () => "claim_guardrail_task_match"
-    );
-    add(
-      bundle.claim_guardrails.competitor_facts,
-      () => "claim_guardrail_competitor_fact",
-      () => "competitor_fact",
-      () => "claim_guardrail_task_match"
-    );
-  }
-  if (bundle.primary_skill) {
-    add(
-      [bundle.primary_skill],
-      () => "primary_skill",
-      () => "primary",
-      (item) => deliveredInclusionReason(item, "ranked_primary_skill")
-    );
-  }
-  add(
-    bundle.supporting_skills,
-    () => "supporting_skill",
-    () => "supporting",
-    (item) => deliveredInclusionReason(item, "ranked_supporting_skill")
-  );
-  add(
-    bundle.goals,
-    () => "goal",
-    () => "goal",
-    (item) => deliveredInclusionReason(item, "ranked_retrieval")
-  );
-  add(
-    bundle.decisions,
-    () => "decision",
-    () => "decision",
-    (item) => deliveredInclusionReason(item, "ranked_retrieval")
-  );
-  add(
-    bundle.schemas,
-    () => "schema",
-    () => "schema",
-    (item) => deliveredInclusionReason(item, "ranked_retrieval")
-  );
-  add(
-    bundle.memory,
-    () => "memory",
-    () => "memory",
-    (item) => deliveredInclusionReason(item, "ranked_retrieval")
-  );
-  return snapshots;
-}
-var OMITTED_CANDIDATES_AUDIT_MAX = 40;
-function auditOmissionSample(omitted, cap = OMITTED_CANDIDATES_AUDIT_MAX) {
-  if (omitted.length <= cap) return omitted;
-  if (cap <= 0) return [];
-  const bucketKey = (omission) => omission.reason === "rerank_filtered" && omission.kind === "skill" ? "rerank_filtered:skill" : omission.reason;
-  const bucketOrder = [
-    "rerank_filtered:skill",
-    "rerank_filtered",
-    "pinned_overflow",
-    "agent_target_mismatch",
-    "anti_example_match",
-    "budget_excluded",
-    "marginal_value",
-    "redundant_duplicate",
-    "superseded_by_stamp",
-    "status_filtered",
-    "below_threshold"
-  ];
-  const buckets = /* @__PURE__ */ new Map();
-  for (const omission of omitted) {
-    const key = bucketKey(omission);
-    const bucket = buckets.get(key);
-    if (bucket) bucket.push(omission);
-    else buckets.set(key, [omission]);
-  }
-  const selected = /* @__PURE__ */ new Map();
-  let remaining = cap;
-  for (const key of bucketOrder) {
-    if (key === "below_threshold" || remaining === 0) continue;
-    const first = buckets.get(key)?.[0];
-    if (!first) continue;
-    selected.set(key, [first]);
-    remaining--;
-  }
-  for (const key of bucketOrder) {
-    if (remaining === 0) break;
-    const bucket = buckets.get(key) ?? [];
-    const alreadySelected = selected.get(key)?.length ?? 0;
-    const take = bucket.slice(alreadySelected, alreadySelected + remaining);
-    if (take.length === 0) continue;
-    selected.set(key, [...selected.get(key) ?? [], ...take]);
-    remaining -= take.length;
-  }
-  return bucketOrder.flatMap((key) => selected.get(key) ?? []).slice(0, cap);
-}
-var EmbeddingUnavailableError = class extends Error {
-  code = "EMBEDDING_UNAVAILABLE";
-  constructor(message) {
-    super(message);
-    this.name = "EmbeddingUnavailableError";
-  }
-};
-var EMBEDDING_CACHE = /* @__PURE__ */ new Map();
-var MAX_CACHE_SIZE = 1e3;
-function getCachedEmbedding(task) {
-  return EMBEDDING_CACHE.get(task);
-}
-function cacheEmbedding(task, embedding) {
-  if (EMBEDDING_CACHE.size >= MAX_CACHE_SIZE) {
-    const firstKey = EMBEDDING_CACHE.keys().next().value;
-    if (firstKey !== void 0) EMBEDDING_CACHE.delete(firstKey);
-  }
-  EMBEDDING_CACHE.set(task, embedding);
-}
-var AssembleBundleArgs = external_exports.object({
-  task: external_exports.string().min(1).max(4e3),
-  project_id: external_exports.string().uuid().nullable().optional(),
-  max_tokens: external_exports.number().int().min(256).max(32e3).optional(),
-  kinds: external_exports.array(external_exports.enum(SEARCHABLE_KINDS)).optional(),
-  k_per_kind: external_exports.number().int().min(1).max(50).optional(),
-  cwd: external_exports.string().max(4096).nullable().optional(),
-  git_remote: external_exports.string().max(512).nullable().optional(),
-  /** Caller's current git branch. Recorded in the resolve audit so LATER
-   *  resolves can recognize "that session's work continues in open PR #N"
-   *  (axis C: branch ↔ work_items.head_ref match) long after the 20-minute
-   *  live window. Optional; older plugins simply don't send it. */
-  git_branch: external_exports.string().max(300).nullable().optional(),
-  /** Retrieval mode switch. Hybrid (cosine + BM25 via RRF) is the default
-   *  because skill names, tool names, and internal identifiers often need
-   *  exact-token matching in addition to semantic similarity. Set false to
-   *  force the older pure-cosine path for diagnostics or eval comparisons. */
-  hybrid: external_exports.boolean().optional(),
-  /** Search the `functions` catalog NATIVELY (search_functions_hybrid) and
-   *  swap out the per-function `documents` mirrors, instead of relying on those
-   *  mirror docs. Off by default — flip per-request (the recall bench does this
-   *  to validate the swap) or globally via the route once the bench confirms
-   *  recall is neutral-or-better. See migration 20260612190628. */
-  native_functions: external_exports.boolean().optional(),
-  /** Deep/thorough resolve: also search the BACKGROUND memory tier (the cold
-   *  pool of mid-confidence captures), not just the hot 'active' set. A normal
-   *  resolve stays active-only so it's sharp; a deep one can reach the long
-   *  tail. Explicit search sets this too. Default false. */
-  deep: external_exports.boolean().optional(),
-  interactive: external_exports.boolean().optional(),
-  skip_rerank: external_exports.boolean().optional(),
-  /** Skip the resolve-time redundancy collapse (near-duplicate clustering).
-   *  For diagnostics and eval comparisons, like skip_rerank. */
-  skip_dedupe: external_exports.boolean().optional(),
-  /** Skip the marginal-value cutoff (weak-tail trim). Diagnostics/evals. */
-  skip_marginal_cutoff: external_exports.boolean().optional(),
-  /** Pretend these document ids do not exist, for this resolve only.
-   *
-   * Diagnostic/backtest input — it changes nothing in the database. The corpus
-   * backtest uses it to answer "what would agents have received if these
-   * documents had been removed?" without removing anything: it replays real
-   * recorded tasks with and without the candidate set and diffs the delivered
-   * bundles. Removal is only approved when that diff is empty across every
-   * replayed task.
-   *
-   * Excluding a doc is NOT the same as it never having matched: dropping it
-   * shifts similarity normalization, the marginal-value cutoff, and pack
-   * interleaving, so an unused doc can still change which docs surface. That
-   * second-order effect is the whole point of measuring. */
-  exclude_document_ids: external_exports.array(external_exports.string().uuid()).max(2e4).optional(),
-  /** Explicit marginal-value cutoff fraction (0..1), overriding the account
-   *  setting. For eval sweeps and diagnostics; 0 disables. */
-  marginal_cutoff: external_exports.number().min(0).max(1).optional(),
-  /** Deprecated no-op. Open threads are always pulled (S1). Kept so older
-   *  clients that still send the flag don't fail schema validation. */
-  include_open_threads: external_exports.boolean().optional(),
-  /** Entities to match open threads against. When omitted, entities are
-   *  inferred by word-boundary matching thread entities in the task text. */
-  entities: external_exports.array(external_exports.string().min(1).max(64)).max(16).optional(),
-  /** Transport that initiated this resolve. Diagnostic only; it never changes
-   * retrieval, eligibility, or ranking behavior. */
-  invocation_source: external_exports.enum(["mcp_tool", "prompt_hook", "cli", "api", "web", "internal"]).optional(),
-  /** How the caller selected project scope. Diagnostic only; the server
-   * derives binding_status from the effective project plus this source. */
-  binding_source: external_exports.enum([
-    "explicit_project",
-    "workspace_pin",
-    "git_remote",
-    "local_path",
-    "startup_default",
-    "account_scope",
-    "unresolved"
-  ]).optional()
-});
-function resolveRoutingAuditMetadata(args, projectId) {
-  const bindingSource = args.binding_source ?? (projectId ? "explicit_project" : args.cwd || args.git_remote ? "unresolved" : "account_scope");
-  return {
-    invocation_source: args.invocation_source ?? "internal",
-    binding_source: bindingSource,
-    binding_status: projectId ? "bound" : bindingSource === "account_scope" ? "account_scope" : "unbound"
-  };
-}
-var AWARENESS_FEED_TIMEOUT_MS = 2500;
-var BUDGET_MICRO_TOKENS = 1500;
-var BUDGET_STANDARD_TOKENS = 4e3;
-var BUDGET_DEEP_TOKENS = 8e3;
-var BUDGET_CORPUS_MIN_HISTORY = 10;
-var BUDGET_CORPUS_K = 5;
-var BUDGET_FLOOR = BUDGET_MICRO_TOKENS;
-var BUDGET_CEILING = BUDGET_DEEP_TOKENS;
-var PINNED_MAX_TOKENS = BUDGET_MICRO_TOKENS;
-var PINNED_BUDGET_FRACTION = 0.6;
-function inferBudget(task) {
-  const trimmed = task.trim();
-  const lower = trimmed.toLowerCase();
-  const len = trimmed.length;
-  const MICRO_OPENERS = /^(fix\s+typo|fix\s+the\s+typo|rename|what\s+is|what's|how\s+do\s+i|show\s+me\s+(the|where)|where\s+is|find\s+the?|what\s+does|delete\s+the)/;
-  const DEEP_OPENERS = /^(implement|design|build|refactor|migrate|architect|model|engineer|plan\s+out|end[-\s]to[-\s]end|from\s+scratch|build\s+out|wire\s+up|stand\s+up|spec\s+out)/;
-  const DEEP_PHRASES = /\b(end[-\s]to[-\s]end|from\s+scratch|across\s+the\s+stack|multi[-\s]step|full\s+pipeline|all\s+the\s+pieces)\b/;
-  if (len <= 60 && MICRO_OPENERS.test(lower)) {
-    return { tokens: BUDGET_MICRO_TOKENS, tier: "micro" };
-  }
-  if (len >= 200 || DEEP_OPENERS.test(lower) || DEEP_PHRASES.test(lower)) {
-    return { tokens: BUDGET_DEEP_TOKENS, tier: "deep" };
-  }
-  return { tokens: BUDGET_STANDARD_TOKENS, tier: "standard" };
-}
-function tierForTokens(tokens) {
-  const midMicroStandard = Math.round((BUDGET_MICRO_TOKENS + BUDGET_STANDARD_TOKENS) / 2);
-  const midStandardDeep = Math.round((BUDGET_STANDARD_TOKENS + BUDGET_DEEP_TOKENS) / 2);
-  if (tokens < midMicroStandard) return "micro";
-  if (tokens < midStandardDeep) return "standard";
-  return "deep";
-}
-async function inferBudgetFromCorpus(ctx, queryVec) {
-  if (!queryVec) return null;
-  const limit2 = Math.max(BUDGET_CORPUS_MIN_HISTORY, BUDGET_CORPUS_K * 2);
-  let rows = [];
-  try {
-    const { data, error: error2 } = await ctx.supabase.rpc("search_past_resolves", {
-      p_account_id: ctx.accountId,
-      p_query_embedding: queryVec,
-      p_limit: limit2
-    });
-    if (error2) {
-      if (!(error2.code === "PGRST202" || /could not find the function/i.test(error2.message))) {
-        console.warn(`[resolver] search_past_resolves failed: ${error2.message}`);
-      }
-      return null;
-    }
-    rows = data ?? [];
-  } catch (e2) {
-    console.warn(
-      `[resolver] search_past_resolves threw: ${e2 instanceof Error ? e2.message : String(e2)}`
-    );
-    return null;
-  }
-  if (rows.length < BUDGET_CORPUS_MIN_HISTORY) return null;
-  const neighbors = rows.slice(0, BUDGET_CORPUS_K);
-  const sum = neighbors.reduce((s2, n2) => s2 + (n2.tokens_used ?? 0), 0);
-  const avg = sum / neighbors.length;
-  if (!Number.isFinite(avg) || avg <= 0) return null;
-  const target = Math.round(avg * 1.25);
-  const tokens = Math.min(BUDGET_CEILING, Math.max(BUDGET_FLOOR, target));
-  return { tokens, tier: tierForTokens(tokens) };
-}
-var DEFAULT_K_PER_KIND = 20;
-var MIN_CANDIDATES_FOR_RERANK = 4;
-var RERANK_TIMEOUT_MS = 4e3;
-var RERANK_EXCERPT_CHARS = 500;
-var RERANK_MIN_COVERAGE = 0.5;
-var RERANK_SKILL_MIN_SCORE = 0.15;
-var SKILL_RERANK_CANDIDATE_THRESHOLD = 0.35;
-function skillRerankLaneEligible(thresholdsMode, customThresholds) {
-  if (thresholdsMode === "default") return true;
-  return (customThresholds?.["skill"] ?? KIND_THRESHOLDS.skill) === KIND_THRESHOLDS.skill;
-}
-var ADMISSION_JUDGE_TIMEOUT_MS = 4e3;
-function applyAdmissionJudgeScores(scores, judgeScores, provisionalIds) {
-  let applied = 0;
-  for (const id of provisionalIds) {
-    const s2 = judgeScores[id];
-    if (typeof s2 === "number" && Number.isFinite(s2)) {
-      scores[id] = s2;
-      applied += 1;
-    }
-  }
-  return applied;
-}
-var BRAND_GUIDELINES_LOGO_SIGNED_URL_TTL_SECONDS = 60 * 60;
-var KIND_THRESHOLDS = {
-  skill: 0.5,
-  memory: 0.4,
-  goal: 0.5,
-  schema: 0.5,
-  // Decisions sit between memory (facts) and goals (direction) — usually
-  // very load-bearing when surfaced. Permissive, like memory.
-  decision: 0.55
-};
-function passesCandidateThreshold(rankSimilarity, cosineEvidence, threshold) {
-  return typeof cosineEvidence === "number" && Number.isFinite(cosineEvidence) ? cosineEvidence >= threshold : rankSimilarity >= threshold;
-}
-var REDUNDANCY_COLLAPSE_THRESHOLD = 0.92;
-var REDUNDANCY_COLLAPSE_MIN = 0.85;
-var REDUNDANCY_COLLAPSE_KINDS = /* @__PURE__ */ new Set([
-  "memory",
-  "decision",
-  "skill"
-]);
-var DEDUPE_AUDIT_MAX_CLUSTERS = 20;
-var SHADOW_SAMPLE_RATE = Number(process.env.MEMLIN_SHADOW_SAMPLE_RATE ?? "0.1");
-var SHADOW_MAX_OBSERVATIONS = 10;
-var RANKER_VERSION = "r1.2026-09";
-var SURFACING_UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-var MARGINAL_CUTOFF_OFF = 0;
-var MARGINAL_CUTOFF_DEFAULT = 0.55;
-var FITNESS_BOOST_MIN_SIMILARITY = 0.5;
-var MARGINAL_CUTOFF_MAX = 0.95;
-var MARGINAL_CUTOFF_MIN_KEEP = 5;
-function resolveMarginalCutoff(raw) {
-  if (raw === void 0 || raw === null) return MARGINAL_CUTOFF_DEFAULT;
-  if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return MARGINAL_CUTOFF_OFF;
-  return Math.min(raw, MARGINAL_CUTOFF_MAX);
-}
-var KIND_WEIGHTS = {
-  skill: 1,
-  goal: 0.85,
-  decision: 0.8,
-  schema: 0.75,
-  memory: 0.65
-};
-var MEMORY_TYPE_WEIGHTS = {
-  correction: 1.3,
-  preference: 1.1,
-  fact: 1,
-  reference: 1,
-  // Episodes are recalled by entity + time through the open-threads lane,
-  // not by similarity ranking — neutral weight in the semantic lane.
-  episodic: 1,
-  // Session working memory is force-included by session_id only — never
-  // compete in the semantic lane (weight 0 + explicit skip below).
-  working: 0
-};
-var ACTIVE_COMPONENT_BOOST = 0.15;
-var SAME_REPO_BOOST = 0.1;
-var CROSS_REPO_DEMOTION = 0.6;
-var ROLE_MATCH_BOOST = 0.12;
-var APPROVED_STATUS_BOOST = 0.1;
-function estimateTokens(text) {
-  return Math.ceil(text.length / 4);
-}
-var DECAY_FRESH_DAYS = 30;
-var DECAY_STALE_DAYS = 365;
-var DECAY_FLOOR_MULTIPLIER = 0.6;
-var SKILL_DECAY_FRESH_DAYS = 180;
-var SKILL_DECAY_STALE_DAYS = 730;
-var SKILL_DECAY_FLOOR_MULTIPLIER = 0.85;
-var DECAY_PROFILES = {
-  memory: {
-    fresh_days: DECAY_FRESH_DAYS,
-    stale_days: DECAY_STALE_DAYS,
-    floor: DECAY_FLOOR_MULTIPLIER
-  },
-  skill: {
-    fresh_days: SKILL_DECAY_FRESH_DAYS,
-    stale_days: SKILL_DECAY_STALE_DAYS,
-    floor: SKILL_DECAY_FLOOR_MULTIPLIER
-  }
-};
-function applyProfile(profile, updated_at, now) {
-  if (!updated_at) return 1;
-  const ts = Date.parse(updated_at);
-  if (!Number.isFinite(ts)) return 1;
-  const ageDays = (now - ts) / 864e5;
-  if (ageDays <= profile.fresh_days) return 1;
-  if (ageDays >= profile.stale_days) return profile.floor;
-  const t2 = (ageDays - profile.fresh_days) / (profile.stale_days - profile.fresh_days);
-  return 1 + t2 * (profile.floor - 1);
-}
-function decayMultiplierForKind(kind2, updated_at, now = Date.now()) {
-  const profile = DECAY_PROFILES[kind2];
-  if (!profile) return 1;
-  return applyProfile(profile, updated_at, now);
-}
-async function loadFitnessMultipliers(ctx, candidateIds, resolveTaskCategory) {
-  const multipliers = /* @__PURE__ */ new Map();
-  if (candidateIds.length === 0) return multipliers;
-  try {
-    const { data: outcomes, error: outErr } = await ctx.supabase.from("usage_events").select("metadata, created_at").eq("account_id", ctx.accountId).eq("event_type", "resolve.outcome").order("created_at", { ascending: false }).limit(100);
-    if (outErr || !outcomes || outcomes.length === 0) return multipliers;
-    const auditIds = outcomes.map((o2) => o2.metadata?.audit_id).filter((id) => typeof id === "string" && /^[0-9a-f-]{36}$/i.test(id));
-    if (auditIds.length === 0) return multipliers;
-    const { data: invocations, error: invErr } = await ctx.supabase.from("usage_events").select("id, metadata").in("id", auditIds);
-    if (invErr || !invocations || invocations.length === 0) return multipliers;
-    const auditToItems = /* @__PURE__ */ new Map();
-    for (const inv of invocations) {
-      const meta = inv.metadata;
-      const deliveredItems = meta?.delivered_items;
-      const items = meta?.items;
-      const itemIds = meta?.item_ids;
-      const legacyIds = Array.isArray(items) ? items.map((i2) => i2?.id).filter((id) => typeof id === "string") : Array.isArray(itemIds) ? itemIds.filter((id) => typeof id === "string") : [];
-      let ids = legacyIds;
-      let skillIds = /* @__PURE__ */ new Set();
-      if (Array.isArray(deliveredItems)) {
-        ids = [
-          ...new Set(
-            deliveredItems.map((i2) => {
-              const row = i2;
-              return row?.document_id ?? row?.id;
-            }).filter((id) => typeof id === "string")
-          )
-        ];
-        skillIds = new Set(
-          deliveredItems.map((i2) => {
-            const row = i2;
-            if (row?.kind !== "skill") return null;
-            return row.document_id ?? row.id;
-          }).filter((id) => typeof id === "string")
-        );
-        if (deliveredItems.length > 0 && ids.length === 0) {
-          ids = legacyIds;
-          skillIds = /* @__PURE__ */ new Set();
-        }
-      }
-      if (ids.length > 0) auditToItems.set(inv.id, { ids, skillIds });
-    }
-    const posCounts = /* @__PURE__ */ new Map();
-    const negCounts = /* @__PURE__ */ new Map();
-    for (const outcome of outcomes) {
-      const meta = outcome.metadata;
-      const aid = meta?.audit_id;
-      if (typeof aid !== "string") continue;
-      const delivered = auditToItems.get(aid);
-      if (!delivered) continue;
-      const credits = weightedOutcomeItemCredits({
-        deliveredIds: delivered.ids,
-        skillIds: delivered.skillIds,
-        meta
-      });
-      accumulateWeightedOutcomeCounts(meta, credits, resolveTaskCategory, posCounts, negCounts);
-    }
-    for (const cid of candidateIds) {
-      multipliers.set(cid, fitnessFromCounts(posCounts.get(cid) ?? 0, negCounts.get(cid) ?? 0));
-    }
-  } catch (err) {
-    console.warn(
-      `[resolver] loadFitnessMultipliers failed: ${err instanceof Error ? err.message : String(err)}`
-    );
-  }
-  return multipliers;
-}
-async function hydrateCandidateBodies(ctx, candidateIds, functionBodyById, functionComponentById) {
-  const bodyMap = /* @__PURE__ */ new Map();
-  const componentIdByDoc = /* @__PURE__ */ new Map();
-  const rolesByDoc = /* @__PURE__ */ new Map();
-  const componentScopedByDoc = /* @__PURE__ */ new Map();
-  const canaryContentMap = /* @__PURE__ */ new Map();
-  if (candidateIds.length > 0) {
-    const { data: docRows, error: docErr } = await ctx.supabase.from("documents").select(
-      `id, current_version_id, component_id, metadata,
-         document_versions!documents_current_version_fk ( content )`
-    ).eq("account_id", ctx.accountId).eq("locked_to_owners", false).in("id", candidateIds);
-    if (docErr) {
-      console.warn(
-        `[resolver] body fetch failed: ${docErr.message} \u2014 proceeding with empty bodies`
-      );
-    } else {
-      const canaryVersionIds = [];
-      for (const row of docRows ?? []) {
-        const r2 = row;
-        const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
-        bodyMap.set(r2.id, v2?.content ?? "");
-        componentIdByDoc.set(r2.id, r2.component_id ?? null);
-        const m2 = r2.metadata;
-        const metaRoles = m2?.roles;
-        rolesByDoc.set(
-          r2.id,
-          Array.isArray(metaRoles) ? metaRoles.filter((x2) => typeof x2 === "string") : []
-        );
-        componentScopedByDoc.set(r2.id, m2?.component_scoped === true);
-        if (m2?.canary_version_id && typeof m2.canary_version_id === "string") {
-          canaryVersionIds.push(m2.canary_version_id);
-        }
-      }
-      for (const [id, body] of functionBodyById) {
-        if (!bodyMap.has(id)) {
-          bodyMap.set(id, body);
-          componentIdByDoc.set(id, functionComponentById.get(id) ?? null);
-          rolesByDoc.set(id, []);
-          componentScopedByDoc.set(id, false);
-        }
-      }
-      if (canaryVersionIds.length > 0) {
-        const { data: vRows, error: vErr } = await ctx.supabase.from("document_versions").select("id, content, version_number").in("id", canaryVersionIds);
-        if (vErr) {
-          console.warn(`[resolver] canary version fetch failed: ${vErr.message}`);
-        } else {
-          for (const v2 of vRows ?? []) {
-            canaryContentMap.set(v2.id, {
-              content: v2.content,
-              version_number: v2.version_number
-            });
-          }
-        }
-      }
-    }
-  }
-  return { bodyMap, componentIdByDoc, rolesByDoc, componentScopedByDoc, canaryContentMap };
-}
-function matchPathPattern(cwd, pattern) {
-  if (!cwd || !pattern) return null;
-  const c2 = cwd.replace(/\\/g, "/").replace(/\/+$/, "");
-  let p2 = pattern.replace(/\/+$/, "");
-  p2 = p2.replace(/\/?\*{1,2}$/, "");
-  let anchored = true;
-  if (p2.startsWith("**/")) {
-    p2 = p2.slice(3);
-    anchored = false;
-  } else if (p2.startsWith("*/")) {
-    p2 = p2.slice(2);
-    anchored = false;
-  }
-  p2 = p2.replace(/\/+$/, "");
-  if (!p2) return null;
-  if (anchored) {
-    if (c2.includes(p2)) return p2.length;
-    return null;
-  }
-  if (c2.includes(p2)) return p2.length;
-  return null;
-}
-function inferActiveRepo(args) {
-  const { repoNames } = args;
-  const normalizedRemote = normalizeGitRemote(args.gitRemote ?? null);
-  if (normalizedRemote) {
-    const hits = repoNames.filter((r2) => remoteMatchesRepo(normalizedRemote, r2));
-    if (hits.length === 1) return hits[0] ?? null;
-  }
-  if (args.cwd) {
-    const segments = new Set(args.cwd.toLowerCase().split(/[\\/]/).filter(Boolean));
-    const hits = repoNames.filter((r2) => {
-      const base = r2.split("/").pop()?.toLowerCase();
-      return !!base && segments.has(base);
-    });
-    if (hits.length === 1) return hits[0] ?? null;
-  }
-  {
-    const taskLower = args.task.toLowerCase();
-    let best = null;
-    let bestLen = -1;
-    let tied = false;
-    for (const r2 of repoNames) {
-      const base = r2.split("/").pop()?.toLowerCase();
-      if (!base) continue;
-      if (!taskLower.includes(`${base}/`)) continue;
-      if (base.length > bestLen) {
-        best = r2;
-        bestLen = base.length;
-        tied = false;
-      } else if (base.length === bestLen && r2 !== best) {
-        tied = true;
-      }
-    }
-    if (best && !tied) return best;
-  }
-  return args.activeComponentRepo ?? null;
-}
-function emptyProjectBrainPolicy() {
-  return {
-    overridesBySource: /* @__PURE__ */ new Map(),
-    blockedIds: [],
-    overridePairs: [],
-    inheritedDefaultIds: [],
-    requiredIds: [],
-    requiredChainIds: /* @__PURE__ */ new Set(),
-    optionalChainIds: /* @__PURE__ */ new Set(),
-    errors: []
-  };
-}
-async function getProjectTeamId(ctx, projectId) {
-  if (!projectId) return { teamId: null, error: null };
-  const { data, error: error2 } = await ctx.supabase.from("projects").select("team_id").eq("id", projectId).maybeSingle();
-  if (error2) {
-    return { teamId: null, error: `projects.team_id: ${error2.message}` };
-  }
-  return {
-    teamId: data ? (data.team_id ?? null) || null : null,
-    error: null
-  };
-}
-function isProjectBrainInheritedDoc(projectId, candidate, row) {
-  if (!projectId) return false;
-  if (candidate.kind !== "memory" && candidate.kind !== "skill") return false;
-  return (row?.project_id ?? null) === null && (row?.scope === "team" || row?.scope === "personal");
-}
-async function loadProjectBrainPolicy(ctx, projectId, teamId = null, userId = null, initialErrors = []) {
-  const policy = emptyProjectBrainPolicy();
-  policy.errors.push(...initialErrors);
-  if (projectId) {
-    const { data, error: error2 } = await ctx.supabase.from("project_brain_overrides").select("source_document_id, action, replacement_document_id").eq("project_id", projectId);
-    if (error2) {
-      policy.errors.push(`project_brain_overrides: ${error2.message}`);
-      console.warn(
-        `[resolver] project brain overrides fetch failed: ${error2.message} \u2014 proceeding without legacy overrides`
-      );
-    } else {
-      for (const row of data ?? []) {
-        policy.overridesBySource.set(row.source_document_id, row);
-      }
-    }
-  }
-  const teamIds = /* @__PURE__ */ new Set();
-  if (teamId) teamIds.add(teamId);
-  if (userId) {
-    const { data: tm, error: tmErr } = await ctx.supabase.from("team_members").select("team_id").eq("user_id", userId);
-    if (tmErr) {
-      policy.errors.push(`team_members: ${tmErr.message}`);
-    } else {
-      for (const r2 of tm ?? []) teamIds.add(r2.team_id);
-    }
-  }
-  const { data: pols, error: polErr } = await ctx.supabase.from("governance_policies").select("governed_document_id, level, level_ref_id, requirement").eq("account_id", ctx.accountId).eq("active", true);
-  if (polErr) {
-    policy.errors.push(`governance_policies: ${polErr.message}`);
-    if (!/does not exist|relation|PGRST20\d/i.test(polErr.message)) {
-      console.warn(`[resolver] governance_policies fetch failed: ${polErr.message}`);
-    }
-  } else {
-    for (const row of pols ?? []) {
-      const applies = row.level === "org" || row.level === "team" && !!row.level_ref_id && teamIds.has(row.level_ref_id) || row.level === "project" && !!projectId && row.level_ref_id === projectId;
-      if (!applies) continue;
-      if (row.requirement === "required") policy.requiredChainIds.add(row.governed_document_id);
-      else policy.optionalChainIds.add(row.governed_document_id);
-    }
-    for (const id of policy.requiredChainIds) policy.optionalChainIds.delete(id);
-  }
-  const optoutScopes = [
-    ["team", teamId],
-    ["project", projectId],
-    ["individual", userId]
-  ];
-  for (const [lvl, ref] of optoutScopes) {
-    if (!ref) continue;
-    const { data, error: error2 } = await ctx.supabase.from("governance_optouts").select("source_document_id, action, replacement_document_id").eq("account_id", ctx.accountId).eq("scope_level", lvl).eq("scope_ref_id", ref);
-    if (error2) {
-      policy.errors.push(`governance_optouts.${lvl}: ${error2.message}`);
-      if (!/does not exist|relation|PGRST20\d/i.test(error2.message)) {
-        console.warn(`[resolver] governance_optouts (${lvl}) fetch failed: ${error2.message}`);
-      }
-      continue;
-    }
-    for (const row of data ?? []) {
-      if (policy.requiredChainIds.has(row.source_document_id)) continue;
-      policy.overridesBySource.set(row.source_document_id, row);
-    }
-  }
-  policy.errors = [...new Set(policy.errors)];
-  return policy;
-}
-function directDocumentToResolvedItem(row) {
-  const version4 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
-  return {
-    id: row.id,
-    kind: row.kind,
-    title: row.title,
-    body: version4?.content ?? "",
-    similarity: 1,
-    citation: {
-      path: row.path ?? null,
-      version_number: version4?.version_number ?? 1,
-      updated_at: row.updated_at,
-      author_id: version4?.author_id ?? null
-    },
-    component_id: null,
-    component_name: null
-  };
-}
-async function assembleRequiredCore(ctx, requiredChainIds, projectId, policyErrors = [], agentKind2 = null) {
-  const governanceIds = [...requiredChainIds].sort();
-  const select = `id, account_id, created_by, locked_to_owners, scope, project_id, kind, title,
-       path, status, metadata, updated_at,
-       document_versions!documents_current_version_fk ( content, version_number, author_id )`;
-  const governedRead = governanceIds.length ? ctx.supabase.from("documents").select(select).eq("account_id", ctx.accountId).eq("locked_to_owners", false).in("id", governanceIds) : Promise.resolve({ data: [], error: null });
-  const overviewRead = projectId ? ctx.supabase.from("documents").select(select).eq("account_id", ctx.accountId).eq("locked_to_owners", false).eq("project_id", projectId).eq("metadata->>project_brain_role", "overview").limit(20) : Promise.resolve({ data: [], error: null });
-  const [governed, overviews] = await Promise.all([governedRead, overviewRead]);
-  const errors = [...policyErrors];
-  if (governed.error) {
-    errors.push(`required documents: ${governed.error.message}`);
-    console.warn(`[resolver] required-governed fetch failed: ${governed.error.message}`);
-  }
-  if (overviews.error) {
-    errors.push(`project overview: ${overviews.error.message}`);
-    console.warn(`[resolver] project-overview fetch failed: ${overviews.error.message}`);
-  }
-  const itemById = /* @__PURE__ */ new Map();
-  const expectedIds = [];
-  const expected = /* @__PURE__ */ new Set();
-  const expect = (id) => {
-    if (!expected.has(id)) {
-      expected.add(id);
-      expectedIds.push(id);
-    }
-  };
-  const overviewRows = (overviews.data ?? []).sort(
-    (a2, b2) => String(a2.id).localeCompare(String(b2.id))
-  );
-  for (const row of overviewRows) {
-    const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata) ? row.metadata : {};
-    if (metadata.project_brain_role !== "overview") continue;
-    if (!isDirectResolverDocumentEligible(
-      row,
-      { accountId: ctx.accountId, userId: ctx.userId, projectId },
-      { projectAssociation: "active-project", expectedKind: SEARCHABLE_KINDS }
-    )) {
-      continue;
-    }
-    const item = directDocumentToResolvedItem(row);
-    expect(item.id);
-    itemById.set(item.id, item);
-  }
-  for (const id of governanceIds) expect(id);
-  for (const row of governed.data ?? []) {
-    if (!expected.has(String(row.id))) continue;
-    if (!isDirectResolverDocumentEligible(
-      row,
-      { accountId: ctx.accountId, userId: ctx.userId, projectId },
-      {
-        projectAssociation: "account-or-active-project",
-        expectedKind: SEARCHABLE_KINDS
-      }
-    )) {
-      continue;
-    }
-    const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata) ? row.metadata : {};
-    if (row.kind === "skill" && !isSkillTargetedToAgent(metadata, agentKind2)) {
-      errors.push(
-        `required skill ${String(row.id)} targets [${skillTargetAgents(metadata).join(", ")}], not agent ${agentKind2}`
-      );
-      continue;
-    }
-    const item = directDocumentToResolvedItem(row);
-    itemById.set(item.id, item);
-  }
-  const items = expectedIds.flatMap((id) => {
-    const item = itemById.get(id);
-    return item ? [item] : [];
-  });
-  const deliveredIds = items.map((item) => item.id);
-  const delivered = new Set(deliveredIds);
-  const missingIds = expectedIds.filter((id) => !delivered.has(id));
-  const uniqueErrors = [...new Set(errors)];
-  return {
-    items,
-    status: {
-      complete: missingIds.length === 0 && uniqueErrors.length === 0,
-      expected_ids: expectedIds,
-      delivered_ids: deliveredIds,
-      missing_ids: missingIds,
-      errors: uniqueErrors
-    }
-  };
-}
-var ARCH_FUNCTION_CAP = 30;
-async function assembleArchitecture(ctx, projectId, component, componentNameById) {
-  const arch = {
-    component_name: component.name,
-    component_slug: component.slug,
-    functions: [],
-    functions_truncated: false,
-    depends_on: [],
-    depended_on_by: [],
-    data: [],
-    api_calls: []
-  };
-  const { data: fnRows, error: fnErr } = await ctx.supabase.from("functions").select("name, kind, purpose").eq("project_id", projectId).eq("component_id", component.id).order("name", { ascending: true }).limit(ARCH_FUNCTION_CAP + 1);
-  if (fnErr) {
-    console.warn(`[resolver] architecture functions fetch failed: ${fnErr.message}`);
-  } else {
-    const rows = fnRows ?? [];
-    arch.functions_truncated = rows.length > ARCH_FUNCTION_CAP;
-    arch.functions = rows.slice(0, ARCH_FUNCTION_CAP).map((r2) => ({
-      name: r2.name,
-      kind: r2.kind,
-      purpose: (r2.purpose ?? "").slice(0, 140)
-    }));
-  }
-  const { data: contractRows, error: cErr } = await ctx.supabase.from("component_contracts").select("consumer_component_id, provider_component_id, edge_kinds").eq("project_id", projectId).or(`consumer_component_id.eq.${component.id},provider_component_id.eq.${component.id}`);
-  if (cErr) {
-    console.warn(`[resolver] architecture contracts fetch failed: ${cErr.message}`);
-  } else {
-    for (const row of contractRows ?? []) {
-      const kinds = row.edge_kinds ?? [];
-      if (row.consumer_component_id === component.id) {
-        const provider = componentNameById.get(row.provider_component_id);
-        if (provider) arch.depends_on.push({ component: provider.name, edge_kinds: kinds });
-      } else if (row.provider_component_id === component.id) {
-        const consumer = componentNameById.get(row.consumer_component_id);
-        if (consumer) {
-          arch.depended_on_by.push({ component: consumer.name, edge_kinds: kinds });
-        }
-      }
-    }
-  }
-  const { data: dataRows, error: dErr } = await ctx.supabase.from("component_table_contracts").select("table_identifier, access").eq("project_id", projectId).eq("consumer_component_id", component.id);
-  if (dErr) {
-    console.warn(`[resolver] architecture data-contracts fetch failed: ${dErr.message}`);
-  } else {
-    for (const row of dataRows ?? []) {
-      arch.data.push({ table: row.table_identifier, access: row.access ?? [], schema: null });
-    }
-  }
-  if (arch.data.length > 0) {
-    const tableNames = [...new Set(arch.data.map((d2) => d2.table))];
-    const { data: schemaDocs, error: sErr } = await ctx.supabase.from("documents").select(
-      "id, account_id, created_by, locked_to_owners, scope, project_id, status, kind, title, path, metadata"
-    ).eq("account_id", ctx.accountId).eq("project_id", projectId).eq("kind", "schema").eq("locked_to_owners", false).in("title", tableNames);
-    if (sErr) {
-      console.warn(`[resolver] architecture schema-doc fetch failed: ${sErr.message}`);
-    } else {
-      const byTable = /* @__PURE__ */ new Map();
-      for (const d2 of schemaDocs ?? []) {
-        if (!isDirectResolverDocumentEligible(
-          d2,
-          { accountId: ctx.accountId, userId: ctx.userId, projectId },
-          { projectAssociation: "active-project", expectedKind: "schema" }
-        )) {
-          continue;
-        }
-        if (typeof d2.id !== "string" || typeof d2.title !== "string") continue;
-        const ref = {
-          id: d2.id,
-          title: d2.title,
-          path: typeof d2.path === "string" ? d2.path : null
-        };
-        byTable.set(d2.title, ref);
-        const metadata = d2.metadata ?? {};
-        const objName = metadata.db_object_name;
-        if (typeof objName === "string") byTable.set(objName, ref);
-      }
-      for (const item of arch.data) {
-        item.schema = byTable.get(item.table) ?? null;
-      }
-    }
-  }
-  try {
-    arch.api_calls = await assembleApiCalls(ctx, projectId, component, componentNameById);
-  } catch (e2) {
-    console.warn(
-      `[resolver] api-call lineage failed: ${e2 instanceof Error ? e2.message : String(e2)}`
-    );
-  }
-  return arch;
-}
-function normalizeRoutePath(p2) {
-  if (!p2) return null;
-  let s2 = (p2.split(/[?#]/)[0] ?? "").toLowerCase();
-  s2 = s2.replace(/\{[^}]+\}/g, ":param").replace(/:[a-z0-9_]+/g, ":param").replace(/\/{2,}/g, "/");
-  if (s2.length > 1) s2 = s2.replace(/\/$/, "");
-  return s2.startsWith("/") ? s2 : `/${s2}`;
-}
-async function assembleApiCalls(ctx, projectId, component, componentNameById) {
-  const { data: fnRows } = await ctx.supabase.from("functions").select("id").eq("project_id", projectId).eq("component_id", component.id).limit(1e3);
-  const fnIds = (fnRows ?? []).map((r2) => r2.id);
-  const nodeIds = [];
-  if (fnIds.length > 0) {
-    const { data: nodeRows } = await ctx.supabase.from("code_nodes").select("id").eq("project_id", projectId).in("function_id", fnIds).limit(2e3);
-    for (const r2 of nodeRows ?? []) nodeIds.push(r2.id);
-  }
-  if (component.slug) {
-    const { data: compNodes } = await ctx.supabase.from("code_nodes").select("id").eq("project_id", projectId).eq("kind", "component").eq("identifier", component.slug).limit(5);
-    for (const r2 of compNodes ?? []) nodeIds.push(r2.id);
-  }
-  if (nodeIds.length === 0) return [];
-  const { data: edgeRows } = await ctx.supabase.from("code_edges").select("dst_node_id").eq("project_id", projectId).eq("edge_kind", "calls_http").in("src_node_id", nodeIds).limit(500);
-  const dstIds = [
-    ...new Set((edgeRows ?? []).map((r2) => r2.dst_node_id))
-  ];
-  if (dstIds.length === 0) return [];
-  const { data: epRows } = await ctx.supabase.from("code_nodes").select("identifier, metadata").in("id", dstIds);
-  const endpoints = (epRows ?? []).map((r2) => {
-    const row = r2;
-    return { path: row.identifier, method: row.metadata?.method ?? null };
-  });
-  if (endpoints.length === 0) return [];
-  const { data: routeRows } = await ctx.supabase.from("functions").select("name, component_id, file_path, route_path").eq("project_id", projectId).eq("kind", "api_route").not("route_path", "is", null).limit(5e3);
-  const routeByPath = /* @__PURE__ */ new Map();
-  for (const r2 of routeRows ?? []) {
-    const norm = normalizeRoutePath(r2.route_path);
-    if (norm && !routeByPath.has(norm)) {
-      routeByPath.set(norm, { name: r2.name, componentId: r2.component_id, filePath: r2.file_path });
-    }
-  }
-  const surfaced = endpoints.slice(0, 20).map((ep) => ({
-    ep,
-    match: routeByPath.get(normalizeRoutePath(ep.path) ?? "") ?? null
-  }));
-  const tablesByFile = /* @__PURE__ */ new Map();
-  const routeFiles = [
-    ...new Set(surfaced.map((s2) => s2.match?.filePath).filter((f2) => !!f2))
-  ];
-  if (routeFiles.length > 0) {
-    const { data: fileNodes } = await ctx.supabase.from("code_nodes").select("id, file_path").eq("project_id", projectId).in("file_path", routeFiles).limit(4e3);
-    const fileByNode = /* @__PURE__ */ new Map();
-    const fileNodeIds = [];
-    for (const n2 of fileNodes ?? []) {
-      fileByNode.set(n2.id, n2.file_path);
-      fileNodeIds.push(n2.id);
-    }
-    if (fileNodeIds.length > 0) {
-      const { data: callEdges } = await ctx.supabase.from("code_edges").select("src_node_id, dst_node_id").eq("project_id", projectId).eq("edge_kind", "calls").in("src_node_id", fileNodeIds).limit(4e3);
-      const filesByCallee = /* @__PURE__ */ new Map();
-      const calleeIds = [];
-      for (const e2 of callEdges ?? []) {
-        const f2 = fileByNode.get(e2.src_node_id);
-        if (!f2) continue;
-        if (!filesByCallee.has(e2.dst_node_id)) filesByCallee.set(e2.dst_node_id, /* @__PURE__ */ new Set());
-        filesByCallee.get(e2.dst_node_id).add(f2);
-        calleeIds.push(e2.dst_node_id);
-      }
-      const tableSrc = [.../* @__PURE__ */ new Set([...fileNodeIds, ...calleeIds])];
-      const { data: tEdges } = await ctx.supabase.from("code_edges").select("src_node_id, dst_node_id").eq("project_id", projectId).in("edge_kind", ["reads_table", "writes_table"]).in("src_node_id", tableSrc).limit(6e3);
-      const dstBySrc = /* @__PURE__ */ new Map();
-      const tableDst = /* @__PURE__ */ new Set();
-      for (const e2 of tEdges ?? []) {
-        if (!dstBySrc.has(e2.src_node_id)) dstBySrc.set(e2.src_node_id, []);
-        dstBySrc.get(e2.src_node_id).push(e2.dst_node_id);
-        tableDst.add(e2.dst_node_id);
-      }
-      const tableName = /* @__PURE__ */ new Map();
-      if (tableDst.size > 0) {
-        const { data: tNodes } = await ctx.supabase.from("code_nodes").select("id, identifier").eq("kind", "db_table").in("id", [...tableDst]).limit(6e3);
-        for (const t2 of tNodes ?? []) {
-          tableName.set(t2.id, t2.identifier);
-        }
-      }
-      const add = (file, dstId) => {
-        const nm = tableName.get(dstId);
-        if (!nm) return;
-        if (!tablesByFile.has(file)) tablesByFile.set(file, /* @__PURE__ */ new Set());
-        tablesByFile.get(file).add(nm);
-      };
-      for (const [srcId, dsts] of dstBySrc) {
-        const direct = fileByNode.get(srcId);
-        if (direct) for (const d2 of dsts) add(direct, d2);
-        const viaCall = filesByCallee.get(srcId);
-        if (viaCall) for (const f2 of viaCall) for (const d2 of dsts) add(f2, d2);
-      }
-    }
-  }
-  const out = [];
-  for (const { ep, match } of surfaced) {
-    if (!match) {
-      out.push({ path: ep.path, method: ep.method, served_by: null });
-      continue;
-    }
-    const compName = match.componentId ? componentNameById.get(match.componentId)?.name ?? null : null;
-    const tables = match.filePath ? [...tablesByFile.get(match.filePath) ?? []].slice(0, 25) : [];
-    out.push({
-      path: ep.path,
-      method: ep.method,
-      served_by: { route: match.name, component: compName, tables }
-    });
-  }
-  return out;
-}
-var REACTIVATION_MIN_SIMILARITY = 0.5;
-var REACTIVATION_LIMIT = 5;
-async function maybeReactivateColdMatches(ctx, accountId, queryVec) {
-  if (REACTIVATION_LIMIT <= 0) return 0;
-  const rpcArgs = {
-    p_account_id: accountId,
-    p_query_embedding: queryVec,
-    p_threshold: REACTIVATION_MIN_SIMILARITY,
-    p_limit: REACTIVATION_LIMIT
-  };
-  try {
-    let { data, error: error2 } = await ctx.supabase.rpc("reactivate_unused_archive_matches", rpcArgs);
-    if (error2 && /permission denied/i.test(error2.message) && ctx.privilegedSupabase) {
-      ({ data, error: error2 } = await ctx.privilegedSupabase.rpc(
-        "reactivate_unused_archive_matches",
-        rpcArgs
-      ));
-    }
-    if (error2) {
-      console.warn(`[resolver] reactivation lane skipped: ${error2.message}`);
-      return 0;
-    }
-    const revived = Array.isArray(data) ? data.length : 0;
-    if (revived > 0) {
-      console.warn(`[resolver] reactivated ${revived} cold doc(s) matching this task`);
-    }
-    return revived;
-  } catch (e2) {
-    console.warn(
-      `[resolver] reactivation lane error: ${e2 instanceof Error ? e2.message : String(e2)}`
-    );
-    return 0;
-  }
-}
-async function assembleBundle(ctx, rawArgs, audit = {}) {
-  const bundleStartedAt = Date.now();
-  let embeddingMs = 0;
-  let embeddingCacheHit = false;
-  let budgetRpcMs = null;
-  let budgetWaitMs = 0;
-  const args = AssembleBundleArgs.parse(rawArgs);
-  const excludeDocumentIds = new Set(args.exclude_document_ids ?? []);
-  const kPerKind = args.k_per_kind ?? DEFAULT_K_PER_KIND;
-  const projectId = args.project_id ?? ctx.projectId ?? null;
-  const governanceUserId = ctx.userId ?? null;
-  const requestedKinds = args.kinds ? [...args.kinds] : [...SEARCHABLE_KINDS];
-  if (!ctx.embed) {
-    throw new EmbeddingUnavailableError(
-      "resolver requires server-side embeddings; set OPENAI_API_KEY"
-    );
-  }
-  const projectTeamPromise = getProjectTeamId(ctx, projectId);
-  const projectBrainPolicyPromise = projectTeamPromise.then(
-    (projectTeam) => loadProjectBrainPolicy(
-      ctx,
-      projectId,
-      projectTeam.teamId,
-      governanceUserId,
-      projectTeam.error ? [projectTeam.error] : []
-    )
-  );
-  let customThresholds = null;
-  let thresholdsMode = "default";
-  let brandContextMode = "always";
-  const accountSettingsPromise = (async () => {
-    const res = await ctx.supabase.from("accounts").select("similarity_thresholds, brand_context_mode").eq("id", ctx.accountId).maybeSingle();
-    if (res.error && /brand_context_mode/i.test(res.error.message)) {
-      const fallback = await ctx.supabase.from("accounts").select("similarity_thresholds").eq("id", ctx.accountId).maybeSingle();
-      return { accThresholds: fallback.data, accThresholdsErr: fallback.error };
-    }
-    return { accThresholds: res.data, accThresholdsErr: res.error };
-  })();
-  const embeddingStartedAt = Date.now();
-  const cachedVec = getCachedEmbedding(args.task);
-  const embeddingPromise = cachedVec ? (() => {
-    embeddingCacheHit = true;
-    embeddingMs = Date.now() - embeddingStartedAt;
-    return Promise.resolve(cachedVec);
-  })() : ctx.embed(args.task).then((vec) => {
-    cacheEmbedding(args.task, vec);
-    return vec;
-  }).catch((e2) => {
-    throw new EmbeddingUnavailableError(
-      `embedding call failed: ${e2 instanceof Error ? e2.message : String(e2)}`
-    );
-  }).finally(() => {
-    embeddingMs = Date.now() - embeddingStartedAt;
-  });
-  const [{ accThresholds, accThresholdsErr }, projectBrainPolicy, queryVec] = await Promise.all([
-    accountSettingsPromise,
-    projectBrainPolicyPromise,
-    embeddingPromise
-  ]);
-  if (accThresholdsErr) {
-    console.warn(`[resolver] similarity-thresholds lookup failed: ${accThresholdsErr.message}`);
-  } else if (accThresholds && accThresholds.similarity_thresholds) {
-    const rawThresh = accThresholds.similarity_thresholds;
-    if (rawThresh.mode === "custom" || rawThresh.mode === "learned") {
-      customThresholds = rawThresh.thresholds ?? null;
-      thresholdsMode = rawThresh.mode;
-    }
-  }
-  if (accThresholds && accThresholds.brand_context_mode === "auto") {
-    brandContextMode = "auto";
-  }
-  const reactivationDone = audit.readOnly ? Promise.resolve() : maybeReactivateColdMatches(ctx, ctx.accountId, queryVec);
-  const corpusBudgetPromise = args.max_tokens === void 0 ? (() => {
-    const startedAt = Date.now();
-    return inferBudgetFromCorpus(ctx, queryVec).catch((e2) => {
-      console.warn(
-        `[resolver] inferBudgetFromCorpus rejected: ${e2 instanceof Error ? e2.message : String(e2)}`
-      );
-      return null;
-    }).finally(() => {
-      budgetRpcMs = Date.now() - startedAt;
-    });
-  })() : null;
-  const useHybrid = args.hybrid !== false;
-  const RRF_TO_SIMILARITY_SCALE = 30;
-  const searchFanoutStartedAt = Date.now();
-  const kindResults = await Promise.all(
-    requestedKinds.map(async (kind2) => {
-      const rpcName = useHybrid ? "search_documents_hybrid" : "search_documents";
-      const rpcArgs = {
-        p_account_id: ctx.accountId,
-        p_project_id: projectId,
-        p_query_embedding: queryVec,
-        p_kinds: [kind2],
-        p_scopes: null,
-        p_limit: kPerKind
-      };
-      if (useHybrid) {
-        rpcArgs.p_query_text = args.task;
-        rpcArgs.p_audit_query_preview = sanitizeAuditTask(args.task).task || null;
-        rpcArgs.p_include_background = args.deep === true;
-      }
-      const { data, error: error2 } = await ctx.supabase.rpc(rpcName, rpcArgs);
-      if (error2) {
-        console.warn(`[resolver] ${rpcName} failed for kind=${kind2}: ${error2.message}`);
-        return { kind: kind2, rows: [] };
-      }
-      const rows = data ?? [];
-      if (useHybrid) {
-        for (const r2 of rows) {
-          if (typeof r2.rrf_score === "number") {
-            r2.similarity = r2.rrf_score * RRF_TO_SIMILARITY_SCALE;
-          }
-        }
-      }
-      const titleMatches = [];
-      const titleNeedle = args.task.trim();
-      if (titleNeedle.length >= 8) {
-        const q2 = ctx.supabase.from("documents").select(
-          `id, account_id, created_by, locked_to_owners, status, title, kind, scope,
-             project_id, path, updated_at, created_at, metadata,
-             document_versions!documents_current_version_fk ( version_number, author_id )`
-        ).eq("account_id", ctx.accountId).eq("kind", kind2).ilike("title", `%${titleNeedle}%`).eq("locked_to_owners", false).limit(Math.min(50, kPerKind * 4));
-        const { data: titleData, error: titleErr } = await q2;
-        if (!titleErr) {
-          for (const r2 of titleData ?? []) {
-            if (!isDirectResolverDocumentEligible(
-              r2,
-              { accountId: ctx.accountId, userId: ctx.userId, projectId },
-              { expectedKind: kind2 }
-            )) {
-              continue;
-            }
-            const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
-            titleMatches.push({
-              id: r2.id,
-              title: r2.title,
-              kind: r2.kind,
-              scope: r2.scope,
-              similarity: 1,
-              path: r2.path ?? null,
-              version_number: v2?.version_number ?? 1,
-              updated_at: r2.updated_at,
-              created_at: r2.created_at,
-              author_id: v2?.author_id ?? null
-            });
-            if (titleMatches.length >= kPerKind) break;
-          }
-        }
-      }
-      const merged = /* @__PURE__ */ new Map();
-      for (const row of [...titleMatches, ...rows]) {
-        const existing = merged.get(row.id);
-        if (!existing || row.similarity > existing.similarity) merged.set(row.id, row);
-      }
-      return { kind: kind2, rows: [...merged.values()] };
-    })
-  );
-  const searchFanoutMs = Date.now() - searchFanoutStartedAt;
-  const nativeFunctions = args.native_functions === true && !!projectId && requestedKinds.includes("memory");
-  const functionBodyById = /* @__PURE__ */ new Map();
-  const functionComponentById = /* @__PURE__ */ new Map();
-  if (nativeFunctions) {
-    const { data: fnData, error: fnErr } = await ctx.supabase.rpc("search_functions_hybrid", {
-      p_account_id: ctx.accountId,
-      p_project_id: projectId,
-      p_query_embedding: queryVec,
-      p_query_text: args.task,
-      p_limit: kPerKind
-    });
-    if (fnErr) {
-      console.warn(`[resolver] search_functions_hybrid failed: ${fnErr.message}`);
-    } else {
-      const memEntry = kindResults.find((k2) => k2.kind === "memory");
-      for (const r2 of fnData ?? []) {
-        functionBodyById.set(r2.id, r2.purpose ?? "");
-        functionComponentById.set(r2.id, r2.component_id);
-        const label = r2.kind === "api_route" ? "Route" : r2.kind === "page" ? "Page" : r2.kind === "hook" ? "Hook" : "Function";
-        memEntry?.rows.push({
-          id: r2.id,
-          title: `${label}: ${r2.name}`.slice(0, 200),
-          kind: "memory",
-          scope: "project",
-          similarity: r2.rrf_score * RRF_TO_SIMILARITY_SCALE,
-          path: r2.file_path,
-          version_number: 1,
-          updated_at: r2.updated_at,
-          created_at: r2.updated_at,
-          author_id: null
-        });
-      }
-    }
-  }
-  const candidates = [];
-  const omittedCandidates = [];
-  const candidateIdsNeedingStatus = [];
-  const belowThresholdIds = [];
-  const skipRerank = args.skip_rerank === true || args.interactive === true;
-  const rerankerConfigured = !!(ctx.hostedRerank || ctx.rerank);
-  const canUseRerankAdmission = rerankerConfigured && !skipRerank;
-  for (const { kind: kind2, rows } of kindResults) {
-    const threshold = customThresholds?.[kind2] ?? KIND_THRESHOLDS[kind2];
-    for (const r2 of rows) {
-      const hasCosineEvidence = typeof r2.cosine_sim === "number" && Number.isFinite(r2.cosine_sim);
-      const thresholdScore = hasCosineEvidence ? r2.cosine_sim : r2.similarity;
-      const passesConfiguredThreshold = passesCandidateThreshold(
-        r2.similarity,
-        r2.cosine_sim,
-        threshold
-      );
-      const hasAbsoluteEvidence = hasCosineEvidence || !useHybrid;
-      const rerankAdmission = !passesConfiguredThreshold && kind2 === "skill" && skillRerankLaneEligible(thresholdsMode, customThresholds) && canUseRerankAdmission && hasAbsoluteEvidence && thresholdScore >= SKILL_RERANK_CANDIDATE_THRESHOLD ? { thresholdScore, configuredThreshold: threshold } : void 0;
-      if (!passesConfiguredThreshold && !rerankAdmission) {
-        omittedCandidates.push({
-          id: r2.id,
-          kind: kind2,
-          title: r2.title,
-          threshold_score: thresholdScore,
-          similarity: r2.similarity,
-          reason: "below_threshold",
-          detail: hasCosineEvidence ? `${kind2} cosine evidence ${r2.cosine_sim.toFixed(3)} missed threshold ${threshold.toFixed(3)} (rank score ${r2.similarity.toFixed(3)})` : `${kind2} similarity ${r2.similarity.toFixed(3)} missed threshold ${threshold.toFixed(3)}`,
-          path: r2.path
-        });
-        belowThresholdIds.push(r2.id);
-        continue;
-      }
-      candidateIdsNeedingStatus.push(r2.id);
-      candidates.push({
-        id: r2.id,
-        kind: kind2,
-        title: r2.title,
-        similarity: r2.similarity,
-        score: r2.similarity * KIND_WEIGHTS[kind2],
-        rerankAdmission,
-        citation: {
-          path: r2.path,
-          version_number: r2.version_number,
-          updated_at: r2.updated_at,
-          author_id: r2.author_id
-        },
-        componentId: null,
-        componentName: null,
-        // Decay off created_at, not updated_at: a corpus-wide maintenance write
-        // (e.g. a backfill) bumps updated_at and would silently reset every
-        // doc's decay clock to "fresh" — exactly what neutralized decay
-        // fleet-wide. created_at is the doc's true age. citation.updated_at
-        // above stays as the "last modified" provenance shown to users.
-        decayMultiplier: decayMultiplierForKind(kind2, r2.created_at),
-        createdAt: r2.created_at
-      });
-    }
-  }
-  const metadataById = /* @__PURE__ */ new Map();
-  const approvedColumnIds = /* @__PURE__ */ new Set();
-  const poolStatusIds = belowThresholdIds.length > 0 ? [.../* @__PURE__ */ new Set([...candidateIdsNeedingStatus, ...belowThresholdIds])] : candidateIdsNeedingStatus;
-  const belowThresholdActiveIds = /* @__PURE__ */ new Set();
-  const belowThresholdIdSet = new Set(belowThresholdIds);
-  if (poolStatusIds.length > 0) {
-    const { data: statusRows, error: statusErr } = await ctx.supabase.from("documents").select(
-      "id, account_id, created_by, locked_to_owners, status, kind, metadata, project_id, scope"
-    ).eq("account_id", ctx.accountId).eq("locked_to_owners", false).in("id", poolStatusIds);
-    if (statusErr) {
-      console.warn(
-        `[resolver] status/visibility fetch failed: ${statusErr.message} \u2014 dropping document candidates`
-      );
-      for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
-        const c2 = candidates[i2];
-        if (c2 && !functionBodyById.has(c2.id)) {
-          omittedCandidates.push({
-            id: c2.id,
-            kind: c2.kind,
-            title: c2.title,
-            similarity: c2.similarity,
-            reason: "status_filtered",
-            detail: `${c2.kind} direct visibility/status could not be verified`,
-            path: c2.citation.path
-          });
-          candidates.splice(i2, 1);
-        }
-      }
-    } else {
-      const statusById = /* @__PURE__ */ new Map();
-      const scopeRowById = /* @__PURE__ */ new Map();
-      const candidateKindById = new Map(
-        candidates.map((candidate) => [candidate.id, candidate.kind])
-      );
-      for (const r2 of statusRows ?? []) {
-        const expectedKind = candidateKindById.get(r2.id);
-        if (!expectedKind && belowThresholdIdSet.has(r2.id)) {
-          const visible = !ctx.serviceTokenId || isDirectResolverDocumentEligible(
-            r2,
-            { accountId: ctx.accountId, userId: ctx.userId, projectId },
-            {
-              expectedKind: r2.kind,
-              projectAssociation: "account-or-active-project"
-            }
-          );
-          if (visible && r2.status !== "archived") belowThresholdActiveIds.add(r2.id);
-          continue;
-        }
-        if (!expectedKind || ctx.serviceTokenId && !isDirectResolverDocumentEligible(
-          r2,
-          { accountId: ctx.accountId, userId: ctx.userId, projectId },
-          {
-            expectedKind,
-            projectAssociation: "account-or-active-project"
-          }
-        )) {
-          continue;
-        }
-        statusById.set(r2.id, r2.status);
-        metadataById.set(r2.id, r2.metadata);
-        scopeRowById.set(r2.id, { project_id: r2.project_id, scope: r2.scope });
-      }
-      for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
-        const c2 = candidates[i2];
-        if (!c2) continue;
-        if (!functionBodyById.has(c2.id) && !statusById.has(c2.id)) {
-          omittedCandidates.push({
-            id: c2.id,
-            kind: c2.kind,
-            title: c2.title,
-            similarity: c2.similarity,
-            reason: "status_filtered",
-            detail: `${c2.kind} direct visibility/status could not be verified`,
-            path: c2.citation.path
-          });
-          candidates.splice(i2, 1);
-          continue;
-        }
-        const status = statusById.get(c2.id) ?? null;
-        const meta = metadataById.get(c2.id);
-        const scopeRow = scopeRowById.get(c2.id);
-        if (nativeFunctions && meta?.source === "repo:function") {
-          omittedCandidates.push({
-            id: c2.id,
-            kind: c2.kind,
-            title: c2.title,
-            similarity: c2.similarity,
-            reason: "status_filtered",
-            detail: "function mirror superseded by native function search",
-            path: c2.citation.path
-          });
-          candidates.splice(i2, 1);
-          continue;
-        }
-        if (c2.kind === "memory" && typeof meta?.memory_type === "string") {
-          c2.memory_type = normalizeMemoryType(meta.memory_type);
-        }
-        if (c2.kind === "memory" && c2.memory_type === "working") {
-          omittedCandidates.push({
-            id: c2.id,
-            kind: c2.kind,
-            title: c2.title,
-            similarity: c2.similarity,
-            reason: "status_filtered",
-            detail: "session working memory is force-included by session_id, not semantic rank",
-            path: c2.citation.path
-          });
-          candidates.splice(i2, 1);
-          continue;
-        }
-        const inherited = isProjectBrainInheritedDoc(projectId, c2, scopeRow);
-        const inheritedDefault = meta?.default_for_projects === true || projectBrainPolicy.optionalChainIds.has(c2.id);
-        const inheritedRequired = meta?.required_for_projects === true || projectBrainPolicy.requiredChainIds.has(c2.id);
-        c2.authorityTier = authorityTier({
-          kind: c2.kind,
-          requiredGovernance: inheritedRequired,
-          approved: status === "approved",
-          memoryType: c2.memory_type ?? null
-        });
-        if (excludeDocumentIds.size > 0 && excludeDocumentIds.has(c2.id)) {
-          omittedCandidates.push({
-            id: c2.id,
-            kind: c2.kind,
-            title: c2.title,
-            similarity: c2.similarity,
-            reason: "status_filtered",
-            detail: "excluded by exclude_document_ids (backtest)",
-            path: c2.citation.path
-          });
-          candidates.splice(i2, 1);
-          continue;
-        }
-        if (status === "archived") {
-          omittedCandidates.push({
-            id: c2.id,
-            kind: c2.kind,
-            title: c2.title,
-            similarity: c2.similarity,
-            reason: "status_filtered",
-            detail: "document is archived",
-            path: c2.citation.path
-          });
-          candidates.splice(i2, 1);
-          continue;
-        }
-        const metaStatus = typeof meta?.status === "string" ? meta.status : null;
-        const backgroundAllowed = args.deep === true && metaStatus === "background";
-        if (metaStatus && metaStatus !== "active" && !backgroundAllowed) {
-          omittedCandidates.push({
-            id: c2.id,
-            kind: c2.kind,
-            title: c2.title,
-            similarity: c2.similarity,
-            reason: "status_filtered",
-            detail: `metadata.status is '${metaStatus}' (not active)`,
-            path: c2.citation.path
-          });
-          candidates.splice(i2, 1);
-          continue;
-        }
-        const supersededBy = typeof meta?.superseded_by === "string" ? meta.superseded_by.trim() : "";
-        if (!metaStatus && supersededBy && supersededBy !== c2.id) {
-          omittedCandidates.push({
-            id: c2.id,
-            kind: c2.kind,
-            title: c2.title,
-            similarity: c2.similarity,
-            reason: "superseded_by_stamp",
-            detail: `metadata.superseded_by points at ${supersededBy} (superseded without a status stamp)`,
-            path: c2.citation.path
-          });
-          candidates.splice(i2, 1);
-          continue;
-        }
-        const optout = projectBrainPolicy.overridesBySource.get(c2.id);
-        if (optout && !inheritedRequired) {
-          if (optout.action === "block") {
-            projectBrainPolicy.blockedIds.push(c2.id);
-            omittedCandidates.push({
-              id: c2.id,
-              kind: c2.kind,
-              title: c2.title,
-              similarity: c2.similarity,
-              reason: "status_filtered",
-              detail: "opted out by your team / project / you",
-              path: c2.citation.path
-            });
-            candidates.splice(i2, 1);
-            continue;
-          }
-          if (optout.action === "override" && optout.replacement_document_id) {
-            projectBrainPolicy.overridePairs.push({
-              source_document_id: c2.id,
-              replacement_document_id: optout.replacement_document_id
-            });
-            omittedCandidates.push({
-              id: c2.id,
-              kind: c2.kind,
-              title: c2.title,
-              similarity: c2.similarity,
-              reason: "status_filtered",
-              detail: `overridden by document ${optout.replacement_document_id}`,
-              path: c2.citation.path
-            });
-            candidates.splice(i2, 1);
-            continue;
-          }
-        }
-        if (inherited && !inheritedDefault && !inheritedRequired) {
-          omittedCandidates.push({
-            id: c2.id,
-            kind: c2.kind,
-            title: c2.title,
-            similarity: c2.similarity,
-            reason: "status_filtered",
-            detail: "account-level memory/skill is not marked default_for_projects",
-            path: c2.citation.path
-          });
-          candidates.splice(i2, 1);
-          continue;
-        }
-        if (inheritedDefault) projectBrainPolicy.inheritedDefaultIds.push(c2.id);
-        if (inheritedRequired) projectBrainPolicy.requiredIds.push(c2.id);
-        if ((c2.kind === "goal" || c2.kind === "skill") && status !== "approved") {
-          omittedCandidates.push({
-            id: c2.id,
-            kind: c2.kind,
-            title: c2.title,
-            similarity: c2.similarity,
-            reason: "status_filtered",
-            detail: `${c2.kind} status is ${status ?? "missing"}, not approved`,
-            path: c2.citation.path
-          });
-          candidates.splice(i2, 1);
-          continue;
-        }
-        if (c2.kind === "skill" && !isSkillTargetedToAgent(meta, audit.agentKind)) {
-          const targets = skillTargetAgents(meta);
-          omittedCandidates.push({
-            id: c2.id,
-            kind: c2.kind,
-            title: c2.title,
-            similarity: c2.similarity,
-            reason: "agent_target_mismatch",
-            detail: `skill targets [${targets.join(", ")}], not agent ${audit.agentKind}`,
-            path: c2.citation.path
-          });
-          candidates.splice(i2, 1);
-          continue;
-        }
-        const antiExample = c2.kind === "skill" && !inheritedRequired ? matchingSkillAntiExample(args.task, meta) : null;
-        if (antiExample) {
-          omittedCandidates.push({
-            id: c2.id,
-            kind: c2.kind,
-            title: c2.title,
-            similarity: c2.similarity,
-            reason: "anti_example_match",
-            detail: `task high-precision matched skill anti-example: ${antiExample.slice(0, 240)}`,
-            path: c2.citation.path
-          });
-          candidates.splice(i2, 1);
-          continue;
-        }
-        if ((c2.kind === "memory" || c2.kind === "decision") && status === "approved") {
-          approvedColumnIds.add(c2.id);
-        }
-      }
-      const replacementIds = projectBrainPolicy.overridePairs.map((p2) => p2.replacement_document_id).filter((id) => !candidates.some((c2) => c2.id === id));
-      if (replacementIds.length > 0) {
-        const { data: replacementRows, error: replacementErr } = await ctx.supabase.from("documents").select(
-          `id, account_id, created_by, locked_to_owners, scope, project_id, title,
-             kind, path, status, metadata, updated_at, created_at,
-             document_versions!documents_current_version_fk ( version_number, author_id )`
-        ).eq("account_id", ctx.accountId).eq("locked_to_owners", false).in("id", replacementIds);
-        if (replacementErr) {
-          console.warn(
-            `[resolver] project brain override replacement fetch failed: ${replacementErr.message}`
-          );
-        } else {
-          for (const row of replacementRows ?? []) {
-            if (!isDirectResolverDocumentEligible(
-              row,
-              { accountId: ctx.accountId, userId: ctx.userId, projectId },
-              {
-                projectAssociation: "account-or-active-project",
-                expectedKind: ["memory", "skill"]
-              }
-            )) {
-              continue;
-            }
-            if (row.kind === "skill" && !isSkillTargetedToAgent(row.metadata, audit.agentKind)) {
-              const targets = skillTargetAgents(row.metadata);
-              omittedCandidates.push({
-                id: row.id,
-                kind: row.kind,
-                title: row.title,
-                similarity: 1,
-                reason: "agent_target_mismatch",
-                detail: `override skill targets [${targets.join(", ")}], not agent ${audit.agentKind}`,
-                path: row.path
-              });
-              continue;
-            }
-            const replacementAnti = row.kind === "skill" && !projectBrainPolicy.requiredChainIds.has(row.id) ? matchingSkillAntiExample(args.task, row.metadata) : null;
-            if (replacementAnti) {
-              omittedCandidates.push({
-                id: row.id,
-                kind: row.kind,
-                title: row.title,
-                similarity: 1,
-                reason: "anti_example_match",
-                detail: `task high-precision matched override skill anti-example: ${replacementAnti.slice(0, 240)}`,
-                path: row.path
-              });
-              continue;
-            }
-            metadataById.set(row.id, row.metadata);
-            const v2 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
-            candidates.push({
-              id: row.id,
-              kind: row.kind,
-              title: row.title,
-              similarity: 1,
-              score: KIND_WEIGHTS[row.kind],
-              citation: {
-                path: row.path,
-                version_number: v2?.version_number ?? 1,
-                updated_at: row.updated_at,
-                author_id: v2?.author_id ?? null
-              },
-              componentId: null,
-              componentName: null,
-              // created_at, not updated_at — see the search-candidate build.
-              decayMultiplier: decayMultiplierForKind(row.kind, row.created_at),
-              createdAt: row.created_at
-            });
-          }
-        }
-      }
-      for (const c2 of candidates) {
-        const meta = metadataById.get(c2.id);
-        if (meta && meta.evergreen === true) {
-          c2.decayMultiplier = 1;
-        }
-      }
-    }
-  }
-  const candidateIds = candidates.map((c2) => c2.id);
-  const fitnessMultipliers = await loadFitnessMultipliers(
-    ctx,
-    candidateIds,
-    classifyTask(args.task)
-  );
-  for (const c2 of candidates) {
-    c2.fitnessMultiplier = fitnessMultipliers.get(c2.id) ?? 1;
-  }
-  let rerankAuditScores = null;
-  let rerankLatencyMs = null;
-  let rerankFallbackReason = null;
-  let rerankProvider = null;
-  let admissionJudge = null;
-  const { bodyMap, componentIdByDoc, rolesByDoc, componentScopedByDoc, canaryContentMap } = await hydrateCandidateBodies(
-    ctx,
-    // Candidates plus the below-threshold docs that survived the entitlement
-    // and archived checks. One fetch, a longer id list — no extra round trip.
-    [...candidates.map((c2) => c2.id), ...belowThresholdActiveIds],
-    functionBodyById,
-    functionComponentById
-  );
-  const poolIds = [...candidates.map((c2) => c2.id), ...belowThresholdActiveIds];
-  const candidatePoolCount = poolIds.length;
-  const candidatePoolTokens = poolIds.reduce(
-    (sum, id) => sum + estimateTokens(bodyMap.get(id) ?? ""),
-    0
-  );
-  const candidatePoolAdmittedCount = candidates.length;
-  const candidatePoolBelowThresholdCount = belowThresholdActiveIds.size;
-  const skillRerankAdmissionCandidateIds = candidates.filter((candidate) => candidate.rerankAdmission).map((candidate) => candidate.id);
-  const dropUnverifiedRerankAdmissions = (detail) => {
-    for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
-      const candidate = candidates[i2];
-      if (!candidate?.rerankAdmission) continue;
-      omittedCandidates.push({
-        id: candidate.id,
-        kind: candidate.kind,
-        title: candidate.title,
-        threshold_score: candidate.rerankAdmission.thresholdScore,
-        similarity: candidate.similarity,
-        reason: "rerank_filtered",
-        detail,
-        path: candidate.citation.path
-      });
-      candidates.splice(i2, 1);
-    }
-  };
-  const hasProvisionalSkill = skillRerankAdmissionCandidateIds.length > 0;
-  if (rerankerConfigured && (candidates.length >= MIN_CANDIDATES_FOR_RERANK || hasProvisionalSkill) && !skipRerank) {
-    const rerankInputs = candidates.map((c2) => ({
-      id: c2.id,
-      kind: c2.kind,
-      title: c2.title,
-      excerpt: (bodyMap.get(c2.id) ?? "").slice(0, RERANK_EXCERPT_CHARS)
-    }));
-    try {
-      let scores;
-      let latencyMs;
-      if (ctx.hostedRerank) {
-        rerankProvider = ctx.hostedRerank.provider;
-        const startedAt = Date.now();
-        scores = await Promise.race([
-          rerankHosted(args.task, rerankInputs, ctx.hostedRerank),
-          new Promise(
-            (_2, reject) => setTimeout(() => reject(new Error("hosted rerank timeout")), RERANK_TIMEOUT_MS)
-          )
-        ]);
-        latencyMs = Date.now() - startedAt;
-      } else {
-        rerankProvider = "llm";
-        const result = await Promise.race([
-          rerankCandidates(args.task, rerankInputs, ctx.rerank),
-          new Promise(
-            (_2, reject) => setTimeout(() => reject(new Error("llm rerank timeout")), RERANK_TIMEOUT_MS)
-          )
-        ]);
-        scores = result.scores;
-        latencyMs = result.latency_ms;
-      }
-      rerankLatencyMs = latencyMs;
-      const scoredCount = Object.keys(scores).length;
-      const coverage = candidates.length > 0 ? scoredCount / candidates.length : 0;
-      if (scoredCount === 0 || coverage < RERANK_MIN_COVERAGE) {
-        rerankFallbackReason = scoredCount === 0 ? "rerank_empty" : "rerank_partial";
-        console.warn(
-          `[resolver] rerank scored ${scoredCount}/${candidates.length} candidates (< quorum) \u2014 keeping cosine ordering`
-        );
-        dropUnverifiedRerankAdmissions(
-          `provisional skill dropped because reranker returned ${rerankFallbackReason}`
-        );
-      } else {
-        if (ctx.hostedRerank && ctx.rerank) {
-          const provisional = candidates.filter((c2) => c2.rerankAdmission);
-          if (provisional.length > 0) {
-            const judgeInputs = provisional.map((c2) => ({
-              id: c2.id,
-              kind: c2.kind,
-              title: c2.title,
-              excerpt: (bodyMap.get(c2.id) ?? "").slice(0, RERANK_EXCERPT_CHARS)
-            }));
-            try {
-              const judge = await Promise.race([
-                rerankCandidates(args.task, judgeInputs, ctx.rerank),
-                new Promise(
-                  (_2, reject) => setTimeout(
-                    () => reject(new Error("admission judge timeout")),
-                    ADMISSION_JUDGE_TIMEOUT_MS
-                  )
-                )
-              ]);
-              const applied = applyAdmissionJudgeScores(
-                scores,
-                judge.scores,
-                provisional.map((c2) => c2.id)
-              );
-              admissionJudge = {
-                attempted: provisional.length,
-                scored: applied,
-                latency_ms: judge.latency_ms,
-                error: null
-              };
-            } catch (e2) {
-              admissionJudge = {
-                attempted: provisional.length,
-                scored: 0,
-                latency_ms: null,
-                error: e2 instanceof Error ? e2.message : String(e2)
-              };
-            }
-          }
-        }
-        rerankAuditScores = scores;
-        for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
-          const c2 = candidates[i2];
-          const newScore = scores[c2.id];
-          const belowSkillAdmissionFloor = c2.kind === "skill" && !projectBrainPolicy.requiredChainIds.has(c2.id) && newScore !== void 0 && newScore < RERANK_SKILL_MIN_SCORE;
-          if (newScore === void 0 || newScore <= 0 || belowSkillAdmissionFloor) {
-            omittedCandidates.push({
-              id: c2.id,
-              kind: c2.kind,
-              title: c2.title,
-              similarity: c2.similarity,
-              reason: "rerank_filtered",
-              detail: belowSkillAdmissionFloor ? `skill rerank score ${newScore.toFixed(3)} is below the ${RERANK_SKILL_MIN_SCORE.toFixed(2)} application floor` : "reranker omitted or scored this candidate at 0",
-              path: c2.citation.path
-            });
-            candidates.splice(i2, 1);
-            continue;
-          }
-          c2.score = newScore * KIND_WEIGHTS[c2.kind];
-        }
-      }
-    } catch (e2) {
-      console.warn(
-        `[resolver] rerank failed (${e2 instanceof Error ? e2.message : String(e2)}) \u2014 falling back to cosine`
-      );
-      rerankAuditScores = null;
-      rerankLatencyMs = null;
-      rerankFallbackReason = e2 instanceof HostedRerankResponseError ? e2.fallbackReason : "rerank_error";
-      dropUnverifiedRerankAdmissions(
-        rerankFallbackReason === "rerank_error" ? "provisional skill dropped because reranker failed; configured threshold remains authoritative" : `provisional skill dropped because reranker returned ${rerankFallbackReason}`
-      );
-    }
-  }
-  let activeComponentId = null;
-  let activeComponentName = null;
-  let activeComponentSlug = null;
-  let activeComponent = null;
-  const componentNameById = /* @__PURE__ */ new Map();
-  const componentRepoById = /* @__PURE__ */ new Map();
-  if (projectId) {
-    const { data: compRows, error: compErr } = await ctx.supabase.from("components").select("id, name, slug, path_patterns, repo").eq("project_id", projectId);
-    if (compErr) {
-      console.warn(
-        `[resolver] components lookup failed: ${compErr.message} \u2014 proceeding without component boost`
-      );
-    } else if (compRows && compRows.length > 0) {
-      for (const row of compRows) {
-        componentNameById.set(row.id, { name: row.name, slug: row.slug });
-        componentRepoById.set(row.id, row.repo ?? null);
-      }
-      if (args.cwd) {
-        let bestLen = -1;
-        for (const row of compRows) {
-          const patterns = row.path_patterns ?? [];
-          for (const pat of patterns) {
-            const len = matchPathPattern(args.cwd, pat);
-            if (len !== null && len > bestLen) {
-              bestLen = len;
-              activeComponentId = row.id;
-              activeComponentName = row.name;
-              activeComponentSlug = row.slug;
-            }
-          }
-        }
-      }
-      if (!activeComponentId) {
-        let bestLen = -1;
-        for (const row of compRows) {
-          for (const pat of row.path_patterns ?? []) {
-            const dir = pat === "**" ? "" : pat.replace(/\/\*\*$/, "");
-            if (dir.length === 0) continue;
-            if (dir.length > bestLen && args.task.includes(dir)) {
-              bestLen = dir.length;
-              activeComponentId = row.id;
-              activeComponentName = row.name;
-              activeComponentSlug = row.slug;
-            }
-          }
-        }
-      }
-      if (activeComponentId && activeComponentName) {
-        activeComponent = {
-          id: activeComponentId,
-          name: activeComponentName,
-          slug: activeComponentSlug
-        };
-      }
-    }
-  }
-  let activeRepo = null;
-  {
-    const distinctRepos = /* @__PURE__ */ new Set();
-    for (const r2 of componentRepoById.values()) if (r2) distinctRepos.add(r2);
-    if (projectId && distinctRepos.size > 1) {
-      const { data: repoRows, error: repoErr } = await ctx.supabase.from("project_github_repos").select("repo_full_name").eq("project_id", projectId);
-      if (repoErr) {
-        console.warn(
-          `[resolver] project repos lookup failed: ${repoErr.message} \u2014 proceeding repo-neutral`
-        );
-      } else {
-        const repoNames = (repoRows ?? []).map((r2) => r2.repo_full_name).filter((r2) => typeof r2 === "string" && r2.length > 0);
-        activeRepo = inferActiveRepo({
-          gitRemote: args.git_remote ?? null,
-          cwd: args.cwd ?? null,
-          task: args.task,
-          repoNames,
-          activeComponentRepo: activeComponentId ? componentRepoById.get(activeComponentId) ?? null : null
-        });
-      }
-    }
-  }
-  let userRoles = [];
-  if (ctx.userId) {
-    const { data: memberRow, error: memberErr } = await ctx.supabase.from("account_members").select("functional_roles, inferred_roles").eq("account_id", ctx.accountId).eq("user_id", ctx.userId).maybeSingle();
-    if (memberErr) {
-      console.warn(
-        `[resolver] member roles fetch failed: ${memberErr.message} \u2014 proceeding without role boost`
-      );
-    } else {
-      const m2 = memberRow ?? {};
-      const merged = /* @__PURE__ */ new Set();
-      for (const src of [m2.functional_roles, m2.inferred_roles]) {
-        if (Array.isArray(src)) {
-          for (const r2 of src) if (typeof r2 === "string") merged.add(r2);
-        }
-      }
-      userRoles = [...merged];
-    }
-  }
-  for (const c2 of candidates) {
-    const compId = componentIdByDoc.get(c2.id) ?? null;
-    c2.componentId = compId;
-    if (compId) {
-      const info = componentNameById.get(compId);
-      c2.componentName = info?.name ?? null;
-      c2.repo = componentRepoById.get(compId) ?? null;
-    }
-    if (activeComponentId && compId === activeComponentId) {
-      c2.score += ACTIVE_COMPONENT_BOOST * KIND_WEIGHTS[c2.kind];
-    } else if (activeRepo && c2.repo === activeRepo) {
-      c2.score += SAME_REPO_BOOST * KIND_WEIGHTS[c2.kind];
-    }
-    if (activeRepo && c2.repo && c2.repo !== activeRepo && (c2.kind === "memory" || c2.kind === "skill")) {
-      c2.score *= CROSS_REPO_DEMOTION;
-    }
-  }
-  for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
-    const c2 = candidates[i2];
-    if (!c2) continue;
-    if (!componentScopedByDoc.get(c2.id)) continue;
-    if (c2.kind !== "memory" && c2.kind !== "skill") continue;
-    if (c2.componentId && c2.componentId === activeComponentId) continue;
-    omittedCandidates.push({
-      id: c2.id,
-      kind: c2.kind,
-      title: c2.title,
-      similarity: c2.similarity,
-      reason: "status_filtered",
-      detail: !c2.componentId ? "component-scoped doc has no component_id (misconfigured)" : activeComponentId ? "component-scoped doc outside the active component" : "component-scoped doc requires an active component (none inferred)",
-      path: c2.citation.path
-    });
-    candidates.splice(i2, 1);
-  }
-  if (userRoles.length > 0) {
-    for (const c2 of candidates) {
-      const docRoles = rolesByDoc.get(c2.id) ?? [];
-      if (docRoles.some((r2) => userRoles.includes(r2))) {
-        c2.score += ROLE_MATCH_BOOST * KIND_WEIGHTS[c2.kind];
-      }
-    }
-  }
-  if (approvedColumnIds.size > 0) {
-    for (const c2 of candidates) {
-      if (approvedColumnIds.has(c2.id)) {
-        c2.score += APPROVED_STATUS_BOOST * KIND_WEIGHTS[c2.kind];
-      }
-    }
-  }
-  let pinnedItems = [];
-  try {
-    pinnedItems = await assemblePinned(ctx, projectId, audit.agentKind ?? null, (row, targets) => {
-      omittedCandidates.push({
-        id: row.id,
-        kind: "skill",
-        title: row.title,
-        similarity: 1,
-        reason: "agent_target_mismatch",
-        detail: `pinned skill targets [${targets.join(", ")}], not agent ${audit.agentKind}`,
-        path: row.path ?? null
-      });
-    });
-  } catch (e2) {
-    console.warn(
-      `[resolver] pinned assembly failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without pins`
-    );
-  }
-  let requiredCoreItems = [];
-  let requiredCoreStatus = {
-    complete: projectBrainPolicy.errors.length === 0,
-    expected_ids: [],
-    delivered_ids: [],
-    missing_ids: [],
-    errors: [...projectBrainPolicy.errors]
-  };
-  try {
-    const required2 = await assembleRequiredCore(
-      ctx,
-      projectBrainPolicy.requiredChainIds,
-      projectId,
-      projectBrainPolicy.errors,
-      audit.agentKind ?? null
-    );
-    requiredCoreItems = required2.items;
-    requiredCoreStatus = required2.status;
-  } catch (e2) {
-    const message = e2 instanceof Error ? e2.message : String(e2);
-    requiredCoreStatus = {
-      complete: false,
-      expected_ids: [...projectBrainPolicy.requiredChainIds].sort(),
-      delivered_ids: [],
-      missing_ids: [...projectBrainPolicy.requiredChainIds].sort(),
-      errors: [.../* @__PURE__ */ new Set([...projectBrainPolicy.errors, `required-core assembly: ${message}`])]
-    };
-    console.warn(`[resolver] required-core assembly failed: ${message}`);
-  }
-  const requiredCoreIds = new Set(requiredCoreItems.map((item) => item.id));
-  if (requiredCoreIds.size > 0) {
-    pinnedItems = pinnedItems.filter((item) => !requiredCoreIds.has(item.id));
-  }
-  if (pinnedItems.length > 0 || requiredCoreItems.length > 0) {
-    const alwaysOnIds = /* @__PURE__ */ new Set([
-      ...pinnedItems.map((item) => item.id),
-      ...requiredCoreItems.map((item) => item.id)
-    ]);
-    for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
-      const c2 = candidates[i2];
-      if (c2 && alwaysOnIds.has(c2.id)) candidates.splice(i2, 1);
-    }
-  }
-  const memoryTypeMultiplier = (c2) => c2.kind === "memory" && c2.memory_type ? MEMORY_TYPE_WEIGHTS[c2.memory_type] : 1;
-  const gatedFitness = (c2) => {
-    const f2 = c2.fitnessMultiplier ?? 1;
-    if (f2 <= 1) return f2;
-    return c2.similarity >= FITNESS_BOOST_MIN_SIMILARITY ? f2 : 1;
-  };
-  const effectiveScore = (c2) => c2.score * c2.decayMultiplier * gatedFitness(c2) * memoryTypeMultiplier(c2);
-  const byPrecedence = byAuthorityThenScore(
-    (c2) => c2.authorityTier ?? AUTHORITY_TIER.HISTORICAL,
-    effectiveScore
-  );
-  const dedupeThresholdRaw = customThresholds?.dedupe;
-  const dedupeThreshold = typeof dedupeThresholdRaw === "number" ? dedupeThresholdRaw >= 2 ? null : Math.max(dedupeThresholdRaw, REDUNDANCY_COLLAPSE_MIN) : REDUNDANCY_COLLAPSE_THRESHOLD;
-  const dedupeClusters = [];
-  let dedupeDroppedCount = 0;
-  let dedupeTokensSaved = 0;
-  const dedupeEligibleIds = candidates.filter((c2) => REDUNDANCY_COLLAPSE_KINDS.has(c2.kind)).map((c2) => c2.id);
-  if (!args.skip_dedupe && dedupeThreshold !== null && dedupeEligibleIds.length >= 2) {
-    try {
-      const { data: pairRows, error: pairErr } = await ctx.supabase.rpc(
-        "document_similarity_pairs",
-        {
-          p_account_id: ctx.accountId,
-          p_ids: dedupeEligibleIds,
-          p_threshold: dedupeThreshold
-        }
-      );
-      if (pairErr) {
-        console.warn(
-          `[resolver] similarity-pairs lookup failed: ${pairErr.message} \u2014 skipping redundancy collapse`
-        );
-      } else if (Array.isArray(pairRows) && pairRows.length > 0) {
-        const neighbours = /* @__PURE__ */ new Map();
-        const simByPair = /* @__PURE__ */ new Map();
-        for (const row of pairRows) {
-          if (!neighbours.has(row.id_a)) neighbours.set(row.id_a, /* @__PURE__ */ new Set());
-          if (!neighbours.has(row.id_b)) neighbours.set(row.id_b, /* @__PURE__ */ new Set());
-          neighbours.get(row.id_a).add(row.id_b);
-          neighbours.get(row.id_b).add(row.id_a);
-          simByPair.set(`${row.id_a}:${row.id_b}`, row.similarity);
-          simByPair.set(`${row.id_b}:${row.id_a}`, row.similarity);
-        }
-        const byId = new Map(candidates.map((c2) => [c2.id, c2]));
-        const claimed = /* @__PURE__ */ new Set();
-        const dropInfo = /* @__PURE__ */ new Map();
-        const collapseTier = (c2) => {
-          const t2 = c2.authorityTier ?? AUTHORITY_TIER.HISTORICAL;
-          return t2 <= AUTHORITY_TIER.USER_CORRECTION ? t2 : AUTHORITY_TIER.HISTORICAL;
-        };
-        const ranked = candidates.filter((c2) => neighbours.has(c2.id)).sort(byAuthorityThenScore(collapseTier, effectiveScore));
-        for (const leader of ranked) {
-          if (claimed.has(leader.id)) continue;
-          claimed.add(leader.id);
-          const members = [];
-          for (const nId of neighbours.get(leader.id) ?? []) {
-            if (claimed.has(nId)) continue;
-            const twin = byId.get(nId);
-            if (!twin) continue;
-            claimed.add(nId);
-            members.push(twin);
-          }
-          if (members.length === 0) continue;
-          let keeper = leader;
-          if (leader.kind === "decision") {
-            const leaderTier = leader.authorityTier ?? AUTHORITY_TIER.HISTORICAL;
-            for (const m2 of members) {
-              if (m2.kind !== "decision") continue;
-              if ((m2.authorityTier ?? AUTHORITY_TIER.HISTORICAL) !== leaderTier) continue;
-              const mAt = Date.parse(m2.createdAt ?? "");
-              const kAt = Date.parse(keeper.createdAt ?? "");
-              if (Number.isFinite(mAt) && Number.isFinite(kAt) && mAt > kAt) keeper = m2;
-            }
-          }
-          const keptNewerDecision = keeper !== leader;
-          const droppedMembers = keptNewerDecision ? [leader, ...members.filter((m2) => m2.id !== keeper.id)] : members;
-          const twins = [];
-          for (const twin of droppedMembers) {
-            const sim = simByPair.get(`${keeper.id}:${twin.id}`) ?? dedupeThreshold;
-            twins.push({
-              id: twin.id,
-              title: twin.title,
-              similarity: sim,
-              est_tokens: estimateTokens(bodyMap.get(twin.id) ?? "")
-            });
-            dropInfo.set(twin.id, {
-              keeperTitle: keeper.title,
-              similarity: sim,
-              keptNewerDecision
-            });
-          }
-          keeper.collapsedDuplicates = twins;
-          dedupeDroppedCount += twins.length;
-          dedupeTokensSaved += twins.reduce((s2, t2) => s2 + t2.est_tokens, 0);
-          dedupeClusters.push({
-            kept_id: keeper.id,
-            dropped: twins.map((t2) => ({
-              id: t2.id,
-              similarity: Number(t2.similarity.toFixed(4)),
-              est_tokens: t2.est_tokens
-            }))
-          });
-        }
-        for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
-          const c2 = candidates[i2];
-          if (!c2) continue;
-          const drop = dropInfo.get(c2.id);
-          if (!drop) continue;
-          omittedCandidates.push({
-            id: c2.id,
-            kind: c2.kind,
-            title: c2.title,
-            similarity: c2.similarity,
-            reason: "redundant_duplicate",
-            detail: `near-duplicate of "${drop.keeperTitle}" (cosine ${drop.similarity.toFixed(3)}) \u2014 ${drop.keptNewerDecision ? "kept the newer decision" : "kept the higher-scored copy"}`,
-            path: c2.citation.path
-          });
-          candidates.splice(i2, 1);
-        }
-      }
-    } catch (e2) {
-      console.warn(
-        `[resolver] redundancy collapse failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without collapse`
-      );
-    }
-  }
-  const skillCands = candidates.filter((c2) => c2.kind === "skill").sort(byPrecedence);
-  const primarySkill = skillCands[0] ?? null;
-  const budgetOrder = [];
-  if (primarySkill) budgetOrder.push(primarySkill);
-  const byScoreDesc = (a2, b2) => effectiveScore(b2) - effectiveScore(a2);
-  let rest = candidates.filter((c2) => !primarySkill || c2.id !== primarySkill.id).sort((a2, b2) => {
-    const aPriority = (a2.authorityTier ?? AUTHORITY_TIER.HISTORICAL) <= AUTHORITY_TIER.USER_CORRECTION;
-    const bPriority = (b2.authorityTier ?? AUTHORITY_TIER.HISTORICAL) <= AUTHORITY_TIER.USER_CORRECTION;
-    if (aPriority !== bPriority) return aPriority ? -1 : 1;
-    return byScoreDesc(a2, b2);
-  });
-  let marginalDroppedCount = 0;
-  let marginalTokensSaved = 0;
-  const marginalFraction = args.skip_marginal_cutoff ? MARGINAL_CUTOFF_OFF : resolveMarginalCutoff(args.marginal_cutoff ?? customThresholds?.marginal_cutoff);
-  if (marginalFraction > MARGINAL_CUTOFF_OFF && rest.length > MARGINAL_CUTOFF_MIN_KEEP) {
-    const kindTop = /* @__PURE__ */ new Map();
-    for (const c2 of rest) {
-      const s2 = effectiveScore(c2);
-      if (s2 > (kindTop.get(c2.kind) ?? -Infinity)) kindTop.set(c2.kind, s2);
-    }
-    const protectedIds = new Set(
-      [...rest].sort(byScoreDesc).slice(0, MARGINAL_CUTOFF_MIN_KEEP).map((c2) => c2.id)
-    );
-    for (const c2 of rest) {
-      if ((c2.authorityTier ?? AUTHORITY_TIER.HISTORICAL) <= AUTHORITY_TIER.USER_CORRECTION) {
-        protectedIds.add(c2.id);
-      }
-    }
-    const kept = [];
-    for (const c2 of rest) {
-      const ref = kindTop.get(c2.kind) ?? 0;
-      const isMarginal = !protectedIds.has(c2.id) && ref > 0 && effectiveScore(c2) < marginalFraction * ref;
-      if (!isMarginal) {
-        kept.push(c2);
-        continue;
-      }
-      marginalDroppedCount += 1;
-      marginalTokensSaved += estimateTokens(bodyMap.get(c2.id) ?? "");
-      omittedCandidates.push({
-        id: c2.id,
-        kind: c2.kind,
-        title: c2.title,
-        similarity: c2.similarity,
-        reason: "marginal_value",
-        detail: `effective score ${effectiveScore(c2).toFixed(3)} below ${(marginalFraction * 100).toFixed(0)}% of the best ${c2.kind} (${ref.toFixed(3)}) \u2014 trimmed as low marginal value`,
-        path: c2.citation.path
-      });
-    }
-    rest = kept;
-  }
-  budgetOrder.push(...rest);
-  let maxTokens;
-  let budgetTier;
-  let budgetSource;
-  let budgetFloorApplied = false;
-  if (args.max_tokens !== void 0) {
-    maxTokens = args.max_tokens;
-    budgetTier = "explicit";
-    budgetSource = "explicit";
-  } else {
-    const budgetWaitStartedAt = Date.now();
-    const fromCorpus = corpusBudgetPromise ? await corpusBudgetPromise : null;
-    budgetWaitMs = Date.now() - budgetWaitStartedAt;
-    if (fromCorpus) {
-      const heuristicTokens = inferBudget(args.task).tokens;
-      const floored = Math.max(fromCorpus.tokens, Math.round(heuristicTokens * 0.75));
-      maxTokens = Math.min(BUDGET_CEILING, floored);
-      budgetFloorApplied = maxTokens > fromCorpus.tokens;
-      budgetTier = tierForTokens(maxTokens);
-      budgetSource = "corpus";
-    } else {
-      const fromHeuristic = inferBudget(args.task);
-      maxTokens = fromHeuristic.tokens;
-      budgetTier = fromHeuristic.tier;
-      budgetSource = "heuristic";
-    }
-  }
-  const included = [];
-  const excluded = /* @__PURE__ */ new Set();
-  const requiredCoreTokens = requiredCoreItems.reduce(
-    (total, item) => total + estimateTokens(item.body),
-    0
-  );
-  let used = requiredCoreTokens;
-  let truncated = requiredCoreTokens > maxTokens;
-  const canaryIdentity = audit.sessionId ? { source: "session_id", key: `session_id:${audit.sessionId}` } : audit.agentInstallationId ? {
-    source: "agent_installation_id",
-    key: `agent_installation_id:${audit.agentInstallationId}`
-  } : ctx.userId ? { source: "user_id", key: `user_id:${ctx.userId}` } : { source: "account_fallback", key: `account_fallback:${ctx.accountId}` };
-  const canaryRoutingAudit = [];
-  const pinnedCap = Math.min(PINNED_MAX_TOKENS, Math.round(maxTokens * PINNED_BUDGET_FRACTION));
-  const pinnedIncluded = [];
-  let pinnedTokens = 0;
-  for (const p2 of pinnedItems) {
-    const cost = estimateTokens(p2.body);
-    if (pinnedIncluded.length > 0 && pinnedTokens + cost > pinnedCap) {
-      truncated = true;
-      omittedCandidates.push({
-        id: p2.id,
-        kind: p2.kind,
-        title: p2.title,
-        similarity: p2.similarity,
-        reason: "pinned_overflow",
-        detail: `pinned doc dropped \u2014 admitting it would exceed the pinned budget cap of ${pinnedCap} tokens`,
-        path: p2.citation.path
-      });
-      continue;
-    }
-    pinnedIncluded.push(p2);
-    used += cost;
-    pinnedTokens += cost;
-  }
-  for (const c2 of budgetOrder) {
-    let body = bodyMap.get(c2.id) ?? "";
-    const isPrimary = primarySkill?.id === c2.id;
-    const meta = metadataById.get(c2.id);
-    let resolvedVersionNumber = c2.citation.version_number;
-    let versionTag = "stable";
-    if (c2.kind === "skill" && meta && meta.canary_version_id && typeof meta.canary_version_id === "string") {
-      const configuredRatio = typeof meta.canary_ratio === "number" && Number.isFinite(meta.canary_ratio) ? meta.canary_ratio : 0.1;
-      const canaryRatio = Math.max(0, Math.min(1, configuredRatio));
-      const bucket = deterministicCanaryBucket(canaryIdentity.key, c2.id);
-      const canaryInfo = canaryContentMap.get(meta.canary_version_id);
-      if (bucket < canaryRatio && canaryInfo) {
-        body = canaryInfo.content;
-        resolvedVersionNumber = canaryInfo.version_number;
-        versionTag = "canary";
-      }
-      canaryRoutingAudit.push({
-        skill_id: c2.id,
-        identity_source: canaryIdentity.source,
-        bucket,
-        ratio: canaryRatio,
-        canary_version_id: meta.canary_version_id,
-        canary_available: Boolean(canaryInfo),
-        selected_version_tag: versionTag,
-        stable_version_number: c2.citation.version_number,
-        canary_version_number: canaryInfo?.version_number ?? null,
-        resolved_version_number: resolvedVersionNumber
-      });
-    }
-    const cost = estimateTokens(body);
-    if (!isPrimary && used + cost > maxTokens) {
-      truncated = true;
-      excluded.add(c2.id);
-      omittedCandidates.push({
-        id: c2.id,
-        kind: c2.kind,
-        title: c2.title,
-        similarity: c2.similarity,
-        reason: "budget_excluded",
-        detail: `estimated ${cost} tokens would exceed budget ${maxTokens}`,
-        path: c2.citation.path
-      });
-      continue;
-    }
-    if (isPrimary && cost > maxTokens) {
-      truncated = true;
-    }
-    included.push({
-      id: c2.id,
-      kind: c2.kind,
-      title: c2.title,
-      body,
-      similarity: c2.similarity,
-      citation: {
-        ...c2.citation,
-        version_number: resolvedVersionNumber
-      },
-      component_id: c2.componentId,
-      component_name: c2.componentName,
-      repo: c2.repo ?? null,
-      version_tag: versionTag,
-      collapsed_duplicates: c2.collapsedDuplicates?.length,
-      authority_tier: c2.authorityTier
-    });
-    used += cost;
-  }
-  if (included.length > 1) {
-    const lead = primarySkill && included[0]?.id === primarySkill.id ? included.shift() : null;
-    included.sort((a2, b2) => {
-      const t2 = (a2.authority_tier ?? AUTHORITY_TIER.HISTORICAL) - (b2.authority_tier ?? AUTHORITY_TIER.HISTORICAL);
-      if (t2 !== 0) return t2;
-      return b2.similarity - a2.similarity;
-    });
-    if (lead) included.unshift(lead);
-  }
-  const feed = async (name, fallback, run) => {
-    let timeout;
-    try {
-      return await Promise.race([
-        run(),
-        new Promise((_resolve, reject) => {
-          timeout = setTimeout(
-            () => reject(new Error(`timed out after ${AWARENESS_FEED_TIMEOUT_MS}ms`)),
-            AWARENESS_FEED_TIMEOUT_MS
-          );
-        })
-      ]);
-    } catch (e2) {
-      console.warn(
-        `[resolver] ${name} failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without it`
-      );
-      return fallback;
-    } finally {
-      if (timeout) clearTimeout(timeout);
-    }
-  };
-  const feedsStartedAt = Date.now();
-  const [
-    brandGuidelinesRaw,
-    claimGuardrails,
-    architecture,
-    concurrentWork,
-    prPresence,
-    recentFileEdits,
-    editOwnership,
-    deployInProgress,
-    semanticWorkInFlight,
-    myEditPaths,
-    componentDirs,
-    workspaceMembers
-  ] = await Promise.all([
-    // Brand-guidelines context. Always-on (not semantic) — fetched directly
-    // from the project's chosen pointer (or the account default) and merged
-    // with any project-level override doc.
-    feed("brand-guidelines fetch", null, async () => {
-      const componentInfoById = /* @__PURE__ */ new Map();
-      for (const [id, info] of componentNameById) {
-        componentInfoById.set(id, {
-          repo: componentRepoById.get(id) ?? null,
-          slug: info.slug
-        });
-      }
-      return assembleBrandGuidelines(ctx, {
-        accountId: ctx.accountId,
-        projectId,
-        activeComponentId,
-        activeRepo,
-        componentInfoById
-      });
-    }),
-    wantsClaimGuardrails(args.task) ? feed(
-      "claim-guardrails assembly",
-      null,
-      () => assembleClaimGuardrails(ctx, projectId)
-    ) : Promise.resolve(null),
-    // Code-graph architecture. When cwd matched a component, fold that
-    // component's functions + cross-component contracts into the bundle.
-    activeComponent && projectId ? feed(
-      "architecture assembly",
-      null,
-      () => assembleArchitecture(ctx, projectId, activeComponent, componentNameById)
-    ) : Promise.resolve(null),
-    // Concurrent-work awareness — other agents resolving on this project
-    // right now, so the bundle can flag who else is in the room.
-    feed(
-      "concurrent-work assembly",
-      [],
-      () => assembleConcurrentWork(
-        ctx,
-        projectId,
-        audit.sessionId ?? null,
-        componentNameById,
-        queryVec ?? null
-      )
-    ),
-    // Axis C. Durable presence: sessions quiet for hours whose branch has an
-    // OPEN PR. Fetched here, appended to concurrentWork AFTER collision
-    // promotion below — a 6-hour-old session is context, not contention.
-    feed(
-      "open-pr presence assembly",
-      [],
-      () => assembleOpenPrPresence(ctx, projectId, audit.sessionId ?? null, ctx.userId ?? null)
-    ),
-    // File-level activity — what OTHER sessions actually edited recently.
-    // Resolve-level concurrency says "someone's awake"; this says
-    // "resolver.ts was touched 3m ago."
-    feed(
-      "file-activity assembly",
-      [],
-      () => assembleFileActivity(ctx, projectId, audit.sessionId ?? null, ctx.userId ?? null)
-    ),
-    // Transactional ownership involving this session. Unlike the historical
-    // activity feed, these rows remain until yield/handoff/reconciliation.
-    feed(
-      "edit-ownership assembly",
-      [],
-      () => assembleEditOwnership(ctx, projectId, audit.sessionId ?? null)
-    ),
-    // Deploy-in-progress awareness — other agents that look like they're
-    // shipping right now. Distinct, louder signal than file collisions.
-    feed(
-      "deploy-in-progress assembly",
-      [],
-      () => assembleDeployInProgress(ctx, projectId, audit.sessionId ?? null, componentNameById)
-    ),
-    // Work-ledger awareness — open / recently-merged PRs whose title+body is
-    // semantically close to this task (the work_items ledger).
-    feed(
-      "work-in-flight assembly",
-      [],
-      () => assembleWorkInFlight(ctx, projectId, queryVec ?? null)
-    ),
-    // Axis A input: repo-relative paths THIS session edited recently.
-    feed(
-      "own-edit-paths assembly",
-      [],
-      () => assembleOwnEditPaths(ctx, projectId, audit.sessionId ?? null)
-    ),
-    // Axis A input: leading literal dirs of the active component's
-    // path_patterns.
-    activeComponentId ? feed("component path-patterns fetch", [], async () => {
-      const { data: compRow } = await ctx.supabase.from("components").select("path_patterns").eq("id", activeComponentId).maybeSingle();
-      return patternPrefixDirs(
-        compRow?.path_patterns ?? []
-      );
-    }) : Promise.resolve([]),
-    // Person-mention input: this account's member roster, so a task naming a
-    // teammate can recall their authored docs (10e-iii-b). Bounded and
-    // indexed; rides the parallel block so it costs no wall-clock.
-    //
-    // Via the account_member_identities RPC (security definer, membership
-    // self-guarded): users RLS is self-read-only, so a direct
-    // account_members→users embed returns TEAMMATES with null identities
-    // under the caller's client — the roster looked fine under service-role
-    // validation and arrived nameless in production (audit df72471c). Falls
-    // back to the direct embed for pre-migration databases, where
-    // service-role callers still see full identities.
-    feed("workspace-members fetch", [], async () => {
-      const { data: rpcRows, error: rpcErr } = await ctx.supabase.rpc("account_member_identities", {
-        p_account_id: ctx.accountId
-      });
-      let memberRows;
-      if (!rpcErr && rpcRows) {
-        memberRows = rpcRows.map((r2) => ({
-          user_id: r2.user_id,
-          users: { display_name: r2.display_name, email: r2.email }
-        }));
-      } else {
-        const { data: embedRows } = await ctx.supabase.from("account_members").select("user_id, users!account_members_user_id_fkey ( display_name, email )").eq("account_id", ctx.accountId).limit(500);
-        memberRows = embedRows ?? [];
-      }
-      return memberRows.map((row) => {
-        const user = Array.isArray(row.users) ? row.users[0] : row.users;
-        return {
-          user_id: typeof row.user_id === "string" ? row.user_id : "",
-          display_name: typeof user?.display_name === "string" ? user.display_name : null,
-          email: typeof user?.email === "string" ? user.email : null
-        };
-      }).filter((m2) => m2.user_id.length > 0);
-    })
-  ]);
-  const awarenessFeedsMs = Date.now() - feedsStartedAt;
-  let brandGuidelines = brandGuidelinesRaw;
-  if (brandGuidelines) {
-    const demote = brandContextMode === "auto" && !taskLooksBrandRelated(args.task);
-    brandGuidelines = demote ? { ...brandGuidelines, body: "", logo_urls: {}, mode: "pointer" } : { ...brandGuidelines, mode: "full" };
-  }
-  const collisionWarnings = buildCollisionWarnings(concurrentWork, activeComponentName, args.task);
-  {
-    const liveSessionIds = new Set(
-      concurrentWork.map((e2) => e2.session_short).filter((s2) => typeof s2 === "string" && s2.length > 0)
-    );
-    for (const e2 of prPresence) {
-      if (e2.session_short && liveSessionIds.has(e2.session_short)) continue;
-      concurrentWork.push(e2);
-    }
-  }
-  const pathRecallStartedAt = Date.now();
-  const myDirs = [
-    .../* @__PURE__ */ new Set([
-      ...dirsOfPaths(myEditPaths),
-      ...componentDirs,
-      ...dirsOfPaths(extractPathTokens(args.task))
-    ])
-  ].slice(0, 30);
-  const mentionedMembers = detectMentionedMembers(args.task, workspaceMembers);
-  const outOfBandExcludeIds = /* @__PURE__ */ new Set([
-    ...included.map((item) => item.id),
-    ...requiredCoreItems.map((item) => item.id),
-    ...pinnedIncluded.map((item) => item.id)
-  ]);
-  const outOfBandApplicability = {
-    task: args.task,
-    agentKind: audit.agentKind ?? null,
-    requiredIds: projectBrainPolicy.requiredChainIds,
-    onOmitted: (candidate) => omittedCandidates.push(candidate)
-  };
-  let authorRecallMs = 0;
-  const [pathMatchedWork, pathDocs, authorDocs] = await Promise.all([
-    feed(
-      "path-matched work assembly",
-      [],
-      () => assembleWorkTouchingMyFiles(ctx, projectId, myDirs)
-    ),
-    feed(
-      "path-matched docs assembly",
-      [],
-      () => assembleDocsTouchingMyFiles(
-        ctx,
-        projectId,
-        myDirs,
-        outOfBandExcludeIds,
-        outOfBandApplicability
-      )
-    ),
-    feed("author-attributed docs assembly", [], async () => {
-      if (mentionedMembers.length === 0) return [];
-      const startedAt = Date.now();
-      try {
-        return await assembleDocsAuthoredBy(
-          ctx,
-          projectId,
-          mentionedMembers,
-          outOfBandExcludeIds,
-          outOfBandApplicability
-        );
-      } finally {
-        authorRecallMs = Date.now() - startedAt;
-      }
-    })
-  ]);
-  const workInFlight = mergeWorkInFlight(semanticWorkInFlight, pathMatchedWork);
-  await feed(
-    "work-item proposals attach",
-    void 0,
-    () => attachWorkItemProposals(ctx, workInFlight, projectId)
-  );
-  let docPathMatches = 0;
-  for (const d2 of pathDocs) {
-    const cost = estimateTokens(d2.body);
-    if (used + cost > maxTokens) {
-      truncated = true;
-      omittedCandidates.push({
-        id: d2.id,
-        kind: d2.kind,
-        title: d2.title,
-        similarity: d2.similarity,
-        reason: "budget_excluded",
-        detail: `path-matched doc: estimated ${cost} tokens would exceed budget ${maxTokens}`,
-        path: d2.citation.path
-      });
-      continue;
-    }
-    included.push(d2);
-    used += cost;
-    docPathMatches += 1;
-  }
-  let authorDocMatches = 0;
-  const alreadyIncluded = new Set(included.map((item) => item.id));
-  for (const d2 of authorDocs) {
-    if (alreadyIncluded.has(d2.id)) continue;
-    const cost = estimateTokens(d2.body);
-    if (used + cost > maxTokens) {
-      truncated = true;
-      omittedCandidates.push({
-        id: d2.id,
-        kind: d2.kind,
-        title: d2.title,
-        similarity: d2.similarity,
-        reason: "budget_excluded",
-        detail: `author-attributed doc: estimated ${cost} tokens would exceed budget ${maxTokens}`,
-        path: d2.citation.path
-      });
-      continue;
-    }
-    included.push(d2);
-    used += cost;
-    authorDocMatches += 1;
-  }
-  const pathRecallMs = Date.now() - pathRecallStartedAt;
-  let floorIncludedId = null;
-  if (included.length === 0 && requiredCoreItems.length === 0 && pinnedIncluded.length === 0) {
-    const recallFloorFor = (kind2) => Math.max(
-      (customThresholds?.[kind2] ?? KIND_THRESHOLDS[kind2]) - RECALL_FLOOR_MARGIN,
-      RECALL_FLOOR_MIN
-    );
-    const floorCandidates = omittedCandidates.filter(
-      (o2) => o2.reason === "below_threshold" && (o2.threshold_score ?? o2.similarity) >= recallFloorFor(o2.kind)
-    ).sort(
-      (a2, b2) => (b2.threshold_score ?? b2.similarity) - recallFloorFor(b2.kind) - ((a2.threshold_score ?? a2.similarity) - recallFloorFor(a2.kind))
-    ).slice(0, 3);
-    for (const best of floorCandidates) {
-      if (floorIncludedId) break;
-      try {
-        const { data: row } = await ctx.supabase.from("documents").select(
-          `id, account_id, created_by, locked_to_owners, scope, project_id, status,
-             kind, title, path, updated_at, metadata,
-             document_versions!documents_current_version_fk ( content, version_number, author_id )`
-        ).eq("id", best.id).eq("account_id", ctx.accountId).eq("locked_to_owners", false).maybeSingle();
-        const floorEligible = row != null && row.id === best.id && isDirectResolverDocumentEligible(
-          row,
-          { accountId: ctx.accountId, userId: ctx.userId, projectId },
-          { expectedKind: best.kind }
-        );
-        if (row && floorEligible) {
-          const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata) ? row.metadata : {};
-          if (best.kind === "skill" && !isSkillTargetedToAgent(metadata, audit.agentKind)) {
-            omittedCandidates.push({
-              ...best,
-              reason: "agent_target_mismatch",
-              detail: `recall-floor skill targets [${skillTargetAgents(metadata).join(", ")}], not agent ${audit.agentKind}`
-            });
-            continue;
-          }
-          const antiExample = best.kind === "skill" && !projectBrainPolicy.requiredChainIds.has(best.id) ? matchingSkillAntiExample(args.task, metadata) : null;
-          if (antiExample) {
-            omittedCandidates.push({
-              ...best,
-              reason: "anti_example_match",
-              detail: `recall-floor task high-precision matched skill anti-example: ${antiExample.slice(0, 240)}`
-            });
-            continue;
-          }
-          const version4 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
-          const rawBody = version4?.content ?? "";
-          included.push({
-            id: best.id,
-            kind: best.kind,
-            title: best.title,
-            body: rawBody.length > DOC_PATH_BODY_CAP ? `${rawBody.slice(0, DOC_PATH_BODY_CAP)}
-\u2026 (truncated)` : rawBody,
-            similarity: best.similarity,
-            citation: {
-              path: row.path ?? null,
-              version_number: version4?.version_number ?? 1,
-              updated_at: row.updated_at,
-              author_id: version4?.author_id ?? null
-            },
-            component_id: null,
-            component_name: null,
-            below_gate: true
-          });
-          floorIncludedId = best.id;
-        }
-      } catch (e2) {
-        console.warn(
-          `[resolver] recall-floor fetch failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 trying next near-miss`
-        );
-      }
-    }
-  }
-  const bySkill = included.filter((i2) => i2.kind === "skill");
-  const primary = primarySkill ? bySkill.find((i2) => i2.id === primarySkill.id) ?? null : null;
-  const supportingSkills = bySkill.filter((i2) => i2.id !== primary?.id);
-  const bundle = {
-    primary_skill: primary,
-    supporting_skills: supportingSkills,
-    memory: included.filter((i2) => i2.kind === "memory"),
-    goals: included.filter((i2) => i2.kind === "goal"),
-    schemas: included.filter((i2) => i2.kind === "schema"),
-    decisions: included.filter((i2) => i2.kind === "decision"),
-    brand_guidelines: brandGuidelines,
-    claim_guardrails: claimGuardrails,
-    required_core: requiredCoreItems,
-    required_core_status: requiredCoreStatus,
-    pinned: pinnedIncluded,
-    architecture,
-    concurrent_work: concurrentWork,
-    collision_warnings: collisionWarnings,
-    deploy_in_progress: deployInProgress,
-    recent_file_edits: recentFileEdits,
-    edit_conflicts: editOwnership,
-    work_in_flight: workInFlight,
-    open_threads: [],
-    session_working: [],
-    pack_context: [],
-    recent_feedback: []
-  };
-  if (ctx.packCandidates) {
-    try {
-      const packKinds = ["skill", "decision", "schema"];
-      const candidates2 = await ctx.packCandidates(queryVec ?? null, packKinds);
-      if (Array.isArray(candidates2) && candidates2.length > 0) {
-        const leftover = Math.max(0, maxTokens - used);
-        const PACK_MAX_TOKENS = Math.min(1200, Math.floor(maxTokens * 0.25), leftover);
-        const localTitles = new Set(
-          included.map((i2) => `${i2.kind}:${i2.title.trim().toLowerCase()}`)
-        );
-        let packTokens = 0;
-        for (const c2 of candidates2) {
-          if (PACK_MAX_TOKENS <= 0) break;
-          if (bundle.pack_context.length >= 8) break;
-          if (localTitles.has(`${c2.kind}:${c2.title.trim().toLowerCase()}`)) continue;
-          const tokens = estimateTokens(c2.body);
-          if (packTokens + tokens > PACK_MAX_TOKENS) {
-            if (bundle.pack_context.length > 0) break;
-            if (tokens > leftover) break;
-          }
-          packTokens += tokens;
-          used += tokens;
-          bundle.pack_context.push({
-            id: c2.id,
-            kind: packKinds.includes(c2.kind) ? c2.kind : "skill",
-            title: c2.title,
-            body: c2.body,
-            similarity: c2.similarity,
-            citation: {
-              path: c2.path,
-              version_number: c2.version_number,
-              updated_at: "",
-              author_id: null
-            },
-            component_id: null,
-            component_name: null,
-            pack: {
-              slug: c2.pack.slug,
-              name: c2.pack.name,
-              version: c2.pack.version,
-              publisher_name: c2.pack.publisher_name
-            }
-          });
-        }
-      }
-    } catch {
-    }
-  }
-  if (audit.sessionId) {
-    try {
-      const working = await assembleSessionWorking(ctx, audit.sessionId, projectId);
-      const higherPriorityIds = /* @__PURE__ */ new Set([
-        ...bundle.required_core.map((item) => item.id),
-        ...bundle.pinned.map((item) => item.id)
-      ]);
-      for (const item of working) {
-        if (higherPriorityIds.has(item.id)) continue;
-        bundle.session_working.push(item);
-        higherPriorityIds.add(item.id);
-      }
-      if (bundle.session_working.length > 0) {
-        const workingIds = new Set(bundle.session_working.map((i2) => i2.id));
-        bundle.memory = bundle.memory.filter((m2) => !workingIds.has(m2.id));
-      }
-    } catch (e2) {
-      console.warn(
-        `[resolver] session working assembly failed: ${e2 instanceof Error ? e2.message : String(e2)}`
-      );
-    }
-  }
-  try {
-    const { data: threadRows, error: threadErr } = await ctx.supabase.rpc("list_open_threads", {
-      p_account_id: ctx.accountId,
-      p_entities: args.entities && args.entities.length > 0 ? args.entities : null,
-      p_status: "open",
-      p_project_id: projectId ?? null,
-      p_limit: 50
-    });
-    if (!threadErr && Array.isArray(threadRows)) {
-      const taskLower = ` ${args.task.toLowerCase()} `;
-      const higherPriorityIds = /* @__PURE__ */ new Set([
-        ...bundle.required_core.map((item) => item.id),
-        ...bundle.pinned.map((item) => item.id),
-        ...bundle.session_working.map((item) => item.id)
-      ]);
-      const OPEN_THREADS_MAX = 5;
-      const OPEN_THREADS_MAX_TOKENS = 1e3;
-      let threadTokens = 0;
-      for (const raw of threadRows) {
-        if (bundle.open_threads.length >= OPEN_THREADS_MAX) break;
-        const id = raw.id;
-        if (higherPriorityIds.has(id)) continue;
-        const entities = Array.isArray(raw.entities) ? raw.entities.filter((e2) => typeof e2 === "string") : [];
-        if (!args.entities || args.entities.length === 0) {
-          const hit = entities.some((e2) => {
-            const esc2 = e2.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-            return new RegExp(`(?:^|\\W)${esc2}(?:\\W|$)`).test(taskLower);
-          });
-          if (!hit) continue;
-        }
-        const body = typeof raw.content === "string" ? raw.content : "";
-        const tokens = estimateTokens(body);
-        if (threadTokens + tokens > OPEN_THREADS_MAX_TOKENS && bundle.open_threads.length > 0) {
-          break;
-        }
-        threadTokens += tokens;
-        higherPriorityIds.add(id);
-        bundle.open_threads.push({
-          id,
-          kind: "memory",
-          title: raw.title ?? "",
-          body,
-          similarity: 0,
-          citation: {
-            path: raw.path ?? null,
-            version_number: raw.version_number ?? 1,
-            updated_at: raw.updated_at ?? "",
-            author_id: null
-          },
-          component_id: null,
-          component_name: null,
-          thread: {
-            status: "open",
-            occurred_at: raw.occurred_at ?? null,
-            entities,
-            resolves: raw.resolves ?? null
-          }
-        });
-      }
-    }
-  } catch {
-  }
-  dedupeResolveBundleDocumentLanes(bundle);
-  const deliveredSemanticIds = /* @__PURE__ */ new Set([
-    ...bundle.primary_skill ? [bundle.primary_skill.id] : [],
-    ...bundle.supporting_skills.map((item) => item.id),
-    ...bundle.goals.map((item) => item.id),
-    ...bundle.decisions.map((item) => item.id),
-    ...bundle.schemas.map((item) => item.id),
-    ...bundle.memory.map((item) => item.id)
-  ]);
-  const snapshottedSemanticIds = /* @__PURE__ */ new Set();
-  const uniqueIncluded = included.filter((item) => {
-    if (!deliveredSemanticIds.has(item.id) || snapshottedSemanticIds.has(item.id)) return false;
-    snapshottedSemanticIds.add(item.id);
-    return true;
-  });
-  included.splice(0, included.length, ...uniqueIncluded);
-  const decisionItems = [
-    ...bundle.decisions,
-    ...bundle.required_core.filter((item) => item.kind === "decision"),
-    ...bundle.pinned.filter((p2) => p2.kind === "decision")
-  ];
-  if (decisionItems.length > 0) {
-    try {
-      const { data: verRows, error: verErr } = await ctx.supabase.from("decision_verifications").select("document_id, verdict, observed_at, model_attribution").eq("account_id", ctx.accountId).in(
-        "document_id",
-        decisionItems.map((d2) => d2.id)
-      ).order("observed_at", { ascending: false }).limit(200);
-      if (!verErr && Array.isArray(verRows)) {
-        const latest = /* @__PURE__ */ new Map();
-        for (const r2 of verRows) {
-          const existing = latest.get(r2.document_id);
-          if (existing) {
-            existing.count += 1;
-          } else {
-            latest.set(r2.document_id, {
-              verdict: r2.verdict,
-              observed_at: r2.observed_at,
-              count: 1,
-              model_attribution: r2.model_attribution ?? null
-            });
-          }
-        }
-        for (const item of decisionItems) {
-          const v2 = latest.get(item.id);
-          if (v2 && (v2.verdict === "held" || v2.verdict === "broke" || v2.verdict === "inconclusive")) {
-            item.verification = {
-              verdict: v2.verdict,
-              observed_at: v2.observed_at,
-              count: v2.count,
-              model_attribution: v2.model_attribution ?? null
-            };
-          }
-        }
-      }
-    } catch {
-    }
-  }
-  if (userRoles.includes("support")) {
-    try {
-      const overlay = await assembleFeedbackOverlay({
-        supabase: ctx.supabase,
-        accountId: ctx.accountId,
-        taskEmbedding: queryVec ?? null,
-        bundleMemoryIds: bundle.memory.map((m2) => m2.id),
-        ...ctx.embed ? { embed: ctx.embed } : {}
-      });
-      bundle.recent_feedback = overlay;
-    } catch (e2) {
-      console.warn(
-        `[resolver] feedback overlay failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without it`
-      );
-    }
-  }
-  const enrichableItems = [
-    ...bundle.primary_skill ? [bundle.primary_skill] : [],
-    ...bundle.supporting_skills,
-    ...bundle.decisions,
-    ...bundle.memory,
-    ...bundle.schemas,
-    ...bundle.goals,
-    ...bundle.required_core,
-    ...bundle.pinned
-  ];
-  const contractBearing = enrichableItems.filter((d2) => hasMemlinContract(d2.body));
-  if (contractBearing.length > 0) {
-    try {
-      const { data: contractRows, error: contractErr } = await ctx.supabase.rpc(
-        "contract_verifications_for_documents",
-        {
-          p_account_id: ctx.accountId,
-          p_document_ids: contractBearing.map((d2) => d2.id)
-        }
-      );
-      const byDoc = /* @__PURE__ */ new Map();
-      if (!contractErr && Array.isArray(contractRows)) {
-        for (const r2 of contractRows) {
-          if (r2.status !== "verified" && r2.status !== "drifted") continue;
-          const gt2 = r2.ground_truth && typeof r2.ground_truth.kind === "string" && typeof r2.ground_truth.ref === "string" ? { kind: r2.ground_truth.kind, ref: r2.ground_truth.ref } : null;
-          byDoc.set(r2.document_id, {
-            status: r2.status,
-            observed_at: r2.observed_at,
-            document_version: r2.document_version,
-            drift_count: r2.drift_count ?? null,
-            ground_truth: gt2
-          });
-        }
-      }
-      const nowMs = Date.now();
-      for (const item of contractBearing) {
-        const c2 = byDoc.get(item.id);
-        if (c2) {
-          item.contract = {
-            status: c2.status,
-            observed_at: c2.observed_at,
-            age_days: ageDaysSince(c2.observed_at, nowMs),
-            document_version: c2.document_version,
-            drift_count: c2.drift_count,
-            ground_truth: c2.ground_truth
-          };
-        } else {
-          item.contract = {
-            status: "unverified",
-            observed_at: null,
-            age_days: null,
-            document_version: null,
-            drift_count: null,
-            ground_truth: null
-          };
-        }
-      }
-    } catch {
-    }
-  }
-  const resolvedAt = (/* @__PURE__ */ new Date()).toISOString();
-  let auditId = "";
-  const taskEmbedding = queryVec ?? null;
-  const deliveredItems = buildDeliveredItemSnapshots(bundle);
-  used = deliveredItems.reduce((total, item) => total + item.estimated_tokens, 0);
-  if (used > maxTokens) truncated = true;
-  const itemSnapshot = included.map((i2, idx) => ({
-    id: i2.id,
-    kind: i2.kind,
-    rank: idx + 1,
-    similarity: i2.similarity,
-    version_number: i2.citation.version_number,
-    path: i2.citation.path,
-    role: primary && i2.id === primary.id ? "primary" : i2.kind === "skill" ? "supporting" : i2.kind,
-    component_id: i2.component_id,
-    component_name: i2.component_name,
-    version_tag: i2.version_tag,
-    collapsed_duplicates: i2.collapsed_duplicates,
-    // Curation state at resolve time — drives the explain page's
-    // "approved canonical" annotation. Omitted (not false) when absent
-    // to keep pre-existing audit rows byte-identical in shape.
-    ...approvedColumnIds.has(i2.id) ? { approved: true } : {}
-  }));
-  const contextCounts = buildDeliveredContextCounts(deliveredItems);
-  const truncationReasons = /* @__PURE__ */ new Set();
-  if (requiredCoreTokens > maxTokens) truncationReasons.add("required_core_over_budget");
-  if (pinnedTokens > maxTokens) truncationReasons.add("pinned_content_over_budget");
-  if (omittedCandidates.some((candidate) => candidate.reason === "pinned_overflow"))
-    truncationReasons.add("pinned_cap_excluded");
-  const budgetExcluded = omittedCandidates.filter(
-    (candidate) => candidate.reason === "budget_excluded"
-  );
-  if (budgetExcluded.some((candidate) => candidate.detail.startsWith("path-matched doc:")))
-    truncationReasons.add("path_document_budget_excluded");
-  if (budgetExcluded.some((candidate) => !candidate.detail.startsWith("path-matched doc:")))
-    truncationReasons.add("ranked_document_budget_excluded");
-  if (primary && estimateTokens(primary.body) > maxTokens)
-    truncationReasons.add("primary_skill_over_budget");
-  if (used > maxTokens) truncationReasons.add("delivered_context_over_budget");
-  if (truncated && truncationReasons.size === 0) truncationReasons.add("other_budget_truncation");
-  const empty_context_reason = contextCounts.total > 0 ? null : omittedCandidates.length > 0 ? "all_candidates_filtered" : "no_candidates_found";
-  const auditTask = sanitizeAuditTask(args.task);
-  const auditCwd = sanitizeAuditCwd(args.cwd ?? null);
-  const auditMetadata = {
-    task: auditTask.task,
-    ...resolveRoutingAuditMetadata(args, projectId),
-    // Open-threads lane — always on; record which threads were pulled by entity.
-    include_open_threads: true,
-    thread_entities: args.entities ?? null,
-    open_thread_ids: bundle.open_threads.map((t2) => t2.id),
-    // Subscribed-pack lane — which packs/items fed this bundle, for audit
-    // replay attribution.
-    ...bundle.pack_context.length > 0 ? {
-      pack_item_ids: bundle.pack_context.map((p2) => p2.id),
-      packs_considered: [
-        ...new Set(bundle.pack_context.map((p2) => `${p2.pack?.slug}@v${p2.pack?.version}`))
-      ]
-    } : {},
-    // Task category — regex-based classifier (bug / feature / refactor /
-    // migration / test / docs / review / infra / chore / unknown). Surfaced
-    // on the Fleet table as a chip so a program manager can scan
-    // "Claude Code is on a migration, Cursor on a refactor" at a glance
-    // instead of reading raw task strings. Computed at write time so
-    // every resolve.invocation row carries its label; backfill script
-    // covers historical rows.
-    task_category: classifyTask(args.task),
-    ...auditTask.truncated ? { task_truncated: true } : {},
-    ...auditTask.redaction_hits.length > 0 ? { task_redaction_hits: auditTask.redaction_hits } : {},
-    project_id: projectId,
-    // Axis C: the caller's branch, so a LATER resolve can match this session
-    // to an open PR (work_items.head_ref) after the live window closes.
-    ...args.git_branch ? { git_branch: args.git_branch } : {},
-    // Axis-A telemetry: how the work_in_flight entries surfaced, so the
-    // dashboard can show the path-matched hit-rate (was the file-shaped door
-    // actually used, or did semantic alone cover it?).
-    ...workInFlight.length > 0 ? {
-      work_in_flight_matches: {
-        semantic: workInFlight.filter((w2) => (w2.match ?? "semantic") === "semantic").length,
-        paths: workInFlight.filter((w2) => w2.match === "paths").length,
-        both: workInFlight.filter((w2) => w2.match === "both").length
-      }
-    } : {},
-    // Recall telemetry: the top below-gate candidates with their exact scores
-    // (so audit explain/replay can say "memory X scored 0.57 vs gate 0.62"
-    // instead of just "0 items"), plus what the recall floor / path-doc legs
-    // contributed this resolve.
-    ...omittedCandidates.length > 0 ? {
-      near_misses: omittedCandidates.filter((o2) => o2.reason === "below_threshold").sort(
-        (a2, b2) => (b2.threshold_score ?? b2.similarity) - (a2.threshold_score ?? a2.similarity)
-      ).slice(0, 5).map((o2) => ({
-        id: o2.id,
-        kind: o2.kind,
-        title: o2.title.slice(0, 80),
-        similarity: Math.round((o2.threshold_score ?? o2.similarity) * 1e3) / 1e3,
-        ...o2.threshold_score !== void 0 ? { rank_similarity: Math.round(o2.similarity * 1e3) / 1e3 } : {}
-      }))
-    } : {},
-    ...docPathMatches > 0 ? { doc_path_matches: docPathMatches } : {},
-    // Person-attribution lane telemetry. Recorded whenever the task named a
-    // member — even with 0 doc matches — so "we recognized Davis but found
-    // nothing he authored" is distinguishable from "we never saw the name"
-    // (the capture-gap vs recall-gap distinction audit 8de7a744 needed).
-    ...mentionedMembers.length > 0 ? {
-      author_recall: {
-        members: mentionedMembers.map((m2) => ({
-          user_id: m2.user_id,
-          name: m2.name,
-          matched_on: m2.matched_on
-        })),
-        doc_matches: authorDocMatches
-      }
-    } : {},
-    ...floorIncludedId ? { recall_floor_included: floorIncludedId } : {},
-    // Latency telemetry — total assembly time plus the two awareness phases,
-    // measured server-side up to (not including) this audit write. Client
-    // hooks drop bundles that miss their delivery budget, so this is the
-    // number that says whether resolves are landing in agents' context or
-    // silently dying at the deadline. rerank_latency_ms (below) remains the
-    // rerank-only slice.
-    latency_ms: {
-      total: Date.now() - bundleStartedAt,
-      embedding: embeddingMs,
-      embedding_cache_hit: embeddingCacheHit,
-      search_fanout: searchFanoutMs,
-      budget_rpc: budgetRpcMs,
-      budget_wait: budgetWaitMs,
-      rerank: rerankLatencyMs,
-      awareness_feeds: awarenessFeedsMs,
-      path_recall: pathRecallMs,
-      author_recall: authorRecallMs
-    },
-    similarity_thresholds: {
-      skill: customThresholds?.skill ?? KIND_THRESHOLDS.skill,
-      memory: customThresholds?.memory ?? KIND_THRESHOLDS.memory,
-      goal: customThresholds?.goal ?? KIND_THRESHOLDS.goal,
-      schema: customThresholds?.schema ?? KIND_THRESHOLDS.schema,
-      decision: customThresholds?.decision ?? KIND_THRESHOLDS.decision,
-      // Redundancy-collapse threshold actually used this resolve; null when
-      // collapse was disabled via an account override >= 2.
-      dedupe: dedupeThreshold,
-      _mode: thresholdsMode
-    },
-    ...skillRerankAdmissionCandidateIds.length > 0 ? {
-      skill_rerank_admission: {
-        candidate_ids: skillRerankAdmissionCandidateIds,
-        delivered_ids: [primary, ...supportingSkills].filter((item) => Boolean(item)).map((item) => item.id).filter((id) => skillRerankAdmissionCandidateIds.includes(id)),
-        candidate_threshold: SKILL_RERANK_CANDIDATE_THRESHOLD,
-        application_floor: RERANK_SKILL_MIN_SCORE,
-        // LLM admission-judge telemetry; null when the judge did not run
-        // (no LLM channel, hosted rerank below quorum, or no provisional
-        // candidates survived to the scoring step).
-        judge: admissionJudge
-      }
-    } : {},
-    agent_kind: audit.agentKind ?? null,
-    agent_installation_id: audit.agentInstallationId ?? null,
-    session_id: audit.sessionId ?? null,
-    // Canonical delivery receipt. Unlike legacy `items`, this includes every
-    // document-bearing lane and snapshots the exact delivered content.
-    delivered_items: deliveredItems,
-    // New: full per-item snapshot drives audit replay.
-    items: itemSnapshot,
-    // Kept for backwards compat with existing audit timeline / billing
-    // aggregations that look up these flat ID arrays. Both shapes
-    // describe the same bundle.
-    primary_skill_id: primary?.id ?? null,
-    supporting_skill_ids: supportingSkills.map((i2) => i2.id),
-    memory_ids: bundle.memory.map((i2) => i2.id),
-    goal_ids: bundle.goals.map((i2) => i2.id),
-    schema_ids: bundle.schemas.map((i2) => i2.id),
-    required_core_ids: bundle.required_core.map((i2) => i2.id),
-    required_core_status: bundle.required_core_status,
-    required_core_tokens: requiredCoreTokens,
-    pinned_ids: bundle.pinned.map((i2) => i2.id),
-    pinned_tokens: pinnedTokens,
-    excluded_ids: [...excluded],
-    context_counts: contextCounts,
-    token_budget: maxTokens,
-    token_used: used,
-    // The observed savings baseline for THIS resolve: what the matched
-    // candidate pool would have cost to load wholesale (see the snapshot at
-    // hydration above). Savings = candidate_pool_tokens − token_used, summed
-    // over the window. Absent on pre-2026-09 rows, which fall back to the
-    // modeled estimate in usage-stats.tokensSavedEstimate.
-    candidate_pool_tokens: candidatePoolTokens,
-    candidate_pool_count: candidatePoolCount,
-    candidate_pool_admitted_count: candidatePoolAdmittedCount,
-    candidate_pool_below_threshold_count: candidatePoolBelowThresholdCount,
-    truncated,
-    truncation_reasons: [...truncationReasons],
-    budget_excluded_count: budgetExcluded.length,
-    active_component_id: activeComponentId,
-    active_component_name: activeComponentName,
-    active_repo: activeRepo,
-    project_brain: {
-      inherited_default_ids: [...new Set(projectBrainPolicy.inheritedDefaultIds)],
-      required_ids: [...new Set(projectBrainPolicy.requiredIds)],
-      blocked_ids: [...new Set(projectBrainPolicy.blockedIds)],
-      overrides: projectBrainPolicy.overridePairs
-    },
-    omitted_candidates_count: omittedCandidates.length,
-    omitted_candidates: auditOmissionSample(omittedCandidates),
-    empty_context_reason,
-    brand_guidelines_id: brandGuidelines?.brand_guidelines_id ?? null,
-    brand_guidelines_source: brandGuidelines?.source ?? null,
-    // 'pointer' when brand_context_mode='auto' demoted the profile to a
-    // one-line note for this (code-shaped) task; 'full' otherwise.
-    brand_guidelines_mode: brandGuidelines?.mode ?? null,
-    // Snapshot of the brand-guidelines version-at-resolve so replay can
-    // detect drift on this slice too (it's the always-on context).
-    brand_guidelines_updated_at: brandGuidelines?.updated_at ?? null,
-    cwd: auditCwd,
-    git_remote: args.git_remote ?? null,
-    // task_embedding is deliberately NOT mirrored into metadata: it's a 1536-
-    // float vector — ~86% of each audit row's JSON (~31KB) — and the
-    // authoritative copy is the indexed usage_events.task_embedding COLUMN
-    // (migration 0039, written via p_task_embedding below). Readers
-    // (search_past_resolves, the usage aggregator) use the column; the old
-    // metadata mirror was transitional dead weight on every resolve.
-    // Reranker telemetry — present when the 2-stage retrieval ran. Powers
-    // offline precision-at-K analysis + future learned-threshold tuning.
-    // null entries when the reranker wasn't wired or fell back to cosine.
-    rerank_used: rerankAuditScores !== null,
-    rerank_scores: rerankAuditScores,
-    rerank_latency_ms: rerankLatencyMs,
-    // Which reranker was attempted: a hosted provider name ('tei' = the
-    // self-hosted platform cross-encoder, 'cohere'/'jina'/'custom' =
-    // account-configured) or 'llm' for the chat-model (Haiku) path. null
-    // when rerank was never wired/attempted. Distinguishes hosted vs model
-    // rerank in dashboards, and stays set on failed attempts so
-    // rerank_fallback_reason spikes are attributable to their provider.
-    rerank_provider: rerankProvider,
-    // Sticky skill-canary decisions. Identity values are never persisted;
-    // only the identity source, deterministic bucket, clamped ratio, and exact
-    // selected version are recorded for replay/experiment analysis.
-    canary_routing: canaryRoutingAudit,
-    // Non-null when rerank was attempted but did NOT drive ranking (empty /
-    // partial / errored). Surfaces the fail-open guard in prod so a spike in
-    // 'rerank_empty'/'rerank_partial' is visible rather than a silent quality
-    // dip. null = rerank scored a quorum, or was never wired/attempted.
-    rerank_fallback_reason: rerankFallbackReason,
-    // Time-decay telemetry. Only candidates whose multiplier dipped below 1
-    // are recorded — keeps audit row size bounded (most candidates are
-    // fresh, especially in early-stage corpora). Empty array means no
-    // decay was applied to anything in this bundle. Stable shape regardless
-    // of which kinds opt into decay in the future.
-    decay_applied: candidates.filter((c2) => c2.decayMultiplier < 1).map((c2) => ({
-      id: c2.id,
-      kind: c2.kind,
-      multiplier: Number(c2.decayMultiplier.toFixed(4)),
-      updated_at: c2.citation.updated_at
-    })),
-    // Tier 3.7 — query-aware budget. Audit-log both the tier (label) and
-    // the source (mechanism) so the dashboard can show "how many resolves
-    // used the corpus signal vs the heuristic fallback" alongside the
-    // tier distribution.
-    budget_tier: budgetTier,
-    budget_source: budgetSource,
-    // True when the corpus estimate was raised by the task-shape floor (so the
-    // fleet-wide bundle-token cost of the de-collapse is measurable).
-    budget_floor_applied: budgetFloorApplied,
-    // Which ranker drove the search legs. 'semantic' = pure cosine via
-    // search_documents (when explicitly requested with hybrid=false);
-    // 'hybrid' = cosine + BM25 RRF via search_documents_hybrid. Dashboards can
-    // split hybrid- and semantic-cohort precision once the embedding
-    // cache is populated.
-    search_mode: useHybrid ? "hybrid" : "semantic",
-    // Redundancy-collapse telemetry — present when near-duplicate candidates
-    // were collapsed this resolve. Powers the "duplicates collapsed / tokens
-    // saved" usage stats and audit-explain's keeper annotations. Cluster list
-    // is bounded by DEDUPE_AUDIT_MAX_CLUSTERS to keep the audit row small.
-    dedupe: dedupeDroppedCount > 0 ? {
-      threshold: dedupeThreshold,
-      mode: typeof dedupeThresholdRaw === "number" ? thresholdsMode : "default",
-      dropped_count: dedupeDroppedCount,
-      est_tokens_saved: dedupeTokensSaved,
-      clusters: dedupeClusters.slice(0, DEDUPE_AUDIT_MAX_CLUSTERS)
-    } : null,
-    // Marginal-value cutoff telemetry — present when the weak tail was
-    // trimmed. Like dedupe, est_tokens_saved is the budget NOT spent (these
-    // items were dropped before the budget loop, not refilled).
-    marginal_cutoff: marginalDroppedCount > 0 ? {
-      fraction: marginalFraction,
-      dropped_count: marginalDroppedCount,
-      est_tokens_saved: marginalTokensSaved
-    } : null
-  };
-  const baseArgs = {
-    p_account_id: ctx.accountId,
-    p_event_type: "resolve.invocation",
-    p_units: 1,
-    p_user_id: ctx.userId ?? null,
-    p_metadata: auditMetadata
-  };
-  async function tryAuditCall(includeEmbedding) {
-    return ctx.supabase.rpc(
-      "record_usage_event",
-      includeEmbedding ? { ...baseArgs, p_task_embedding: taskEmbedding } : baseArgs
-    );
-  }
-  const auditWriteStartedAt = Date.now();
-  if (!audit.readOnly) {
-    try {
-      let { data: auditData, error: auditErr } = await tryAuditCall(true);
-      if (auditErr && (auditErr.code === "PGRST202" || /could not find the function|p_task_embedding/i.test(auditErr.message))) {
-        ({ data: auditData, error: auditErr } = await tryAuditCall(false));
-      }
-      if (auditErr) {
-        console.warn(`[resolver] audit log failed: ${auditErr.message}`);
-      } else if (typeof auditData === "string") {
-        auditId = auditData;
-      }
-    } catch (e2) {
-      console.warn(
-        `[resolver] audit log unexpected error: ${e2 instanceof Error ? e2.message : String(e2)}`
-      );
-    }
-  }
-  const auditWriteMs = Date.now() - auditWriteStartedAt;
-  const postAssemblyTasks = [reactivationDone];
-  if (!audit.readOnly && queryVec && SHADOW_SAMPLE_RATE > 0 && Math.random() < SHADOW_SAMPLE_RATE) {
-    postAssemblyTasks.push(
-      (async () => {
-        try {
-          const { data, error: error2 } = await ctx.supabase.rpc("search_documents_hybrid", {
-            p_account_id: ctx.accountId,
-            p_project_id: projectId,
-            p_query_embedding: queryVec,
-            p_query_text: args.task,
-            p_kinds: ["memory"],
-            p_scopes: null,
-            p_limit: SHADOW_MAX_OBSERVATIONS * 3,
-            p_include_background: true
-          });
-          if (error2 || !Array.isArray(data)) return;
-          const deliveredIdSet = new Set(
-            deliveredItems.filter((item) => item.source_lane !== "pack_context").map((item) => item.document_id)
-          );
-          const rows = data.filter(
-            (r2) => typeof r2.id === "string" && !deliveredIdSet.has(r2.id)
-          );
-          if (rows.length === 0) return;
-          const deliveredScores = bundle.memory.map((m2) => m2.similarity).filter((n2) => typeof n2 === "number");
-          const weakestDelivered = deliveredScores.length > 0 ? Math.min(...deliveredScores) : null;
-          const taskCategory = classifyTask(args.task);
-          const observations = rows.slice(0, SHADOW_MAX_OBSERVATIONS).map((r2, i2) => {
-            const score = typeof r2.similarity === "number" ? r2.similarity : 0;
-            return {
-              project_id: projectId,
-              document_id: r2.id,
-              task_category: taskCategory,
-              rank: i2 + 1,
-              score,
-              score_margin: weakestDelivered === null ? null : score - weakestDelivered,
-              // Near-identical to something already delivered is not new value.
-              active_covered: weakestDelivered !== null && deliveredScores.some((d2) => Math.abs(d2 - score) < 0.02),
-              ranker_version: RANKER_VERSION,
-              audit_id: auditId ?? null
-            };
-          });
-          const { error: insErr } = await ctx.supabase.rpc("record_shadow_observations", {
-            p_account_id: ctx.accountId,
-            p_rows: observations
-          });
-          if (insErr) {
-            console.warn(`[resolver] shadow observation failed: ${insErr.message} \u2014 proceeding`);
-          }
-        } catch (e2) {
-          console.warn(
-            `[resolver] shadow observation error: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding`
-          );
-        }
-      })()
-    );
-  }
-  const surfacedIds = [
-    ...new Set(
-      deliveredItems.filter((item) => item.source_lane !== "pack_context").map((item) => item.document_id).filter((id) => typeof id === "string" && SURFACING_UUID_RE.test(id))
-    )
-  ];
-  if (surfacedIds.length > 0 && !audit.readOnly) {
-    postAssemblyTasks.push(
-      (async () => {
-        try {
-          const { error: error2 } = await ctx.supabase.rpc("record_document_surfacing", {
-            p_account_id: ctx.accountId,
-            p_ids: surfacedIds
-          });
-          if (error2) {
-            console.warn(`[resolver] surfacing stamp failed: ${error2.message} \u2014 proceeding`);
-          }
-        } catch (e2) {
-          console.warn(
-            `[resolver] surfacing stamp unexpected error: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding`
-          );
-        }
-      })()
-    );
-  }
-  if (projectId && isForegroundDeployCommand(args.task) && !audit.readOnly) {
-    postAssemblyTasks.push(
-      recordDeployActivity(ctx, {
-        projectId,
-        sessionId: audit.sessionId ?? null,
-        task: args.task,
-        activeComponentId,
-        activeComponentName,
-        agentKind: audit.agentKind ?? null,
-        agentInstallationId: audit.agentInstallationId ?? null
-      })
-    );
-  }
-  if (audit.agentInstallationId && !audit.readOnly) {
-    postAssemblyTasks.push(
-      (async () => {
-        try {
-          await ctx.supabase.from("agent_installations").update({ last_sync_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", audit.agentInstallationId);
-        } catch (e2) {
-          console.warn(
-            `[resolver] last_sync_at stamp failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding`
-          );
-        }
-      })()
-    );
-  }
-  if (auditId && audit.agentInstallationId && ctx.userId && audit.sessionId && !audit.readOnly) {
-    postAssemblyTasks.push(
-      (async () => {
-        try {
-          const activityClient = ctx.privilegedSupabase ?? ctx.supabase;
-          const { error: activityErr } = await activityClient.rpc("record_agent_activity_batch", {
-            p_account_id: ctx.accountId,
-            p_user_id: ctx.userId,
-            p_agent_installation_id: audit.agentInstallationId,
-            p_agent_kind: audit.agentKind ?? ctx.agentKind ?? "unknown",
-            p_events: [
-              {
-                event_id: auditId,
-                event_name: "resolve",
-                occurred_at: resolvedAt,
-                session_id: audit.sessionId,
-                worker_id: "parent",
-                project_id: projectId ?? null,
-                modified_files: [],
-                metadata: { source: "resolver", invocation_source: args.invocation_source ?? null }
-              }
-            ]
-          });
-          if (activityErr) {
-            console.warn(`[resolver] activity floor write failed: ${activityErr.message}`);
-          }
-        } catch (e2) {
-          console.warn(
-            `[resolver] activity floor unexpected error: ${e2 instanceof Error ? e2.message : String(e2)}`
-          );
-        }
-      })()
-    );
-  }
-  if (auditId && !audit.readOnly) {
-    postAssemblyTasks.push(
-      (async () => {
-        try {
-          const bundleHash = createHash("sha256").update(JSON.stringify(bundle)).digest("hex");
-          const surfacedDecisions = bundle.decisions.map((d2) => d2.id).filter((id) => typeof id === "string");
-          const { error: snapErr } = await ctx.supabase.rpc("record_bundle_snapshot", {
-            p_audit_id: auditId,
-            p_account_id: ctx.accountId,
-            p_project_id: projectId ?? null,
-            // Same membership RLS as usage_events (0074) — must carry the same
-            // sanitized preview, not the raw prompt.
-            p_task: auditTask.task,
-            p_bundle: bundle,
-            p_bundle_hash: bundleHash,
-            p_surfaced_decisions: surfacedDecisions
-          });
-          if (snapErr) {
-            console.warn(`[resolver] bundle snapshot write failed: ${snapErr.message}`);
-          }
-        } catch (e2) {
-          console.warn(
-            `[resolver] bundle snapshot unexpected error: ${e2 instanceof Error ? e2.message : String(e2)}`
-          );
-        }
-      })()
-    );
-  }
-  const postAssemblyStartedAt = Date.now();
-  await Promise.all(postAssemblyTasks);
-  const postAssemblyMs = Date.now() - postAssemblyStartedAt;
-  return {
-    bundle,
-    token_budget: { limit: maxTokens, used, truncated },
-    audit_id: auditId,
-    resolved_at: resolvedAt,
-    active_component: activeComponent,
-    active_repo: activeRepo,
-    omitted_candidates: auditOmissionSample(omittedCandidates),
-    latency_ms: {
-      total: Date.now() - bundleStartedAt,
-      audit_write: auditWriteMs,
-      post_assembly: postAssemblyMs
-    }
-  };
-}
-var BRAND_INACTIVE_STATUSES = /* @__PURE__ */ new Set(["proposed", "rejected", "archived", "merged"]);
-function isApprovedBrandLayer(metadata) {
-  const status = typeof metadata?.status === "string" ? metadata.status : "active";
-  return !BRAND_INACTIVE_STATUSES.has(status);
-}
-function pickBrandOverrideLayers(rows, args) {
-  const overrideId = rows.find((r2) => r2.component_id === null)?.id ?? null;
-  let surfaceId = null;
-  const surfaceRows = rows.filter((r2) => r2.component_id !== null);
-  if (surfaceRows.length > 0) {
-    if (args.activeComponentId) {
-      surfaceId = surfaceRows.find((r2) => r2.component_id === args.activeComponentId)?.id ?? null;
-    }
-    if (!surfaceId && args.activeRepo && args.componentInfoById) {
-      surfaceId = surfaceRows.find((r2) => {
-        const info = r2.component_id ? args.componentInfoById?.get(r2.component_id) : null;
-        return info?.repo === args.activeRepo && info?.slug === "root";
-      })?.id ?? null;
-    }
-  }
-  return { overrideId, surfaceId };
-}
-async function assembleBrandGuidelines(ctx, args) {
-  const { accountId, projectId } = args;
-  let parentId = null;
-  if (projectId) {
-    const { data: proj, error: error2 } = await ctx.supabase.from("projects").select("brand_guidelines_id").eq("id", projectId).eq("account_id", accountId).maybeSingle();
-    if (error2) {
-      console.warn(`[resolver] brand-guidelines: project lookup failed: ${error2.message}`);
-    } else if (proj) {
-      parentId = proj.brand_guidelines_id ?? null;
-    }
-  }
-  if (!parentId) {
-    const { data: acc, error: error2 } = await ctx.supabase.from("accounts").select("default_brand_guidelines_id").eq("id", accountId).maybeSingle();
-    if (error2) {
-      console.warn(`[resolver] brand-guidelines: account lookup failed: ${error2.message}`);
-    } else if (acc) {
-      parentId = acc.default_brand_guidelines_id ?? null;
-    }
-  }
-  let overrideId = null;
-  let surfaceId = null;
-  if (projectId) {
-    const { data: ovrRows, error: error2 } = await ctx.supabase.from("documents").select(
-      "id, account_id, created_by, locked_to_owners, scope, project_id, status, kind, component_id, metadata, updated_at"
-    ).eq("account_id", accountId).eq("project_id", projectId).eq("kind", "brand_guidelines").eq("locked_to_owners", false);
-    if (error2) {
-      console.warn(`[resolver] brand-guidelines: override lookup failed: ${error2.message}`);
-    } else {
-      const live = (ovrRows ?? []).filter((row) => {
-        const directRow = row;
-        if (!isDirectResolverDocumentEligible(
-          directRow,
-          { accountId, userId: ctx.userId, projectId },
-          {
-            lifecycle: "sql-live",
-            projectAssociation: "active-project",
-            expectedKind: "brand_guidelines"
-          }
-        )) {
-          return false;
-        }
-        return isApprovedBrandLayer(directRow.metadata);
-      });
-      live.sort((a2, b2) => a2.updated_at < b2.updated_at ? 1 : -1);
-      const picked = pickBrandOverrideLayers(live, {
-        activeComponentId: args.activeComponentId,
-        activeRepo: args.activeRepo,
-        componentInfoById: args.componentInfoById
-      });
-      overrideId = picked.overrideId;
-      surfaceId = picked.surfaceId;
-    }
-  }
-  if (!parentId && !overrideId && !surfaceId) return null;
-  const ids = [parentId, overrideId, surfaceId].filter((x2) => x2 !== null);
-  const { data: docRows, error: docErr } = await ctx.supabase.from("documents").select(
-    `id, account_id, created_by, locked_to_owners, scope, project_id, status, kind,
-       metadata, updated_at,
-       document_versions!documents_current_version_fk ( content )`
-  ).eq("account_id", accountId).eq("locked_to_owners", false).in("id", ids);
-  if (docErr) {
-    console.warn(`[resolver] brand-guidelines: document fetch failed: ${docErr.message}`);
-    return null;
-  }
-  const contentById = /* @__PURE__ */ new Map();
-  for (const row of docRows ?? []) {
-    const r2 = row;
-    if (!isDirectResolverDocumentEligible(
-      r2,
-      { accountId, userId: ctx.userId, projectId },
-      {
-        lifecycle: "sql-live",
-        projectAssociation: "account-or-active-project",
-        expectedKind: "brand_guidelines"
-      }
-    )) {
-      continue;
-    }
-    if (!isApprovedBrandLayer(r2.metadata ?? {})) continue;
-    const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
-    contentById.set(r2.id, {
-      content: v2?.content ?? "",
-      updated_at: r2.updated_at ?? (/* @__PURE__ */ new Date()).toISOString()
-    });
-  }
-  const parentDoc = parentId ? contentById.get(parentId) : null;
-  const overrideDoc = overrideId ? contentById.get(overrideId) : null;
-  const surfaceDoc = surfaceId ? contentById.get(surfaceId) : null;
-  const parentParsed = parentDoc ? parseBrandGuidelines(parentDoc.content) : null;
-  const overrideParsed = overrideDoc ? parseBrandGuidelines(overrideDoc.content) : null;
-  const surfaceParsed = surfaceDoc ? parseBrandGuidelines(surfaceDoc.content) : null;
-  let merged = parentParsed;
-  for (const layer of [overrideParsed, surfaceParsed]) {
-    if (!layer) continue;
-    merged = merged ? mergeBrandGuidelines(merged, layer) : layer;
-  }
-  if (!merged) return null;
-  const logoUrls = {};
-  const logos = merged.frontmatter.logos;
-  if (logos) {
-    const slots = [
-      ["primary_light", logos.primary_light?.storage_path],
-      ["primary_dark", logos.primary_dark?.storage_path],
-      ["favicon", logos.favicon?.storage_path]
-    ];
-    for (const [slot, path19] of slots) {
-      if (!path19) continue;
-      try {
-        const { data, error: error2 } = await ctx.supabase.storage.from("brand-guidelines-assets").createSignedUrl(path19, BRAND_GUIDELINES_LOGO_SIGNED_URL_TTL_SECONDS);
-        if (error2) {
-          console.warn(`[resolver] brand-guidelines: sign ${slot} failed: ${error2.message}`);
-        } else if (data?.signedUrl) {
-          logoUrls[slot] = data.signedUrl;
-        }
-      } catch (e2) {
-        console.warn(
-          `[resolver] brand-guidelines: sign ${slot} threw: ${e2 instanceof Error ? e2.message : String(e2)}`
-        );
-      }
-    }
-  }
-  const bodyParts = [];
-  if (merged.prefix.trim()) bodyParts.push(merged.prefix.trim());
-  for (const [heading, content] of Object.entries(merged.sections)) {
-    if (content.trim()) bodyParts.push(`## ${heading}
-
-${content.trim()}`);
-  }
-  const body = bodyParts.join("\n\n");
-  const layerCount = [parentParsed, overrideParsed, surfaceParsed].filter(Boolean).length;
-  const source = layerCount > 1 ? "merged" : surfaceParsed ? "surface_override" : overrideParsed ? "project_override" : "account";
-  const effectiveId = surfaceId ?? overrideId ?? parentId;
-  const effectiveUpdatedAt = surfaceDoc?.updated_at ?? overrideDoc?.updated_at ?? parentDoc?.updated_at ?? (/* @__PURE__ */ new Date()).toISOString();
-  return {
-    brand_guidelines_id: effectiveId,
-    frontmatter: merged.frontmatter,
-    body,
-    logo_urls: logoUrls,
-    source,
-    updated_at: effectiveUpdatedAt
-  };
 }
 
 // packages/mcp-tools/src/inbox.ts
@@ -68796,10 +69239,10 @@ function renderBundleText(result, task) {
   return lines.join("\n");
 }
 function renderCitation(it2) {
-  const path19 = it2.citation?.path;
+  const path20 = it2.citation?.path;
   const v2 = it2.citation?.version_number;
-  if (path19 && v2 != null) return `\u2014 \`${path19}\` v${v2}`;
-  if (path19) return `\u2014 \`${path19}\``;
+  if (path20 && v2 != null) return `\u2014 \`${path20}\` v${v2}`;
+  if (path20) return `\u2014 \`${path20}\``;
   return "";
 }
 
@@ -69267,7 +69710,7 @@ function withResolverDefaults(ctx, args) {
 
 // packages/plugin-core/dist/pre-tool-use-handler.js
 import { execSync as execSync3 } from "node:child_process";
-import path14 from "node:path";
+import path15 from "node:path";
 
 // packages/plugin-core/dist/client.js
 import { promises as fs5 } from "node:fs";
@@ -69568,6 +70011,7 @@ function decodeJwtPayload(jwt) {
 
 // packages/plugin-core/dist/memlin-api-client.js
 import { readFileSync } from "node:fs";
+import crypto3 from "node:crypto";
 import os4 from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -69725,7 +70169,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.45";
+  cachedAgentVersion = "0.2.46";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -69738,6 +70182,7 @@ var NATIVE_MEMORY_BATCH_SIZE = 20;
 var NATIVE_MEMORY_BATCH_CONCURRENCY = 3;
 var NATIVE_MEMORY_REQUEST_TIMEOUT_MS = 9e4;
 var NATIVE_MEMORY_BATCH_INDEX = "# Native memory satellite batch\n";
+var RESOLVE_V2_MAX_LINE_BYTES = 2 * 1024 * 1024;
 var RETRIABLE_STATUS = /* @__PURE__ */ new Set([408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524]);
 var RETRIABLE_NETWORK_CODES = /* @__PURE__ */ new Set([
   "ECONNRESET",
@@ -69785,20 +70230,103 @@ function unreachableError(url, cause, timeoutMs) {
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+function delayWithSignal(ms, signal) {
+  if (!signal) return delay(ms);
+  if (signal.aborted) return Promise.reject(signal.reason ?? new Error("request aborted"));
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(done, ms);
+    function done() {
+      signal?.removeEventListener("abort", aborted2);
+      resolve();
+    }
+    function aborted2() {
+      clearTimeout(timer);
+      reject(signal?.reason ?? new Error("request aborted"));
+    }
+    signal.addEventListener("abort", aborted2, { once: true });
+  });
+}
+function resolveV2Event(value) {
+  if (!value || typeof value !== "object") {
+    throw new Error("Memlin progressive resolver returned a non-object event");
+  }
+  const candidate = value;
+  if (candidate.type !== "hot" && candidate.type !== "full" && candidate.type !== "failed" || typeof candidate.resolve_id !== "string" || typeof candidate.turn_id !== "string" || typeof candidate.trace_id !== "string" || typeof candidate.account_id !== "string" || candidate.project_id !== null && typeof candidate.project_id !== "string" || !candidate.timing || typeof candidate.timing.total_ms !== "number" || !candidate.metrics || typeof candidate.metrics.db_calls !== "number") {
+    throw new Error("Memlin progressive resolver returned a malformed event");
+  }
+  if ((candidate.type === "hot" || candidate.type === "full") && !candidate.payload) {
+    throw new Error(`Memlin progressive resolver returned ${candidate.type} without a payload`);
+  }
+  if (candidate.type === "failed" && !candidate.error) {
+    throw new Error("Memlin progressive resolver returned failed without an error receipt");
+  }
+  return candidate;
+}
+async function* parseNdjsonEvents(body) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    for (; ; ) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      for (; ; ) {
+        const newline = buffer.indexOf("\n");
+        if (newline < 0) break;
+        const rawLine = buffer.slice(0, newline);
+        buffer = buffer.slice(newline + 1);
+        if (Buffer.byteLength(rawLine) > RESOLVE_V2_MAX_LINE_BYTES) {
+          throw new Error("Memlin progressive resolver returned an oversized event");
+        }
+        const line = rawLine.trim();
+        if (!line) continue;
+        let parsed;
+        try {
+          parsed = JSON.parse(line);
+        } catch {
+          throw new Error("Memlin progressive resolver returned invalid NDJSON");
+        }
+        yield resolveV2Event(parsed);
+      }
+      if (Buffer.byteLength(buffer) > RESOLVE_V2_MAX_LINE_BYTES) {
+        throw new Error("Memlin progressive resolver returned an oversized event");
+      }
+    }
+    buffer += decoder.decode();
+    if (Buffer.byteLength(buffer) > RESOLVE_V2_MAX_LINE_BYTES) {
+      throw new Error("Memlin progressive resolver returned an oversized event");
+    }
+    const tail = buffer.trim();
+    if (tail) {
+      let parsed;
+      try {
+        parsed = JSON.parse(tail);
+      } catch {
+        throw new Error("Memlin progressive resolver returned invalid NDJSON");
+      }
+      yield resolveV2Event(parsed);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
 var MemlinApiClient = class {
   constructor(cfg2) {
     this.cfg = cfg2;
   }
   cfg;
   // ---------- low-level ----------
-  async authHeaders(includeAccount = true) {
+  async authHeaders(includeAccount = true, override = {}) {
     const token = await this.cfg.getAccessToken();
+    const kind2 = override.agentKind ?? resolveHost().kind;
+    const version4 = override.agentKind === void 0 ? agentVersion() : override.agentVersion ?? "dev";
     const h2 = {
       Authorization: `Bearer ${token}`,
-      [AGENT_KIND_HEADER]: resolveHost().kind,
+      [AGENT_KIND_HEADER]: kind2,
       [AGENT_DEVICE_HEADER]: agentDevice(),
-      [AGENT_VERSION_HEADER]: agentVersion(),
-      [AGENT_CAPABILITIES_HEADER]: agentCapabilities().join(","),
+      [AGENT_VERSION_HEADER]: version4,
+      [AGENT_CAPABILITIES_HEADER]: (override.agentKind ? AGENT_EXPECTED_CAPABILITIES[kind2] : agentCapabilities()).join(","),
       [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os4.platform(),
       [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os4.arch()
     };
@@ -69809,7 +70337,7 @@ var MemlinApiClient = class {
   }
   async request(method, pathAndQuery, body, opts = {}) {
     const url = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
-    const baseHeaders = await this.authHeaders(opts.includeAccount ?? true);
+    const baseHeaders = await this.authHeaders(opts.includeAccount ?? true, opts);
     if (opts.accountId) {
       baseHeaders["Memlin-Account-Id"] = opts.accountId;
     }
@@ -69828,11 +70356,12 @@ var MemlinApiClient = class {
       let res;
       let text;
       try {
+        const timeoutSignal = AbortSignal.timeout(timeoutMs);
         res = await fetch(url, {
           method,
           headers,
           // A dead socket must abort rather than hang the caller forever.
-          signal: AbortSignal.timeout(timeoutMs),
+          signal: opts.signal ? AbortSignal.any([opts.signal, timeoutSignal]) : timeoutSignal,
           ...body !== void 0 ? { body: JSON.stringify(body) } : {}
         });
         text = await res.text();
@@ -69857,7 +70386,10 @@ var MemlinApiClient = class {
       if (!res.ok) {
         const serverError = parsed?.error;
         const errMsg = typeof serverError === "string" && serverError ? singleLine(serverError, 300) : describeOpaqueBody(res.status, text);
-        throw new MemlinApiError(`${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`, res.status);
+        throw new MemlinApiError(
+          `${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`,
+          res.status
+        );
       }
       return parsed;
     }
@@ -69865,6 +70397,61 @@ var MemlinApiClient = class {
   backoffMs(attempt) {
     const base = this.cfg.retryBaseDelayMs ?? DEFAULT_RETRY_BASE_DELAY_MS;
     return base * 2 ** (attempt - 1);
+  }
+  async openResolveV2Stream(method, pathAndQuery, body, opts = {}) {
+    const url = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
+    const headers = await this.authHeaders(true, opts);
+    if (opts.accountId) headers["Memlin-Account-Id"] = opts.accountId;
+    headers.Accept = "application/x-ndjson";
+    if (body !== void 0) headers["Content-Type"] = "application/json";
+    if (opts.traceId) {
+      const normalized = opts.traceId.replaceAll("-", "").toLowerCase();
+      const traceId = /^[0-9a-f]{32}$/.test(normalized) ? normalized : crypto3.createHash("sha256").update(opts.traceId).digest("hex").slice(0, 32);
+      headers.traceparent = `00-${traceId}-${crypto3.randomBytes(8).toString("hex")}-01`;
+    }
+    const timeoutMs = Math.max(
+      1,
+      opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
+    );
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
+    const signal = opts.signal ? AbortSignal.any([opts.signal, timeoutSignal]) : timeoutSignal;
+    let response;
+    try {
+      response = await fetch(url, {
+        method,
+        headers,
+        signal,
+        ...body !== void 0 ? { body: JSON.stringify(body) } : {}
+      });
+    } catch (error2) {
+      throw unreachableError(url, error2, timeoutMs);
+    }
+    if (response.ok) {
+      const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+      if (!contentType.includes("application/x-ndjson")) {
+        await response.body?.cancel().catch(() => void 0);
+        throw new Error("Memlin progressive resolver returned an unexpected response type");
+      }
+      return response;
+    }
+    const text = await response.text().catch(() => "");
+    let serverError;
+    try {
+      const parsed = JSON.parse(text);
+      serverError = typeof parsed.error === "string" ? parsed.error : parsed.error?.message ?? parsed.error?.code;
+    } catch {
+    }
+    const detail = response.status >= 500 ? `HTTP ${response.status} (upstream response suppressed)` : serverError ? singleLine(serverError, 300) : describeOpaqueBody(response.status, text);
+    throw new MemlinApiError(
+      `${method} ${pathAndQuery} \u2192 ${response.status}: ${detail}`,
+      response.status
+    );
+  }
+  async *readResolveV2Response(response) {
+    if (!response.body) {
+      throw new Error("Memlin progressive resolver returned an empty response body");
+    }
+    yield* parseNdjsonEvents(response.body);
   }
   // ---------- endpoints ----------
   /** GET /me — identity + account list. No account header sent (this is the discovery call). */
@@ -70099,6 +70686,128 @@ var MemlinApiClient = class {
     return res.documents;
   }
   /**
+   * POST /resolve/v2 — one authenticated progressive NDJSON stream.
+   *
+   * A transport reset after the server claimed the id is recovered through
+   * GET replay, never by starting another POST with a fresh identity. Duplicate
+   * events from the replay are suppressed by phase.
+   */
+  async *resolveV2(args, opts = {}) {
+    const seen = /* @__PURE__ */ new Set();
+    let terminal = false;
+    let postError;
+    try {
+      const response = await this.openResolveV2Stream("POST", "/resolve/v2", args, opts);
+      for await (const event of this.readResolveV2Response(response)) {
+        if (event.resolve_id !== args.resolve_id || event.turn_id !== args.turn_id) {
+          throw new Error("Memlin progressive resolver returned an event for another turn");
+        }
+        if (event.type === "failed" && event.error?.code === "RESOLVE_V2_UNAVAILABLE" && !seen.has("hot") && !seen.has("full")) {
+          throw new MemlinApiError("POST /resolve/v2 \u2192 404: progressive resolve unavailable", 404);
+        }
+        if (event.type === "failed" && event.error?.code === "PENDING") continue;
+        if (!seen.has(event.type)) {
+          seen.add(event.type);
+          yield event;
+        }
+        if (event.type === "full" || event.type === "failed") terminal = true;
+      }
+    } catch (error2) {
+      postError = error2;
+    }
+    if (terminal) return;
+    if (opts.signal?.aborted) throw postError ?? opts.signal.reason;
+    if (postError instanceof MemlinApiError && (postError.status === 404 || postError.status === 405 || postError.status === 501)) {
+      throw postError;
+    }
+    const requestedDeadline = Date.parse(args.deadline_at);
+    const replayDeadline = Number.isFinite(requestedDeadline) ? requestedDeadline : Date.now() + (opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS);
+    const replayDelays = [50, 100, 200, 350, 500];
+    const replayIdentity = new URLSearchParams({
+      turn_id: args.turn_id,
+      session_id: args.session_id ?? ""
+    });
+    let replayError;
+    for (let attempt = 0; !terminal && Date.now() < replayDeadline; attempt += 1) {
+      if (opts.signal?.aborted) throw postError ?? opts.signal.reason;
+      try {
+        const response = await this.openResolveV2Stream(
+          "GET",
+          `/resolve/v2/${encodeURIComponent(args.resolve_id)}?${replayIdentity.toString()}`,
+          void 0,
+          {
+            ...opts,
+            requestTimeoutMs: Math.max(1, replayDeadline - Date.now())
+          }
+        );
+        for await (const event of this.readResolveV2Response(response)) {
+          if (event.resolve_id !== args.resolve_id || event.turn_id !== args.turn_id) {
+            throw new Error(
+              "Memlin progressive resolver replay returned an event for another turn"
+            );
+          }
+          if (event.type === "failed" && event.error?.code === "PENDING") continue;
+          if (!seen.has(event.type)) {
+            seen.add(event.type);
+            yield event;
+          }
+          if (event.type === "full" || event.type === "failed") terminal = true;
+        }
+        replayError = void 0;
+      } catch (error2) {
+        replayError = error2;
+        const retryable = !(error2 instanceof MemlinApiError) || error2.status === 408 || error2.status === 429 || error2.status >= 500;
+        if (!retryable) {
+          if (seen.has("hot") || seen.has("full")) {
+            throw new Error(
+              "Memlin progressive resolver replay was rejected after resolution started"
+            );
+          }
+          throw postError ?? error2;
+        }
+      }
+      if (terminal) return;
+      const remaining = replayDeadline - Date.now();
+      if (remaining <= 0) break;
+      await delayWithSignal(
+        Math.min(replayDelays[Math.min(attempt, replayDelays.length - 1)], remaining),
+        opts.signal
+      );
+    }
+    throw postError ?? replayError ?? new Error("Memlin progressive resolver did not reach a terminal phase before its deadline");
+  }
+  /** Read stored phases without starting a resolver operation. */
+  async *replayResolveV2(resolveId, expected, opts = {}) {
+    const identity = new URLSearchParams({
+      turn_id: expected.turn_id,
+      session_id: expected.session_id ?? ""
+    });
+    const response = await this.openResolveV2Stream(
+      "GET",
+      `/resolve/v2/${encodeURIComponent(resolveId)}?${identity.toString()}`,
+      void 0,
+      opts
+    );
+    for await (const event of this.readResolveV2Response(response)) {
+      if (event.resolve_id !== resolveId || event.turn_id !== expected.turn_id) {
+        throw new Error("Memlin progressive resolver replay returned an event for another turn");
+      }
+      yield event;
+    }
+  }
+  /** Hook-emitted delivery truth for a progressive resolve. The route accepts
+   * only this sanitized detail allowlist; prompts and source content never
+   * enter telemetry. */
+  async reportResolveV2Delivery(resolveId, input, opts = {}) {
+    return this.request("POST", `/resolve/v2/${encodeURIComponent(resolveId)}/delivery`, input, {
+      accountId: opts.accountId,
+      requestTimeoutMs: opts.requestTimeoutMs ?? 2e3,
+      signal: opts.signal,
+      agentKind: opts.agentKind,
+      agentVersion: opts.agentVersion
+    });
+  }
+  /**
    * POST /resolve — the marquee context-assembly endpoint.
    *
    * `cwd` and `git_remote` let the server infer the caller's active component
@@ -70108,7 +70817,11 @@ var MemlinApiClient = class {
    */
   async resolve(args, opts = {}) {
     return this.request("POST", "/resolve", args, {
-      accountId: opts.accountId
+      accountId: opts.accountId,
+      requestTimeoutMs: opts.requestTimeoutMs,
+      signal: opts.signal,
+      agentKind: opts.agentKind,
+      agentVersion: opts.agentVersion
     });
   }
   /**
@@ -70146,11 +70859,13 @@ var MemlinApiClient = class {
     return this.request("PUT", "/account/enforce-done-deployed", { enabled }, opts);
   }
   /**
-   * POST /deploy-guard — acquire or release the per-project deploy lease.
+   * POST /deploy-guard — acquire, release, status, or queue the per-project
+   * deploy lease / waiter line.
    *
-   * The PreToolUse deploy hook calls `acquire` before a deploy command runs;
-   * the PostToolUse hook calls `release` after. `acquired: false` means another
-   * session already holds an active lease (the hook then warns or blocks).
+   * The PreToolUse deploy hook calls `acquire` before a raw deploy command
+   * runs; laptop ship scripts call acquire themselves and wait on collision.
+   * `queue` parks a waiter when acquire misses. `acquired: false` means
+   * another session already holds an active lease.
    * project_id is passed explicitly — the hook resolves it from cwd first.
    */
   async deployGuard(input, opts = {}) {
@@ -70176,12 +70891,9 @@ var MemlinApiClient = class {
   }
   /** GET /audit/<id>/replay — reconstruct a past resolve's exact bundle. */
   async replayAudit(auditId, opts = {}) {
-    return this.request(
-      "GET",
-      `/audit/${auditId}/replay`,
-      void 0,
-      { accountId: opts.accountId }
-    );
+    return this.request("GET", `/audit/${auditId}/replay`, void 0, {
+      accountId: opts.accountId
+    });
   }
   /** GET /audit/<id>/explain — per-item decomposition of a past resolve's
    *  ranking arithmetic (similarity, kind weight, component boost, rerank,
@@ -70816,7 +71528,7 @@ import path9 from "node:path";
 import os7 from "node:os";
 
 // packages/plugin-core/dist/edit-broker-local.js
-import crypto2 from "node:crypto";
+import crypto4 from "node:crypto";
 import {
   closeSync,
   existsSync as existsSync2,
@@ -70835,7 +71547,7 @@ var LOCAL_LEASE_MS = 2e4;
 var LOCK_STALE_MS = 1e4;
 var STATE_VERSION = 1;
 function digest(value) {
-  return crypto2.createHash("sha256").update(value).digest("hex");
+  return crypto4.createHash("sha256").update(value).digest("hex");
 }
 function git(cwd, args) {
   try {
@@ -70897,7 +71609,7 @@ function readState(file) {
   return emptyState();
 }
 function writeState(file, state) {
-  const temp = `${file}.${process.pid}.${crypto2.randomUUID()}.tmp`;
+  const temp = `${file}.${process.pid}.${crypto4.randomUUID()}.tmp`;
   writeFileSync(temp, JSON.stringify(state), { mode: 384 });
   renameSync(temp, file);
 }
@@ -71165,7 +71877,7 @@ import path11 from "node:path";
 import { execFileSync as execFileSync2, spawnSync } from "node:child_process";
 
 // packages/plugin-core/dist/edit-intent.js
-import crypto3 from "node:crypto";
+import crypto5 from "node:crypto";
 import { readFileSync as readFileSync3 } from "node:fs";
 import path10 from "node:path";
 var WHOLE_FILE_END = 2147483647;
@@ -71175,7 +71887,7 @@ var NOTEBOOK_TOOLS = /* @__PURE__ */ new Set(["notebookedit", "editnotebook"]);
 var APPLY_PATCH_TOOLS2 = /* @__PURE__ */ new Set(["applypatch", "apply_patch"]);
 var SHELL_TOOLS2 = /* @__PURE__ */ new Set(["bash", "shell", "powershell"]);
 function hashEditContent(value) {
-  return crypto3.createHash("sha256").update(value).digest("hex");
+  return crypto5.createHash("sha256").update(value).digest("hex");
 }
 function valueString(input, ...keys) {
   for (const key of keys) {
@@ -72126,6 +72838,51 @@ async function evaluateTriggerMemories(payload, opts = {}) {
   }
 }
 
+// packages/plugin-core/dist/deploy-broker.js
+import { existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync5, unlinkSync, writeFileSync as writeFileSync3 } from "node:fs";
+import os10 from "node:os";
+import path14 from "node:path";
+function deployWaiterDir() {
+  const override = process.env.MEMLIN_DEPLOY_WAITER_DIR?.trim();
+  if (override) return override;
+  return path14.join(os10.homedir(), ".config", "memlin", "deploy-waiters");
+}
+function waiterPath(sessionId) {
+  const safe = sessionId.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 180);
+  return path14.join(deployWaiterDir(), `${safe}.json`);
+}
+function recordLocalDeployWaiter(record2) {
+  const dir = deployWaiterDir();
+  mkdirSync2(dir, { recursive: true });
+  writeFileSync3(waiterPath(record2.session_id), JSON.stringify(record2), "utf8");
+}
+function clearLocalDeployWaiter(sessionId) {
+  try {
+    unlinkSync(waiterPath(sessionId));
+  } catch {
+  }
+}
+function deployBrokerReason(args) {
+  const who2 = args.holderSession ? `agent ${args.holderSession.slice(0, 6)}` : "another agent";
+  const ago = typeof args.minutesAgo === "number" ? `${args.minutesAgo}m ago` : "just now";
+  const what = args.holderTask ? ` (task: ${String(args.holderTask).slice(0, 80)})` : "";
+  return `Memlin deploy broker \xB7 queued behind ${who2}${what}, started ${ago}. Do not override this denial and do not retry the zip. Continue non-deploy work. When the lease drops, the next turn will inject RESUME QUEUED DEPLOY with the original command.`;
+}
+function deployCollisionDecision(input) {
+  if (input.selfLease) return null;
+  if (!input.foreignHolder) return null;
+  if (input.triggerOrphan) return null;
+  return {
+    decision: "block",
+    reason: deployBrokerReason({
+      holderSession: input.holderSession,
+      holderTask: input.holderTask,
+      minutesAgo: input.minutesAgo
+    }),
+    matched_decisions: []
+  };
+}
+
 // packages/plugin-core/dist/pre-tool-use-handler.js
 var ENV_CACHE_TTL_MS = 6e4;
 var envCache = /* @__PURE__ */ new Map();
@@ -72208,7 +72965,7 @@ async function loadEnforcementDecisions(ctx, projectId, accountId) {
 async function recordGuardrailEvent(ctx, args) {
   const metadata = {
     tool: args.payload.tool_name,
-    cwd: path14.resolve(args.payload.cwd ?? process.cwd()),
+    cwd: path15.resolve(args.payload.cwd ?? process.cwd()),
     project_id: args.projectId,
     session_id: args.payload.session_id ?? null,
     enforcement_on: args.enforcementOn,
@@ -72261,17 +73018,31 @@ function __deployCommandOf(payload) {
 function deployCommandOf(payload) {
   return __deployCommandOf(payload);
 }
+function gitHeadSha(cwd) {
+  try {
+    const sha = execSync3("git rev-parse HEAD", {
+      windowsHide: true,
+      cwd,
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+      timeout: 250
+    }).trim();
+    return sha || null;
+  } catch {
+    return null;
+  }
+}
 async function evaluateDeployGuard(ctx, payload, projectId, projectAccountId) {
   const command = deployCommandOf(payload);
   if (!command) return null;
   if (deployGuardMode() === "off") return null;
+  if (isSelfLeasingDeployCommand(command)) return null;
   if (!projectId || !payload.session_id) return null;
   const accountOpts = projectAccountId ? { accountId: projectAccountId } : {};
-  const selfLease = isSelfLeasingDeployCommand(command);
   let res;
   try {
     res = await ctx.api.deployGuard(
-      selfLease ? { action: "status", project_id: projectId, session_id: payload.session_id } : {
+      {
         action: "acquire",
         project_id: projectId,
         session_id: payload.session_id,
@@ -72282,30 +73053,67 @@ async function evaluateDeployGuard(ctx, payload, projectId, projectAccountId) {
     );
   } catch (err) {
     log(
-      `deploy-guard: ${selfLease ? "status" : "acquire"} failed (fail-open): ${err instanceof Error ? err.message : String(err)}`
+      `deploy-guard: acquire failed (fail-open): ${err instanceof Error ? err.message : String(err)}`
     );
     return null;
   }
-  if (selfLease) {
-    if (res.held !== true) return null;
-    if (res.holder_session && res.holder_session === payload.session_id) return null;
-  } else if (res.acquired !== false) {
+  if (res.acquired !== false) {
+    try {
+      clearLocalDeployWaiter(payload.session_id);
+    } catch {
+    }
     return null;
   }
-  if (isDeployTriggerCommand(res.holder_task) && __isDeployLeaseOrphaned(res.minutes_ago)) {
+  if (res.holder_session && res.holder_session === payload.session_id) return null;
+  const triggerOrphan = isDeployTriggerCommand(res.holder_task) && __isDeployLeaseOrphaned(res.minutes_ago);
+  if (triggerOrphan) {
     log(
       `deploy-guard: trigger-command holder lease is ${res.minutes_ago}m old (> ${deployLeaseLivenessMin()}m liveness) \u2014 orphaned, not a live collision; allowing`
     );
     return null;
   }
-  const who2 = res.holder_session ? `agent ${res.holder_session.slice(0, 6)}` : "another agent";
-  const ago = typeof res.minutes_ago === "number" ? `${res.minutes_ago}m ago` : "just now";
-  const what = res.holder_task ? ` (task: ${String(res.holder_task).slice(0, 80)})` : "";
-  return {
-    decision: deployGuardMode() === "block" ? "block" : "ask",
-    reason: `Memlin deploy-guard \xB7 ${who2} is already mid-deploy on this project${what}, started ${ago}. Concurrent deploys can clobber each other \u2014 wait for it to finish, then retry.`,
-    matched_decisions: []
-  };
+  const verdict = deployCollisionDecision({
+    selfLease: false,
+    foreignHolder: true,
+    triggerOrphan: false,
+    holderSession: res.holder_session,
+    holderTask: res.holder_task,
+    minutesAgo: res.minutes_ago
+  });
+  if (!verdict) return null;
+  const gitSha = gitHeadSha(payload.cwd ?? process.cwd());
+  try {
+    await ctx.api.deployGuard(
+      {
+        action: "queue",
+        project_id: projectId,
+        session_id: payload.session_id,
+        task: command.slice(0, 200),
+        git_sha: gitSha
+      },
+      accountOpts
+    );
+  } catch (err) {
+    log(
+      `deploy-guard: queue failed (continuing with block): ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+  try {
+    recordLocalDeployWaiter({
+      session_id: payload.session_id,
+      project_id: projectId,
+      task: command.slice(0, 200),
+      git_sha: gitSha,
+      queued_at: (/* @__PURE__ */ new Date()).toISOString(),
+      expires_at: new Date(Date.now() + 40 * 60 * 1e3).toISOString(),
+      status: "waiting"
+    });
+  } catch (err) {
+    log(
+      `deploy-guard: local waiter file failed (ignored): ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+  return verdict;
 }
 function editGuardMode() {
   const raw = (process.env.MEMLIN_EDIT_GUARD ?? "").toLowerCase().trim();
@@ -72329,7 +73137,7 @@ async function evaluateEditCollision(ctx, payload, projectId, projectAccountId) 
   if (rawPaths.length === 0) return null;
   const cwd = payload.cwd ?? process.cwd();
   const relPaths = [
-    ...new Set(rawPaths.map((p2) => repoRelativePath(path14.resolve(cwd, p2), cwd)))
+    ...new Set(rawPaths.map((p2) => repoRelativePath(path15.resolve(cwd, p2), cwd)))
   ];
   if (relPaths.length === 0) return null;
   let res;
@@ -72404,7 +73212,7 @@ async function recordTriggerGuardrailEvent(payload, verdict) {
         event_type: "tool.guardrail",
         metadata: {
           tool: payload.tool_name,
-          cwd: path14.resolve(payload.cwd ?? process.cwd()),
+          cwd: path15.resolve(payload.cwd ?? process.cwd()),
           session_id: payload.session_id ?? null,
           trigger_memory: true,
           outcome: verdict.decision === "block" ? "blocked" : "asked",
@@ -72529,10 +73337,10 @@ async function runPreToolUseHandler(payload) {
 
 // packages/plugin-core/dist/state.js
 import { promises as fs7 } from "node:fs";
-import path15 from "node:path";
-import os10 from "node:os";
-import crypto4 from "node:crypto";
-var STATE_FILE = path15.join(os10.homedir(), ".config", "memlin", "state.json");
+import path16 from "node:path";
+import os11 from "node:os";
+import crypto6 from "node:crypto";
+var STATE_FILE = path16.join(os11.homedir(), ".config", "memlin", "state.json");
 var MAX_LAST_RESOLVE_SESSIONS = 32;
 var EMPTY = { documents: {} };
 async function readState2() {
@@ -72544,7 +73352,7 @@ async function readState2() {
   }
 }
 async function writeState2(state) {
-  await fs7.mkdir(path15.dirname(STATE_FILE), { recursive: true });
+  await fs7.mkdir(path16.dirname(STATE_FILE), { recursive: true });
   const tmp = `${STATE_FILE}.${process.pid}.tmp`;
   await fs7.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
   await atomicRename(tmp, STATE_FILE);
@@ -72591,7 +73399,7 @@ async function updateState(mutate) {
   }
 }
 function hash(content) {
-  return crypto4.createHash("sha256").update(content).digest("hex");
+  return crypto6.createHash("sha256").update(content).digest("hex");
 }
 function cacheLastResolve(state, entry) {
   state.last_resolve = entry;
@@ -72638,16 +73446,16 @@ function bundleHasContinuityContent(bundle) {
 
 // packages/plugin-core/dist/local-scan.js
 import { promises as fs8 } from "node:fs";
-import { existsSync as existsSync3 } from "node:fs";
-import path16 from "node:path";
+import { existsSync as existsSync4 } from "node:fs";
+import path17 from "node:path";
 async function scanLocal(opts = {}) {
   const out = [];
   const root = opts.rootOverride ?? resolveHost().homeDir();
-  const memDir = path16.join(root, "memory");
-  if (existsSync3(memDir)) {
+  const memDir = path17.join(root, "memory");
+  if (existsSync4(memDir)) {
     for (const file of await fs8.readdir(memDir)) {
       if (!file.endsWith(".md") || file === "MEMORY.md") continue;
-      const abs = path16.join(memDir, file);
+      const abs = path17.join(memDir, file);
       const content = await fs8.readFile(abs, "utf8");
       out.push({
         path: `memory/${file}`,
@@ -72658,13 +73466,13 @@ async function scanLocal(opts = {}) {
       });
     }
   }
-  const skillsDir = path16.join(root, "skills");
-  if (existsSync3(skillsDir)) {
+  const skillsDir = path17.join(root, "skills");
+  if (existsSync4(skillsDir)) {
     const entries = await fs8.readdir(skillsDir, { withFileTypes: true });
     for (const e2 of entries) {
       if (!e2.isDirectory()) continue;
-      const skillMd = path16.join(skillsDir, e2.name, "SKILL.md");
-      if (!existsSync3(skillMd)) continue;
+      const skillMd = path17.join(skillsDir, e2.name, "SKILL.md");
+      if (!existsSync4(skillMd)) continue;
       const content = await fs8.readFile(skillMd, "utf8");
       out.push({
         path: `skills/${e2.name}/SKILL.md`,
@@ -72675,11 +73483,11 @@ async function scanLocal(opts = {}) {
       });
     }
   }
-  const goalsDir = path16.join(root, "goals");
-  if (existsSync3(goalsDir)) {
+  const goalsDir = path17.join(root, "goals");
+  if (existsSync4(goalsDir)) {
     for (const file of await fs8.readdir(goalsDir)) {
       if (!file.endsWith(".md")) continue;
-      const abs = path16.join(goalsDir, file);
+      const abs = path17.join(goalsDir, file);
       const content = await fs8.readFile(abs, "utf8");
       out.push({
         path: `goals/${file}`,
@@ -72690,11 +73498,11 @@ async function scanLocal(opts = {}) {
       });
     }
   }
-  const schemasDir = path16.join(root, "schemas");
-  if (existsSync3(schemasDir)) {
+  const schemasDir = path17.join(root, "schemas");
+  if (existsSync4(schemasDir)) {
     for (const file of await fs8.readdir(schemasDir)) {
       if (!file.endsWith(".json")) continue;
-      const abs = path16.join(schemasDir, file);
+      const abs = path17.join(schemasDir, file);
       const content = await fs8.readFile(abs, "utf8");
       out.push({
         path: `schemas/${file}`,
@@ -72707,10 +73515,10 @@ async function scanLocal(opts = {}) {
   }
   if (opts.includePlans) {
     const plansDir = resolveHost().plansDir();
-    if (existsSync3(plansDir)) {
+    if (existsSync4(plansDir)) {
       for (const file of await fs8.readdir(plansDir)) {
         if (!file.endsWith(".md")) continue;
-        const abs = path16.join(plansDir, file);
+        const abs = path17.join(plansDir, file);
         const content = await fs8.readFile(abs, "utf8");
         out.push({
           path: `plans/${file}`,
@@ -72727,8 +73535,8 @@ async function scanLocal(opts = {}) {
     for (const [relPath, meta] of Object.entries(opts.trackedDocs)) {
       if (seen.has(relPath)) continue;
       if (relPath.startsWith("plans/")) continue;
-      const abs = path16.join(root, relPath);
-      if (!existsSync3(abs)) continue;
+      const abs = path17.join(root, relPath);
+      if (!existsSync4(abs)) continue;
       const content = await fs8.readFile(abs, "utf8");
       out.push({
         path: relPath,
@@ -72743,11 +73551,14 @@ async function scanLocal(opts = {}) {
 }
 function filterAbsentOnDisk(paths, rootOverride) {
   const root = rootOverride ?? resolveHost().homeDir();
-  return paths.filter((p2) => !existsSync3(path16.join(root, p2)));
+  return paths.filter((p2) => !existsSync4(path17.join(root, p2)));
 }
 
+// apps/mcp-server/src/index.ts
+init_companion_client();
+
 // apps/mcp-server/src/request-routing.ts
-import path17 from "node:path";
+import path18 from "node:path";
 function hasOwn2(input, key) {
   return Object.prototype.hasOwnProperty.call(input, key);
 }
@@ -72761,8 +73572,8 @@ function explicitProjectId(value) {
 }
 async function resolveRequestRouting(args, config2, deps) {
   const explicitCwd = nonEmptyString(args.cwd);
-  const startupCwd = path17.resolve(config2.cwd);
-  const cwd = explicitCwd ? path17.resolve(startupCwd, explicitCwd) : startupCwd;
+  const startupCwd = path18.resolve(config2.cwd);
+  const cwd = explicitCwd ? path18.resolve(startupCwd, explicitCwd) : startupCwd;
   const cwdChanged = cwd !== startupCwd;
   const projectIdWasExplicit = hasOwn2(args, "project_id");
   const requestedProjectId = projectIdWasExplicit ? explicitProjectId(args.project_id) : null;
@@ -72892,7 +73703,7 @@ function runtimeCwd() {
     "INIT_CWD"
   ]) {
     const value = process.env[key]?.trim();
-    if (value && path18.isAbsolute(value)) return path18.resolve(value);
+    if (value && path19.isAbsolute(value)) return path19.resolve(value);
   }
   return process.cwd();
 }
@@ -72987,18 +73798,24 @@ async function resolveConfig() {
 function agentKind() {
   return process.env.MEMLIN_HOST || process.env.MEMLIN_AGENT_KIND || "mcp";
 }
+function agentSessionId() {
+  const explicit = process.env.MEMLIN_SESSION_ID?.trim();
+  if (explicit) return explicit;
+  if (agentKind() === "codex") return process.env.CODEX_THREAD_ID?.trim() || null;
+  return null;
+}
 function agentCapabilities2() {
   return process.env.MEMLIN_AGENT_CAPABILITIES || "mcp,cli,hooks,rules,scribe,resolve";
 }
 function agentDevice2() {
-  return process.env.MEMLIN_AGENT_DEVICE || os11.hostname() || "unknown device";
+  return process.env.MEMLIN_AGENT_DEVICE || os12.hostname() || "unknown device";
 }
 function readNearestPackageVersion() {
   try {
     let dir = dirname2(fileURLToPath2(import.meta.url));
     for (let i2 = 0; i2 < 6; i2++) {
       try {
-        const pkg = JSON.parse(readFileSync5(join2(dir, "package.json"), "utf8"));
+        const pkg = JSON.parse(readFileSync6(join2(dir, "package.json"), "utf8"));
         if (pkg && typeof pkg.version === "string" && pkg.version) return pkg.version;
       } catch {
       }
@@ -73013,7 +73830,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.45"?.trim();
+  const env = "0.2.46"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }
@@ -73114,36 +73931,184 @@ async function resolveViaApi(args, requestCfg, prepared) {
   if (routing.bindingSource === "unresolved") {
     throw unresolvedWorkspaceError();
   }
+  const companion = await reuseHookResolve(args, routing);
+  if (companion) {
+    await recordResolvedResult(companion, args, routing, startedAt);
+    return companion;
+  }
+  const resolverArgs = { ...args };
+  delete resolverArgs.hook_resolve_ref;
   const res = await fetch(`${requestCfg.apiUrl.replace(/\/+$/, "")}/resolve`, {
     method: "POST",
     headers: agentHeaders(accessToken, routing.accountId),
     body: JSON.stringify({
-      ...args,
+      ...resolverArgs,
       project_id: routing.projectId,
       cwd: routing.cwd,
       git_remote: routing.gitRemote,
       invocation_source: "mcp_tool",
       binding_source: routing.bindingSource,
-      ...process.env.MEMLIN_SESSION_ID ? { session_id: process.env.MEMLIN_SESSION_ID } : {}
+      ...agentSessionId() ? { session_id: agentSessionId() } : {}
     })
   });
   const body = await res.text();
-  if (!res.ok) throw new Error(`resolve HTTP ${res.status}: ${body}`);
-  const result = JSON.parse(body);
-  if (result.audit_id && typeof args.task === "string") {
-    await recordLastResolve({
-      task: args.task,
-      audit_id: result.audit_id,
-      resolved_at: Date.now(),
-      cwd: routing.cwd,
-      had_content: bundleHasContinuityContent(result.bundle),
-      host: agentKind(),
-      session_id: process.env.MEMLIN_SESSION_ID || null,
-      delivered: true,
-      turn_started_at: startedAt
-    });
+  if (!res.ok) {
+    let serverError;
+    try {
+      const parsed = JSON.parse(body);
+      serverError = typeof parsed.error === "string" ? parsed.error : parsed.error?.message ?? parsed.error?.code;
+    } catch {
+    }
+    const detail = serverError ? `HTTP ${res.status}: ${singleLine(serverError, 300)}` : describeOpaqueBody(res.status, body);
+    throw new Error(`resolve ${detail}`);
   }
+  const result = JSON.parse(body);
+  await recordResolvedResult(result, args, routing, startedAt);
   return result;
+}
+var COMPANION_MCP_REUSE_WAIT_MS = 1500;
+var MCP_CUSTOM_RESOLVE_PROFILE = "mcp-custom";
+function companionRequestProfile(args) {
+  const compatibleKeys = /* @__PURE__ */ new Set([
+    "task",
+    "project_id",
+    "cwd",
+    "max_tokens",
+    "hybrid",
+    "hook_resolve_ref",
+    // Deprecated server no-op; it does not change the progressive payload.
+    "include_open_threads"
+  ]);
+  if (Object.keys(args).some((key) => !compatibleKeys.has(key))) {
+    return MCP_CUSTOM_RESOLVE_PROFILE;
+  }
+  if (args.max_tokens !== void 0 && args.max_tokens !== 2200) {
+    return MCP_CUSTOM_RESOLVE_PROFILE;
+  }
+  if (args.hybrid !== void 0 && args.hybrid !== true) {
+    return MCP_CUSTOM_RESOLVE_PROFILE;
+  }
+  return CODEX_HOOK_RESOLVE_PROFILE;
+}
+function rejectedCompanionReuse(result) {
+  const detail = result.status === "mismatch" ? "the MCP request does not exactly match the current hook request" : result.status === "ambiguous" ? "more than one recent hook turn matches this MCP request" : result.status === "pending" ? "the current hook resolve is still in progress" : result.error?.message ?? "the current hook resolve failed";
+  return new Error(
+    `Memlin did not start a duplicate resolve because ${detail}. Continue with the context already delivered by the hook, or retry on a later turn.`
+  );
+}
+async function reuseHookResolve(args, routing) {
+  const beganAt = Date.now();
+  if (agentKind() !== "codex") return null;
+  const hookResolveRef = typeof args.hook_resolve_ref === "string" ? args.hook_resolve_ref.trim() : "";
+  if (!hookResolveRef || typeof args.task !== "string") {
+    throw new Error(
+      "Memlin did not start a duplicate resolve: this Codex tool call did not include the hook_resolve_ref from the current turn. Continue with hook-delivered context."
+    );
+  }
+  const reused = await companionResolveReuse({
+    account_id: routing.accountId,
+    project_id: routing.projectId,
+    task: args.task,
+    cwd: routing.cwd,
+    workspace_signals: {
+      cwd: routing.cwd,
+      git_remote: routing.gitRemote,
+      git_remotes: routing.gitRemote ? [routing.gitRemote] : []
+    },
+    host: "codex",
+    session_id: null,
+    hook_resolve_ref: hookResolveRef,
+    request_profile: companionRequestProfile(args),
+    wait_ms: COMPANION_MCP_REUSE_WAIT_MS
+  });
+  if (!reused || reused.status === "miss") {
+    throw new Error(
+      "Memlin did not start a duplicate resolve because the current hook-owned operation could not be verified. Continue with hook-delivered context."
+    );
+  }
+  if (reused.status !== "reused" || !reused.result || !reused.resolve_id || !reused.turn_id || !reused.phase) {
+    throw rejectedCompanionReuse(reused);
+  }
+  const reserveRequest = {
+    resolve_id: reused.resolve_id,
+    turn_id: reused.turn_id,
+    host: "codex",
+    session_id: reused.session_id ?? null,
+    phase: reused.phase,
+    owner: "mcp",
+    request_id: randomUUID4()
+  };
+  const reserveUntil = beganAt + COMPANION_MCP_REUSE_WAIT_MS;
+  let reservation = await companionReserveResolveDelivery(reserveRequest, { timeoutMs: 500 });
+  while (reservation?.status === "busy" && Date.now() < reserveUntil) {
+    await new Promise(
+      (resolve) => setTimeout(resolve, Math.max(1, Math.min(25, reservation.retry_after_ms)))
+    );
+    reservation = await companionReserveResolveDelivery(reserveRequest, { timeoutMs: 500 });
+  }
+  if (reservation?.status !== "reserved" || !reservation.reservation_token || !reservation.phase || !reservation.result) {
+    throw new Error(
+      "Memlin did not repeat this context because the hook already claimed delivery for this turn. Continue with the hook-provided context."
+    );
+  }
+  const deliveryResult = reservation.result;
+  const serialized = JSON.stringify(deliveryResult);
+  const deliveryComplete = reservation.phase.required_core_complete !== false && reservation.phase.output_capped !== true;
+  const commitRequest = {
+    resolve_id: reused.resolve_id,
+    turn_id: reused.turn_id,
+    host: "codex",
+    session_id: reused.session_id ?? null,
+    phase: reused.phase,
+    reservation_token: reservation.reservation_token,
+    outcome: deliveryComplete ? reused.phase === "full" ? "inline_full" : "inline_hot" : "failed",
+    hook_latency_ms: Date.now() - beganAt,
+    output_chars: serialized.length,
+    output_bytes: Buffer.byteLength(serialized),
+    hook_trusted: false,
+    canary_cohort: process.env.MEMLIN_RESOLVE_CANARY_COHORT ?? null,
+    companion_used: true,
+    fallback_path: "mcp-reuse",
+    required_core_complete: reservation.phase.required_core_complete,
+    output_capped: reservation.phase.output_capped,
+    visible_document_ids: deliveryComplete ? reservation.phase.visible_document_ids ?? [] : []
+  };
+  let committed = await companionCommitResolveDelivery(commitRequest, { timeoutMs: 500 });
+  if (committed === null) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    committed = await companionCommitResolveDelivery(commitRequest, { timeoutMs: 500 });
+  }
+  if (committed !== true) {
+    await companionReleaseResolveDelivery(
+      {
+        resolve_id: reused.resolve_id,
+        turn_id: reused.turn_id,
+        host: "codex",
+        session_id: reused.session_id ?? null,
+        phase: reused.phase,
+        reservation_token: reservation.reservation_token
+      },
+      { timeoutMs: 250 }
+    );
+    throw new Error(
+      "Memlin did not repeat this context because its delivery reservation could not be committed. Continue with the hook-provided context."
+    );
+  }
+  return deliveryResult;
+}
+async function recordResolvedResult(result, args, routing, startedAt) {
+  if (!result.audit_id || typeof args.task !== "string") return;
+  await recordLastResolve({
+    task: args.task,
+    audit_id: result.audit_id,
+    resolved_at: Date.now(),
+    cwd: routing.cwd,
+    had_content: bundleHasContinuityContent(result.bundle),
+    host: agentKind(),
+    session_id: agentSessionId(),
+    delivered: true,
+    turn_started_at: startedAt
+  });
 }
 function createToolContext(accessToken, requestCfg) {
   const supabase = createClient(requestCfg.supabaseUrl, requestCfg.supabaseAnon, {
@@ -73162,8 +74127,8 @@ function createToolContext(accessToken, requestCfg) {
         // change" (never blanks a known version) and
         // its semver-gated propagation only moves a
         // sibling row UP, so a floor can't smear.
-        p_platform: os11.platform(),
-        p_arch: os11.arch(),
+        p_platform: os12.platform(),
+        p_arch: os12.arch(),
         p_capabilities: {
           items: agentCapabilities2().split(",").map((s2) => s2.trim()).filter(Boolean)
         }
@@ -73185,7 +74150,7 @@ function createToolContext(accessToken, requestCfg) {
     // actually set — otherwise handlers fall back to ILIKE.
     embed: process.env.OPENAI_API_KEY ? embed : void 0,
     agentKind: agentKind(),
-    sessionId: process.env.MEMLIN_SESSION_ID || null,
+    sessionId: agentSessionId(),
     defaultCwd: requestCfg.cwd,
     defaultGitRemote: requestCfg.gitRemote,
     // For tools that call back into the REST API (memlin_capture_session →
@@ -73530,6 +74495,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       throw unresolvedWorkspaceError();
     }
     const controllerCwd = preparedResolve?.routing.cwd ?? requestCfg.cwd;
+    const controllerSessionId = agentSessionId();
     try {
       const verdict = await runPreToolUseHandler({
         tool_name: name,
@@ -73540,7 +74506,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
           routed_project_id: preparedResolve.routing.projectId,
           routing_authoritative: true
         } : {},
-        ...process.env.MEMLIN_SESSION_ID ? { session_id: process.env.MEMLIN_SESSION_ID } : {}
+        ...controllerSessionId ? { session_id: controllerSessionId } : {}
       });
       if (verdict.decision === "block") {
         const idsSuffix = verdict.matched_decisions.length > 0 ? ` (matched ${verdict.matched_decisions.length} Memlin decision${verdict.matched_decisions.length === 1 ? "" : "s"})` : "";

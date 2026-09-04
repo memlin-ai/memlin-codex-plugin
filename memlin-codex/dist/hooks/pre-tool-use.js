@@ -3527,6 +3527,8 @@ var require_gray_matter = __commonJS({
 // packages/plugin-core/dist/companion-client.js
 var companion_client_exports = {};
 __export(companion_client_exports, {
+  CODEX_ADDITIONAL_CONTEXT_MAX_BYTES: () => CODEX_ADDITIONAL_CONTEXT_MAX_BYTES,
+  CODEX_HOOK_RESOLVE_PROFILE: () => CODEX_HOOK_RESOLVE_PROFILE,
   COMPANION_PROTOCOL: () => COMPANION_PROTOCOL,
   COMPANION_SOCKET_ENV: () => COMPANION_SOCKET_ENV,
   IS_COMPANION_ENV: () => IS_COMPANION_ENV,
@@ -3534,22 +3536,33 @@ __export(companion_client_exports, {
   MIN_COMPANION_PROTOCOL: () => MIN_COMPANION_PROTOCOL,
   NO_COMPANION_ENV: () => NO_COMPANION_ENV,
   USE_COMPANION_ENV: () => USE_COMPANION_ENV,
+  companionCommitResolveDelivery: () => companionCommitResolveDelivery,
   companionDelegationEnabled: () => companionDelegationEnabled,
   companionForDelegation: () => companionForDelegation,
   companionGetToken: () => companionGetToken,
   companionReadLocal: () => companionReadLocal,
+  companionReleaseResolveDelivery: () => companionReleaseResolveDelivery,
+  companionReportResolveDelivery: () => companionReportResolveDelivery,
   companionReportSession: () => companionReportSession,
   companionRequest: () => companionRequest,
+  companionReserveLateResolveDelivery: () => companionReserveLateResolveDelivery,
+  companionReserveResolveDelivery: () => companionReserveResolveDelivery,
+  companionResolveJoin: () => companionResolveJoin,
+  companionResolveReuse: () => companionResolveReuse,
+  companionResolveStart: () => companionResolveStart,
+  companionResolveTake: () => companionResolveTake,
   companionResolveWorkspace: () => companionResolveWorkspace,
   companionRunDir: () => companionRunDir,
   companionSearchLocal: () => companionSearchLocal,
   companionSocketPath: () => companionSocketPath,
   companionStatus: () => companionStatus,
   companionSyncNow: () => companionSyncNow,
+  deriveResolveId: () => deriveResolveId,
   isCompanionHealthyForDelegation: () => isCompanionHealthyForDelegation,
   resetCompanionClientCache: () => resetCompanionClientCache
 });
 import http from "node:http";
+import crypto from "node:crypto";
 import os from "node:os";
 import path2 from "node:path";
 function companionSocketPath(env = process.env) {
@@ -3562,6 +3575,13 @@ function companionSocketPath(env = process.env) {
 }
 function companionRunDir() {
   return path2.join(os.homedir(), ".config", "memlin", "run");
+}
+function deriveResolveId(input) {
+  const digest2 = crypto.createHash("sha256").update("memlin.resolve.v2\0").update(JSON.stringify([input.accountId, input.host, input.sessionId ?? null, input.turnId])).digest().subarray(0, 16);
+  digest2[6] = digest2[6] & 15 | 80;
+  digest2[8] = digest2[8] & 63 | 128;
+  const hex = digest2.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 function companionDisabled(env = process.env) {
   const off = env[NO_COMPANION_ENV];
@@ -3628,8 +3648,8 @@ async function companionRequest(method, body, opts = {}) {
     req.end(payload);
   });
 }
-async function companionStatus() {
-  const status = await companionRequest("status.get", {});
+async function companionStatus(opts = {}) {
+  const status = await companionRequest("status.get", {}, opts);
   if (!status) return null;
   if (status.protocol < MIN_COMPANION_PROTOCOL || status.protocol > MAX_COMPANION_PROTOCOL) {
     return null;
@@ -3652,6 +3672,39 @@ async function companionSearchLocal(req) {
 }
 async function companionReadLocal(req) {
   return companionRequest("memory.read", req);
+}
+async function companionResolveStart(req, opts = {}) {
+  return companionRequest("resolve.start", req, opts);
+}
+async function companionResolveTake(req) {
+  return companionRequest("resolve.take", req, {
+    timeoutMs: Math.max(250, req.wait_ms + 250)
+  });
+}
+async function companionResolveJoin(req) {
+  return companionRequest("resolve.join", req, {
+    timeoutMs: Math.max(250, req.wait_ms + 250)
+  });
+}
+async function companionResolveReuse(req) {
+  return companionRequest("resolve.reuse", req, {
+    timeoutMs: Math.max(250, Math.min(4500, req.wait_ms + 500))
+  });
+}
+async function companionReserveResolveDelivery(req, opts = {}) {
+  return companionRequest("resolve.reserve", req, opts);
+}
+async function companionReserveLateResolveDelivery(req, opts = {}) {
+  return companionRequest("resolve.reserve-late", req, opts);
+}
+async function companionCommitResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.commit", req, opts))?.accepted ?? null;
+}
+async function companionReleaseResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.release", req, opts))?.released ?? null;
+}
+async function companionReportResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.report", req, opts))?.accepted ?? null;
 }
 async function companionReportSession(req) {
   return (await companionRequest("session.report", req))?.registered ?? false;
@@ -3677,7 +3730,7 @@ async function companionForDelegation() {
 function resetCompanionClientCache() {
   socketDeadUntil = 0;
 }
-var COMPANION_PROTOCOL, MIN_COMPANION_PROTOCOL, MAX_COMPANION_PROTOCOL, NO_COMPANION_ENV, IS_COMPANION_ENV, COMPANION_SOCKET_ENV, CONNECT_TIMEOUT_MS, DEFAULT_CALL_TIMEOUT_MS, CALL_TIMEOUTS, socketDeadUntil, SOCKET_DEAD_TTL_MS, USE_COMPANION_ENV;
+var COMPANION_PROTOCOL, MIN_COMPANION_PROTOCOL, MAX_COMPANION_PROTOCOL, NO_COMPANION_ENV, IS_COMPANION_ENV, COMPANION_SOCKET_ENV, CODEX_HOOK_RESOLVE_PROFILE, CODEX_ADDITIONAL_CONTEXT_MAX_BYTES, CONNECT_TIMEOUT_MS, DEFAULT_CALL_TIMEOUT_MS, CALL_TIMEOUTS, socketDeadUntil, SOCKET_DEAD_TTL_MS, USE_COMPANION_ENV;
 var init_companion_client = __esm({
   "packages/plugin-core/dist/companion-client.js"() {
     "use strict";
@@ -3687,10 +3740,19 @@ var init_companion_client = __esm({
     NO_COMPANION_ENV = "MEMLIN_NO_DAEMON";
     IS_COMPANION_ENV = "MEMLIN_DAEMON";
     COMPANION_SOCKET_ENV = "MEMLIN_COMPANION_SOCKET";
+    CODEX_HOOK_RESOLVE_PROFILE = "codex-hook-v1:tokens=2200";
+    CODEX_ADDITIONAL_CONTEXT_MAX_BYTES = 2200;
     CONNECT_TIMEOUT_MS = 150;
     DEFAULT_CALL_TIMEOUT_MS = 1e3;
     CALL_TIMEOUTS = {
       "workspace.resolve": 2e3,
+      "resolve.start": 750,
+      "resolve.reuse": 4500,
+      "resolve.reserve": 750,
+      "resolve.reserve-late": 750,
+      "resolve.commit": 750,
+      "resolve.release": 500,
+      "resolve.report": 500,
       "sync.now": 5e3,
       "login.start": 1e4,
       // Local-store reads walk the materialized doc tree on disk.
@@ -3705,7 +3767,7 @@ var init_companion_client = __esm({
 
 // packages/plugin-core/dist/pre-tool-use-handler.js
 import { execSync as execSync3 } from "node:child_process";
-import path14 from "node:path";
+import path15 from "node:path";
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4185,8 +4247,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path15, errorMaps, issueData } = params;
-  const fullPath = [...path15, ...issueData.path || []];
+  const { data, path: path16, errorMaps, issueData } = params;
+  const fullPath = [...path16, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -4302,11 +4364,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path15, key) {
+  constructor(parent, value, path16, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path15;
+    this._path = path16;
     this._key = key;
   }
   get path() {
@@ -9000,6 +9062,7 @@ function decodeJwtPayload(jwt) {
 
 // packages/plugin-core/dist/memlin-api-client.js
 import { readFileSync } from "node:fs";
+import crypto2 from "node:crypto";
 import os4 from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9175,7 +9238,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.45";
+  cachedAgentVersion = "0.2.46";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -9188,6 +9251,7 @@ var NATIVE_MEMORY_BATCH_SIZE = 20;
 var NATIVE_MEMORY_BATCH_CONCURRENCY = 3;
 var NATIVE_MEMORY_REQUEST_TIMEOUT_MS = 9e4;
 var NATIVE_MEMORY_BATCH_INDEX = "# Native memory satellite batch\n";
+var RESOLVE_V2_MAX_LINE_BYTES = 2 * 1024 * 1024;
 var RETRIABLE_STATUS = /* @__PURE__ */ new Set([408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524]);
 var RETRIABLE_NETWORK_CODES = /* @__PURE__ */ new Set([
   "ECONNRESET",
@@ -9235,20 +9299,103 @@ function unreachableError(url, cause, timeoutMs) {
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+function delayWithSignal(ms, signal) {
+  if (!signal) return delay(ms);
+  if (signal.aborted) return Promise.reject(signal.reason ?? new Error("request aborted"));
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(done, ms);
+    function done() {
+      signal?.removeEventListener("abort", aborted);
+      resolve();
+    }
+    function aborted() {
+      clearTimeout(timer);
+      reject(signal?.reason ?? new Error("request aborted"));
+    }
+    signal.addEventListener("abort", aborted, { once: true });
+  });
+}
+function resolveV2Event(value) {
+  if (!value || typeof value !== "object") {
+    throw new Error("Memlin progressive resolver returned a non-object event");
+  }
+  const candidate = value;
+  if (candidate.type !== "hot" && candidate.type !== "full" && candidate.type !== "failed" || typeof candidate.resolve_id !== "string" || typeof candidate.turn_id !== "string" || typeof candidate.trace_id !== "string" || typeof candidate.account_id !== "string" || candidate.project_id !== null && typeof candidate.project_id !== "string" || !candidate.timing || typeof candidate.timing.total_ms !== "number" || !candidate.metrics || typeof candidate.metrics.db_calls !== "number") {
+    throw new Error("Memlin progressive resolver returned a malformed event");
+  }
+  if ((candidate.type === "hot" || candidate.type === "full") && !candidate.payload) {
+    throw new Error(`Memlin progressive resolver returned ${candidate.type} without a payload`);
+  }
+  if (candidate.type === "failed" && !candidate.error) {
+    throw new Error("Memlin progressive resolver returned failed without an error receipt");
+  }
+  return candidate;
+}
+async function* parseNdjsonEvents(body) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    for (; ; ) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      for (; ; ) {
+        const newline = buffer.indexOf("\n");
+        if (newline < 0) break;
+        const rawLine = buffer.slice(0, newline);
+        buffer = buffer.slice(newline + 1);
+        if (Buffer.byteLength(rawLine) > RESOLVE_V2_MAX_LINE_BYTES) {
+          throw new Error("Memlin progressive resolver returned an oversized event");
+        }
+        const line = rawLine.trim();
+        if (!line) continue;
+        let parsed;
+        try {
+          parsed = JSON.parse(line);
+        } catch {
+          throw new Error("Memlin progressive resolver returned invalid NDJSON");
+        }
+        yield resolveV2Event(parsed);
+      }
+      if (Buffer.byteLength(buffer) > RESOLVE_V2_MAX_LINE_BYTES) {
+        throw new Error("Memlin progressive resolver returned an oversized event");
+      }
+    }
+    buffer += decoder.decode();
+    if (Buffer.byteLength(buffer) > RESOLVE_V2_MAX_LINE_BYTES) {
+      throw new Error("Memlin progressive resolver returned an oversized event");
+    }
+    const tail = buffer.trim();
+    if (tail) {
+      let parsed;
+      try {
+        parsed = JSON.parse(tail);
+      } catch {
+        throw new Error("Memlin progressive resolver returned invalid NDJSON");
+      }
+      yield resolveV2Event(parsed);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
 var MemlinApiClient = class {
   constructor(cfg) {
     this.cfg = cfg;
   }
   cfg;
   // ---------- low-level ----------
-  async authHeaders(includeAccount = true) {
+  async authHeaders(includeAccount = true, override = {}) {
     const token = await this.cfg.getAccessToken();
+    const kind = override.agentKind ?? resolveHost().kind;
+    const version = override.agentKind === void 0 ? agentVersion() : override.agentVersion ?? "dev";
     const h = {
       Authorization: `Bearer ${token}`,
-      [AGENT_KIND_HEADER]: resolveHost().kind,
+      [AGENT_KIND_HEADER]: kind,
       [AGENT_DEVICE_HEADER]: agentDevice(),
-      [AGENT_VERSION_HEADER]: agentVersion(),
-      [AGENT_CAPABILITIES_HEADER]: agentCapabilities().join(","),
+      [AGENT_VERSION_HEADER]: version,
+      [AGENT_CAPABILITIES_HEADER]: (override.agentKind ? AGENT_EXPECTED_CAPABILITIES[kind] : agentCapabilities()).join(","),
       [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os4.platform(),
       [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os4.arch()
     };
@@ -9259,7 +9406,7 @@ var MemlinApiClient = class {
   }
   async request(method, pathAndQuery, body, opts = {}) {
     const url = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
-    const baseHeaders = await this.authHeaders(opts.includeAccount ?? true);
+    const baseHeaders = await this.authHeaders(opts.includeAccount ?? true, opts);
     if (opts.accountId) {
       baseHeaders["Memlin-Account-Id"] = opts.accountId;
     }
@@ -9278,11 +9425,12 @@ var MemlinApiClient = class {
       let res;
       let text;
       try {
+        const timeoutSignal = AbortSignal.timeout(timeoutMs);
         res = await fetch(url, {
           method,
           headers,
           // A dead socket must abort rather than hang the caller forever.
-          signal: AbortSignal.timeout(timeoutMs),
+          signal: opts.signal ? AbortSignal.any([opts.signal, timeoutSignal]) : timeoutSignal,
           ...body !== void 0 ? { body: JSON.stringify(body) } : {}
         });
         text = await res.text();
@@ -9307,7 +9455,10 @@ var MemlinApiClient = class {
       if (!res.ok) {
         const serverError = parsed?.error;
         const errMsg = typeof serverError === "string" && serverError ? singleLine(serverError, 300) : describeOpaqueBody(res.status, text);
-        throw new MemlinApiError(`${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`, res.status);
+        throw new MemlinApiError(
+          `${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`,
+          res.status
+        );
       }
       return parsed;
     }
@@ -9315,6 +9466,61 @@ var MemlinApiClient = class {
   backoffMs(attempt) {
     const base = this.cfg.retryBaseDelayMs ?? DEFAULT_RETRY_BASE_DELAY_MS;
     return base * 2 ** (attempt - 1);
+  }
+  async openResolveV2Stream(method, pathAndQuery, body, opts = {}) {
+    const url = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
+    const headers = await this.authHeaders(true, opts);
+    if (opts.accountId) headers["Memlin-Account-Id"] = opts.accountId;
+    headers.Accept = "application/x-ndjson";
+    if (body !== void 0) headers["Content-Type"] = "application/json";
+    if (opts.traceId) {
+      const normalized = opts.traceId.replaceAll("-", "").toLowerCase();
+      const traceId = /^[0-9a-f]{32}$/.test(normalized) ? normalized : crypto2.createHash("sha256").update(opts.traceId).digest("hex").slice(0, 32);
+      headers.traceparent = `00-${traceId}-${crypto2.randomBytes(8).toString("hex")}-01`;
+    }
+    const timeoutMs = Math.max(
+      1,
+      opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
+    );
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
+    const signal = opts.signal ? AbortSignal.any([opts.signal, timeoutSignal]) : timeoutSignal;
+    let response;
+    try {
+      response = await fetch(url, {
+        method,
+        headers,
+        signal,
+        ...body !== void 0 ? { body: JSON.stringify(body) } : {}
+      });
+    } catch (error) {
+      throw unreachableError(url, error, timeoutMs);
+    }
+    if (response.ok) {
+      const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+      if (!contentType.includes("application/x-ndjson")) {
+        await response.body?.cancel().catch(() => void 0);
+        throw new Error("Memlin progressive resolver returned an unexpected response type");
+      }
+      return response;
+    }
+    const text = await response.text().catch(() => "");
+    let serverError;
+    try {
+      const parsed = JSON.parse(text);
+      serverError = typeof parsed.error === "string" ? parsed.error : parsed.error?.message ?? parsed.error?.code;
+    } catch {
+    }
+    const detail = response.status >= 500 ? `HTTP ${response.status} (upstream response suppressed)` : serverError ? singleLine(serverError, 300) : describeOpaqueBody(response.status, text);
+    throw new MemlinApiError(
+      `${method} ${pathAndQuery} \u2192 ${response.status}: ${detail}`,
+      response.status
+    );
+  }
+  async *readResolveV2Response(response) {
+    if (!response.body) {
+      throw new Error("Memlin progressive resolver returned an empty response body");
+    }
+    yield* parseNdjsonEvents(response.body);
   }
   // ---------- endpoints ----------
   /** GET /me — identity + account list. No account header sent (this is the discovery call). */
@@ -9549,6 +9755,128 @@ var MemlinApiClient = class {
     return res.documents;
   }
   /**
+   * POST /resolve/v2 — one authenticated progressive NDJSON stream.
+   *
+   * A transport reset after the server claimed the id is recovered through
+   * GET replay, never by starting another POST with a fresh identity. Duplicate
+   * events from the replay are suppressed by phase.
+   */
+  async *resolveV2(args, opts = {}) {
+    const seen = /* @__PURE__ */ new Set();
+    let terminal = false;
+    let postError;
+    try {
+      const response = await this.openResolveV2Stream("POST", "/resolve/v2", args, opts);
+      for await (const event of this.readResolveV2Response(response)) {
+        if (event.resolve_id !== args.resolve_id || event.turn_id !== args.turn_id) {
+          throw new Error("Memlin progressive resolver returned an event for another turn");
+        }
+        if (event.type === "failed" && event.error?.code === "RESOLVE_V2_UNAVAILABLE" && !seen.has("hot") && !seen.has("full")) {
+          throw new MemlinApiError("POST /resolve/v2 \u2192 404: progressive resolve unavailable", 404);
+        }
+        if (event.type === "failed" && event.error?.code === "PENDING") continue;
+        if (!seen.has(event.type)) {
+          seen.add(event.type);
+          yield event;
+        }
+        if (event.type === "full" || event.type === "failed") terminal = true;
+      }
+    } catch (error) {
+      postError = error;
+    }
+    if (terminal) return;
+    if (opts.signal?.aborted) throw postError ?? opts.signal.reason;
+    if (postError instanceof MemlinApiError && (postError.status === 404 || postError.status === 405 || postError.status === 501)) {
+      throw postError;
+    }
+    const requestedDeadline = Date.parse(args.deadline_at);
+    const replayDeadline = Number.isFinite(requestedDeadline) ? requestedDeadline : Date.now() + (opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS);
+    const replayDelays = [50, 100, 200, 350, 500];
+    const replayIdentity = new URLSearchParams({
+      turn_id: args.turn_id,
+      session_id: args.session_id ?? ""
+    });
+    let replayError;
+    for (let attempt = 0; !terminal && Date.now() < replayDeadline; attempt += 1) {
+      if (opts.signal?.aborted) throw postError ?? opts.signal.reason;
+      try {
+        const response = await this.openResolveV2Stream(
+          "GET",
+          `/resolve/v2/${encodeURIComponent(args.resolve_id)}?${replayIdentity.toString()}`,
+          void 0,
+          {
+            ...opts,
+            requestTimeoutMs: Math.max(1, replayDeadline - Date.now())
+          }
+        );
+        for await (const event of this.readResolveV2Response(response)) {
+          if (event.resolve_id !== args.resolve_id || event.turn_id !== args.turn_id) {
+            throw new Error(
+              "Memlin progressive resolver replay returned an event for another turn"
+            );
+          }
+          if (event.type === "failed" && event.error?.code === "PENDING") continue;
+          if (!seen.has(event.type)) {
+            seen.add(event.type);
+            yield event;
+          }
+          if (event.type === "full" || event.type === "failed") terminal = true;
+        }
+        replayError = void 0;
+      } catch (error) {
+        replayError = error;
+        const retryable = !(error instanceof MemlinApiError) || error.status === 408 || error.status === 429 || error.status >= 500;
+        if (!retryable) {
+          if (seen.has("hot") || seen.has("full")) {
+            throw new Error(
+              "Memlin progressive resolver replay was rejected after resolution started"
+            );
+          }
+          throw postError ?? error;
+        }
+      }
+      if (terminal) return;
+      const remaining = replayDeadline - Date.now();
+      if (remaining <= 0) break;
+      await delayWithSignal(
+        Math.min(replayDelays[Math.min(attempt, replayDelays.length - 1)], remaining),
+        opts.signal
+      );
+    }
+    throw postError ?? replayError ?? new Error("Memlin progressive resolver did not reach a terminal phase before its deadline");
+  }
+  /** Read stored phases without starting a resolver operation. */
+  async *replayResolveV2(resolveId, expected, opts = {}) {
+    const identity = new URLSearchParams({
+      turn_id: expected.turn_id,
+      session_id: expected.session_id ?? ""
+    });
+    const response = await this.openResolveV2Stream(
+      "GET",
+      `/resolve/v2/${encodeURIComponent(resolveId)}?${identity.toString()}`,
+      void 0,
+      opts
+    );
+    for await (const event of this.readResolveV2Response(response)) {
+      if (event.resolve_id !== resolveId || event.turn_id !== expected.turn_id) {
+        throw new Error("Memlin progressive resolver replay returned an event for another turn");
+      }
+      yield event;
+    }
+  }
+  /** Hook-emitted delivery truth for a progressive resolve. The route accepts
+   * only this sanitized detail allowlist; prompts and source content never
+   * enter telemetry. */
+  async reportResolveV2Delivery(resolveId, input, opts = {}) {
+    return this.request("POST", `/resolve/v2/${encodeURIComponent(resolveId)}/delivery`, input, {
+      accountId: opts.accountId,
+      requestTimeoutMs: opts.requestTimeoutMs ?? 2e3,
+      signal: opts.signal,
+      agentKind: opts.agentKind,
+      agentVersion: opts.agentVersion
+    });
+  }
+  /**
    * POST /resolve — the marquee context-assembly endpoint.
    *
    * `cwd` and `git_remote` let the server infer the caller's active component
@@ -9558,7 +9886,11 @@ var MemlinApiClient = class {
    */
   async resolve(args, opts = {}) {
     return this.request("POST", "/resolve", args, {
-      accountId: opts.accountId
+      accountId: opts.accountId,
+      requestTimeoutMs: opts.requestTimeoutMs,
+      signal: opts.signal,
+      agentKind: opts.agentKind,
+      agentVersion: opts.agentVersion
     });
   }
   /**
@@ -9596,11 +9928,13 @@ var MemlinApiClient = class {
     return this.request("PUT", "/account/enforce-done-deployed", { enabled }, opts);
   }
   /**
-   * POST /deploy-guard — acquire or release the per-project deploy lease.
+   * POST /deploy-guard — acquire, release, status, or queue the per-project
+   * deploy lease / waiter line.
    *
-   * The PreToolUse deploy hook calls `acquire` before a deploy command runs;
-   * the PostToolUse hook calls `release` after. `acquired: false` means another
-   * session already holds an active lease (the hook then warns or blocks).
+   * The PreToolUse deploy hook calls `acquire` before a raw deploy command
+   * runs; laptop ship scripts call acquire themselves and wait on collision.
+   * `queue` parks a waiter when acquire misses. `acquired: false` means
+   * another session already holds an active lease.
    * project_id is passed explicitly — the hook resolves it from cwd first.
    */
   async deployGuard(input, opts = {}) {
@@ -9626,12 +9960,9 @@ var MemlinApiClient = class {
   }
   /** GET /audit/<id>/replay — reconstruct a past resolve's exact bundle. */
   async replayAudit(auditId, opts = {}) {
-    return this.request(
-      "GET",
-      `/audit/${auditId}/replay`,
-      void 0,
-      { accountId: opts.accountId }
-    );
+    return this.request("GET", `/audit/${auditId}/replay`, void 0, {
+      accountId: opts.accountId
+    });
   }
   /** GET /audit/<id>/explain — per-item decomposition of a past resolve's
    *  ranking arithmetic (similarity, kind weight, component boost, rerank,
@@ -10283,7 +10614,7 @@ import path9 from "node:path";
 import os7 from "node:os";
 
 // packages/plugin-core/dist/edit-broker-local.js
-import crypto from "node:crypto";
+import crypto3 from "node:crypto";
 import {
   closeSync,
   existsSync as existsSync2,
@@ -10302,7 +10633,7 @@ var LOCAL_LEASE_MS = 2e4;
 var LOCK_STALE_MS = 1e4;
 var STATE_VERSION = 1;
 function digest(value) {
-  return crypto.createHash("sha256").update(value).digest("hex");
+  return crypto3.createHash("sha256").update(value).digest("hex");
 }
 function git(cwd, args) {
   try {
@@ -10364,7 +10695,7 @@ function readState(file) {
   return emptyState();
 }
 function writeState(file, state) {
-  const temp = `${file}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  const temp = `${file}.${process.pid}.${crypto3.randomUUID()}.tmp`;
   writeFileSync(temp, JSON.stringify(state), { mode: 384 });
   renameSync(temp, file);
 }
@@ -10632,7 +10963,7 @@ import path11 from "node:path";
 import { execFileSync as execFileSync2, spawnSync } from "node:child_process";
 
 // packages/plugin-core/dist/edit-intent.js
-import crypto2 from "node:crypto";
+import crypto4 from "node:crypto";
 import { readFileSync as readFileSync3 } from "node:fs";
 import path10 from "node:path";
 var WHOLE_FILE_END = 2147483647;
@@ -10642,7 +10973,7 @@ var NOTEBOOK_TOOLS = /* @__PURE__ */ new Set(["notebookedit", "editnotebook"]);
 var APPLY_PATCH_TOOLS2 = /* @__PURE__ */ new Set(["applypatch", "apply_patch"]);
 var SHELL_TOOLS2 = /* @__PURE__ */ new Set(["bash", "shell", "powershell"]);
 function hashEditContent(value) {
-  return crypto2.createHash("sha256").update(value).digest("hex");
+  return crypto4.createHash("sha256").update(value).digest("hex");
 }
 function valueString(input, ...keys) {
   for (const key of keys) {
@@ -11593,6 +11924,51 @@ async function evaluateTriggerMemories(payload, opts = {}) {
   }
 }
 
+// packages/plugin-core/dist/deploy-broker.js
+import { existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync5, unlinkSync, writeFileSync as writeFileSync3 } from "node:fs";
+import os10 from "node:os";
+import path14 from "node:path";
+function deployWaiterDir() {
+  const override = process.env.MEMLIN_DEPLOY_WAITER_DIR?.trim();
+  if (override) return override;
+  return path14.join(os10.homedir(), ".config", "memlin", "deploy-waiters");
+}
+function waiterPath(sessionId) {
+  const safe = sessionId.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 180);
+  return path14.join(deployWaiterDir(), `${safe}.json`);
+}
+function recordLocalDeployWaiter(record) {
+  const dir = deployWaiterDir();
+  mkdirSync2(dir, { recursive: true });
+  writeFileSync3(waiterPath(record.session_id), JSON.stringify(record), "utf8");
+}
+function clearLocalDeployWaiter(sessionId) {
+  try {
+    unlinkSync(waiterPath(sessionId));
+  } catch {
+  }
+}
+function deployBrokerReason(args) {
+  const who2 = args.holderSession ? `agent ${args.holderSession.slice(0, 6)}` : "another agent";
+  const ago = typeof args.minutesAgo === "number" ? `${args.minutesAgo}m ago` : "just now";
+  const what = args.holderTask ? ` (task: ${String(args.holderTask).slice(0, 80)})` : "";
+  return `Memlin deploy broker \xB7 queued behind ${who2}${what}, started ${ago}. Do not override this denial and do not retry the zip. Continue non-deploy work. When the lease drops, the next turn will inject RESUME QUEUED DEPLOY with the original command.`;
+}
+function deployCollisionDecision(input) {
+  if (input.selfLease) return null;
+  if (!input.foreignHolder) return null;
+  if (input.triggerOrphan) return null;
+  return {
+    decision: "block",
+    reason: deployBrokerReason({
+      holderSession: input.holderSession,
+      holderTask: input.holderTask,
+      minutesAgo: input.minutesAgo
+    }),
+    matched_decisions: []
+  };
+}
+
 // packages/plugin-core/dist/pre-tool-use-handler.js
 var ENV_CACHE_TTL_MS = 6e4;
 var envCache = /* @__PURE__ */ new Map();
@@ -11675,7 +12051,7 @@ async function loadEnforcementDecisions(ctx, projectId, accountId) {
 async function recordGuardrailEvent(ctx, args) {
   const metadata = {
     tool: args.payload.tool_name,
-    cwd: path14.resolve(args.payload.cwd ?? process.cwd()),
+    cwd: path15.resolve(args.payload.cwd ?? process.cwd()),
     project_id: args.projectId,
     session_id: args.payload.session_id ?? null,
     enforcement_on: args.enforcementOn,
@@ -11728,17 +12104,31 @@ function __deployCommandOf(payload) {
 function deployCommandOf(payload) {
   return __deployCommandOf(payload);
 }
+function gitHeadSha(cwd) {
+  try {
+    const sha = execSync3("git rev-parse HEAD", {
+      windowsHide: true,
+      cwd,
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8",
+      timeout: 250
+    }).trim();
+    return sha || null;
+  } catch {
+    return null;
+  }
+}
 async function evaluateDeployGuard(ctx, payload, projectId, projectAccountId) {
   const command = deployCommandOf(payload);
   if (!command) return null;
   if (deployGuardMode() === "off") return null;
+  if (isSelfLeasingDeployCommand(command)) return null;
   if (!projectId || !payload.session_id) return null;
   const accountOpts = projectAccountId ? { accountId: projectAccountId } : {};
-  const selfLease = isSelfLeasingDeployCommand(command);
   let res;
   try {
     res = await ctx.api.deployGuard(
-      selfLease ? { action: "status", project_id: projectId, session_id: payload.session_id } : {
+      {
         action: "acquire",
         project_id: projectId,
         session_id: payload.session_id,
@@ -11749,30 +12139,67 @@ async function evaluateDeployGuard(ctx, payload, projectId, projectAccountId) {
     );
   } catch (err) {
     log(
-      `deploy-guard: ${selfLease ? "status" : "acquire"} failed (fail-open): ${err instanceof Error ? err.message : String(err)}`
+      `deploy-guard: acquire failed (fail-open): ${err instanceof Error ? err.message : String(err)}`
     );
     return null;
   }
-  if (selfLease) {
-    if (res.held !== true) return null;
-    if (res.holder_session && res.holder_session === payload.session_id) return null;
-  } else if (res.acquired !== false) {
+  if (res.acquired !== false) {
+    try {
+      clearLocalDeployWaiter(payload.session_id);
+    } catch {
+    }
     return null;
   }
-  if (isDeployTriggerCommand(res.holder_task) && __isDeployLeaseOrphaned(res.minutes_ago)) {
+  if (res.holder_session && res.holder_session === payload.session_id) return null;
+  const triggerOrphan = isDeployTriggerCommand(res.holder_task) && __isDeployLeaseOrphaned(res.minutes_ago);
+  if (triggerOrphan) {
     log(
       `deploy-guard: trigger-command holder lease is ${res.minutes_ago}m old (> ${deployLeaseLivenessMin()}m liveness) \u2014 orphaned, not a live collision; allowing`
     );
     return null;
   }
-  const who2 = res.holder_session ? `agent ${res.holder_session.slice(0, 6)}` : "another agent";
-  const ago = typeof res.minutes_ago === "number" ? `${res.minutes_ago}m ago` : "just now";
-  const what = res.holder_task ? ` (task: ${String(res.holder_task).slice(0, 80)})` : "";
-  return {
-    decision: deployGuardMode() === "block" ? "block" : "ask",
-    reason: `Memlin deploy-guard \xB7 ${who2} is already mid-deploy on this project${what}, started ${ago}. Concurrent deploys can clobber each other \u2014 wait for it to finish, then retry.`,
-    matched_decisions: []
-  };
+  const verdict = deployCollisionDecision({
+    selfLease: false,
+    foreignHolder: true,
+    triggerOrphan: false,
+    holderSession: res.holder_session,
+    holderTask: res.holder_task,
+    minutesAgo: res.minutes_ago
+  });
+  if (!verdict) return null;
+  const gitSha = gitHeadSha(payload.cwd ?? process.cwd());
+  try {
+    await ctx.api.deployGuard(
+      {
+        action: "queue",
+        project_id: projectId,
+        session_id: payload.session_id,
+        task: command.slice(0, 200),
+        git_sha: gitSha
+      },
+      accountOpts
+    );
+  } catch (err) {
+    log(
+      `deploy-guard: queue failed (continuing with block): ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+  try {
+    recordLocalDeployWaiter({
+      session_id: payload.session_id,
+      project_id: projectId,
+      task: command.slice(0, 200),
+      git_sha: gitSha,
+      queued_at: (/* @__PURE__ */ new Date()).toISOString(),
+      expires_at: new Date(Date.now() + 40 * 60 * 1e3).toISOString(),
+      status: "waiting"
+    });
+  } catch (err) {
+    log(
+      `deploy-guard: local waiter file failed (ignored): ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+  return verdict;
 }
 function editGuardMode() {
   const raw = (process.env.MEMLIN_EDIT_GUARD ?? "").toLowerCase().trim();
@@ -11796,7 +12223,7 @@ async function evaluateEditCollision(ctx, payload, projectId, projectAccountId) 
   if (rawPaths.length === 0) return null;
   const cwd = payload.cwd ?? process.cwd();
   const relPaths = [
-    ...new Set(rawPaths.map((p) => repoRelativePath(path14.resolve(cwd, p), cwd)))
+    ...new Set(rawPaths.map((p) => repoRelativePath(path15.resolve(cwd, p), cwd)))
   ];
   if (relPaths.length === 0) return null;
   let res;
@@ -11871,7 +12298,7 @@ async function recordTriggerGuardrailEvent(payload, verdict) {
         event_type: "tool.guardrail",
         metadata: {
           tool: payload.tool_name,
-          cwd: path14.resolve(payload.cwd ?? process.cwd()),
+          cwd: path15.resolve(payload.cwd ?? process.cwd()),
           session_id: payload.session_id ?? null,
           trigger_memory: true,
           outcome: verdict.decision === "block" ? "blocked" : "asked",

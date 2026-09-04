@@ -8737,10 +8737,20 @@ function renderItemXml(tagName, item, attributes = {}) {
   lines.push(`</${tagName}>`);
   return lines.join("\n");
 }
-var TASK_ECHO_MAX_CHARS = 80;
+var TASK_ECHO_MAX_BYTES = 80;
 function truncateTask(task) {
   const oneLine = task.replace(/\s+/g, " ").trim();
-  return oneLine.length <= TASK_ECHO_MAX_CHARS ? oneLine : `${oneLine.slice(0, TASK_ECHO_MAX_CHARS - 1)}\u2026`;
+  if (Buffer.byteLength(oneLine, "utf8") <= TASK_ECHO_MAX_BYTES) return oneLine;
+  const prefixLimit = TASK_ECHO_MAX_BYTES - Buffer.byteLength("\u2026", "utf8");
+  let prefix = "";
+  let bytes = 0;
+  for (const character of oneLine) {
+    const characterBytes = Buffer.byteLength(character, "utf8");
+    if (bytes + characterBytes > prefixLimit) break;
+    prefix += character;
+    bytes += characterBytes;
+  }
+  return `${prefix}\u2026`;
 }
 function xmlAttr(value) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
@@ -9025,13 +9035,63 @@ function compileBundle(result, parsedTask, agent) {
         `# ${deploys.length} other agent(s) appear to be mid-deploy on this project right now.`
       );
       out.push(
-        "# Hold your own deploy until it clears, or coordinate \u2014 concurrent deploys can clobber each other."
+        "# A waiter is queued in acquire \u2014 do not start a second zip. The holder finishing is what unblocks the line."
       );
       for (const d of deploys) {
         const where = d.component ? `component "${d.component}"` : "project-wide";
         out.push(
           `  - agent ${d.session_short} \xB7 ${where} \xB7 ${d.minutes_ago}m ago \xB7 task: ${d.task}`
         );
+      }
+      out.push("");
+    }
+    const waiters = b.deploy_waiters ?? [];
+    if (waiters.length > 0) {
+      out.push("## WAITING ON YOU");
+      out.push("");
+      out.push(
+        `# ${waiters.length} agent(s) are queued to deploy after you. Finish or release so they can proceed.`
+      );
+      for (const w of waiters) {
+        const release = w.release_id ? ` \xB7 release ${w.release_id}${w.service ? ` (${w.service})` : ""}` : w.service ? ` \xB7 ${w.service}` : "";
+        out.push(
+          `  - agent ${w.session_short} \xB7 ${w.status} \xB7 queued ${w.minutes_queued}m${release} \xB7 task: ${w.task}`
+        );
+      }
+      out.push("");
+    }
+    const queued = b.queued_deploy ?? null;
+    if (queued) {
+      if (queued.status === "ready") {
+        out.push("## RESUME QUEUED DEPLOY");
+        out.push("");
+        out.push(
+          "# The project deploy lease is free. Run this exact command now \u2014 do not ask the user."
+        );
+        if (queued.release_id) {
+          out.push(
+            `# Release: ${queued.release_id}${queued.service ? ` (${queued.service})` : ""}`
+          );
+        }
+        out.push(`#   ${queued.task}`);
+        if (queued.git_sha) {
+          out.push(`# SHA at queue: ${queued.git_sha}`);
+          out.push(
+            "# If HEAD still matches, ship. If HEAD drifted, stop and re-evaluate \u2014 do not ship a different tree."
+          );
+        }
+      } else {
+        out.push("## QUEUED DEPLOY");
+        out.push("");
+        out.push(
+          `# You are in line (${queued.minutes_queued}m). Do not retry the zip; Memlin will inject RESUME QUEUED DEPLOY when the lease drops.`
+        );
+        if (queued.release_id) {
+          out.push(
+            `# Release: ${queued.release_id}${queued.service ? ` (${queued.service})` : ""}`
+          );
+        }
+        out.push(`#   ${queued.task}`);
       }
       out.push("");
     }

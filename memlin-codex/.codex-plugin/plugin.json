@@ -1,6 +1,6 @@
 {
   "name": "memlin",
-  "version": "0.2.45",
+  "version": "0.2.46",
   "description": "Shared project context, decisions, and experience for Codex and every coding agent.",
   "author": {
     "name": "Memlin",

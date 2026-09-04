@@ -46,8 +46,11 @@ added to your PATH, so each command invokes the bundled CLI by path (e.g.
 2. **Restart Codex** completely so it loads the MCP server and hooks.
 3. **Bind your repo** — `cd` into it and run the printed `… main.js add-project`
    line.
-4. **Verify** — ask Codex to run the `memlin_resolve_task` tool, or run the
-   `… main.js status` line — it should show `project: <name>`, not `none`.
+4. **Verify** — run the printed `… main.js status` line; it should show
+   `project: <name>`, not `none`. Then start a fresh Codex task and send a
+   normal project prompt to confirm the trusted `UserPromptSubmit` hook adds a
+   Memlin context marker. Direct Codex MCP resolves are intentionally reserved
+   for joining a hook-started operation.
 
 > On macOS/Linux the installer also drops a `memlin` shortcut in `~/.local/bin`,
 > so `memlin login` / `memlin add-project` work directly if that's on your PATH.

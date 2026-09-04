@@ -53,10 +53,13 @@ by path:  node "<cache>\dist\cli\main.js" <command>
   3. Bind your repo: cd into the project folder, then run the
                      printed  ... main.js add-project  line.
 
-  4. Verify:         ask Codex to run the memlin_resolve_task tool,
-                     or run the  ... main.js status  line.
+  4. Verify:         run the printed  ... main.js status  line.
                      A healthy install shows  project: <name>
-                     (not  project: none).
+                     (not  project: none). Then start a fresh Codex task
+                     and send a normal project prompt. Do NOT tell Codex
+                     to call MCP or Memlin. A healthy trusted
+                     UserPromptSubmit hook adds a Memlin context marker;
+                     direct MCP resolve is only a join/replay fallback.
 
 (On macOS/Linux the installer also drops a "memlin" shortcut in
  ~/.local/bin, so "memlin login" works directly if that is on your
