@@ -765,8 +765,10 @@ async function companionRequest(method, body, opts = {}) {
     }, CONNECT_TIMEOUT_MS);
     connectTimer.unref?.();
     req.on("socket", (socket) => {
-      socket.once("connect", () => clearTimeout(connectTimer));
+      if (!socket.connecting) clearTimeout(connectTimer);
+      else socket.once("connect", () => clearTimeout(connectTimer));
     });
+    req.once("close", () => clearTimeout(connectTimer));
     req.on("timeout", () => {
       req.destroy();
       fail(false);
@@ -1071,7 +1073,7 @@ async function runCompanionPath(mode, input, prompt, cwd, beganAt, systemMessage
     session_id: input.session_id ?? null,
     turn_id: input.turn_id,
     join_only: mode === "full",
-    plugin_version: "0.2.46",
+    plugin_version: "0.2.48",
     deadline_at: new Date(beganAt + CODEX_RESOLVE_BUDGET_MAX_MS).toISOString(),
     workspace_signals: { cwd }
   };

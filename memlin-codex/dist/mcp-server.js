@@ -31357,8 +31357,10 @@ async function companionRequest(method, body, opts = {}) {
     }, CONNECT_TIMEOUT_MS);
     connectTimer.unref?.();
     req.on("socket", (socket) => {
-      socket.once("connect", () => clearTimeout(connectTimer));
+      if (!socket.connecting) clearTimeout(connectTimer);
+      else socket.once("connect", () => clearTimeout(connectTimer));
     });
+    req.once("close", () => clearTimeout(connectTimer));
     req.on("timeout", () => {
       req.destroy();
       fail(false);
@@ -64670,6 +64672,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   }
   let rerankAuditScores = null;
   let rerankLatencyMs = null;
+  let rerankStageMs = 0;
   let rerankFallbackReason = null;
   let rerankProvider = null;
   let admissionJudge = null;
@@ -64695,6 +64698,28 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     ));
     hydrationMs += Date.now() - hydrationStartedAt;
   }
+  const enrichmentPromise = usedConsolidatedCandidates && ctx.resolveV2DataPlane ? (() => {
+    const nearMissIds = omittedCandidates.filter((candidate) => candidate.reason === "below_threshold").sort(
+      (a2, b2) => (b2.threshold_score ?? b2.similarity) - (a2.threshold_score ?? a2.similarity)
+    ).slice(0, 3).map((candidate) => candidate.id);
+    const enrichmentStartedAt = Date.now();
+    const pending = ctx.resolveV2DataPlane.loadEnrichment({
+      queryEmbedding: queryVec,
+      candidateIds: candidates.map((candidate) => candidate.id),
+      nearMissIds,
+      task: args.task,
+      projectId,
+      sessionId: audit.sessionId ?? null,
+      cwd: args.cwd ?? null,
+      gitRemote: args.git_remote ?? null,
+      agentKind: audit.agentKind ?? ctx.agentKind ?? null
+    });
+    const measured = pending.finally(() => {
+      enrichmentMs += Date.now() - enrichmentStartedAt;
+    });
+    void measured.catch(() => void 0);
+    return measured;
+  })() : null;
   const poolIds = [...candidates.map((c2) => c2.id), ...belowThresholdActiveIds];
   const candidatePoolCount = poolIds.length;
   const candidatePoolTokens = poolIds.reduce((sum, id) => {
@@ -64729,6 +64754,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       title: c2.title,
       excerpt: (bodyMap.get(c2.id) ?? "").slice(0, RERANK_EXCERPT_CHARS)
     }));
+    const rerankStageStartedAt = Date.now();
     try {
       let scores;
       let latencyMs;
@@ -64835,24 +64861,13 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       dropUnverifiedRerankAdmissions(
         rerankFallbackReason === "rerank_error" ? "provisional skill dropped because reranker failed; configured threshold remains authoritative" : `provisional skill dropped because reranker returned ${rerankFallbackReason}`
       );
+    } finally {
+      rerankStageMs = Date.now() - rerankStageStartedAt;
     }
   }
   if (usedConsolidatedCandidates) {
-    if (ctx.resolveV2DataPlane) {
-      const nearMissIds = omittedCandidates.filter((candidate) => candidate.reason === "below_threshold").sort((a2, b2) => (b2.threshold_score ?? b2.similarity) - (a2.threshold_score ?? a2.similarity)).slice(0, 3).map((candidate) => candidate.id);
-      const enrichmentStartedAt = Date.now();
-      const enrichment = await ctx.resolveV2DataPlane.loadEnrichment({
-        queryEmbedding: queryVec,
-        candidateIds: candidates.map((candidate) => candidate.id),
-        nearMissIds,
-        task: args.task,
-        projectId,
-        sessionId: audit.sessionId ?? null,
-        cwd: args.cwd ?? null,
-        gitRemote: args.git_remote ?? null,
-        agentKind: audit.agentKind ?? ctx.agentKind ?? null
-      });
-      enrichmentMs += Date.now() - enrichmentStartedAt;
+    if (ctx.resolveV2DataPlane && enrichmentPromise) {
+      const enrichment = await enrichmentPromise;
       ctx.resolveV2DataPlane.runtime.document_count = enrichment.documentCount;
       ctx.resolveV2DataPlane.runtime.corpus_bucket = enrichment.corpusBucket;
     }
@@ -66175,7 +66190,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       hydration: hydrationMs,
       budget_rpc: budgetRpcMs,
       budget_wait: budgetWaitMs,
-      rerank: rerankLatencyMs,
+      rerank: rerankStageMs,
+      rerank_attempted: rerankProvider !== null,
       awareness_feeds: awarenessFeedsMs,
       path_recall: pathRecallMs,
       author_recall: authorRecallMs
@@ -66557,7 +66573,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       search_fanout: searchFanoutMs,
       enrichment: enrichmentMs,
       hydration: hydrationMs,
-      rerank: rerankLatencyMs,
+      rerank: rerankStageMs,
+      rerank_attempted: rerankProvider !== null,
       awareness_feeds: awarenessFeedsMs
     }
   };
@@ -70169,7 +70186,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.46";
+  cachedAgentVersion = "0.2.48";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -73830,7 +73847,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.46"?.trim();
+  const env = "0.2.48"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }

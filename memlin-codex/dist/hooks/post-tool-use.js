@@ -155,8 +155,10 @@ async function companionRequest(method, body, opts = {}) {
     }, CONNECT_TIMEOUT_MS);
     connectTimer.unref?.();
     req.on("socket", (socket) => {
-      socket.once("connect", () => clearTimeout(connectTimer));
+      if (!socket.connecting) clearTimeout(connectTimer);
+      else socket.once("connect", () => clearTimeout(connectTimer));
     });
+    req.once("close", () => clearTimeout(connectTimer));
     req.on("timeout", () => {
       req.destroy();
       fail(false);
@@ -4231,7 +4233,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.46";
+  cachedAgentVersion = "0.2.48";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
