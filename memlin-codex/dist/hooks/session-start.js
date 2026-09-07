@@ -721,7 +721,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.49";
+  cachedAgentVersion = "0.2.50";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -2160,11 +2160,8 @@ async function acceptPendingHandoffContext(api, projectId, opts = {}) {
   );
   const handoff = handoffs[0];
   if (!handoff) return null;
-  await api.updateHandoff(
-    handoff.id,
-    "accept",
-    opts.accountId ? { accountId: opts.accountId } : {}
-  ).catch(() => null);
+  const accepted = await api.updateHandoff(handoff.id, "accept", opts.accountId ? { accountId: opts.accountId } : {}).catch(() => null);
+  if (!accepted || accepted.id !== handoff.id || accepted.status !== "accepted") return null;
   return renderHandoffContext(handoff);
 }
 function renderHandoffContext(handoff) {

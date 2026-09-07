@@ -8025,9 +8025,9 @@ var HttpAuthSchema = external_exports.discriminatedUnion("type", [
   external_exports.object({ type: external_exports.literal("none") }),
   external_exports.object({
     type: external_exports.literal("bearer"),
-    /** Name of the env var the server reads to get the bearer token.
-     *  e.g. 'TAVILY_API_KEY'. The token is sent as
-     *  `Authorization: Bearer ${process.env[token_env]}`. */
+    /** Historical env-var selector. Parsed only to explain/migrate the
+     * legacy document; executors must never resolve this value. */
+    /** Historical selector; never resolved by an executor. */
     token_env: external_exports.string().min(1).max(128).regex(/^[A-Z_][A-Z0-9_]*$/, {
       message: "token_env must be a SCREAMING_SNAKE_CASE env-var name"
     })
@@ -8071,7 +8071,16 @@ var ConnectorImplSchema = external_exports.object({
    *  schema at dispatch time. Kept as `record(unknown)` here so each
    *  connector defines its own shape without shadowing it in
    *  @memlin/shared. */
-  config: external_exports.record(external_exports.unknown()).optional()
+  config: external_exports.record(external_exports.unknown()).optional(),
+  /** Named operation in the connector's statically registered manifest. */
+  operation: external_exports.string().min(1).max(128).regex(/^[a-z][a-z0-9._:-]*$/, {
+    message: "operation must be a lowercase namespaced identifier"
+  }).optional(),
+  /**
+   * Opaque binding id. It identifies a provider-scoped server-side binding;
+   * it is never an environment-variable name and never contains a secret.
+   */
+  credential_binding_id: external_exports.string().uuid().optional()
 });
 var ActionImplementationSchema = external_exports.discriminatedUnion("type", [
   ProviderCallImplSchema,
@@ -8473,6 +8482,1376 @@ var TAXONOMY_CANONICAL_BY_FORM = new Map(
 var FACET_BY_TERM = new Map(
   MEMORY_TAXONOMY.map((e) => [e.term, e.facet])
 );
+
+// packages/shared/dist/context-engine.js
+var CONTEXT_CONTRACT_VERSION = 1;
+var ContractIdSchema = external_exports.string().min(1).max(256);
+var ContractKeySchema = external_exports.string().min(1).max(128).regex(/^[a-z][a-z0-9._:-]*$/, "must be a lowercase namespaced identifier");
+var Sha256Schema = external_exports.string().regex(/^[a-f0-9]{64}$/, "must be a lowercase SHA-256 digest");
+var IsoDateSchema = external_exports.string().datetime({ offset: true });
+var ContractJsonValueSchema = external_exports.lazy(
+  () => external_exports.union([
+    external_exports.null(),
+    external_exports.boolean(),
+    external_exports.number().finite(),
+    external_exports.string(),
+    external_exports.array(ContractJsonValueSchema),
+    external_exports.record(ContractJsonValueSchema)
+  ])
+);
+var ContextReferenceV1Schema = external_exports.object({
+  type: ContractKeySchema,
+  id: ContractIdSchema,
+  /** Provider namespace for identifiers that are not native Memlin IDs. */
+  provider_id: ContractKeySchema.optional(),
+  /** Source-side revision used to invalidate stale manifests and bundles. */
+  revision: external_exports.string().min(1).max(256).optional()
+}).strict();
+var ContextFocusV1Schema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({
+    kind: external_exports.literal("thought"),
+    thought_id: ContractIdSchema,
+    revision: external_exports.string().min(1).max(256).optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("card"),
+    thought_id: ContractIdSchema,
+    card_id: ContractIdSchema,
+    map_id: ContractIdSchema.optional(),
+    revision: external_exports.string().min(1).max(256).optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("resource"),
+    resource_id: ContractIdSchema,
+    version: external_exports.string().min(1).max(512).optional(),
+    locator: external_exports.string().min(1).max(4096).optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("jira_issue"),
+    provider_binding_id: ContractIdSchema,
+    issue_key: ContractIdSchema,
+    source_revision: external_exports.string().min(1).max(512).optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("conversation"),
+    conversation_id: ContractIdSchema,
+    message_id: ContractIdSchema.optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("action"),
+    action_id: ContractIdSchema,
+    execution_id: ContractIdSchema.optional()
+  }).strict()
+]);
+var CONTEXT_CAPABILITIES = [
+  "explore",
+  "explain",
+  "research",
+  "decide",
+  "plan",
+  "act",
+  "review"
+];
+var ContextCapabilityV1Schema = external_exports.enum(CONTEXT_CAPABILITIES);
+var ContextAudienceV1Schema = external_exports.object({
+  kind: external_exports.enum(["private", "team", "room", "external", "public"]),
+  /** Memlin or mapped external principals allowed to receive this bundle. */
+  participant_ids: external_exports.array(ContractIdSchema).max(500).default([]),
+  /** Exact room or external tenant/channel boundary for scoped audiences. */
+  context_id: ContractIdSchema.optional()
+}).strict().superRefine((audience, ctx) => {
+  if (audience.kind === "public" && audience.participant_ids.length > 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["participant_ids"],
+      message: "public audiences cannot name private participants"
+    });
+  }
+  if (audience.kind === "private" && audience.participant_ids.length !== 1) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["participant_ids"],
+      message: "private audiences must name exactly one recipient"
+    });
+  }
+  if ((audience.kind === "room" || audience.kind === "external") && audience.participant_ids.length === 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["participant_ids"],
+      message: `${audience.kind} audiences must name every recipient`
+    });
+  }
+  if ((audience.kind === "room" || audience.kind === "external") && !audience.context_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["context_id"],
+      message: `${audience.kind} audiences require an exact context boundary`
+    });
+  }
+});
+var ContextManifestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  account_id: external_exports.string().uuid(),
+  /** The only location that receives saves and navigation by default. */
+  home: ContextReferenceV1Schema,
+  /** The only location whose governance and funding policy controls the run. */
+  policy_anchor: ContextReferenceV1Schema,
+  /** Additional read-only retrieval contexts. */
+  linked_contexts: external_exports.array(ContextReferenceV1Schema).max(64).default([]),
+  /** Current object within the authorized contexts; null means no narrower focus. */
+  focus: ContextFocusV1Schema.nullable(),
+  /** Declared purpose used by providers, policy, safety, and audit layers. */
+  capability: ContextCapabilityV1Schema,
+  audience: ContextAudienceV1Schema,
+  /** ACL/policy snapshot identifier supplied by the authoritative server. */
+  acl_revision: external_exports.string().min(1).max(256)
+}).strict().superRefine((manifest, ctx) => {
+  const seen = /* @__PURE__ */ new Map();
+  const references = [
+    { ref: manifest.home, path: ["home"], location: "home" },
+    {
+      ref: manifest.policy_anchor,
+      path: ["policy_anchor"],
+      location: "policy_anchor"
+    },
+    ...manifest.linked_contexts.map((ref, index) => ({
+      ref,
+      path: ["linked_contexts", index],
+      location: `linked_contexts.${index}`
+    }))
+  ];
+  references.forEach(({ ref, path: path2, location }) => {
+    const identity = contextReferenceIdentityKey(ref);
+    const prior = seen.get(identity);
+    if (prior && prior.revision !== ref.revision) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: path2,
+        message: `context ${identity} has conflicting revisions in ${prior.location} and ${location}`
+      });
+    } else if (prior && location.startsWith("linked_contexts.")) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: path2,
+        message: `duplicate linked context ${identity}`
+      });
+    }
+    if (!prior) seen.set(identity, { revision: ref.revision, location });
+  });
+});
+var ExecutionActorV1Schema = external_exports.object({
+  type: external_exports.enum(["human", "service", "agent", "end_user", "connector"]),
+  id: ContractIdSchema
+}).strict();
+var ExecutionPrincipalV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  account_id: external_exports.string().uuid(),
+  actor: ExecutionActorV1Schema,
+  /** Explicit delegation chain; never collapse this into actor.id. */
+  on_behalf_of: ExecutionActorV1Schema.optional(),
+  credential: external_exports.object({
+    id: ContractIdSchema,
+    scopes: external_exports.array(ContractKeySchema).max(256),
+    expires_at: IsoDateSchema.optional()
+  }).strict(),
+  installation: external_exports.object({
+    id: ContractIdSchema,
+    trust: external_exports.enum(["verified", "reported"])
+  }).strict().optional(),
+  external: external_exports.object({
+    provider: ContractKeySchema,
+    tenant_id: ContractIdSchema,
+    subject_id: ContractIdSchema,
+    mapped_user_id: external_exports.string().uuid().optional()
+  }).strict().optional(),
+  session_id: ContractIdSchema.optional()
+}).strict();
+var EvidenceScoreV1Schema = external_exports.object({
+  semantic: external_exports.number().finite().optional(),
+  lexical: external_exports.number().finite().optional(),
+  provider: external_exports.number().finite().optional(),
+  freshness: external_exports.number().finite().optional(),
+  /** Populated only by the resolver, never trusted from an external source. */
+  final: external_exports.number().finite().optional()
+}).strict();
+var EvidenceProvenanceV1Schema = external_exports.object({
+  canonical_uri: external_exports.string().url().max(4096).optional(),
+  source_version: external_exports.string().min(1).max(512).optional(),
+  author: external_exports.string().min(1).max(512).optional(),
+  occurred_at: IsoDateSchema.optional(),
+  retrieved_at: IsoDateSchema,
+  locator: external_exports.string().min(1).max(4096).optional(),
+  content_hash: Sha256Schema,
+  rights: external_exports.string().min(1).max(512).optional()
+}).strict();
+var EvidenceSecurityV1Schema = external_exports.object({
+  audience: external_exports.enum(["private", "team", "room", "external", "public"]),
+  classification: external_exports.enum(["public", "internal", "confidential", "restricted"]),
+  policy_tags: external_exports.array(ContractKeySchema).max(64).default([]),
+  /** Principals authorized by the provider for this exact evidence revision. */
+  authorized_principal_ids: external_exports.array(ContractIdSchema).max(500).default([]),
+  /** Exact room or external boundary when evidence is scoped below a team. */
+  audience_context_id: ContractIdSchema.optional(),
+  /** Server-observed ACL revision used to reject stale recipient decisions. */
+  acl_revision: external_exports.string().min(1).max(256).optional()
+}).strict().superRefine((security, ctx) => {
+  if (security.audience === "private" && security.authorized_principal_ids.length !== 1) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["authorized_principal_ids"],
+      message: "private evidence must bind exactly one authorized recipient"
+    });
+  }
+  if ((security.audience === "room" || security.audience === "external") && security.authorized_principal_ids.length === 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["authorized_principal_ids"],
+      message: `${security.audience} evidence must bind its authorized recipients`
+    });
+  }
+  if ((security.audience === "room" || security.audience === "external") && !security.audience_context_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["audience_context_id"],
+      message: `${security.audience} evidence must bind its exact context`
+    });
+  }
+  if (security.audience !== "public" && !security.acl_revision) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["acl_revision"],
+      message: "non-public evidence must bind an exact ACL revision"
+    });
+  }
+});
+var EvidenceCandidateV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  provider_id: ContractKeySchema,
+  /** Governing context used for authorization, not merely a display parent. */
+  context_ref: ContextReferenceV1Schema,
+  kind: ContractKeySchema,
+  title: external_exports.string().min(1).max(1024),
+  content: external_exports.string().max(2e6),
+  score: EvidenceScoreV1Schema.default({}),
+  provenance: EvidenceProvenanceV1Schema,
+  security: EvidenceSecurityV1Schema,
+  embedding_profile_id: ContractIdSchema.optional(),
+  estimated_tokens: external_exports.number().int().nonnegative().optional(),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var OmittedContextV1Schema = external_exports.object({
+  context_ref: ContextReferenceV1Schema,
+  reason_code: ContractKeySchema,
+  reason: external_exports.string().min(1).max(1024).optional()
+}).strict();
+var ProviderCoverageV1Schema = external_exports.object({
+  provider_id: ContractKeySchema,
+  provider_version: external_exports.string().min(1).max(128),
+  status: external_exports.enum(["complete", "partial", "unavailable"]),
+  attempted_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
+  covered_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
+  omitted_contexts: external_exports.array(OmittedContextV1Schema).max(128).default([]),
+  reason_code: ContractKeySchema.optional(),
+  reason: external_exports.string().min(1).max(2048).optional(),
+  truncated: external_exports.boolean().default(false),
+  started_at: IsoDateSchema,
+  completed_at: IsoDateSchema
+}).strict();
+var ProviderReceiptV1Schema = external_exports.object({
+  provider_id: ContractKeySchema,
+  provider_version: external_exports.string().min(1).max(128),
+  request_hash: Sha256Schema,
+  /** Exact policy snapshot returned by provider authorization. */
+  policy_revision: external_exports.string().min(1).max(256),
+  latency_ms: external_exports.number().int().nonnegative(),
+  retrieved_at: IsoDateSchema,
+  source_revision: external_exports.string().min(1).max(512).optional(),
+  credential_binding_id: ContractIdSchema.optional(),
+  cost_microunits: external_exports.number().int().nonnegative().optional()
+}).strict();
+var RequiredCoreLaneStatusV1Schema = external_exports.object({
+  status: external_exports.enum(["not_evaluated", "complete", "partial", "unavailable", "not_applicable"]),
+  expected_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  delivered_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  missing_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  errors: external_exports.array(external_exports.string().min(1).max(2048)).max(256).default([])
+}).strict().superRefine((lane, ctx) => {
+  const delivered = new Set(lane.delivered_ids);
+  const overlap = lane.missing_ids.find((id) => delivered.has(id));
+  if (overlap) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["missing_ids"],
+      message: `required core item ${overlap} cannot be both delivered and missing`
+    });
+  }
+  if (lane.status === "complete" && (lane.missing_ids.length > 0 || lane.errors.length > 0)) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["status"],
+      message: "complete required core status cannot contain missing items or errors"
+    });
+  }
+});
+var RequiredCoreStatusV1Schema = external_exports.object({
+  /** Required documents selected through the policy/governance chain. */
+  governance: RequiredCoreLaneStatusV1Schema,
+  /** The Project Brain overview, when the policy anchor is a Project. */
+  project_overview: RequiredCoreLaneStatusV1Schema
+}).strict();
+var EvidenceReferenceV1Schema = external_exports.object({
+  provider_id: ContractKeySchema,
+  evidence_id: ContractIdSchema,
+  source_version: external_exports.string().min(1).max(512).optional()
+}).strict();
+var ContextConflictV1Schema = external_exports.object({
+  id: ContractIdSchema,
+  kind: ContractKeySchema,
+  summary: external_exports.string().min(1).max(4096),
+  evidence_refs: external_exports.array(EvidenceReferenceV1Schema).min(2).max(64),
+  status: external_exports.enum(["unresolved", "resolved"]),
+  resolution_evidence_ref: EvidenceReferenceV1Schema.optional()
+}).strict();
+var BundleOmissionSubjectV1Schema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({ kind: external_exports.literal("context"), context_ref: ContextReferenceV1Schema }).strict(),
+  external_exports.object({ kind: external_exports.literal("provider"), provider_id: ContractKeySchema }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("evidence"),
+    evidence_ref: EvidenceReferenceV1Schema
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("required_core"),
+    lane: external_exports.enum(["governance", "project_overview"]),
+    item_id: ContractIdSchema.optional()
+  }).strict()
+]);
+var BundleOmissionV1Schema = external_exports.object({
+  subject: BundleOmissionSubjectV1Schema,
+  reason_code: ContractKeySchema,
+  reason: external_exports.string().min(1).max(2048).optional(),
+  estimated_tokens: external_exports.number().int().nonnegative().optional()
+}).strict();
+var EvidenceRetractionV1Schema = external_exports.object({
+  evidence_ref: EvidenceReferenceV1Schema,
+  reason_code: ContractKeySchema,
+  reason: external_exports.string().min(1).max(2048).optional(),
+  retracted_at: IsoDateSchema,
+  replacement_evidence_ref: EvidenceReferenceV1Schema.optional()
+}).strict();
+var ContextSafetyFindingV1Schema = external_exports.object({
+  code: ContractKeySchema,
+  severity: external_exports.enum(["info", "warning", "error"]),
+  message: external_exports.string().min(1).max(2048).optional(),
+  evidence_refs: external_exports.array(EvidenceReferenceV1Schema).max(64).default([])
+}).strict();
+var ContextSafetyStateV1Schema = external_exports.object({
+  status: external_exports.enum(["not_evaluated", "clear", "review_required", "blocked"]),
+  policy_tags: external_exports.array(ContractKeySchema).max(128).default([]),
+  findings: external_exports.array(ContextSafetyFindingV1Schema).max(256).default([]),
+  evaluated_at: IsoDateSchema.optional(),
+  evaluator_id: ContractIdSchema.optional()
+}).strict();
+var ContextTokenAccountingV1Schema = external_exports.object({
+  /** Null means this stage was not given a token limit. */
+  limit: external_exports.number().int().nonnegative().nullable().default(null),
+  used: external_exports.number().int().nonnegative().default(0),
+  reserved: external_exports.number().int().nonnegative().default(0),
+  omitted: external_exports.number().int().nonnegative().default(0),
+  truncated: external_exports.boolean().default(false)
+}).strict();
+var ContextBundleV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  /** Content-addressed ID of this exact retrieval result. */
+  bundle_id: Sha256Schema,
+  stage: external_exports.enum(["retrieved", "resolved"]),
+  manifest: ContextManifestV1Schema,
+  manifest_hash: Sha256Schema,
+  query: external_exports.string().min(1).max(4e3),
+  requested_kinds: external_exports.array(ContractKeySchema).max(128),
+  created_at: IsoDateSchema,
+  evidence: external_exports.array(EvidenceCandidateV1Schema).max(1e4),
+  coverage: external_exports.array(ProviderCoverageV1Schema).max(256),
+  receipts: external_exports.array(ProviderReceiptV1Schema).max(256),
+  required_core_status: RequiredCoreStatusV1Schema.default({
+    governance: {
+      status: "not_evaluated",
+      expected_ids: [],
+      delivered_ids: [],
+      missing_ids: [],
+      errors: []
+    },
+    project_overview: {
+      status: "not_evaluated",
+      expected_ids: [],
+      delivered_ids: [],
+      missing_ids: [],
+      errors: []
+    }
+  }),
+  conflicts: external_exports.array(ContextConflictV1Schema).max(1e3).default([]),
+  omissions: external_exports.array(BundleOmissionV1Schema).max(1e4).default([]),
+  retractions: external_exports.array(EvidenceRetractionV1Schema).max(1e4).default([]),
+  safety: ContextSafetyStateV1Schema.default({
+    status: "not_evaluated",
+    policy_tags: [],
+    findings: []
+  }),
+  token_accounting: ContextTokenAccountingV1Schema.default({
+    limit: null,
+    used: 0,
+    reserved: 0,
+    omitted: 0,
+    truncated: false
+  }),
+  warnings: external_exports.array(external_exports.string().min(1).max(2048)).max(256).default([]),
+  resolver_audit_id: ContractIdSchema.optional()
+}).strict().superRefine((bundle, ctx) => {
+  const contextKeys = new Set(
+    contextReferencesFromManifestV1(bundle.manifest).map(contextReferenceKey)
+  );
+  bundle.evidence.forEach((candidate, index) => {
+    if (!contextKeys.has(contextReferenceKey(candidate.context_ref))) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["evidence", index, "context_ref"],
+        message: "bundle evidence is outside the exact manifest contexts"
+      });
+      return;
+    }
+    if (!evidenceCanReachContextAudienceV1(
+      candidate.security,
+      bundle.manifest,
+      candidate.context_ref
+    )) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["evidence", index, "security"],
+        message: `bundle evidence is not permitted for the ${bundle.manifest.audience.kind} audience`
+      });
+    }
+  });
+  bundle.coverage.forEach((coverage, coverageIndex) => {
+    const references = [
+      ...coverage.attempted_contexts.map((ref, index) => ({
+        ref,
+        path: ["coverage", coverageIndex, "attempted_contexts", index]
+      })),
+      ...coverage.covered_contexts.map((ref, index) => ({
+        ref,
+        path: ["coverage", coverageIndex, "covered_contexts", index]
+      })),
+      ...coverage.omitted_contexts.map((entry, index) => ({
+        ref: entry.context_ref,
+        path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
+      }))
+    ];
+    for (const { ref, path: path2 } of references) {
+      if (!contextKeys.has(contextReferenceKey(ref))) {
+        ctx.addIssue({
+          code: external_exports.ZodIssueCode.custom,
+          path: path2,
+          message: "provider coverage is outside the exact manifest contexts"
+        });
+      }
+    }
+  });
+  bundle.receipts.forEach((receipt, index) => {
+    if (receipt.policy_revision !== bundle.manifest.acl_revision) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["receipts", index, "policy_revision"],
+        message: "provider receipt policy revision must match the bundle ACL revision"
+      });
+    }
+  });
+});
+function contextReferenceKey(ref) {
+  return `${ref.provider_id ?? "memlin"}\0${ref.type}\0${ref.id}\0${ref.revision ?? ""}`;
+}
+function contextReferenceIdentityKey(ref) {
+  return `${ref.provider_id ?? "memlin"}\0${ref.type}\0${ref.id}`;
+}
+function contextReferencesFromManifestV1(manifest) {
+  const byKey = /* @__PURE__ */ new Map();
+  for (const ref of [manifest.home, manifest.policy_anchor, ...manifest.linked_contexts]) {
+    byKey.set(contextReferenceKey(ref), ref);
+  }
+  return [...byKey.values()];
+}
+function evidenceCanReachContextAudienceV1(security, manifest, sourceContext) {
+  const sourceAudience = security.audience;
+  const audience = manifest.audience;
+  if (sourceAudience === "public") return security.classification === "public";
+  if (security.acl_revision !== manifest.acl_revision || audience.kind === "public") return false;
+  const authorizedPrincipals = new Set(security.authorized_principal_ids);
+  const recipientsAreBound = audience.participant_ids.length > 0 && audience.participant_ids.every((participantId) => authorizedPrincipals.has(participantId));
+  const exactAudienceContext = security.audience_context_id === audience.context_id;
+  const exactPrivateSourceContext = Boolean(security.audience_context_id) && sourceContext.id === security.audience_context_id && (sourceAudience === "room" && sourceContext.type === "room" || sourceAudience === "external" && sourceContext.type === "external_collection");
+  const audienceAllowed = audience.kind === "external" ? sourceAudience === "external" && exactAudienceContext && recipientsAreBound : audience.kind === "team" ? sourceAudience === "team" : audience.kind === "room" ? sourceAudience === "room" && exactAudienceContext && recipientsAreBound || sourceAudience === "team" && recipientsAreBound : sourceAudience === "team" || sourceAudience === "private" && recipientsAreBound || (sourceAudience === "room" || sourceAudience === "external") && exactPrivateSourceContext && recipientsAreBound;
+  if (!audienceAllowed) return false;
+  if (security.classification === "restricted") {
+    return (audience.kind === "private" || audience.kind === "room") && recipientsAreBound;
+  }
+  return true;
+}
+
+// packages/shared/dist/context-provider.js
+var ContextProviderManifestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractKeySchema,
+  implementation_version: external_exports.string().min(1).max(128),
+  display_name: external_exports.string().min(1).max(128),
+  supported_context_types: external_exports.array(ContractKeySchema).min(1).max(64),
+  supported_kinds: external_exports.array(ContractKeySchema).min(1).max(128),
+  latency_class: external_exports.enum(["indexed", "local", "live"]),
+  required_scopes: external_exports.array(ContractKeySchema).max(128).default([]),
+  default_timeout_ms: external_exports.number().int().min(10).max(6e4).default(5e3),
+  max_candidates: external_exports.number().int().min(1).max(1e3).default(100)
+}).strict().superRefine((manifest, ctx) => {
+  for (const field of [
+    "supported_context_types",
+    "supported_kinds",
+    "required_scopes"
+  ]) {
+    const values = manifest[field];
+    if (new Set(values).size !== values.length) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: [field],
+        message: `${field} must not contain duplicates`
+      });
+    }
+  }
+});
+var ContextProviderAuthorizationRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  request_id: ContractIdSchema,
+  principal: ExecutionPrincipalV1Schema,
+  manifest: ContextManifestV1Schema,
+  requested_contexts: external_exports.array(ContextReferenceV1Schema).min(1).max(128)
+}).strict();
+var ContextProviderAuthorizationV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  decision: external_exports.enum(["allow", "partial", "deny"]),
+  authorized_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
+  denied_contexts: external_exports.array(
+    external_exports.object({
+      context_ref: ContextReferenceV1Schema,
+      reason_code: ContractKeySchema,
+      reason: external_exports.string().min(1).max(1024).optional()
+    }).strict()
+  ).max(128).default([]),
+  /** Exact manifest ACL/policy revision used for this authorization decision. */
+  policy_revision: external_exports.string().min(1).max(256)
+}).strict().superRefine((authorization, ctx) => {
+  if (authorization.decision === "deny" && authorization.authorized_contexts.length > 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["authorized_contexts"],
+      message: "deny decisions cannot authorize contexts"
+    });
+  }
+  if (authorization.decision === "allow" && authorization.authorized_contexts.length === 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["authorized_contexts"],
+      message: "allow decisions require at least one authorized context"
+    });
+  }
+  if (authorization.decision === "allow" && authorization.denied_contexts.length > 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["denied_contexts"],
+      message: "allow decisions cannot deny contexts"
+    });
+  }
+  if (authorization.decision === "partial" && (authorization.authorized_contexts.length === 0 || authorization.denied_contexts.length === 0)) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["decision"],
+      message: "partial decisions require both authorized and denied contexts"
+    });
+  }
+  if (authorization.decision === "deny" && authorization.denied_contexts.length === 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["denied_contexts"],
+      message: "deny decisions must identify every denied context"
+    });
+  }
+});
+var ContextProviderRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  request_id: ContractIdSchema,
+  principal: ExecutionPrincipalV1Schema,
+  manifest: ContextManifestV1Schema,
+  authorized_contexts: external_exports.array(ContextReferenceV1Schema).min(1).max(128),
+  query: external_exports.string().min(1).max(4e3),
+  query_embedding: external_exports.array(external_exports.number().finite()).min(1).max(8192).optional(),
+  requested_kinds: external_exports.array(ContractKeySchema).max(128),
+  max_candidates: external_exports.number().int().min(1).max(1e3),
+  token_budget: external_exports.number().int().min(1).max(1e6).optional(),
+  deadline_at: IsoDateSchema
+}).strict();
+var ContextProviderCoverageClaimV1Schema = external_exports.object({
+  status: external_exports.enum(["complete", "partial", "unavailable"]),
+  covered_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
+  omitted_contexts: external_exports.array(
+    external_exports.object({
+      context_ref: ContextReferenceV1Schema,
+      reason_code: ContractKeySchema,
+      reason: external_exports.string().min(1).max(1024).optional()
+    }).strict()
+  ).max(128).default([]),
+  reason_code: ContractKeySchema.optional(),
+  reason: external_exports.string().min(1).max(2048).optional(),
+  truncated: external_exports.boolean().default(false)
+}).strict().superRefine((coverage, ctx) => {
+  if (coverage.status !== "complete" && !coverage.reason_code) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["reason_code"],
+      message: "partial and unavailable coverage require a reason_code"
+    });
+  }
+  if (coverage.status === "unavailable" && coverage.covered_contexts.length > 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["covered_contexts"],
+      message: "unavailable coverage cannot claim covered contexts"
+    });
+  }
+});
+var ContextProviderResultV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  candidates: external_exports.array(EvidenceCandidateV1Schema).max(1e3),
+  coverage: ContextProviderCoverageClaimV1Schema,
+  receipt: external_exports.object({
+    source_revision: external_exports.string().min(1).max(512).optional(),
+    credential_binding_id: ContractIdSchema.optional(),
+    cost_microunits: external_exports.number().int().nonnegative().optional()
+  }).strict().default({})
+}).strict();
+var CredentialBrokerInvocationV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  binding_id: ContractIdSchema,
+  operation_id: ContractKeySchema,
+  input: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var CredentialBrokerResultV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  status: external_exports.number().int().min(100).max(599),
+  content_type: external_exports.string().min(1).max(256).optional(),
+  body: external_exports.string(),
+  truncated: external_exports.boolean().default(false),
+  receipt_id: ContractIdSchema,
+  source_revision: external_exports.string().min(1).max(512).optional()
+}).strict();
+
+// packages/shared/dist/context-harness.js
+var HARNESS_ARTIFACT_KINDS = [
+  "markdown",
+  "document",
+  "skill",
+  "memory",
+  "schema",
+  "prompt",
+  "source",
+  "action",
+  "agent"
+];
+var HarnessArtifactRefV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  kind: external_exports.enum(HARNESS_ARTIFACT_KINDS),
+  id: ContractIdSchema,
+  context_ref: ContextReferenceV1Schema,
+  revision: external_exports.string().min(1).max(512),
+  title: external_exports.string().min(1).max(1024).optional(),
+  provider_id: ContractKeySchema.optional(),
+  canonical_uri: external_exports.string().url().max(4096).optional(),
+  content_hash: Sha256Schema.optional(),
+  media_type: external_exports.string().min(1).max(256).optional()
+}).strict();
+var HarnessGraphNodeV1Schema = external_exports.object({
+  id: ContractIdSchema,
+  artifact: HarnessArtifactRefV1Schema,
+  position: external_exports.object({ x: external_exports.number().finite(), y: external_exports.number().finite() }).strict().optional(),
+  collapsed: external_exports.boolean().default(false),
+  configuration: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var HARNESS_EDGE_TYPES = [
+  "contains",
+  "references",
+  "grounds",
+  "produces",
+  "consumes",
+  "invokes",
+  "delegates_to",
+  "depends_on",
+  "supersedes",
+  "answers",
+  "decides"
+];
+var HarnessGraphEdgeV1Schema = external_exports.object({
+  id: ContractIdSchema,
+  type: external_exports.enum(HARNESS_EDGE_TYPES),
+  from_node_id: ContractIdSchema,
+  to_node_id: ContractIdSchema,
+  label: external_exports.string().min(1).max(256).optional(),
+  configuration: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var HarnessGraphV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  revision: external_exports.string().min(1).max(512),
+  manifest: ContextManifestV1Schema,
+  nodes: external_exports.array(HarnessGraphNodeV1Schema).max(1e4),
+  edges: external_exports.array(HarnessGraphEdgeV1Schema).max(5e4),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict().superRefine((graph, ctx) => {
+  const nodeIds = /* @__PURE__ */ new Set();
+  graph.nodes.forEach((node, index) => {
+    if (nodeIds.has(node.id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["nodes", index, "id"],
+        message: `duplicate graph node id ${node.id}`
+      });
+    }
+    nodeIds.add(node.id);
+  });
+  const edgeIds = /* @__PURE__ */ new Set();
+  graph.edges.forEach((edge, index) => {
+    if (edgeIds.has(edge.id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["edges", index, "id"],
+        message: `duplicate graph edge id ${edge.id}`
+      });
+    }
+    edgeIds.add(edge.id);
+    if (!nodeIds.has(edge.from_node_id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["edges", index, "from_node_id"],
+        message: `unknown graph node ${edge.from_node_id}`
+      });
+    }
+    if (!nodeIds.has(edge.to_node_id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["edges", index, "to_node_id"],
+        message: `unknown graph node ${edge.to_node_id}`
+      });
+    }
+  });
+});
+var HarnessCompileRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  request_id: ContractIdSchema,
+  principal: ExecutionPrincipalV1Schema,
+  graph: HarnessGraphV1Schema,
+  requested_kinds: external_exports.array(ContractKeySchema).max(128).default([]),
+  provider_ids: external_exports.array(ContractKeySchema).max(64).default([]),
+  max_tokens: external_exports.number().int().min(256).max(1e6).optional()
+}).strict();
+var HarnessCompileResultV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  compile_id: Sha256Schema,
+  graph_id: ContractIdSchema,
+  graph_revision: external_exports.string().min(1).max(512),
+  graph_hash: Sha256Schema,
+  manifest_hash: Sha256Schema,
+  compiled_at: IsoDateSchema,
+  artifacts: external_exports.array(
+    external_exports.object({
+      node_id: ContractIdSchema,
+      artifact: HarnessArtifactRefV1Schema,
+      status: external_exports.enum(["ready", "stale", "unavailable", "unauthorized"]),
+      reason: external_exports.string().min(1).max(2048).optional()
+    }).strict()
+  ),
+  warnings: external_exports.array(external_exports.string().min(1).max(2048)).max(256).default([]),
+  bundle: ContextBundleV1Schema.optional()
+}).strict().superRefine((result, ctx) => {
+  if (result.bundle && result.bundle.manifest_hash !== result.manifest_hash) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["bundle", "manifest_hash"],
+      message: "compiled bundle manifest_hash must match compile result"
+    });
+  }
+});
+var HandoffLiveReferenceV1Schema = external_exports.object({
+  context_ref: ContextReferenceV1Schema,
+  permissions: external_exports.array(external_exports.enum(["read", "comment", "write", "execute", "delegate"])).min(1).max(5),
+  refresh_policy: external_exports.enum(["never", "on_open", "on_demand"])
+}).strict();
+var AgentHandoffEnvelopeV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  handoff_id: ContractIdSchema,
+  created_at: IsoDateSchema,
+  expires_at: IsoDateSchema.optional(),
+  from: ExecutionActorV1Schema,
+  to: external_exports.object({
+    agent_id: ContractIdSchema.optional(),
+    agent_kind: ContractKeySchema
+  }).strict(),
+  task: external_exports.string().min(1).max(16e3),
+  /** Immutable evidence delivered to the receiving agent. */
+  frozen_bundle: ContextBundleV1Schema,
+  resolver_audit_id: ContractIdSchema,
+  manifest_hash: Sha256Schema,
+  /** Explicitly refreshable objects; never implied by the frozen bundle. */
+  live_refs: external_exports.array(HandoffLiveReferenceV1Schema).max(128).default([]),
+  permissions: external_exports.object({
+    scopes: external_exports.array(ContractKeySchema).max(256),
+    provider_ids: external_exports.array(ContractKeySchema).max(128).default([]),
+    action_ids: external_exports.array(ContractKeySchema).max(128).default([]),
+    may_refresh_bundle: external_exports.boolean().default(false),
+    may_delegate: external_exports.boolean().default(false)
+  }).strict()
+}).strict().superRefine((handoff, ctx) => {
+  if (handoff.frozen_bundle.manifest_hash !== handoff.manifest_hash) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["manifest_hash"],
+      message: "handoff manifest_hash must match the frozen bundle"
+    });
+  }
+  if (handoff.frozen_bundle.resolver_audit_id && handoff.frozen_bundle.resolver_audit_id !== handoff.resolver_audit_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["resolver_audit_id"],
+      message: "handoff audit must match the frozen bundle audit"
+    });
+  }
+  const seen = /* @__PURE__ */ new Set();
+  handoff.live_refs.forEach((entry, index) => {
+    const key = contextReferenceKey(entry.context_ref);
+    if (seen.has(key)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["live_refs", index, "context_ref"],
+        message: `duplicate live reference ${key}`
+      });
+    }
+    seen.add(key);
+  });
+});
+
+// packages/shared/dist/context-ingest.js
+var IngestEnvelopeV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  event_id: ContractIdSchema,
+  idempotency_key: external_exports.string().min(1).max(1024),
+  operation: external_exports.enum(["upsert", "delete"]),
+  source: external_exports.object({
+    provider_id: ContractKeySchema,
+    tenant_id: ContractIdSchema,
+    collection_id: ContractIdSchema,
+    external_id: ContractIdSchema,
+    canonical_uri: external_exports.string().url().max(4096).optional(),
+    source_revision: external_exports.string().min(1).max(512).optional(),
+    occurred_at: IsoDateSchema.optional(),
+    observed_at: IsoDateSchema
+  }).strict(),
+  content: external_exports.object({
+    title: external_exports.string().min(1).max(1024),
+    media_type: external_exports.string().min(1).max(256),
+    body: external_exports.string().max(2e6).optional(),
+    content_hash: Sha256Schema.optional(),
+    language: external_exports.string().min(2).max(64).optional()
+  }).strict(),
+  provenance: external_exports.object({
+    author_external_id: ContractIdSchema.optional(),
+    author_display_name: external_exports.string().min(1).max(512).optional(),
+    locator: external_exports.string().min(1).max(4096).optional(),
+    rights: external_exports.string().min(1).max(512).optional()
+  }).strict().default({}),
+  security: EvidenceSecurityV1Schema,
+  context_refs: external_exports.array(ContextReferenceV1Schema).max(128).default([]),
+  cursor: external_exports.object({
+    stream: ContractIdSchema,
+    value: external_exports.string().min(1).max(4096)
+  }).strict().optional(),
+  attempt: external_exports.number().int().positive().default(1),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict().superRefine((envelope, ctx) => {
+  if (envelope.operation === "upsert") {
+    if (envelope.content.body === void 0) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["content", "body"],
+        message: "upsert events require content.body"
+      });
+    }
+    if (!envelope.content.content_hash) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["content", "content_hash"],
+        message: "upsert events require content.content_hash"
+      });
+    }
+  }
+});
+var IngestReceiptV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  event_id: ContractIdSchema,
+  idempotency_key: external_exports.string().min(1).max(1024),
+  status: external_exports.enum(["accepted", "duplicate", "indexed", "deleted", "rejected", "retry"]),
+  evidence_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  index_job_id: ContractIdSchema.optional(),
+  next_cursor: external_exports.string().min(1).max(4096).optional(),
+  error_code: ContractKeySchema.optional(),
+  error: external_exports.string().min(1).max(4096).optional(),
+  recorded_at: IsoDateSchema
+}).strict().superRefine((receipt, ctx) => {
+  if (["rejected", "retry"].includes(receipt.status) && !receipt.error_code) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["error_code"],
+      message: `${receipt.status} receipts require error_code`
+    });
+  }
+});
+
+// packages/shared/dist/context-action.js
+var ActionOperationV1Schema = external_exports.object({
+  description: external_exports.string().min(1).max(1024),
+  input_schema: external_exports.record(ContractJsonValueSchema),
+  output_schema: external_exports.record(ContractJsonValueSchema),
+  effect: external_exports.enum(["read", "internal_write", "external_write"]),
+  risk: external_exports.enum(["low", "medium", "high"]),
+  required_scopes: external_exports.array(ContractKeySchema).max(128).default([]),
+  approval: external_exports.enum(["none", "user", "admin"]),
+  idempotency: external_exports.enum(["required", "supported", "none"]),
+  allowed_context_types: external_exports.array(ContractKeySchema).min(1).max(64),
+  timeout_ms: external_exports.number().int().min(10).max(3e5).default(3e4),
+  max_cost_microunits: external_exports.number().int().nonnegative().optional()
+}).strict().superRefine((operation, ctx) => {
+  if (operation.effect !== "read" && operation.idempotency === "none") {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["idempotency"],
+      message: "write operations must support idempotency"
+    });
+  }
+});
+var ActionAdapterManifestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractKeySchema,
+  implementation_version: external_exports.string().min(1).max(128),
+  display_name: external_exports.string().min(1).max(128),
+  credential_binding_types: external_exports.array(ContractKeySchema).max(64).default([]),
+  operations: external_exports.record(ContractKeySchema, ActionOperationV1Schema)
+}).strict().refine((manifest) => Object.keys(manifest.operations).length > 0, {
+  path: ["operations"],
+  message: "an action adapter must declare at least one operation"
+});
+var ActionPrepareRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  request_id: ContractIdSchema,
+  principal: ExecutionPrincipalV1Schema,
+  context_manifest: ContextManifestV1Schema,
+  context_manifest_hash: Sha256Schema,
+  action_id: ContractIdSchema,
+  /** Immutable document/version identifier selected during preparation. */
+  action_revision: ContractIdSchema,
+  /** Canonical hash of the validated Action metadata at preparation time. */
+  action_metadata_hash: Sha256Schema,
+  adapter_id: ContractKeySchema,
+  operation: ContractKeySchema,
+  input: ContractJsonValueSchema,
+  idempotency_key: external_exports.string().min(1).max(1024).optional(),
+  credential_binding_id: ContractIdSchema.optional()
+}).strict();
+var PreparedActionV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  plan_id: Sha256Schema,
+  adapter_id: ContractKeySchema,
+  adapter_version: external_exports.string().min(1).max(128),
+  operation: ContractKeySchema,
+  account_id: external_exports.string().uuid(),
+  action_id: ContractIdSchema,
+  action_revision: ContractIdSchema,
+  action_metadata_hash: Sha256Schema,
+  project_id: ContractIdSchema.optional(),
+  thought_id: ContractIdSchema.optional(),
+  context_manifest_hash: Sha256Schema,
+  input: ContractJsonValueSchema,
+  input_hash: Sha256Schema,
+  idempotency_key: external_exports.string().min(1).max(1024).optional(),
+  credential_binding_id: ContractIdSchema.optional(),
+  effect: external_exports.enum(["read", "internal_write", "external_write"]),
+  risk: external_exports.enum(["low", "medium", "high"]),
+  approval: external_exports.object({
+    state: external_exports.enum(["not_required", "required", "approved"]),
+    approved_by: ContractIdSchema.optional(),
+    approved_at: IsoDateSchema.optional(),
+    policy_revision: external_exports.string().min(1).max(256)
+  }).strict(),
+  preview: external_exports.string().min(1).max(16e3),
+  prepared_at: IsoDateSchema,
+  expires_at: IsoDateSchema
+}).strict().superRefine((prepared, ctx) => {
+  if (prepared.approval.state === "approved") {
+    if (!prepared.approval.approved_by || !prepared.approval.approved_at) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["approval"],
+        message: "approved actions require approved_by and approved_at"
+      });
+    }
+  }
+});
+var ActionApprovalV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  execution_id: ContractIdSchema,
+  plan_id: Sha256Schema,
+  decision: external_exports.enum(["approved", "rejected"]),
+  approved_by: ContractIdSchema,
+  approved_at: IsoDateSchema,
+  context_manifest_hash: Sha256Schema,
+  action_revision: ContractIdSchema,
+  action_metadata_hash: Sha256Schema,
+  adapter_version: external_exports.string().min(1).max(128),
+  policy_revision: external_exports.string().min(1).max(256)
+}).strict();
+var ActionReceiptV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  execution_id: ContractIdSchema,
+  plan_id: Sha256Schema,
+  adapter_id: ContractKeySchema,
+  adapter_version: external_exports.string().min(1).max(128),
+  operation: ContractKeySchema,
+  status: external_exports.enum(["succeeded", "failed", "indeterminate", "compensated"]),
+  started_at: IsoDateSchema,
+  completed_at: IsoDateSchema,
+  attempts: external_exports.number().int().positive(),
+  /** Durable audit event inserted in the same transaction as reservation. */
+  pre_effect_audit_id: ContractIdSchema,
+  /** True when an idempotent retry returned the stored receipt. */
+  replayed: external_exports.boolean().default(false),
+  output: ContractJsonValueSchema.optional(),
+  output_hash: Sha256Schema.optional(),
+  effects: external_exports.array(
+    external_exports.object({
+      type: ContractKeySchema,
+      external_id: ContractIdSchema.optional(),
+      canonical_uri: external_exports.string().url().max(4096).optional(),
+      reversible: external_exports.boolean()
+    }).strict()
+  ).max(1e3).default([]),
+  evidence_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  error_code: ContractKeySchema.optional(),
+  error: external_exports.string().min(1).max(4096).optional()
+}).strict().superRefine((receipt, ctx) => {
+  if (receipt.status !== "succeeded" && receipt.status !== "compensated" && !receipt.error_code) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["error_code"],
+      message: `${receipt.status} receipts require error_code`
+    });
+  }
+});
+
+// packages/shared/dist/context-host.js
+var HostContextV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  host_kind: ContractKeySchema,
+  host_instance_id: ContractIdSchema,
+  client_version: external_exports.string().min(1).max(128).optional(),
+  session_id: ContractIdSchema,
+  cwd: external_exports.string().min(1).max(4096).optional(),
+  git_remote: external_exports.string().min(1).max(1024).optional(),
+  git_branch: external_exports.string().min(1).max(512).optional(),
+  workspace_fingerprint: Sha256Schema.optional(),
+  capabilities: external_exports.array(
+    external_exports.object({
+      name: ContractKeySchema,
+      state: external_exports.enum(["enabled", "limited", "blocked"]),
+      source: external_exports.enum(["enforced", "reported", "derived"]),
+      scope: external_exports.string().min(1).max(512).optional()
+    }).strict()
+  ).max(256).default([])
+}).strict();
+var HostHookEnvelopeV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  event_id: ContractIdSchema,
+  event: external_exports.enum(["session_start", "user_prompt_submit", "pre_tool_use", "post_tool_use", "stop"]),
+  occurred_at: IsoDateSchema,
+  host: HostContextV1Schema,
+  /** Required once a context has been selected; protects late delivery. */
+  context_manifest_hash: Sha256Schema.optional(),
+  payload: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var HostDeliveryCapabilitiesV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  modes: external_exports.array(external_exports.enum(["inline", "bundle_handle", "mcp_resource"])).min(1).max(3),
+  max_inline_bytes: external_exports.number().int().min(1).max(1e7),
+  supports_manifest_invalidation: external_exports.boolean(),
+  supports_structured_citations: external_exports.boolean()
+}).strict();
+var HostContextDeliveryV1Schema = external_exports.object({
+  manifest_hash: Sha256Schema,
+  bundle_id: Sha256Schema.optional(),
+  inline_markdown: external_exports.string().max(1e7).optional(),
+  resource_uri: external_exports.string().min(1).max(4096).optional()
+}).strict();
+
+// packages/shared/dist/context-training.js
+var TrainingConsentV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  account_id: external_exports.string().uuid(),
+  user_id: external_exports.string().uuid(),
+  status: external_exports.enum(["granted", "revoked", "expired"]),
+  purposes: external_exports.array(external_exports.enum(["personalization", "evaluation", "personal_fine_tuning"])).min(1).max(3),
+  provider_ids: external_exports.array(ContractKeySchema).max(64).default([]),
+  granted_at: IsoDateSchema,
+  expires_at: IsoDateSchema.optional(),
+  revoked_at: IsoDateSchema.optional()
+}).strict().superRefine((consent, ctx) => {
+  if (consent.status === "revoked" && !consent.revoked_at) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["revoked_at"],
+      message: "revoked consent requires revoked_at"
+    });
+  }
+});
+var TrainingExampleV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  account_id: external_exports.string().uuid(),
+  owner_user_id: external_exports.string().uuid(),
+  consent_id: ContractIdSchema,
+  source: external_exports.enum(["explicit_save", "accepted_feedback"]),
+  created_at: IsoDateSchema,
+  input: external_exports.string().min(1).max(2e5),
+  preferred_output: external_exports.string().min(1).max(2e5),
+  context_manifest_hash: Sha256Schema,
+  resolver_audit_id: ContractIdSchema,
+  evidence_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  model_id: external_exports.string().min(1).max(256).optional(),
+  presentation_profile_version: external_exports.string().min(1).max(256).optional(),
+  labels: external_exports.array(ContractKeySchema).max(128).default([]),
+  redaction_state: external_exports.enum(["not_needed", "redacted", "review_required"]),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var TrainingJobRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  account_id: external_exports.string().uuid(),
+  owner_user_id: external_exports.string().uuid(),
+  consent_id: ContractIdSchema,
+  purpose: external_exports.enum(["evaluation", "personal_fine_tuning"]),
+  provider_id: ContractKeySchema,
+  base_model_id: external_exports.string().min(1).max(256),
+  example_ids: external_exports.array(ContractIdSchema).min(1).max(1e5),
+  evaluation_suite_id: ContractIdSchema,
+  requested_at: IsoDateSchema
+}).strict();
+var TrainingJobResultV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  job_id: ContractIdSchema,
+  status: external_exports.enum(["queued", "running", "passed", "failed", "cancelled"]),
+  provider_job_id: ContractIdSchema.optional(),
+  model_id: external_exports.string().min(1).max(256).optional(),
+  evaluation_passed: external_exports.boolean().optional(),
+  metrics: external_exports.record(external_exports.number().finite()).default({}),
+  error_code: ContractKeySchema.optional(),
+  error: external_exports.string().min(1).max(4096).optional(),
+  updated_at: IsoDateSchema
+}).strict();
+
+// packages/shared/dist/resource-evidence.js
+var RESOURCE_KINDS = [
+  "markdown",
+  "text",
+  "webpage",
+  "youtube",
+  "pdf",
+  "document",
+  "image",
+  "audio",
+  "video",
+  "jira",
+  "slack",
+  "github",
+  "code",
+  "dataset"
+];
+var ResourceKindV1Schema = external_exports.enum(RESOURCE_KINDS);
+var WholeResourceLocatorV1Schema = external_exports.object({ kind: external_exports.literal("whole") }).strict();
+var LineResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("line"),
+  start_line: external_exports.number().int().positive(),
+  end_line: external_exports.number().int().positive()
+}).strict().refine((value) => value.end_line >= value.start_line, {
+  message: "end_line must be greater than or equal to start_line",
+  path: ["end_line"]
+});
+var PageResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("page"),
+  page: external_exports.number().int().positive(),
+  start_offset: external_exports.number().int().nonnegative().optional(),
+  end_offset: external_exports.number().int().nonnegative().optional()
+}).strict().refine(
+  (value) => value.start_offset === void 0 || value.end_offset === void 0 || value.end_offset >= value.start_offset,
+  {
+    message: "end_offset must be greater than or equal to start_offset",
+    path: ["end_offset"]
+  }
+);
+var TimeResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("time"),
+  start_ms: external_exports.number().int().nonnegative(),
+  end_ms: external_exports.number().int().nonnegative()
+}).strict().refine((value) => value.end_ms >= value.start_ms, {
+  message: "end_ms must be greater than or equal to start_ms",
+  path: ["end_ms"]
+});
+var WebResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("web"),
+  url: external_exports.string().url().max(4096),
+  selector: external_exports.string().min(1).max(2048).optional(),
+  fragment: external_exports.string().min(1).max(2048).optional(),
+  text_quote: external_exports.string().min(1).max(2048).optional()
+}).strict().refine((value) => Boolean(value.selector || value.fragment || value.text_quote), {
+  message: "web locators require a selector, fragment, or text quote"
+});
+var RegionResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("region"),
+  page: external_exports.number().int().positive().optional(),
+  x: external_exports.number().finite(),
+  y: external_exports.number().finite(),
+  width: external_exports.number().finite().positive(),
+  height: external_exports.number().finite().positive()
+}).strict();
+var ExternalResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("external"),
+  provider: ContractKeySchema,
+  item_id: ContractIdSchema,
+  subpath: external_exports.string().min(1).max(2048).optional()
+}).strict();
+var ResourceLocatorV1Schema = external_exports.union([
+  WholeResourceLocatorV1Schema,
+  LineResourceLocatorV1Schema,
+  PageResourceLocatorV1Schema,
+  TimeResourceLocatorV1Schema,
+  WebResourceLocatorV1Schema,
+  RegionResourceLocatorV1Schema,
+  ExternalResourceLocatorV1Schema
+]);
+var ResourceIngestChunkV1Schema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ordinal: external_exports.number().int().min(0).max(2047),
+  content: external_exports.string().min(1).max(32e3),
+  excerpt: external_exports.string().min(1).max(2e3),
+  content_sha256: Sha256Schema,
+  locator: ResourceLocatorV1Schema,
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var ResourceIngestManifestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  ingest_id: ContractIdSchema,
+  account_id: external_exports.string().uuid(),
+  project_id: external_exports.string().uuid().nullable(),
+  resource_id: external_exports.string().uuid(),
+  owner_id: external_exports.string().uuid().nullable(),
+  scope: external_exports.enum(["private", "project", "team", "public"]),
+  kind: ResourceKindV1Schema,
+  title: external_exports.string().min(1).max(500),
+  canonical_uri: external_exports.string().url().max(4096).nullable(),
+  source_revision: external_exports.string().min(1).max(512),
+  mime_type: external_exports.string().min(1).max(256),
+  content: external_exports.string().max(2e6),
+  content_sha256: Sha256Schema,
+  byte_size: external_exports.number().int().nonnegative().max(1e8),
+  rights_basis: external_exports.string().min(1).max(512),
+  license: external_exports.string().min(1).max(512).nullable(),
+  provenance: external_exports.record(ContractJsonValueSchema),
+  storage_locator: external_exports.record(ContractJsonValueSchema).default({}),
+  observed_at: IsoDateSchema,
+  occurred_at: IsoDateSchema.nullable().default(null),
+  chunks: external_exports.array(ResourceIngestChunkV1Schema).min(1).max(2048)
+}).strict().superRefine((manifest, ctx) => {
+  if (manifest.scope === "project" && !manifest.project_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["project_id"],
+      message: "project-scoped resources require project_id"
+    });
+  }
+  if (manifest.scope === "private" && !manifest.owner_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["owner_id"],
+      message: "private resources require owner_id"
+    });
+  }
+  if (manifest.byte_size !== new TextEncoder().encode(manifest.content).byteLength) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["byte_size"],
+      message: "byte_size does not match normalized UTF-8 content"
+    });
+  }
+  const ids = /* @__PURE__ */ new Set();
+  const ordinals = /* @__PURE__ */ new Set();
+  manifest.chunks.forEach((chunk, index) => {
+    if (ids.has(chunk.id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["chunks", index, "id"],
+        message: "chunk ids must be unique"
+      });
+    }
+    if (ordinals.has(chunk.ordinal) || chunk.ordinal !== index) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["chunks", index, "ordinal"],
+        message: "chunk ordinals must be unique and contiguous from zero"
+      });
+    }
+    ids.add(chunk.id);
+    ordinals.add(chunk.ordinal);
+  });
+});
+var ResourceEvidenceSearchRowV1Schema = external_exports.object({
+  evidence_id: ContractIdSchema,
+  resource_id: external_exports.string().uuid(),
+  resource_version_id: external_exports.string().uuid(),
+  chunk_id: external_exports.string().uuid(),
+  context_type: external_exports.enum(["account", "project", "thought"]),
+  context_id: ContractIdSchema,
+  kind: ResourceKindV1Schema,
+  title: external_exports.string().min(1).max(1024),
+  content: external_exports.string().min(1).max(2e6),
+  source_revision: external_exports.string().min(1).max(512),
+  content_sha256: Sha256Schema,
+  canonical_uri: external_exports.string().url().max(4096).nullable(),
+  locator: ResourceLocatorV1Schema,
+  rights_basis: external_exports.string().min(1).max(512),
+  license: external_exports.string().min(1).max(512).nullable(),
+  observed_at: IsoDateSchema,
+  occurred_at: IsoDateSchema.nullable(),
+  authority: external_exports.enum(["provisional", "verified"]),
+  resource_status: external_exports.literal("active"),
+  version_status: external_exports.literal("active"),
+  audience: external_exports.enum(["private", "team", "room", "external", "public"]),
+  classification: external_exports.enum(["public", "internal", "confidential", "restricted"]),
+  authorized_principal_ids: external_exports.array(ContractIdSchema).max(500).default([]),
+  audience_context_id: ContractIdSchema.optional(),
+  acl_revision: external_exports.string().min(1).max(256).optional(),
+  embedding_profile_id: ContractIdSchema.optional(),
+  semantic_score: external_exports.number().finite().optional(),
+  lexical_score: external_exports.number().finite().optional(),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
 
 // packages/plugin-core/src/host.ts
 import os from "node:os";

@@ -58876,9 +58876,9 @@ var HttpAuthSchema = external_exports.discriminatedUnion("type", [
   external_exports.object({ type: external_exports.literal("none") }),
   external_exports.object({
     type: external_exports.literal("bearer"),
-    /** Name of the env var the server reads to get the bearer token.
-     *  e.g. 'TAVILY_API_KEY'. The token is sent as
-     *  `Authorization: Bearer ${process.env[token_env]}`. */
+    /** Historical env-var selector. Parsed only to explain/migrate the
+     * legacy document; executors must never resolve this value. */
+    /** Historical selector; never resolved by an executor. */
     token_env: external_exports.string().min(1).max(128).regex(/^[A-Z_][A-Z0-9_]*$/, {
       message: "token_env must be a SCREAMING_SNAKE_CASE env-var name"
     })
@@ -58922,7 +58922,16 @@ var ConnectorImplSchema = external_exports.object({
    *  schema at dispatch time. Kept as `record(unknown)` here so each
    *  connector defines its own shape without shadowing it in
    *  @memlin/shared. */
-  config: external_exports.record(external_exports.unknown()).optional()
+  config: external_exports.record(external_exports.unknown()).optional(),
+  /** Named operation in the connector's statically registered manifest. */
+  operation: external_exports.string().min(1).max(128).regex(/^[a-z][a-z0-9._:-]*$/, {
+    message: "operation must be a lowercase namespaced identifier"
+  }).optional(),
+  /**
+   * Opaque binding id. It identifies a provider-scoped server-side binding;
+   * it is never an environment-variable name and never contains a secret.
+   */
+  credential_binding_id: external_exports.string().uuid().optional()
 });
 var ActionImplementationSchema = external_exports.discriminatedUnion("type", [
   ProviderCallImplSchema,
@@ -58942,6 +58951,26 @@ var ActionMetadataSchema = external_exports.object({
   input_schema: external_exports.record(external_exports.unknown()),
   implementation: ActionImplementationSchema
 });
+var LEGACY_RAW_HTTP_MIGRATION_MESSAGE = "Raw HTTP actions are disabled. Migrate this Action to a statically registered connector/Action Adapter and select an opaque provider credential binding.";
+var AMBIENT_CREDENTIAL_KEY = /(^|[_.-])(token|secret|password|credential|api[_-]?key)[_.-]?env($|[_.-])/i;
+function findAmbientCredentialSelectorPath(value, path20 = "config") {
+  if (!value || typeof value !== "object") return null;
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index += 1) {
+      const found = findAmbientCredentialSelectorPath(value[index], `${path20}.${index}`);
+      if (found) return found;
+    }
+    return null;
+  }
+  for (const [key, entry] of Object.entries(value)) {
+    if (AMBIENT_CREDENTIAL_KEY.test(key) || key.toLowerCase() === "token_env") {
+      return `${path20}.${key}`;
+    }
+    const found = findAmbientCredentialSelectorPath(entry, `${path20}.${key}`);
+    if (found) return found;
+  }
+  return null;
+}
 function parseActionMetadata(raw) {
   const result = ActionMetadataSchema.safeParse(raw);
   if (result.success) return { ok: result.data, errors: [] };
@@ -59720,6 +59749,1557 @@ var FACET_BY_TERM = new Map(
   MEMORY_TAXONOMY.map((e2) => [e2.term, e2.facet])
 );
 
+// packages/shared/dist/context-engine.js
+var CONTEXT_CONTRACT_VERSION = 1;
+var ContractIdSchema = external_exports.string().min(1).max(256);
+var ContractKeySchema = external_exports.string().min(1).max(128).regex(/^[a-z][a-z0-9._:-]*$/, "must be a lowercase namespaced identifier");
+var Sha256Schema = external_exports.string().regex(/^[a-f0-9]{64}$/, "must be a lowercase SHA-256 digest");
+var IsoDateSchema = external_exports.string().datetime({ offset: true });
+var ContractJsonValueSchema = external_exports.lazy(
+  () => external_exports.union([
+    external_exports.null(),
+    external_exports.boolean(),
+    external_exports.number().finite(),
+    external_exports.string(),
+    external_exports.array(ContractJsonValueSchema),
+    external_exports.record(ContractJsonValueSchema)
+  ])
+);
+var ContextReferenceV1Schema = external_exports.object({
+  type: ContractKeySchema,
+  id: ContractIdSchema,
+  /** Provider namespace for identifiers that are not native Memlin IDs. */
+  provider_id: ContractKeySchema.optional(),
+  /** Source-side revision used to invalidate stale manifests and bundles. */
+  revision: external_exports.string().min(1).max(256).optional()
+}).strict();
+var ContextFocusV1Schema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({
+    kind: external_exports.literal("thought"),
+    thought_id: ContractIdSchema,
+    revision: external_exports.string().min(1).max(256).optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("card"),
+    thought_id: ContractIdSchema,
+    card_id: ContractIdSchema,
+    map_id: ContractIdSchema.optional(),
+    revision: external_exports.string().min(1).max(256).optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("resource"),
+    resource_id: ContractIdSchema,
+    version: external_exports.string().min(1).max(512).optional(),
+    locator: external_exports.string().min(1).max(4096).optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("jira_issue"),
+    provider_binding_id: ContractIdSchema,
+    issue_key: ContractIdSchema,
+    source_revision: external_exports.string().min(1).max(512).optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("conversation"),
+    conversation_id: ContractIdSchema,
+    message_id: ContractIdSchema.optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("action"),
+    action_id: ContractIdSchema,
+    execution_id: ContractIdSchema.optional()
+  }).strict()
+]);
+var CONTEXT_CAPABILITIES = [
+  "explore",
+  "explain",
+  "research",
+  "decide",
+  "plan",
+  "act",
+  "review"
+];
+var ContextCapabilityV1Schema = external_exports.enum(CONTEXT_CAPABILITIES);
+var ContextAudienceV1Schema = external_exports.object({
+  kind: external_exports.enum(["private", "team", "room", "external", "public"]),
+  /** Memlin or mapped external principals allowed to receive this bundle. */
+  participant_ids: external_exports.array(ContractIdSchema).max(500).default([]),
+  /** Exact room or external tenant/channel boundary for scoped audiences. */
+  context_id: ContractIdSchema.optional()
+}).strict().superRefine((audience, ctx) => {
+  if (audience.kind === "public" && audience.participant_ids.length > 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["participant_ids"],
+      message: "public audiences cannot name private participants"
+    });
+  }
+  if (audience.kind === "private" && audience.participant_ids.length !== 1) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["participant_ids"],
+      message: "private audiences must name exactly one recipient"
+    });
+  }
+  if ((audience.kind === "room" || audience.kind === "external") && audience.participant_ids.length === 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["participant_ids"],
+      message: `${audience.kind} audiences must name every recipient`
+    });
+  }
+  if ((audience.kind === "room" || audience.kind === "external") && !audience.context_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["context_id"],
+      message: `${audience.kind} audiences require an exact context boundary`
+    });
+  }
+});
+var ContextManifestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  account_id: external_exports.string().uuid(),
+  /** The only location that receives saves and navigation by default. */
+  home: ContextReferenceV1Schema,
+  /** The only location whose governance and funding policy controls the run. */
+  policy_anchor: ContextReferenceV1Schema,
+  /** Additional read-only retrieval contexts. */
+  linked_contexts: external_exports.array(ContextReferenceV1Schema).max(64).default([]),
+  /** Current object within the authorized contexts; null means no narrower focus. */
+  focus: ContextFocusV1Schema.nullable(),
+  /** Declared purpose used by providers, policy, safety, and audit layers. */
+  capability: ContextCapabilityV1Schema,
+  audience: ContextAudienceV1Schema,
+  /** ACL/policy snapshot identifier supplied by the authoritative server. */
+  acl_revision: external_exports.string().min(1).max(256)
+}).strict().superRefine((manifest, ctx) => {
+  const seen = /* @__PURE__ */ new Map();
+  const references = [
+    { ref: manifest.home, path: ["home"], location: "home" },
+    {
+      ref: manifest.policy_anchor,
+      path: ["policy_anchor"],
+      location: "policy_anchor"
+    },
+    ...manifest.linked_contexts.map((ref, index) => ({
+      ref,
+      path: ["linked_contexts", index],
+      location: `linked_contexts.${index}`
+    }))
+  ];
+  references.forEach(({ ref, path: path20, location: location2 }) => {
+    const identity = contextReferenceIdentityKey(ref);
+    const prior = seen.get(identity);
+    if (prior && prior.revision !== ref.revision) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: path20,
+        message: `context ${identity} has conflicting revisions in ${prior.location} and ${location2}`
+      });
+    } else if (prior && location2.startsWith("linked_contexts.")) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: path20,
+        message: `duplicate linked context ${identity}`
+      });
+    }
+    if (!prior) seen.set(identity, { revision: ref.revision, location: location2 });
+  });
+});
+var ExecutionActorV1Schema = external_exports.object({
+  type: external_exports.enum(["human", "service", "agent", "end_user", "connector"]),
+  id: ContractIdSchema
+}).strict();
+var ExecutionPrincipalV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  account_id: external_exports.string().uuid(),
+  actor: ExecutionActorV1Schema,
+  /** Explicit delegation chain; never collapse this into actor.id. */
+  on_behalf_of: ExecutionActorV1Schema.optional(),
+  credential: external_exports.object({
+    id: ContractIdSchema,
+    scopes: external_exports.array(ContractKeySchema).max(256),
+    expires_at: IsoDateSchema.optional()
+  }).strict(),
+  installation: external_exports.object({
+    id: ContractIdSchema,
+    trust: external_exports.enum(["verified", "reported"])
+  }).strict().optional(),
+  external: external_exports.object({
+    provider: ContractKeySchema,
+    tenant_id: ContractIdSchema,
+    subject_id: ContractIdSchema,
+    mapped_user_id: external_exports.string().uuid().optional()
+  }).strict().optional(),
+  session_id: ContractIdSchema.optional()
+}).strict();
+var EvidenceScoreV1Schema = external_exports.object({
+  semantic: external_exports.number().finite().optional(),
+  lexical: external_exports.number().finite().optional(),
+  provider: external_exports.number().finite().optional(),
+  freshness: external_exports.number().finite().optional(),
+  /** Populated only by the resolver, never trusted from an external source. */
+  final: external_exports.number().finite().optional()
+}).strict();
+var EvidenceProvenanceV1Schema = external_exports.object({
+  canonical_uri: external_exports.string().url().max(4096).optional(),
+  source_version: external_exports.string().min(1).max(512).optional(),
+  author: external_exports.string().min(1).max(512).optional(),
+  occurred_at: IsoDateSchema.optional(),
+  retrieved_at: IsoDateSchema,
+  locator: external_exports.string().min(1).max(4096).optional(),
+  content_hash: Sha256Schema,
+  rights: external_exports.string().min(1).max(512).optional()
+}).strict();
+var EvidenceSecurityV1Schema = external_exports.object({
+  audience: external_exports.enum(["private", "team", "room", "external", "public"]),
+  classification: external_exports.enum(["public", "internal", "confidential", "restricted"]),
+  policy_tags: external_exports.array(ContractKeySchema).max(64).default([]),
+  /** Principals authorized by the provider for this exact evidence revision. */
+  authorized_principal_ids: external_exports.array(ContractIdSchema).max(500).default([]),
+  /** Exact room or external boundary when evidence is scoped below a team. */
+  audience_context_id: ContractIdSchema.optional(),
+  /** Server-observed ACL revision used to reject stale recipient decisions. */
+  acl_revision: external_exports.string().min(1).max(256).optional()
+}).strict().superRefine((security, ctx) => {
+  if (security.audience === "private" && security.authorized_principal_ids.length !== 1) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["authorized_principal_ids"],
+      message: "private evidence must bind exactly one authorized recipient"
+    });
+  }
+  if ((security.audience === "room" || security.audience === "external") && security.authorized_principal_ids.length === 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["authorized_principal_ids"],
+      message: `${security.audience} evidence must bind its authorized recipients`
+    });
+  }
+  if ((security.audience === "room" || security.audience === "external") && !security.audience_context_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["audience_context_id"],
+      message: `${security.audience} evidence must bind its exact context`
+    });
+  }
+  if (security.audience !== "public" && !security.acl_revision) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["acl_revision"],
+      message: "non-public evidence must bind an exact ACL revision"
+    });
+  }
+});
+var EvidenceCandidateV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  provider_id: ContractKeySchema,
+  /** Governing context used for authorization, not merely a display parent. */
+  context_ref: ContextReferenceV1Schema,
+  kind: ContractKeySchema,
+  title: external_exports.string().min(1).max(1024),
+  content: external_exports.string().max(2e6),
+  score: EvidenceScoreV1Schema.default({}),
+  provenance: EvidenceProvenanceV1Schema,
+  security: EvidenceSecurityV1Schema,
+  embedding_profile_id: ContractIdSchema.optional(),
+  estimated_tokens: external_exports.number().int().nonnegative().optional(),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var OmittedContextV1Schema = external_exports.object({
+  context_ref: ContextReferenceV1Schema,
+  reason_code: ContractKeySchema,
+  reason: external_exports.string().min(1).max(1024).optional()
+}).strict();
+var ProviderCoverageV1Schema = external_exports.object({
+  provider_id: ContractKeySchema,
+  provider_version: external_exports.string().min(1).max(128),
+  status: external_exports.enum(["complete", "partial", "unavailable"]),
+  attempted_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
+  covered_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
+  omitted_contexts: external_exports.array(OmittedContextV1Schema).max(128).default([]),
+  reason_code: ContractKeySchema.optional(),
+  reason: external_exports.string().min(1).max(2048).optional(),
+  truncated: external_exports.boolean().default(false),
+  started_at: IsoDateSchema,
+  completed_at: IsoDateSchema
+}).strict();
+var ProviderReceiptV1Schema = external_exports.object({
+  provider_id: ContractKeySchema,
+  provider_version: external_exports.string().min(1).max(128),
+  request_hash: Sha256Schema,
+  /** Exact policy snapshot returned by provider authorization. */
+  policy_revision: external_exports.string().min(1).max(256),
+  latency_ms: external_exports.number().int().nonnegative(),
+  retrieved_at: IsoDateSchema,
+  source_revision: external_exports.string().min(1).max(512).optional(),
+  credential_binding_id: ContractIdSchema.optional(),
+  cost_microunits: external_exports.number().int().nonnegative().optional()
+}).strict();
+var RequiredCoreLaneStatusV1Schema = external_exports.object({
+  status: external_exports.enum(["not_evaluated", "complete", "partial", "unavailable", "not_applicable"]),
+  expected_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  delivered_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  missing_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  errors: external_exports.array(external_exports.string().min(1).max(2048)).max(256).default([])
+}).strict().superRefine((lane, ctx) => {
+  const delivered = new Set(lane.delivered_ids);
+  const overlap = lane.missing_ids.find((id) => delivered.has(id));
+  if (overlap) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["missing_ids"],
+      message: `required core item ${overlap} cannot be both delivered and missing`
+    });
+  }
+  if (lane.status === "complete" && (lane.missing_ids.length > 0 || lane.errors.length > 0)) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["status"],
+      message: "complete required core status cannot contain missing items or errors"
+    });
+  }
+});
+var RequiredCoreStatusV1Schema = external_exports.object({
+  /** Required documents selected through the policy/governance chain. */
+  governance: RequiredCoreLaneStatusV1Schema,
+  /** The Project Brain overview, when the policy anchor is a Project. */
+  project_overview: RequiredCoreLaneStatusV1Schema
+}).strict();
+var EvidenceReferenceV1Schema = external_exports.object({
+  provider_id: ContractKeySchema,
+  evidence_id: ContractIdSchema,
+  source_version: external_exports.string().min(1).max(512).optional()
+}).strict();
+var ContextConflictV1Schema = external_exports.object({
+  id: ContractIdSchema,
+  kind: ContractKeySchema,
+  summary: external_exports.string().min(1).max(4096),
+  evidence_refs: external_exports.array(EvidenceReferenceV1Schema).min(2).max(64),
+  status: external_exports.enum(["unresolved", "resolved"]),
+  resolution_evidence_ref: EvidenceReferenceV1Schema.optional()
+}).strict();
+var BundleOmissionSubjectV1Schema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({ kind: external_exports.literal("context"), context_ref: ContextReferenceV1Schema }).strict(),
+  external_exports.object({ kind: external_exports.literal("provider"), provider_id: ContractKeySchema }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("evidence"),
+    evidence_ref: EvidenceReferenceV1Schema
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("required_core"),
+    lane: external_exports.enum(["governance", "project_overview"]),
+    item_id: ContractIdSchema.optional()
+  }).strict()
+]);
+var BundleOmissionV1Schema = external_exports.object({
+  subject: BundleOmissionSubjectV1Schema,
+  reason_code: ContractKeySchema,
+  reason: external_exports.string().min(1).max(2048).optional(),
+  estimated_tokens: external_exports.number().int().nonnegative().optional()
+}).strict();
+var EvidenceRetractionV1Schema = external_exports.object({
+  evidence_ref: EvidenceReferenceV1Schema,
+  reason_code: ContractKeySchema,
+  reason: external_exports.string().min(1).max(2048).optional(),
+  retracted_at: IsoDateSchema,
+  replacement_evidence_ref: EvidenceReferenceV1Schema.optional()
+}).strict();
+var ContextSafetyFindingV1Schema = external_exports.object({
+  code: ContractKeySchema,
+  severity: external_exports.enum(["info", "warning", "error"]),
+  message: external_exports.string().min(1).max(2048).optional(),
+  evidence_refs: external_exports.array(EvidenceReferenceV1Schema).max(64).default([])
+}).strict();
+var ContextSafetyStateV1Schema = external_exports.object({
+  status: external_exports.enum(["not_evaluated", "clear", "review_required", "blocked"]),
+  policy_tags: external_exports.array(ContractKeySchema).max(128).default([]),
+  findings: external_exports.array(ContextSafetyFindingV1Schema).max(256).default([]),
+  evaluated_at: IsoDateSchema.optional(),
+  evaluator_id: ContractIdSchema.optional()
+}).strict();
+var ContextTokenAccountingV1Schema = external_exports.object({
+  /** Null means this stage was not given a token limit. */
+  limit: external_exports.number().int().nonnegative().nullable().default(null),
+  used: external_exports.number().int().nonnegative().default(0),
+  reserved: external_exports.number().int().nonnegative().default(0),
+  omitted: external_exports.number().int().nonnegative().default(0),
+  truncated: external_exports.boolean().default(false)
+}).strict();
+var ContextBundleV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  /** Content-addressed ID of this exact retrieval result. */
+  bundle_id: Sha256Schema,
+  stage: external_exports.enum(["retrieved", "resolved"]),
+  manifest: ContextManifestV1Schema,
+  manifest_hash: Sha256Schema,
+  query: external_exports.string().min(1).max(4e3),
+  requested_kinds: external_exports.array(ContractKeySchema).max(128),
+  created_at: IsoDateSchema,
+  evidence: external_exports.array(EvidenceCandidateV1Schema).max(1e4),
+  coverage: external_exports.array(ProviderCoverageV1Schema).max(256),
+  receipts: external_exports.array(ProviderReceiptV1Schema).max(256),
+  required_core_status: RequiredCoreStatusV1Schema.default({
+    governance: {
+      status: "not_evaluated",
+      expected_ids: [],
+      delivered_ids: [],
+      missing_ids: [],
+      errors: []
+    },
+    project_overview: {
+      status: "not_evaluated",
+      expected_ids: [],
+      delivered_ids: [],
+      missing_ids: [],
+      errors: []
+    }
+  }),
+  conflicts: external_exports.array(ContextConflictV1Schema).max(1e3).default([]),
+  omissions: external_exports.array(BundleOmissionV1Schema).max(1e4).default([]),
+  retractions: external_exports.array(EvidenceRetractionV1Schema).max(1e4).default([]),
+  safety: ContextSafetyStateV1Schema.default({
+    status: "not_evaluated",
+    policy_tags: [],
+    findings: []
+  }),
+  token_accounting: ContextTokenAccountingV1Schema.default({
+    limit: null,
+    used: 0,
+    reserved: 0,
+    omitted: 0,
+    truncated: false
+  }),
+  warnings: external_exports.array(external_exports.string().min(1).max(2048)).max(256).default([]),
+  resolver_audit_id: ContractIdSchema.optional()
+}).strict().superRefine((bundle, ctx) => {
+  const contextKeys = new Set(
+    contextReferencesFromManifestV1(bundle.manifest).map(contextReferenceKey)
+  );
+  bundle.evidence.forEach((candidate, index) => {
+    if (!contextKeys.has(contextReferenceKey(candidate.context_ref))) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["evidence", index, "context_ref"],
+        message: "bundle evidence is outside the exact manifest contexts"
+      });
+      return;
+    }
+    if (!evidenceCanReachContextAudienceV1(
+      candidate.security,
+      bundle.manifest,
+      candidate.context_ref
+    )) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["evidence", index, "security"],
+        message: `bundle evidence is not permitted for the ${bundle.manifest.audience.kind} audience`
+      });
+    }
+  });
+  bundle.coverage.forEach((coverage, coverageIndex) => {
+    const references = [
+      ...coverage.attempted_contexts.map((ref, index) => ({
+        ref,
+        path: ["coverage", coverageIndex, "attempted_contexts", index]
+      })),
+      ...coverage.covered_contexts.map((ref, index) => ({
+        ref,
+        path: ["coverage", coverageIndex, "covered_contexts", index]
+      })),
+      ...coverage.omitted_contexts.map((entry, index) => ({
+        ref: entry.context_ref,
+        path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
+      }))
+    ];
+    for (const { ref, path: path20 } of references) {
+      if (!contextKeys.has(contextReferenceKey(ref))) {
+        ctx.addIssue({
+          code: external_exports.ZodIssueCode.custom,
+          path: path20,
+          message: "provider coverage is outside the exact manifest contexts"
+        });
+      }
+    }
+  });
+  bundle.receipts.forEach((receipt, index) => {
+    if (receipt.policy_revision !== bundle.manifest.acl_revision) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["receipts", index, "policy_revision"],
+        message: "provider receipt policy revision must match the bundle ACL revision"
+      });
+    }
+  });
+});
+function contextReferenceKey(ref) {
+  return `${ref.provider_id ?? "memlin"}\0${ref.type}\0${ref.id}\0${ref.revision ?? ""}`;
+}
+function contextReferenceIdentityKey(ref) {
+  return `${ref.provider_id ?? "memlin"}\0${ref.type}\0${ref.id}`;
+}
+function contextReferencesFromManifestV1(manifest) {
+  const byKey = /* @__PURE__ */ new Map();
+  for (const ref of [manifest.home, manifest.policy_anchor, ...manifest.linked_contexts]) {
+    byKey.set(contextReferenceKey(ref), ref);
+  }
+  return [...byKey.values()];
+}
+function effectiveExecutionBeneficiaryIdV1(principal) {
+  return principal.on_behalf_of?.id ?? principal.external?.mapped_user_id ?? principal.actor.id;
+}
+function contextManifestAudienceMatchesPrincipalV1(manifest, principal) {
+  if (manifest.account_id !== principal.account_id) return false;
+  if (manifest.audience.kind !== "private") return true;
+  return manifest.audience.participant_ids.length === 1 && manifest.audience.participant_ids[0] === effectiveExecutionBeneficiaryIdV1(principal);
+}
+function evidenceCanReachContextAudienceV1(security, manifest, sourceContext) {
+  const sourceAudience = security.audience;
+  const audience = manifest.audience;
+  if (sourceAudience === "public") return security.classification === "public";
+  if (security.acl_revision !== manifest.acl_revision || audience.kind === "public") return false;
+  const authorizedPrincipals = new Set(security.authorized_principal_ids);
+  const recipientsAreBound = audience.participant_ids.length > 0 && audience.participant_ids.every((participantId) => authorizedPrincipals.has(participantId));
+  const exactAudienceContext = security.audience_context_id === audience.context_id;
+  const exactPrivateSourceContext = Boolean(security.audience_context_id) && sourceContext.id === security.audience_context_id && (sourceAudience === "room" && sourceContext.type === "room" || sourceAudience === "external" && sourceContext.type === "external_collection");
+  const audienceAllowed = audience.kind === "external" ? sourceAudience === "external" && exactAudienceContext && recipientsAreBound : audience.kind === "team" ? sourceAudience === "team" : audience.kind === "room" ? sourceAudience === "room" && exactAudienceContext && recipientsAreBound || sourceAudience === "team" && recipientsAreBound : sourceAudience === "team" || sourceAudience === "private" && recipientsAreBound || (sourceAudience === "room" || sourceAudience === "external") && exactPrivateSourceContext && recipientsAreBound;
+  if (!audienceAllowed) return false;
+  if (security.classification === "restricted") {
+    return (audience.kind === "private" || audience.kind === "room") && recipientsAreBound;
+  }
+  return true;
+}
+function canonicalize(value, seen) {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value))
+      throw new TypeError("canonical JSON does not support non-finite numbers");
+    return Object.is(value, -0) ? 0 : value;
+  }
+  if (typeof value !== "object") {
+    throw new TypeError(`canonical JSON does not support ${typeof value}`);
+  }
+  if (seen.has(value)) throw new TypeError("canonical JSON does not support cyclic values");
+  seen.add(value);
+  try {
+    if (Array.isArray(value)) return value.map((item) => canonicalize(item, seen));
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new TypeError("canonical JSON only supports plain objects");
+    }
+    const out = {};
+    for (const key of Object.keys(value).sort()) {
+      const entry = value[key];
+      if (entry === void 0) continue;
+      out[key] = canonicalize(entry, seen);
+    }
+    return out;
+  } finally {
+    seen.delete(value);
+  }
+}
+function canonicalJsonStringify(value) {
+  return JSON.stringify(canonicalize(value, /* @__PURE__ */ new Set()));
+}
+async function sha256Hex(value) {
+  if (!globalThis.crypto?.subtle) throw new Error("Web Crypto SHA-256 is unavailable");
+  const bytes = Uint8Array.from(
+    typeof value === "string" ? new TextEncoder().encode(value) : value
+  );
+  const digest2 = await globalThis.crypto.subtle.digest("SHA-256", bytes.buffer);
+  return Array.from(new Uint8Array(digest2), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+function normalizeContextManifestV1(raw) {
+  const manifest = ContextManifestV1Schema.parse(raw);
+  return {
+    ...manifest,
+    linked_contexts: [...manifest.linked_contexts].sort(
+      (a2, b2) => contextReferenceKey(a2).localeCompare(contextReferenceKey(b2))
+    ),
+    audience: {
+      ...manifest.audience,
+      participant_ids: [...new Set(manifest.audience.participant_ids)].sort()
+    }
+  };
+}
+async function hashContextManifestV1(raw) {
+  return sha256Hex(canonicalJsonStringify(normalizeContextManifestV1(raw)));
+}
+async function hashContextBundleV1(bundle) {
+  const parsed = ContextBundleV1Schema.parse({
+    ...bundle,
+    bundle_id: "0".repeat(64)
+  });
+  const { bundle_id: _ignored, ...content } = parsed;
+  return sha256Hex(canonicalJsonStringify(content));
+}
+var ContextBundleIntegrityError = class extends Error {
+  constructor(code, boundary, message) {
+    super(message);
+    this.code = code;
+    this.boundary = boundary;
+    this.name = "ContextBundleIntegrityError";
+  }
+  code;
+  boundary;
+};
+function normalizedAudienceV1(raw) {
+  const audience = ContextAudienceV1Schema.parse(raw);
+  return {
+    ...audience,
+    participant_ids: [...new Set(audience.participant_ids)].sort()
+  };
+}
+function exactContextKeySet(contexts) {
+  return [...new Set(contexts.map(contextReferenceKey))].sort();
+}
+async function verifyContextBundleV1(raw, options2) {
+  const bundle = ContextBundleV1Schema.parse(raw);
+  const actualManifestHash = await hashContextManifestV1(bundle.manifest);
+  if (bundle.manifest_hash !== actualManifestHash) {
+    throw new ContextBundleIntegrityError(
+      "manifest_hash_mismatch",
+      options2.boundary,
+      `${options2.boundary} bundle manifest hash is invalid`
+    );
+  }
+  if (options2.expected_manifest_hash !== void 0 && bundle.manifest_hash !== options2.expected_manifest_hash) {
+    throw new ContextBundleIntegrityError(
+      "manifest_hash_mismatch",
+      options2.boundary,
+      `${options2.boundary} bundle does not match the expected manifest`
+    );
+  }
+  const actualBundleId = await hashContextBundleV1(bundle);
+  if (bundle.bundle_id !== actualBundleId) {
+    throw new ContextBundleIntegrityError(
+      "bundle_hash_mismatch",
+      options2.boundary,
+      `${options2.boundary} bundle content hash is invalid`
+    );
+  }
+  if (options2.expected_bundle_id !== void 0 && bundle.bundle_id !== options2.expected_bundle_id) {
+    throw new ContextBundleIntegrityError(
+      "bundle_hash_mismatch",
+      options2.boundary,
+      `${options2.boundary} bundle does not match the expected bundle id`
+    );
+  }
+  if (options2.expected_account_id !== void 0 && bundle.manifest.account_id !== options2.expected_account_id) {
+    throw new ContextBundleIntegrityError(
+      "account_mismatch",
+      options2.boundary,
+      `${options2.boundary} bundle belongs to a different account`
+    );
+  }
+  if (options2.expected_audience !== void 0) {
+    const expectedAudience = normalizedAudienceV1(options2.expected_audience);
+    const actualAudience = normalizedAudienceV1(bundle.manifest.audience);
+    if (canonicalJsonStringify(actualAudience) !== canonicalJsonStringify(expectedAudience)) {
+      throw new ContextBundleIntegrityError(
+        "audience_mismatch",
+        options2.boundary,
+        `${options2.boundary} bundle audience does not match the delivery audience`
+      );
+    }
+  }
+  if (options2.principal !== void 0) {
+    const principal = ExecutionPrincipalV1Schema.parse(options2.principal);
+    if (principal.account_id !== bundle.manifest.account_id) {
+      throw new ContextBundleIntegrityError(
+        "account_mismatch",
+        options2.boundary,
+        `${options2.boundary} principal belongs to a different account`
+      );
+    }
+    if (!contextManifestAudienceMatchesPrincipalV1(bundle.manifest, principal)) {
+      throw new ContextBundleIntegrityError(
+        "beneficiary_mismatch",
+        options2.boundary,
+        `${options2.boundary} private bundle is not bound to its effective beneficiary`
+      );
+    }
+  }
+  if (options2.current_acl_revision !== void 0 && bundle.manifest.acl_revision !== options2.current_acl_revision) {
+    throw new ContextBundleIntegrityError(
+      "acl_revision_mismatch",
+      options2.boundary,
+      `${options2.boundary} bundle ACL revision is stale`
+    );
+  }
+  if (options2.expected_contexts !== void 0) {
+    const actual = exactContextKeySet(contextReferencesFromManifestV1(bundle.manifest));
+    const expected = exactContextKeySet(
+      options2.expected_contexts.map((context) => ContextReferenceV1Schema.parse(context))
+    );
+    if (canonicalJsonStringify(actual) !== canonicalJsonStringify(expected)) {
+      throw new ContextBundleIntegrityError(
+        "context_mismatch",
+        options2.boundary,
+        `${options2.boundary} bundle contexts do not match the expected exact revisions`
+      );
+    }
+  }
+  return bundle;
+}
+
+// packages/shared/dist/context-provider.js
+var ContextProviderManifestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractKeySchema,
+  implementation_version: external_exports.string().min(1).max(128),
+  display_name: external_exports.string().min(1).max(128),
+  supported_context_types: external_exports.array(ContractKeySchema).min(1).max(64),
+  supported_kinds: external_exports.array(ContractKeySchema).min(1).max(128),
+  latency_class: external_exports.enum(["indexed", "local", "live"]),
+  required_scopes: external_exports.array(ContractKeySchema).max(128).default([]),
+  default_timeout_ms: external_exports.number().int().min(10).max(6e4).default(5e3),
+  max_candidates: external_exports.number().int().min(1).max(1e3).default(100)
+}).strict().superRefine((manifest, ctx) => {
+  for (const field of [
+    "supported_context_types",
+    "supported_kinds",
+    "required_scopes"
+  ]) {
+    const values = manifest[field];
+    if (new Set(values).size !== values.length) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: [field],
+        message: `${field} must not contain duplicates`
+      });
+    }
+  }
+});
+var ContextProviderAuthorizationRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  request_id: ContractIdSchema,
+  principal: ExecutionPrincipalV1Schema,
+  manifest: ContextManifestV1Schema,
+  requested_contexts: external_exports.array(ContextReferenceV1Schema).min(1).max(128)
+}).strict();
+var ContextProviderAuthorizationV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  decision: external_exports.enum(["allow", "partial", "deny"]),
+  authorized_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
+  denied_contexts: external_exports.array(
+    external_exports.object({
+      context_ref: ContextReferenceV1Schema,
+      reason_code: ContractKeySchema,
+      reason: external_exports.string().min(1).max(1024).optional()
+    }).strict()
+  ).max(128).default([]),
+  /** Exact manifest ACL/policy revision used for this authorization decision. */
+  policy_revision: external_exports.string().min(1).max(256)
+}).strict().superRefine((authorization, ctx) => {
+  if (authorization.decision === "deny" && authorization.authorized_contexts.length > 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["authorized_contexts"],
+      message: "deny decisions cannot authorize contexts"
+    });
+  }
+  if (authorization.decision === "allow" && authorization.authorized_contexts.length === 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["authorized_contexts"],
+      message: "allow decisions require at least one authorized context"
+    });
+  }
+  if (authorization.decision === "allow" && authorization.denied_contexts.length > 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["denied_contexts"],
+      message: "allow decisions cannot deny contexts"
+    });
+  }
+  if (authorization.decision === "partial" && (authorization.authorized_contexts.length === 0 || authorization.denied_contexts.length === 0)) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["decision"],
+      message: "partial decisions require both authorized and denied contexts"
+    });
+  }
+  if (authorization.decision === "deny" && authorization.denied_contexts.length === 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["denied_contexts"],
+      message: "deny decisions must identify every denied context"
+    });
+  }
+});
+var ContextProviderRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  request_id: ContractIdSchema,
+  principal: ExecutionPrincipalV1Schema,
+  manifest: ContextManifestV1Schema,
+  authorized_contexts: external_exports.array(ContextReferenceV1Schema).min(1).max(128),
+  query: external_exports.string().min(1).max(4e3),
+  query_embedding: external_exports.array(external_exports.number().finite()).min(1).max(8192).optional(),
+  requested_kinds: external_exports.array(ContractKeySchema).max(128),
+  max_candidates: external_exports.number().int().min(1).max(1e3),
+  token_budget: external_exports.number().int().min(1).max(1e6).optional(),
+  deadline_at: IsoDateSchema
+}).strict();
+var ContextProviderCoverageClaimV1Schema = external_exports.object({
+  status: external_exports.enum(["complete", "partial", "unavailable"]),
+  covered_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
+  omitted_contexts: external_exports.array(
+    external_exports.object({
+      context_ref: ContextReferenceV1Schema,
+      reason_code: ContractKeySchema,
+      reason: external_exports.string().min(1).max(1024).optional()
+    }).strict()
+  ).max(128).default([]),
+  reason_code: ContractKeySchema.optional(),
+  reason: external_exports.string().min(1).max(2048).optional(),
+  truncated: external_exports.boolean().default(false)
+}).strict().superRefine((coverage, ctx) => {
+  if (coverage.status !== "complete" && !coverage.reason_code) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["reason_code"],
+      message: "partial and unavailable coverage require a reason_code"
+    });
+  }
+  if (coverage.status === "unavailable" && coverage.covered_contexts.length > 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["covered_contexts"],
+      message: "unavailable coverage cannot claim covered contexts"
+    });
+  }
+});
+var ContextProviderResultV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  candidates: external_exports.array(EvidenceCandidateV1Schema).max(1e3),
+  coverage: ContextProviderCoverageClaimV1Schema,
+  receipt: external_exports.object({
+    source_revision: external_exports.string().min(1).max(512).optional(),
+    credential_binding_id: ContractIdSchema.optional(),
+    cost_microunits: external_exports.number().int().nonnegative().optional()
+  }).strict().default({})
+}).strict();
+var CredentialBrokerInvocationV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  binding_id: ContractIdSchema,
+  operation_id: ContractKeySchema,
+  input: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var CredentialBrokerResultV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  status: external_exports.number().int().min(100).max(599),
+  content_type: external_exports.string().min(1).max(256).optional(),
+  body: external_exports.string(),
+  truncated: external_exports.boolean().default(false),
+  receipt_id: ContractIdSchema,
+  source_revision: external_exports.string().min(1).max(512).optional()
+}).strict();
+
+// packages/shared/dist/context-harness.js
+var HARNESS_ARTIFACT_KINDS = [
+  "markdown",
+  "document",
+  "skill",
+  "memory",
+  "schema",
+  "prompt",
+  "source",
+  "action",
+  "agent"
+];
+var HarnessArtifactRefV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  kind: external_exports.enum(HARNESS_ARTIFACT_KINDS),
+  id: ContractIdSchema,
+  context_ref: ContextReferenceV1Schema,
+  revision: external_exports.string().min(1).max(512),
+  title: external_exports.string().min(1).max(1024).optional(),
+  provider_id: ContractKeySchema.optional(),
+  canonical_uri: external_exports.string().url().max(4096).optional(),
+  content_hash: Sha256Schema.optional(),
+  media_type: external_exports.string().min(1).max(256).optional()
+}).strict();
+var HarnessGraphNodeV1Schema = external_exports.object({
+  id: ContractIdSchema,
+  artifact: HarnessArtifactRefV1Schema,
+  position: external_exports.object({ x: external_exports.number().finite(), y: external_exports.number().finite() }).strict().optional(),
+  collapsed: external_exports.boolean().default(false),
+  configuration: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var HARNESS_EDGE_TYPES = [
+  "contains",
+  "references",
+  "grounds",
+  "produces",
+  "consumes",
+  "invokes",
+  "delegates_to",
+  "depends_on",
+  "supersedes",
+  "answers",
+  "decides"
+];
+var HarnessGraphEdgeV1Schema = external_exports.object({
+  id: ContractIdSchema,
+  type: external_exports.enum(HARNESS_EDGE_TYPES),
+  from_node_id: ContractIdSchema,
+  to_node_id: ContractIdSchema,
+  label: external_exports.string().min(1).max(256).optional(),
+  configuration: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var HarnessGraphV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  revision: external_exports.string().min(1).max(512),
+  manifest: ContextManifestV1Schema,
+  nodes: external_exports.array(HarnessGraphNodeV1Schema).max(1e4),
+  edges: external_exports.array(HarnessGraphEdgeV1Schema).max(5e4),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict().superRefine((graph, ctx) => {
+  const nodeIds = /* @__PURE__ */ new Set();
+  graph.nodes.forEach((node, index) => {
+    if (nodeIds.has(node.id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["nodes", index, "id"],
+        message: `duplicate graph node id ${node.id}`
+      });
+    }
+    nodeIds.add(node.id);
+  });
+  const edgeIds = /* @__PURE__ */ new Set();
+  graph.edges.forEach((edge, index) => {
+    if (edgeIds.has(edge.id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["edges", index, "id"],
+        message: `duplicate graph edge id ${edge.id}`
+      });
+    }
+    edgeIds.add(edge.id);
+    if (!nodeIds.has(edge.from_node_id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["edges", index, "from_node_id"],
+        message: `unknown graph node ${edge.from_node_id}`
+      });
+    }
+    if (!nodeIds.has(edge.to_node_id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["edges", index, "to_node_id"],
+        message: `unknown graph node ${edge.to_node_id}`
+      });
+    }
+  });
+});
+var HarnessCompileRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  request_id: ContractIdSchema,
+  principal: ExecutionPrincipalV1Schema,
+  graph: HarnessGraphV1Schema,
+  requested_kinds: external_exports.array(ContractKeySchema).max(128).default([]),
+  provider_ids: external_exports.array(ContractKeySchema).max(64).default([]),
+  max_tokens: external_exports.number().int().min(256).max(1e6).optional()
+}).strict();
+var HarnessCompileResultV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  compile_id: Sha256Schema,
+  graph_id: ContractIdSchema,
+  graph_revision: external_exports.string().min(1).max(512),
+  graph_hash: Sha256Schema,
+  manifest_hash: Sha256Schema,
+  compiled_at: IsoDateSchema,
+  artifacts: external_exports.array(
+    external_exports.object({
+      node_id: ContractIdSchema,
+      artifact: HarnessArtifactRefV1Schema,
+      status: external_exports.enum(["ready", "stale", "unavailable", "unauthorized"]),
+      reason: external_exports.string().min(1).max(2048).optional()
+    }).strict()
+  ),
+  warnings: external_exports.array(external_exports.string().min(1).max(2048)).max(256).default([]),
+  bundle: ContextBundleV1Schema.optional()
+}).strict().superRefine((result, ctx) => {
+  if (result.bundle && result.bundle.manifest_hash !== result.manifest_hash) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["bundle", "manifest_hash"],
+      message: "compiled bundle manifest_hash must match compile result"
+    });
+  }
+});
+var HandoffLiveReferenceV1Schema = external_exports.object({
+  context_ref: ContextReferenceV1Schema,
+  permissions: external_exports.array(external_exports.enum(["read", "comment", "write", "execute", "delegate"])).min(1).max(5),
+  refresh_policy: external_exports.enum(["never", "on_open", "on_demand"])
+}).strict();
+var AgentHandoffEnvelopeV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  handoff_id: ContractIdSchema,
+  created_at: IsoDateSchema,
+  expires_at: IsoDateSchema.optional(),
+  from: ExecutionActorV1Schema,
+  to: external_exports.object({
+    agent_id: ContractIdSchema.optional(),
+    agent_kind: ContractKeySchema
+  }).strict(),
+  task: external_exports.string().min(1).max(16e3),
+  /** Immutable evidence delivered to the receiving agent. */
+  frozen_bundle: ContextBundleV1Schema,
+  resolver_audit_id: ContractIdSchema,
+  manifest_hash: Sha256Schema,
+  /** Explicitly refreshable objects; never implied by the frozen bundle. */
+  live_refs: external_exports.array(HandoffLiveReferenceV1Schema).max(128).default([]),
+  permissions: external_exports.object({
+    scopes: external_exports.array(ContractKeySchema).max(256),
+    provider_ids: external_exports.array(ContractKeySchema).max(128).default([]),
+    action_ids: external_exports.array(ContractKeySchema).max(128).default([]),
+    may_refresh_bundle: external_exports.boolean().default(false),
+    may_delegate: external_exports.boolean().default(false)
+  }).strict()
+}).strict().superRefine((handoff, ctx) => {
+  if (handoff.frozen_bundle.manifest_hash !== handoff.manifest_hash) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["manifest_hash"],
+      message: "handoff manifest_hash must match the frozen bundle"
+    });
+  }
+  if (handoff.frozen_bundle.resolver_audit_id && handoff.frozen_bundle.resolver_audit_id !== handoff.resolver_audit_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["resolver_audit_id"],
+      message: "handoff audit must match the frozen bundle audit"
+    });
+  }
+  const seen = /* @__PURE__ */ new Set();
+  handoff.live_refs.forEach((entry, index) => {
+    const key = contextReferenceKey(entry.context_ref);
+    if (seen.has(key)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["live_refs", index, "context_ref"],
+        message: `duplicate live reference ${key}`
+      });
+    }
+    seen.add(key);
+  });
+});
+
+// packages/shared/dist/context-ingest.js
+var IngestEnvelopeV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  event_id: ContractIdSchema,
+  idempotency_key: external_exports.string().min(1).max(1024),
+  operation: external_exports.enum(["upsert", "delete"]),
+  source: external_exports.object({
+    provider_id: ContractKeySchema,
+    tenant_id: ContractIdSchema,
+    collection_id: ContractIdSchema,
+    external_id: ContractIdSchema,
+    canonical_uri: external_exports.string().url().max(4096).optional(),
+    source_revision: external_exports.string().min(1).max(512).optional(),
+    occurred_at: IsoDateSchema.optional(),
+    observed_at: IsoDateSchema
+  }).strict(),
+  content: external_exports.object({
+    title: external_exports.string().min(1).max(1024),
+    media_type: external_exports.string().min(1).max(256),
+    body: external_exports.string().max(2e6).optional(),
+    content_hash: Sha256Schema.optional(),
+    language: external_exports.string().min(2).max(64).optional()
+  }).strict(),
+  provenance: external_exports.object({
+    author_external_id: ContractIdSchema.optional(),
+    author_display_name: external_exports.string().min(1).max(512).optional(),
+    locator: external_exports.string().min(1).max(4096).optional(),
+    rights: external_exports.string().min(1).max(512).optional()
+  }).strict().default({}),
+  security: EvidenceSecurityV1Schema,
+  context_refs: external_exports.array(ContextReferenceV1Schema).max(128).default([]),
+  cursor: external_exports.object({
+    stream: ContractIdSchema,
+    value: external_exports.string().min(1).max(4096)
+  }).strict().optional(),
+  attempt: external_exports.number().int().positive().default(1),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict().superRefine((envelope, ctx) => {
+  if (envelope.operation === "upsert") {
+    if (envelope.content.body === void 0) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["content", "body"],
+        message: "upsert events require content.body"
+      });
+    }
+    if (!envelope.content.content_hash) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["content", "content_hash"],
+        message: "upsert events require content.content_hash"
+      });
+    }
+  }
+});
+var IngestReceiptV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  event_id: ContractIdSchema,
+  idempotency_key: external_exports.string().min(1).max(1024),
+  status: external_exports.enum(["accepted", "duplicate", "indexed", "deleted", "rejected", "retry"]),
+  evidence_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  index_job_id: ContractIdSchema.optional(),
+  next_cursor: external_exports.string().min(1).max(4096).optional(),
+  error_code: ContractKeySchema.optional(),
+  error: external_exports.string().min(1).max(4096).optional(),
+  recorded_at: IsoDateSchema
+}).strict().superRefine((receipt, ctx) => {
+  if (["rejected", "retry"].includes(receipt.status) && !receipt.error_code) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["error_code"],
+      message: `${receipt.status} receipts require error_code`
+    });
+  }
+});
+
+// packages/shared/dist/context-action.js
+var ActionOperationV1Schema = external_exports.object({
+  description: external_exports.string().min(1).max(1024),
+  input_schema: external_exports.record(ContractJsonValueSchema),
+  output_schema: external_exports.record(ContractJsonValueSchema),
+  effect: external_exports.enum(["read", "internal_write", "external_write"]),
+  risk: external_exports.enum(["low", "medium", "high"]),
+  required_scopes: external_exports.array(ContractKeySchema).max(128).default([]),
+  approval: external_exports.enum(["none", "user", "admin"]),
+  idempotency: external_exports.enum(["required", "supported", "none"]),
+  allowed_context_types: external_exports.array(ContractKeySchema).min(1).max(64),
+  timeout_ms: external_exports.number().int().min(10).max(3e5).default(3e4),
+  max_cost_microunits: external_exports.number().int().nonnegative().optional()
+}).strict().superRefine((operation, ctx) => {
+  if (operation.effect !== "read" && operation.idempotency === "none") {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["idempotency"],
+      message: "write operations must support idempotency"
+    });
+  }
+});
+var ActionAdapterManifestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractKeySchema,
+  implementation_version: external_exports.string().min(1).max(128),
+  display_name: external_exports.string().min(1).max(128),
+  credential_binding_types: external_exports.array(ContractKeySchema).max(64).default([]),
+  operations: external_exports.record(ContractKeySchema, ActionOperationV1Schema)
+}).strict().refine((manifest) => Object.keys(manifest.operations).length > 0, {
+  path: ["operations"],
+  message: "an action adapter must declare at least one operation"
+});
+var ActionPrepareRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  request_id: ContractIdSchema,
+  principal: ExecutionPrincipalV1Schema,
+  context_manifest: ContextManifestV1Schema,
+  context_manifest_hash: Sha256Schema,
+  action_id: ContractIdSchema,
+  /** Immutable document/version identifier selected during preparation. */
+  action_revision: ContractIdSchema,
+  /** Canonical hash of the validated Action metadata at preparation time. */
+  action_metadata_hash: Sha256Schema,
+  adapter_id: ContractKeySchema,
+  operation: ContractKeySchema,
+  input: ContractJsonValueSchema,
+  idempotency_key: external_exports.string().min(1).max(1024).optional(),
+  credential_binding_id: ContractIdSchema.optional()
+}).strict();
+var PreparedActionV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  plan_id: Sha256Schema,
+  adapter_id: ContractKeySchema,
+  adapter_version: external_exports.string().min(1).max(128),
+  operation: ContractKeySchema,
+  account_id: external_exports.string().uuid(),
+  action_id: ContractIdSchema,
+  action_revision: ContractIdSchema,
+  action_metadata_hash: Sha256Schema,
+  project_id: ContractIdSchema.optional(),
+  thought_id: ContractIdSchema.optional(),
+  context_manifest_hash: Sha256Schema,
+  input: ContractJsonValueSchema,
+  input_hash: Sha256Schema,
+  idempotency_key: external_exports.string().min(1).max(1024).optional(),
+  credential_binding_id: ContractIdSchema.optional(),
+  effect: external_exports.enum(["read", "internal_write", "external_write"]),
+  risk: external_exports.enum(["low", "medium", "high"]),
+  approval: external_exports.object({
+    state: external_exports.enum(["not_required", "required", "approved"]),
+    approved_by: ContractIdSchema.optional(),
+    approved_at: IsoDateSchema.optional(),
+    policy_revision: external_exports.string().min(1).max(256)
+  }).strict(),
+  preview: external_exports.string().min(1).max(16e3),
+  prepared_at: IsoDateSchema,
+  expires_at: IsoDateSchema
+}).strict().superRefine((prepared, ctx) => {
+  if (prepared.approval.state === "approved") {
+    if (!prepared.approval.approved_by || !prepared.approval.approved_at) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["approval"],
+        message: "approved actions require approved_by and approved_at"
+      });
+    }
+  }
+});
+var ActionApprovalV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  execution_id: ContractIdSchema,
+  plan_id: Sha256Schema,
+  decision: external_exports.enum(["approved", "rejected"]),
+  approved_by: ContractIdSchema,
+  approved_at: IsoDateSchema,
+  context_manifest_hash: Sha256Schema,
+  action_revision: ContractIdSchema,
+  action_metadata_hash: Sha256Schema,
+  adapter_version: external_exports.string().min(1).max(128),
+  policy_revision: external_exports.string().min(1).max(256)
+}).strict();
+var ActionReceiptV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  execution_id: ContractIdSchema,
+  plan_id: Sha256Schema,
+  adapter_id: ContractKeySchema,
+  adapter_version: external_exports.string().min(1).max(128),
+  operation: ContractKeySchema,
+  status: external_exports.enum(["succeeded", "failed", "indeterminate", "compensated"]),
+  started_at: IsoDateSchema,
+  completed_at: IsoDateSchema,
+  attempts: external_exports.number().int().positive(),
+  /** Durable audit event inserted in the same transaction as reservation. */
+  pre_effect_audit_id: ContractIdSchema,
+  /** True when an idempotent retry returned the stored receipt. */
+  replayed: external_exports.boolean().default(false),
+  output: ContractJsonValueSchema.optional(),
+  output_hash: Sha256Schema.optional(),
+  effects: external_exports.array(
+    external_exports.object({
+      type: ContractKeySchema,
+      external_id: ContractIdSchema.optional(),
+      canonical_uri: external_exports.string().url().max(4096).optional(),
+      reversible: external_exports.boolean()
+    }).strict()
+  ).max(1e3).default([]),
+  evidence_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  error_code: ContractKeySchema.optional(),
+  error: external_exports.string().min(1).max(4096).optional()
+}).strict().superRefine((receipt, ctx) => {
+  if (receipt.status !== "succeeded" && receipt.status !== "compensated" && !receipt.error_code) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["error_code"],
+      message: `${receipt.status} receipts require error_code`
+    });
+  }
+});
+
+// packages/shared/dist/context-host.js
+var HostContextV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  host_kind: ContractKeySchema,
+  host_instance_id: ContractIdSchema,
+  client_version: external_exports.string().min(1).max(128).optional(),
+  session_id: ContractIdSchema,
+  cwd: external_exports.string().min(1).max(4096).optional(),
+  git_remote: external_exports.string().min(1).max(1024).optional(),
+  git_branch: external_exports.string().min(1).max(512).optional(),
+  workspace_fingerprint: Sha256Schema.optional(),
+  capabilities: external_exports.array(
+    external_exports.object({
+      name: ContractKeySchema,
+      state: external_exports.enum(["enabled", "limited", "blocked"]),
+      source: external_exports.enum(["enforced", "reported", "derived"]),
+      scope: external_exports.string().min(1).max(512).optional()
+    }).strict()
+  ).max(256).default([])
+}).strict();
+var HostHookEnvelopeV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  event_id: ContractIdSchema,
+  event: external_exports.enum(["session_start", "user_prompt_submit", "pre_tool_use", "post_tool_use", "stop"]),
+  occurred_at: IsoDateSchema,
+  host: HostContextV1Schema,
+  /** Required once a context has been selected; protects late delivery. */
+  context_manifest_hash: Sha256Schema.optional(),
+  payload: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var HostDeliveryCapabilitiesV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  modes: external_exports.array(external_exports.enum(["inline", "bundle_handle", "mcp_resource"])).min(1).max(3),
+  max_inline_bytes: external_exports.number().int().min(1).max(1e7),
+  supports_manifest_invalidation: external_exports.boolean(),
+  supports_structured_citations: external_exports.boolean()
+}).strict();
+var HostContextDeliveryV1Schema = external_exports.object({
+  manifest_hash: Sha256Schema,
+  bundle_id: Sha256Schema.optional(),
+  inline_markdown: external_exports.string().max(1e7).optional(),
+  resource_uri: external_exports.string().min(1).max(4096).optional()
+}).strict();
+
+// packages/shared/dist/context-training.js
+var TrainingConsentV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  account_id: external_exports.string().uuid(),
+  user_id: external_exports.string().uuid(),
+  status: external_exports.enum(["granted", "revoked", "expired"]),
+  purposes: external_exports.array(external_exports.enum(["personalization", "evaluation", "personal_fine_tuning"])).min(1).max(3),
+  provider_ids: external_exports.array(ContractKeySchema).max(64).default([]),
+  granted_at: IsoDateSchema,
+  expires_at: IsoDateSchema.optional(),
+  revoked_at: IsoDateSchema.optional()
+}).strict().superRefine((consent, ctx) => {
+  if (consent.status === "revoked" && !consent.revoked_at) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["revoked_at"],
+      message: "revoked consent requires revoked_at"
+    });
+  }
+});
+var TrainingExampleV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  account_id: external_exports.string().uuid(),
+  owner_user_id: external_exports.string().uuid(),
+  consent_id: ContractIdSchema,
+  source: external_exports.enum(["explicit_save", "accepted_feedback"]),
+  created_at: IsoDateSchema,
+  input: external_exports.string().min(1).max(2e5),
+  preferred_output: external_exports.string().min(1).max(2e5),
+  context_manifest_hash: Sha256Schema,
+  resolver_audit_id: ContractIdSchema,
+  evidence_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  model_id: external_exports.string().min(1).max(256).optional(),
+  presentation_profile_version: external_exports.string().min(1).max(256).optional(),
+  labels: external_exports.array(ContractKeySchema).max(128).default([]),
+  redaction_state: external_exports.enum(["not_needed", "redacted", "review_required"]),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var TrainingJobRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  account_id: external_exports.string().uuid(),
+  owner_user_id: external_exports.string().uuid(),
+  consent_id: ContractIdSchema,
+  purpose: external_exports.enum(["evaluation", "personal_fine_tuning"]),
+  provider_id: ContractKeySchema,
+  base_model_id: external_exports.string().min(1).max(256),
+  example_ids: external_exports.array(ContractIdSchema).min(1).max(1e5),
+  evaluation_suite_id: ContractIdSchema,
+  requested_at: IsoDateSchema
+}).strict();
+var TrainingJobResultV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  job_id: ContractIdSchema,
+  status: external_exports.enum(["queued", "running", "passed", "failed", "cancelled"]),
+  provider_job_id: ContractIdSchema.optional(),
+  model_id: external_exports.string().min(1).max(256).optional(),
+  evaluation_passed: external_exports.boolean().optional(),
+  metrics: external_exports.record(external_exports.number().finite()).default({}),
+  error_code: ContractKeySchema.optional(),
+  error: external_exports.string().min(1).max(4096).optional(),
+  updated_at: IsoDateSchema
+}).strict();
+
+// packages/shared/dist/resource-evidence.js
+var RESOURCE_KINDS = [
+  "markdown",
+  "text",
+  "webpage",
+  "youtube",
+  "pdf",
+  "document",
+  "image",
+  "audio",
+  "video",
+  "jira",
+  "slack",
+  "github",
+  "code",
+  "dataset"
+];
+var ResourceKindV1Schema = external_exports.enum(RESOURCE_KINDS);
+var WholeResourceLocatorV1Schema = external_exports.object({ kind: external_exports.literal("whole") }).strict();
+var LineResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("line"),
+  start_line: external_exports.number().int().positive(),
+  end_line: external_exports.number().int().positive()
+}).strict().refine((value) => value.end_line >= value.start_line, {
+  message: "end_line must be greater than or equal to start_line",
+  path: ["end_line"]
+});
+var PageResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("page"),
+  page: external_exports.number().int().positive(),
+  start_offset: external_exports.number().int().nonnegative().optional(),
+  end_offset: external_exports.number().int().nonnegative().optional()
+}).strict().refine(
+  (value) => value.start_offset === void 0 || value.end_offset === void 0 || value.end_offset >= value.start_offset,
+  {
+    message: "end_offset must be greater than or equal to start_offset",
+    path: ["end_offset"]
+  }
+);
+var TimeResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("time"),
+  start_ms: external_exports.number().int().nonnegative(),
+  end_ms: external_exports.number().int().nonnegative()
+}).strict().refine((value) => value.end_ms >= value.start_ms, {
+  message: "end_ms must be greater than or equal to start_ms",
+  path: ["end_ms"]
+});
+var WebResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("web"),
+  url: external_exports.string().url().max(4096),
+  selector: external_exports.string().min(1).max(2048).optional(),
+  fragment: external_exports.string().min(1).max(2048).optional(),
+  text_quote: external_exports.string().min(1).max(2048).optional()
+}).strict().refine((value) => Boolean(value.selector || value.fragment || value.text_quote), {
+  message: "web locators require a selector, fragment, or text quote"
+});
+var RegionResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("region"),
+  page: external_exports.number().int().positive().optional(),
+  x: external_exports.number().finite(),
+  y: external_exports.number().finite(),
+  width: external_exports.number().finite().positive(),
+  height: external_exports.number().finite().positive()
+}).strict();
+var ExternalResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("external"),
+  provider: ContractKeySchema,
+  item_id: ContractIdSchema,
+  subpath: external_exports.string().min(1).max(2048).optional()
+}).strict();
+var ResourceLocatorV1Schema = external_exports.union([
+  WholeResourceLocatorV1Schema,
+  LineResourceLocatorV1Schema,
+  PageResourceLocatorV1Schema,
+  TimeResourceLocatorV1Schema,
+  WebResourceLocatorV1Schema,
+  RegionResourceLocatorV1Schema,
+  ExternalResourceLocatorV1Schema
+]);
+var ResourceIngestChunkV1Schema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ordinal: external_exports.number().int().min(0).max(2047),
+  content: external_exports.string().min(1).max(32e3),
+  excerpt: external_exports.string().min(1).max(2e3),
+  content_sha256: Sha256Schema,
+  locator: ResourceLocatorV1Schema,
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var ResourceIngestManifestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  ingest_id: ContractIdSchema,
+  account_id: external_exports.string().uuid(),
+  project_id: external_exports.string().uuid().nullable(),
+  resource_id: external_exports.string().uuid(),
+  owner_id: external_exports.string().uuid().nullable(),
+  scope: external_exports.enum(["private", "project", "team", "public"]),
+  kind: ResourceKindV1Schema,
+  title: external_exports.string().min(1).max(500),
+  canonical_uri: external_exports.string().url().max(4096).nullable(),
+  source_revision: external_exports.string().min(1).max(512),
+  mime_type: external_exports.string().min(1).max(256),
+  content: external_exports.string().max(2e6),
+  content_sha256: Sha256Schema,
+  byte_size: external_exports.number().int().nonnegative().max(1e8),
+  rights_basis: external_exports.string().min(1).max(512),
+  license: external_exports.string().min(1).max(512).nullable(),
+  provenance: external_exports.record(ContractJsonValueSchema),
+  storage_locator: external_exports.record(ContractJsonValueSchema).default({}),
+  observed_at: IsoDateSchema,
+  occurred_at: IsoDateSchema.nullable().default(null),
+  chunks: external_exports.array(ResourceIngestChunkV1Schema).min(1).max(2048)
+}).strict().superRefine((manifest, ctx) => {
+  if (manifest.scope === "project" && !manifest.project_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["project_id"],
+      message: "project-scoped resources require project_id"
+    });
+  }
+  if (manifest.scope === "private" && !manifest.owner_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["owner_id"],
+      message: "private resources require owner_id"
+    });
+  }
+  if (manifest.byte_size !== new TextEncoder().encode(manifest.content).byteLength) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["byte_size"],
+      message: "byte_size does not match normalized UTF-8 content"
+    });
+  }
+  const ids = /* @__PURE__ */ new Set();
+  const ordinals = /* @__PURE__ */ new Set();
+  manifest.chunks.forEach((chunk, index) => {
+    if (ids.has(chunk.id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["chunks", index, "id"],
+        message: "chunk ids must be unique"
+      });
+    }
+    if (ordinals.has(chunk.ordinal) || chunk.ordinal !== index) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["chunks", index, "ordinal"],
+        message: "chunk ordinals must be unique and contiguous from zero"
+      });
+    }
+    ids.add(chunk.id);
+    ordinals.add(chunk.ordinal);
+  });
+});
+var ResourceEvidenceSearchRowV1Schema = external_exports.object({
+  evidence_id: ContractIdSchema,
+  resource_id: external_exports.string().uuid(),
+  resource_version_id: external_exports.string().uuid(),
+  chunk_id: external_exports.string().uuid(),
+  context_type: external_exports.enum(["account", "project", "thought"]),
+  context_id: ContractIdSchema,
+  kind: ResourceKindV1Schema,
+  title: external_exports.string().min(1).max(1024),
+  content: external_exports.string().min(1).max(2e6),
+  source_revision: external_exports.string().min(1).max(512),
+  content_sha256: Sha256Schema,
+  canonical_uri: external_exports.string().url().max(4096).nullable(),
+  locator: ResourceLocatorV1Schema,
+  rights_basis: external_exports.string().min(1).max(512),
+  license: external_exports.string().min(1).max(512).nullable(),
+  observed_at: IsoDateSchema,
+  occurred_at: IsoDateSchema.nullable(),
+  authority: external_exports.enum(["provisional", "verified"]),
+  resource_status: external_exports.literal("active"),
+  version_status: external_exports.literal("active"),
+  audience: external_exports.enum(["private", "team", "room", "external", "public"]),
+  classification: external_exports.enum(["public", "internal", "confidential", "restricted"]),
+  authorized_principal_ids: external_exports.array(ContractIdSchema).max(500).default([]),
+  audience_context_id: ContractIdSchema.optional(),
+  acl_revision: external_exports.string().min(1).max(256).optional(),
+  embedding_profile_id: ContractIdSchema.optional(),
+  semantic_score: external_exports.number().finite().optional(),
+  lexical_score: external_exports.number().finite().optional(),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+
 // packages/sync-core/src/embeddings.ts
 var client = null;
 function getClient() {
@@ -60237,7 +61817,7 @@ var TOOLS = [
   },
   {
     name: "memlin_actions_list",
-    description: "List callable actions in this workspace \u2014 name, description, input_schema, implementation type, and the invoke URL. Use to discover what server-side functions an agent can call (e.g. 'ask_claude', 'github.search_issues', 'tavily_search'). Returns approved actions only. Pair with memlin_actions_execute (preferred, in-process) or POST to the invoke_url.",
+    description: "List approved Actions in this workspace, including each input schema and execution_mode. 'direct' is limited to AI/provider and registered read operations. 'prepare_required' changes external state and must use its prepare URL, human approval, then prepared execution. 'blocked' includes legacy raw HTTP Actions that must be migrated.",
     annotations: { readOnlyHint: true, destructiveHint: false },
     inputSchema: {
       type: "object",
@@ -60252,7 +61832,8 @@ var TOOLS = [
   },
   {
     name: "memlin_actions_execute",
-    description: "Invoke a callable action by id. Server-side: loads the action document, validates input against its input_schema, dispatches to the implementation (Anthropic provider_call, http to any URL, or connector like github.search_issues / hackernews.search), writes an audit row, and returns the result with provider/model/latency metadata. Get action ids from memlin_actions_list.",
+    description: "Invoke only a direct Action by id: an approved AI/provider call or a statically registered read-only connector. This tool refuses raw HTTP, metadata-selected environment credentials, and every state-changing connector. For execution_mode='prepare_required', use the Action Adapter prepare \u2192 human approval \u2192 prepared execution flow; one-step execution cannot bypass it.",
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     inputSchema: {
       type: "object",
       required: ["action_id", "input"],
@@ -60293,7 +61874,7 @@ var TOOLS = [
           enum: ["pending", "accepted", "completed", "cancelled"],
           description: "Lifecycle status. Defaults to pending."
         },
-        limit: { type: "number", minimum: 1, maximum: 50 }
+        limit: { type: "number", minimum: 1, maximum: 20 }
       }
     }
   },
@@ -60723,6 +62304,27 @@ var DEFAULT_TAGS = "story";
 var hackernewsSearch = {
   id: "hackernews.search",
   description: "Search Hacker News (Algolia API, public, no auth).",
+  manifest: {
+    version: 1,
+    id: "hackernews.search",
+    implementation_version: "1.0.0",
+    display_name: "Hacker News search",
+    credential_binding_types: [],
+    operations: {
+      invoke: {
+        description: "Search public Hacker News stories without changing external state.",
+        input_schema: { type: "object" },
+        output_schema: { type: "object" },
+        effect: "read",
+        risk: "low",
+        required_scopes: [],
+        approval: "none",
+        idempotency: "none",
+        allowed_context_types: ["account", "project", "thought"],
+        timeout_ms: 3e4
+      }
+    }
+  },
   validateConfig(config2) {
     const hits = config2.hits;
     if (hits !== void 0) {
@@ -60775,7 +62377,28 @@ var DEFAULT_TOKEN_ENV = "GITHUB_TOKEN";
 var VALID_SORTS = ["created", "updated", "comments"];
 var githubSearchIssues = {
   id: "github.search_issues",
-  description: "Search GitHub issues + PRs by query (requires PAT).",
+  description: "Search GitHub issues + PRs by query (read only).",
+  manifest: {
+    version: 1,
+    id: "github.search_issues",
+    implementation_version: "1.1.0",
+    display_name: "GitHub issue search",
+    credential_binding_types: [],
+    operations: {
+      invoke: {
+        description: "Search GitHub issues and pull requests without changing external state.",
+        input_schema: { type: "object" },
+        output_schema: { type: "object" },
+        effect: "read",
+        risk: "low",
+        required_scopes: [],
+        approval: "none",
+        idempotency: "none",
+        allowed_context_types: ["account", "project", "thought"],
+        timeout_ms: 3e4
+      }
+    }
+  },
   validateConfig(config2) {
     const pp = config2.per_page;
     if (pp !== void 0) {
@@ -60791,13 +62414,10 @@ var githubSearchIssues = {
         `config.sort must be one of ${VALID_SORTS.join("|")} (got ${JSON.stringify(sort)})`
       );
     }
-    const tokenEnv = config2.token_env;
-    if (tokenEnv !== void 0) {
-      if (typeof tokenEnv !== "string" || !/^[A-Z_][A-Z0-9_]*$/.test(tokenEnv)) {
-        throw new Error(
-          `config.token_env must be SCREAMING_SNAKE_CASE (got ${JSON.stringify(tokenEnv)})`
-        );
-      }
+    if ("token_env" in config2) {
+      throw new Error(
+        "config.token_env is disabled. Action metadata cannot select server credentials; migrate to an opaque GitHub credential binding."
+      );
     }
   },
   async invoke({ config: config2, input }) {
@@ -60807,10 +62427,9 @@ var githubSearchIssues = {
     }
     const perPage = config2.per_page ?? DEFAULT_PER_PAGE;
     const sort = config2.sort;
-    const tokenEnv = config2.token_env ?? DEFAULT_TOKEN_ENV;
-    const token = process3.env[tokenEnv];
+    const token = process3.env[DEFAULT_TOKEN_ENV];
     if (!token) {
-      throw new Error(`token env var '${tokenEnv}' is not set`);
+      throw new Error("the server-managed GitHub read credential is unavailable");
     }
     const url = new URL(SEARCH_URL);
     url.searchParams.set("q", q2);
@@ -60845,11 +62464,161 @@ var githubSearchIssues = {
   }
 };
 
+// packages/actions-engine/src/connectors/jira-create-issue.ts
+var PROJECT_KEY = /^[A-Z][A-Z0-9_]{0,39}$/;
+var LABEL = /^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$/;
+var MAX_DESCRIPTION = 12e3;
+function parseJiraCreateIssueConfig(config2) {
+  const unknown2 = Object.keys(config2).filter(
+    (key) => key !== "jira_project_key" && key !== "issue_type"
+  );
+  if (unknown2.length > 0) {
+    throw new Error(`unsupported Jira config field: ${unknown2[0]}`);
+  }
+  const projectKey = typeof config2.jira_project_key === "string" ? config2.jira_project_key.trim() : "";
+  if (!PROJECT_KEY.test(projectKey)) {
+    throw new Error("config.jira_project_key must be an uppercase Jira project key");
+  }
+  const issueType = typeof config2.issue_type === "string" ? config2.issue_type.trim() : "Task";
+  if (!issueType || issueType.length > 80 || /[\u0000-\u001f\u007f]/.test(issueType)) {
+    throw new Error("config.issue_type must be a plain Jira issue type up to 80 characters");
+  }
+  return { jiraProjectKey: projectKey, issueType };
+}
+function parseJiraCreateIssueInput(input) {
+  const unknown2 = Object.keys(input).filter(
+    (key) => key !== "summary" && key !== "description" && key !== "labels"
+  );
+  if (unknown2.length > 0) throw new Error(`unsupported Jira input field: ${unknown2[0]}`);
+  const summary = typeof input.summary === "string" ? input.summary.trim() : "";
+  if (!summary || summary.length > 255 || /[\u0000-\u001f\u007f]/.test(summary)) {
+    throw new Error("input.summary must be plain text between 1 and 255 characters");
+  }
+  const description = typeof input.description === "string" && input.description.trim() ? input.description.trim() : null;
+  if (description && description.length > MAX_DESCRIPTION) {
+    throw new Error(`input.description must be at most ${MAX_DESCRIPTION} characters`);
+  }
+  const labels = input.labels === void 0 ? [] : input.labels;
+  if (!Array.isArray(labels) || labels.length > 20 || labels.some((label) => typeof label !== "string")) {
+    throw new Error("input.labels must be an array of at most 20 strings");
+  }
+  const normalizedLabels = [...new Set(labels.map((label) => String(label).trim()))];
+  if (normalizedLabels.some((label) => !LABEL.test(label))) {
+    throw new Error("input.labels contains an invalid Jira label");
+  }
+  return { summary, description, labels: normalizedLabels };
+}
+var jiraCreateIssue = {
+  id: "jira.create_issue",
+  description: "Create one Jira Cloud issue from an explicitly approved Memlin Action.",
+  manifest: {
+    version: 1,
+    id: "jira.create_issue",
+    implementation_version: "1.0.0",
+    display_name: "Create Jira issue",
+    credential_binding_types: ["jira.oauth.connection"],
+    operations: {
+      invoke: {
+        description: "Create one issue in the Jira project bound to this Memlin Project.",
+        input_schema: {
+          type: "object",
+          required: ["summary"],
+          properties: {
+            summary: { type: "string" },
+            description: { type: "string" },
+            labels: { type: "array" }
+          }
+        },
+        output_schema: { type: "object" },
+        effect: "external_write",
+        risk: "medium",
+        required_scopes: ["write:jira-work"],
+        approval: "user",
+        idempotency: "required",
+        allowed_context_types: ["project", "thought"],
+        timeout_ms: 3e4
+      }
+    }
+  },
+  validateConfig(config2) {
+    parseJiraCreateIssueConfig(config2);
+  },
+  async invoke({ config: config2, input, credentialBindingId, execution, services }) {
+    const parsedConfig = parseJiraCreateIssueConfig(config2);
+    const parsedInput = parseJiraCreateIssueInput(input);
+    if (!credentialBindingId || !execution?.projectId) {
+      throw new ConnectorInvocationError(
+        "jira_binding_unavailable",
+        "Jira issue creation requires a Project-scoped opaque connection binding."
+      );
+    }
+    if (!services?.jira) {
+      throw new ConnectorInvocationError(
+        "jira_runtime_unavailable",
+        "The Jira write runtime is not available on this host."
+      );
+    }
+    const created = await services.jira.createIssue({
+      accountId: execution.accountId,
+      actorUserId: execution.actorUserId,
+      executionId: execution.executionId,
+      planId: execution.planId,
+      actionId: execution.actionId,
+      actionRevision: execution.actionRevision,
+      projectId: execution.projectId,
+      thoughtId: execution.thoughtId,
+      thoughtRevision: execution.thoughtRevision,
+      contextManifestHash: execution.contextManifestHash,
+      credentialBindingId,
+      jiraProjectKey: parsedConfig.jiraProjectKey,
+      issueType: parsedConfig.issueType,
+      summary: parsedInput.summary,
+      description: parsedInput.description,
+      labels: parsedInput.labels
+    });
+    const receiptOutput = {
+      issue_id: created.issueId,
+      issue_key: created.issueKey,
+      url: created.canonicalUri,
+      action_id: execution.actionId,
+      action_revision: execution.actionRevision,
+      thought_id: execution.thoughtId,
+      thought_revision: execution.thoughtRevision,
+      plan_id: execution.planId
+    };
+    return {
+      output: JSON.stringify(receiptOutput),
+      receiptOutput,
+      effects: [
+        {
+          type: "jira.issue.created",
+          external_id: created.issueKey,
+          canonical_uri: created.canonicalUri,
+          reversible: false
+        }
+      ]
+    };
+  }
+};
+
 // packages/actions-engine/src/connectors/index.ts
-var CONNECTORS = [githubSearchIssues, hackernewsSearch];
+var ConnectorInvocationError = class extends Error {
+  safeCode;
+  outcome;
+  constructor(safeCode, message, outcome = "failed") {
+    super(message);
+    this.name = "ConnectorInvocationError";
+    this.safeCode = safeCode;
+    this.outcome = outcome;
+  }
+};
+var CONNECTORS = [githubSearchIssues, hackernewsSearch, jiraCreateIssue];
 var REGISTRY = new Map(CONNECTORS.map((c2) => [c2.id, c2]));
 function getConnector(id) {
   return REGISTRY.get(id) ?? null;
+}
+function getConnectorOperation(connector, operation = "invoke") {
+  return connector.manifest.operations[operation] ?? null;
 }
 
 // packages/actions-engine/src/execute.ts
@@ -60917,6 +62686,32 @@ async function executeAction(args) {
       "invalid_input",
       inputValidation.errors
     );
+  }
+  if (parsed.ok.implementation.type === "http") {
+    throw new ActionExecuteError(
+      LEGACY_RAW_HTTP_MIGRATION_MESSAGE,
+      "unsafe_legacy_action"
+    );
+  }
+  if (parsed.ok.implementation.type === "connector") {
+    const impl = parsed.ok.implementation;
+    const connector = getConnector(impl.connector_id);
+    if (!connector) {
+      throw new ActionExecuteError(
+        `Connector '${impl.connector_id}' is not registered. Migrate this Action to a statically registered Action Adapter.`,
+        "malformed_metadata"
+      );
+    }
+    assertNoAmbientCredentialSelection(impl.config ?? {});
+    const operationName = impl.operation ?? "invoke";
+    const operation = getConnectorOperation(connector, operationName);
+    if (!operation) {
+      throw new ActionExecuteError(
+        `Connector '${impl.connector_id}' does not register operation '${operationName}'.`,
+        "malformed_metadata"
+      );
+    }
+    assertConnectorMayExecuteDirect(connector, operationName, parsed.ok.name);
   }
   let executionMetadata = parsed.ok;
   let resolvedModel = null;
@@ -61090,7 +62885,7 @@ async function dispatch(metadata, input, opts) {
     case "provider_call":
       return dispatchProviderCall(impl, input, opts);
     case "http":
-      return dispatchHttp(impl, input);
+      throw new ActionExecuteError(LEGACY_RAW_HTTP_MIGRATION_MESSAGE, "unsafe_legacy_action");
     case "connector":
       return dispatchConnector(impl, input);
     default: {
@@ -61217,75 +63012,6 @@ async function dispatchProviderCall(impl, input, opts) {
   }
   throw new ActionExecuteError(`unsupported provider: ${impl.provider}`, "malformed_metadata");
 }
-var HTTP_DEFAULT_METHOD = "GET";
-var HTTP_DEFAULT_MAX_BYTES = 16 * 1024;
-var HTTP_TIMEOUT_MS = 3e4;
-async function dispatchHttp(impl, input) {
-  if (!/^https?:\/\//i.test(impl.url)) {
-    throw new ActionExecuteError(
-      `http action url must be http:// or https:// (got ${impl.url.slice(0, 24)}\u2026)`,
-      "malformed_metadata"
-    );
-  }
-  const method = impl.method ?? HTTP_DEFAULT_METHOD;
-  const maxBytes = impl.max_response_bytes ?? HTTP_DEFAULT_MAX_BYTES;
-  const headers = new Headers(impl.headers ?? {});
-  const auth = impl.auth ?? { type: "none" };
-  if (auth.type === "bearer") {
-    const token = process4.env[auth.token_env];
-    if (!token) {
-      throw new ActionExecuteError(
-        `auth.bearer token env var '${auth.token_env}' is not set`,
-        "provider_unavailable"
-      );
-    }
-    headers.set("Authorization", `Bearer ${token}`);
-  } else if (auth.type === "api_key") {
-    const token = process4.env[auth.token_env];
-    if (!token) {
-      throw new ActionExecuteError(
-        `auth.api_key token env var '${auth.token_env}' is not set`,
-        "provider_unavailable"
-      );
-    }
-    headers.set(auth.header_name, token);
-  }
-  let body;
-  if (method === "POST" || method === "PUT" || method === "PATCH") {
-    body = impl.body_template ? renderPromptTemplate(impl.body_template, input) : "";
-  }
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS);
-  let res;
-  try {
-    res = await fetch(impl.url, {
-      method,
-      headers,
-      body,
-      signal: controller.signal
-    });
-  } catch (e2) {
-    clearTimeout(timeoutId);
-    if (e2 instanceof Error && e2.name === "AbortError") {
-      throw new ActionExecuteError(
-        `http action timed out after ${HTTP_TIMEOUT_MS}ms`,
-        "provider_error"
-      );
-    }
-    throw new ActionExecuteError(
-      `http action fetch failed: ${e2 instanceof Error ? e2.message : String(e2)}`,
-      "provider_error"
-    );
-  }
-  clearTimeout(timeoutId);
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new ActionExecuteError(`http ${res.status}: ${txt.slice(0, 200)}`, "provider_error");
-  }
-  const raw = await res.text();
-  const output = raw.length > maxBytes ? raw.slice(0, maxBytes) + "\n[\u2026truncated]" : raw;
-  return { output };
-}
 async function dispatchConnector(impl, input) {
   const connector = getConnector(impl.connector_id);
   if (!connector) {
@@ -61306,7 +63032,11 @@ async function dispatchConnector(impl, input) {
     }
   }
   try {
-    const result = await connector.invoke({ config: config2, input });
+    const result = await connector.invoke({
+      config: config2,
+      input,
+      ...impl.credential_binding_id ? { credentialBindingId: impl.credential_binding_id } : {}
+    });
     return { output: result.output };
   } catch (e2) {
     const msg = e2 instanceof Error ? e2.message : String(e2);
@@ -61314,6 +63044,30 @@ async function dispatchConnector(impl, input) {
       throw new ActionExecuteError(msg, "provider_unavailable");
     }
     throw new ActionExecuteError(msg, "provider_error");
+  }
+}
+function assertNoAmbientCredentialSelection(value, path20 = "config") {
+  const selectorPath = findAmbientCredentialSelectorPath(value, path20);
+  if (selectorPath) {
+    throw new ActionExecuteError(
+      `${selectorPath} is disabled. Use an opaque provider credential_binding_id; Action metadata cannot select environment variables.`,
+      "unsafe_legacy_action"
+    );
+  }
+}
+function assertConnectorMayExecuteDirect(connector, operationName = "invoke", actionName = connector.id) {
+  const operation = getConnectorOperation(connector, operationName);
+  if (!operation) {
+    throw new ActionExecuteError(
+      `Connector '${connector.id}' does not register operation '${operationName}'.`,
+      "malformed_metadata"
+    );
+  }
+  if (operation.effect !== "read") {
+    throw new ActionExecuteError(
+      `Action '${actionName}' changes state and cannot run in one step. Prepare it, obtain the required approval, then execute the prepared plan.`,
+      "preparation_required"
+    );
   }
 }
 function providerOf(impl) {
@@ -61326,6 +63080,12 @@ function modelOf(impl) {
   if (impl.type === "provider_call") return impl.model;
   return null;
 }
+
+// packages/actions-engine/src/prepared-execution.ts
+var PLAN_TTL_MS = 15 * 60 * 1e3;
+
+// packages/actions-engine/src/connectors/jira-action-runtime.ts
+var MAX_RESPONSE_BYTES = 64 * 1024;
 
 // packages/actions-engine/src/rerank/hosted-reranker.ts
 var HostedRerankResponseError = class extends Error {
@@ -61626,8 +63386,10 @@ function isMissingResolveCandidatesRpc(error2) {
 function isDirectResolverDocumentEligible(row, context, options2 = {}) {
   if (row.account_id !== context.accountId) return false;
   if (row.locked_to_owners !== false) return false;
+  if (context.audience === "public" || context.audience === "external") return false;
   const projectId = context.projectId ?? null;
   if (row.scope === "personal") {
+    if (context.audience && context.audience !== "private") return false;
     if (!context.userId || row.created_by !== context.userId) return false;
   } else if (row.scope === "project") {
     if (projectId && row.project_id !== projectId) return false;
@@ -62374,7 +64136,7 @@ async function attachWorkItemProposals(ctx, entries, projectId = ctx.projectId ?
         const rows = (data ?? []).filter(
           (row) => isDirectResolverDocumentEligible(
             row,
-            { accountId: ctx.accountId, userId: ctx.userId, projectId },
+            { accountId: ctx.accountId, userId: ctx.userId, projectId, audience: ctx.audience },
             {
               lifecycle: "proposed",
               projectAssociation: projectId ? "active-project" : "scope"
@@ -62422,7 +64184,8 @@ async function assembleDocsTouchingMyFiles(ctx, projectId, myDirs, excludeIds, a
     if (isDirectResolverDocumentEligible(row, {
       accountId: ctx.accountId,
       userId: ctx.userId,
-      projectId
+      projectId,
+      audience: ctx.audience
     }) && typeof row.id === "string" && typeof row.kind === "string") {
       visibleRowById.set(row.id, row);
     }
@@ -62523,7 +64286,8 @@ async function assembleDocsAuthoredBy(ctx, projectId, members, excludeIds, appli
     if (!isDirectResolverDocumentEligible(raw, {
       accountId: ctx.accountId,
       userId: ctx.userId,
-      projectId
+      projectId,
+      audience: ctx.audience
     }))
       continue;
     const version4 = Array.isArray(raw.document_versions) ? raw.document_versions[0] : raw.document_versions;
@@ -62650,7 +64414,7 @@ async function assembleClaimGuardrails(ctx, projectId) {
   for (const row of data ?? []) {
     if (!isDirectResolverDocumentEligible(
       row,
-      { accountId: ctx.accountId, userId: ctx.userId, projectId },
+      { accountId: ctx.accountId, userId: ctx.userId, projectId, audience: ctx.audience },
       { projectAssociation: "account-or-active-project", expectedKind: "memory" }
     )) {
       continue;
@@ -62700,7 +64464,7 @@ async function assemblePinned(ctx, projectId, agentKind2 = null, onTargetMismatc
     if (metadata.pinned !== true) continue;
     if (!isDirectResolverDocumentEligible(
       row,
-      { accountId: ctx.accountId, userId: ctx.userId, projectId },
+      { accountId: ctx.accountId, userId: ctx.userId, projectId, audience: ctx.audience },
       {
         projectAssociation: "account-or-active-project",
         expectedKind: ["skill", "memory", "goal", "schema", "decision"]
@@ -62757,7 +64521,7 @@ async function assembleSessionWorking(ctx, sessionId, projectId) {
     if (metadata.session_id !== sessionId) continue;
     if (!isDirectResolverDocumentEligible(
       row,
-      { accountId: ctx.accountId, userId: ctx.userId, projectId },
+      { accountId: ctx.accountId, userId: ctx.userId, projectId, audience: ctx.audience },
       {
         projectAssociation: "account-or-active-project",
         expectedKind: ["memory"]
@@ -62993,6 +64757,7 @@ function auditOmissionSample(omitted, cap = OMITTED_CANDIDATES_AUDIT_MAX) {
     "pinned_overflow",
     "agent_target_mismatch",
     "anti_example_match",
+    "provider_filtered",
     "budget_excluded",
     "marginal_value",
     "redundant_duplicate",
@@ -63026,6 +64791,17 @@ function auditOmissionSample(omitted, cap = OMITTED_CANDIDATES_AUDIT_MAX) {
     remaining -= take.length;
   }
   return bucketOrder.flatMap((key) => selected.get(key) ?? []).slice(0, cap);
+}
+function auditOmissionSampleForUsage(omitted, cap = OMITTED_CANDIDATES_AUDIT_MAX) {
+  return auditOmissionSample(omitted, cap).map(
+    (candidate) => candidate.kind === "source.evidence" ? {
+      ...candidate,
+      id: "provider-evidence-redacted",
+      title: "Private source evidence",
+      detail: `private source ${candidate.reason}`,
+      path: null
+    } : candidate
+  );
 }
 var EmbeddingUnavailableError = class extends Error {
   code = "EMBEDDING_UNAVAILABLE";
@@ -63261,6 +65037,36 @@ var KIND_WEIGHTS = {
   schema: 0.75,
   memory: 0.65
 };
+var SOURCE_EVIDENCE_WEIGHT = 0.65;
+function candidateKindWeight(kind2) {
+  return kind2 === "source.evidence" ? SOURCE_EVIDENCE_WEIGHT : KIND_WEIGHTS[kind2];
+}
+function boundedEvidenceScore(value) {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
+}
+function provisionalSourceRelevance(candidate) {
+  return Math.max(
+    0,
+    Math.min(
+      1,
+      boundedEvidenceScore(candidate.score.semantic) * 0.72 + boundedEvidenceScore(candidate.score.lexical) * 0.28 + boundedEvidenceScore(candidate.score.provider) * 0.05 + boundedEvidenceScore(candidate.score.freshness) * 0.03
+    )
+  );
+}
+function federatedCandidateId(candidate) {
+  return `provider:${createHash2("sha256").update(`${candidate.provider_id}\0${candidate.id}`).digest("hex")}`;
+}
+function assertFederatedHome(bundle, accountId, projectId) {
+  const expected = projectId ? { type: "project", id: projectId } : { type: "account", id: accountId };
+  for (const [label, ref] of [
+    ["home", bundle.manifest.home],
+    ["policy anchor", bundle.manifest.policy_anchor]
+  ]) {
+    if (ref.type !== expected.type || ref.id !== expected.id) {
+      throw new Error(`federated Context Bundle ${label} escaped the resolver scope`);
+    }
+  }
+}
 var MEMORY_TYPE_WEIGHTS = {
   correction: 1.3,
   preference: 1.1,
@@ -63381,17 +65187,24 @@ async function loadFitnessMultipliers(ctx, candidateIds, resolveTaskCategory) {
   }
   return multipliers;
 }
-async function hydrateCandidateBodies(ctx, candidateIds, functionBodyById, functionComponentById) {
+async function hydrateCandidateBodies(ctx, candidateIds, externalBodyById, externalComponentById) {
   const bodyMap = /* @__PURE__ */ new Map();
   const componentIdByDoc = /* @__PURE__ */ new Map();
   const rolesByDoc = /* @__PURE__ */ new Map();
   const componentScopedByDoc = /* @__PURE__ */ new Map();
   const canaryContentMap = /* @__PURE__ */ new Map();
-  if (candidateIds.length > 0) {
+  for (const [id, body] of externalBodyById) {
+    bodyMap.set(id, body);
+    componentIdByDoc.set(id, externalComponentById.get(id) ?? null);
+    rolesByDoc.set(id, []);
+    componentScopedByDoc.set(id, false);
+  }
+  const documentCandidateIds = candidateIds.filter((id) => !id.startsWith("provider:"));
+  if (documentCandidateIds.length > 0) {
     const { data: docRows, error: docErr } = await ctx.supabase.from("documents").select(
       `id, current_version_id, component_id, metadata,
          document_versions!documents_current_version_fk ( content )`
-    ).eq("account_id", ctx.accountId).eq("locked_to_owners", false).in("id", candidateIds);
+    ).eq("account_id", ctx.accountId).eq("locked_to_owners", false).in("id", documentCandidateIds);
     if (docErr) {
       console.warn(
         `[resolver] body fetch failed: ${docErr.message} \u2014 proceeding with empty bodies`
@@ -63412,14 +65225,6 @@ async function hydrateCandidateBodies(ctx, candidateIds, functionBodyById, funct
         componentScopedByDoc.set(r2.id, m2?.component_scoped === true);
         if (m2?.canary_version_id && typeof m2.canary_version_id === "string") {
           canaryVersionIds.push(m2.canary_version_id);
-        }
-      }
-      for (const [id, body] of functionBodyById) {
-        if (!bodyMap.has(id)) {
-          bodyMap.set(id, body);
-          componentIdByDoc.set(id, functionComponentById.get(id) ?? null);
-          rolesByDoc.set(id, []);
-          componentScopedByDoc.set(id, false);
         }
       }
       if (canaryVersionIds.length > 0) {
@@ -63779,7 +65584,7 @@ async function assembleRequiredCore(ctx, requiredChainIds, projectId, policyErro
     if (metadata.project_brain_role !== "overview") continue;
     if (!isDirectResolverDocumentEligible(
       row,
-      { accountId: ctx.accountId, userId: ctx.userId, projectId },
+      { accountId: ctx.accountId, userId: ctx.userId, projectId, audience: ctx.audience },
       { projectAssociation: "active-project", expectedKind: SEARCHABLE_KINDS }
     )) {
       continue;
@@ -63793,7 +65598,7 @@ async function assembleRequiredCore(ctx, requiredChainIds, projectId, policyErro
     if (!expected.has(String(row.id))) continue;
     if (!isDirectResolverDocumentEligible(
       row,
-      { accountId: ctx.accountId, userId: ctx.userId, projectId },
+      { accountId: ctx.accountId, userId: ctx.userId, projectId, audience: ctx.audience },
       {
         projectAssociation: "account-or-active-project",
         expectedKind: SEARCHABLE_KINDS
@@ -63891,7 +65696,7 @@ async function assembleArchitecture(ctx, projectId, component, componentNameById
       for (const d2 of schemaDocs ?? []) {
         if (!isDirectResolverDocumentEligible(
           d2,
-          { accountId: ctx.accountId, userId: ctx.userId, projectId },
+          { accountId: ctx.accountId, userId: ctx.userId, projectId, audience: ctx.audience },
           { projectAssociation: "active-project", expectedKind: "schema" }
         )) {
           continue;
@@ -64104,14 +65909,33 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const projectId = args.project_id ?? ctx.projectId ?? null;
   const governanceUserId = ctx.userId ?? null;
   const requestedKinds = args.kinds ? [...args.kinds] : [...SEARCHABLE_KINDS];
-  if (!ctx.embed) {
+  const providerOnly = audit.providerOnly === true;
+  const parsedLinkedProjectIds = external_exports.array(external_exports.string().uuid()).max(64).safeParse(audit.linkedProjectIds ?? []);
+  if (!parsedLinkedProjectIds.success) {
+    throw new Error("linked Project context ids are invalid");
+  }
+  const linkedProjectIds = [...new Set(parsedLinkedProjectIds.data)].sort();
+  if (linkedProjectIds.length > 0 && !audit.federatedContext) {
+    throw new Error("linked Project contexts require a federated Context Bundle");
+  }
+  if ((providerOnly || linkedProjectIds.length > 0) && (ctx.resolveV2DataPlane || args.resolve_id || args.request_hash)) {
+    throw new Error(
+      "provider-only and linked Project retrieval require a separate governed Context Engine resolve"
+    );
+  }
+  if (providerOnly && (!audit.federatedContext || requestedKinds.length !== 0)) {
+    throw new Error(
+      "provider-only resolve requires a federated Context Bundle and an explicit empty kinds list"
+    );
+  }
+  if (!ctx.embed && !providerOnly) {
     throw new EmbeddingUnavailableError(
       "resolver requires server-side embeddings; set OPENAI_API_KEY"
     );
   }
-  const prefetchedProjectBrain = projectBrainPolicyFromV2(ctx);
-  const projectTeamPromise = prefetchedProjectBrain ? Promise.resolve({ teamId: null, error: null }) : getProjectTeamId(ctx, projectId);
-  const projectBrainPolicyPromise = prefetchedProjectBrain ? Promise.resolve(prefetchedProjectBrain) : projectTeamPromise.then(
+  const prefetchedProjectBrain = providerOnly ? null : projectBrainPolicyFromV2(ctx);
+  const projectTeamPromise = providerOnly || prefetchedProjectBrain ? Promise.resolve({ teamId: null, error: null }) : getProjectTeamId(ctx, projectId);
+  const projectBrainPolicyPromise = providerOnly ? Promise.resolve(emptyProjectBrainPolicy()) : prefetchedProjectBrain ? Promise.resolve(prefetchedProjectBrain) : projectTeamPromise.then(
     (projectTeam) => loadProjectBrainPolicy(
       ctx,
       projectId,
@@ -64123,7 +65947,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   let customThresholds = null;
   let thresholdsMode = "default";
   let brandContextMode = "always";
-  const accountSettingsPromise = (async () => {
+  const accountSettingsPromise = providerOnly ? Promise.resolve({ accThresholds: null, accThresholdsErr: null }) : (async () => {
     if (ctx.resolveV2DataPlane) {
       return {
         accThresholds: {
@@ -64141,7 +65965,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     return { accThresholds: res.data, accThresholdsErr: res.error };
   })();
   const embeddingStartedAt = Date.now();
-  const embeddingPromise = ctx.embed(args.task).catch((e2) => {
+  const embeddingPromise = providerOnly ? Promise.resolve(null) : ctx.embed(args.task).catch(() => {
     throw new EmbeddingUnavailableError(
       "Semantic embedding was unavailable; useful hot context remains available."
     );
@@ -64165,7 +65989,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   if (accThresholds && accThresholds.brand_context_mode === "auto") {
     brandContextMode = "auto";
   }
-  const reactivationDone = audit.readOnly ? Promise.resolve() : maybeReactivateColdMatches(ctx, ctx.accountId, queryVec);
+  const reactivationDone = audit.readOnly || providerOnly || !queryVec ? Promise.resolve() : maybeReactivateColdMatches(ctx, ctx.accountId, queryVec);
   const corpusBudgetPromise = args.max_tokens === void 0 ? (() => {
     const startedAt = Date.now();
     return inferBudgetFromCorpus(ctx, queryVec).catch((e2) => {
@@ -64236,25 +66060,34 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     kindResults = await Promise.all(
       requestedKinds.map(async (kind2) => {
         const rpcName = useHybrid ? "search_documents_hybrid" : "search_documents";
-        const rpcArgs = {
-          p_account_id: ctx.accountId,
-          p_project_id: projectId,
-          p_query_embedding: queryVec,
-          p_kinds: [kind2],
-          p_scopes: null,
-          p_limit: kPerKind
-        };
-        if (useHybrid) {
-          rpcArgs.p_query_text = args.task;
-          rpcArgs.p_audit_query_preview = sanitizeAuditTask(args.task).task || null;
-          rpcArgs.p_include_background = args.deep === true;
-        }
-        const { data, error: error2 } = await ctx.supabase.rpc(rpcName, rpcArgs);
-        if (error2) {
-          console.warn(`[resolver] ${rpcName} failed for kind=${kind2}: ${error2.message}`);
-          return { kind: kind2, rows: [] };
-        }
-        const rows = data ?? [];
+        const searchProjectIds = kind2 === "memory" || kind2 === "decision" ? [.../* @__PURE__ */ new Set([projectId, ...linkedProjectIds])] : [projectId];
+        const projectRows = await Promise.all(
+          searchProjectIds.map(async (searchProjectId) => {
+            const rpcArgs = {
+              p_account_id: ctx.accountId,
+              p_project_id: searchProjectId,
+              p_query_embedding: queryVec,
+              p_kinds: [kind2],
+              p_scopes: null,
+              p_limit: kPerKind
+            };
+            if (useHybrid) {
+              rpcArgs.p_query_text = args.task;
+              rpcArgs.p_audit_query_preview = sanitizeAuditTask(args.task).task || null;
+              rpcArgs.p_include_background = args.deep === true;
+            }
+            const { data, error: error2 } = await ctx.supabase.rpc(rpcName, rpcArgs);
+            if (error2) {
+              if (searchProjectId && linkedProjectIds.includes(searchProjectId)) {
+                throw new Error(`${rpcName} failed for linked Project context`);
+              }
+              console.warn(`[resolver] ${rpcName} failed for kind=${kind2}: ${error2.message}`);
+              return [];
+            }
+            return data ?? [];
+          })
+        );
+        const rows = projectRows.flat();
         if (useHybrid) {
           for (const r2 of rows) {
             if (typeof r2.rrf_score === "number") {
@@ -64273,9 +66106,16 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
           const { data: titleData, error: titleErr } = await q2;
           if (!titleErr) {
             for (const r2 of titleData ?? []) {
+              const rowProjectId = typeof r2.project_id === "string" ? r2.project_id : null;
+              const eligibleProjectId = (kind2 === "memory" || kind2 === "decision") && rowProjectId && linkedProjectIds.includes(rowProjectId) ? rowProjectId : projectId;
               if (!isDirectResolverDocumentEligible(
                 r2,
-                { accountId: ctx.accountId, userId: ctx.userId, projectId },
+                {
+                  accountId: ctx.accountId,
+                  userId: ctx.userId,
+                  projectId: eligibleProjectId,
+                  audience: ctx.audience
+                },
                 { expectedKind: kind2 }
               )) {
                 continue;
@@ -64473,9 +66313,9 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
           if (visible && r2.status !== "archived") belowThresholdActiveIds.add(r2.id);
           continue;
         }
-        if (!expectedKind || ctx.serviceTokenId && !isDirectResolverDocumentEligible(
+        if (!expectedKind || (ctx.serviceTokenId || ctx.audience && ctx.audience !== "private") && !isDirectResolverDocumentEligible(
           r2,
-          { accountId: ctx.accountId, userId: ctx.userId, projectId },
+          { accountId: ctx.accountId, userId: ctx.userId, projectId, audience: ctx.audience },
           {
             expectedKind,
             projectAssociation: "account-or-active-project"
@@ -64708,7 +66548,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
           for (const row of replacementRows ?? []) {
             if (!isDirectResolverDocumentEligible(
               row,
-              { accountId: ctx.accountId, userId: ctx.userId, projectId },
+              { accountId: ctx.accountId, userId: ctx.userId, projectId, audience: ctx.audience },
               {
                 projectAssociation: "account-or-active-project",
                 expectedKind: ["memory", "skill"]
@@ -64773,6 +66613,84 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       }
     }
   }
+  let providerContextReceipt = null;
+  const federatedEvidenceByInternalId = /* @__PURE__ */ new Map();
+  if (audit.federatedContext) {
+    const supplied = await audit.federatedContext.bundle;
+    const verified = await verifyContextBundleV1(supplied, {
+      boundary: "provider_output",
+      expected_manifest_hash: audit.federatedContext.expectedManifestHash,
+      expected_account_id: ctx.accountId,
+      ...ctx.audience === "public" ? { expected_audience: { kind: "public", participant_ids: [] } } : ctx.audience === "private" && ctx.userId ? { expected_audience: { kind: "private", participant_ids: [ctx.userId] } } : {},
+      principal: audit.federatedContext.principal,
+      current_acl_revision: audit.federatedContext.currentAclRevision,
+      expected_contexts: contextReferencesFromManifestV1(supplied.manifest)
+    });
+    if (verified.stage !== "retrieved") {
+      throw new Error("federated Context Bundle must be a retrieval-stage bundle");
+    }
+    if (verified.query !== args.task) {
+      throw new Error("federated Context Bundle query does not match the resolver task");
+    }
+    assertFederatedHome(verified, ctx.accountId, projectId);
+    const manifestLinkedProjectIds = [
+      ...new Set(
+        verified.manifest.linked_contexts.filter((context) => context.type === "project" && context.id !== projectId).map((context) => context.id)
+      )
+    ].sort();
+    if (canonicalJsonStringify(manifestLinkedProjectIds) !== canonicalJsonStringify(linkedProjectIds)) {
+      throw new Error("linked Project retrieval escaped the verified Context Manifest");
+    }
+    providerContextReceipt = {
+      retrieved_bundle_id: verified.bundle_id,
+      manifest_hash: verified.manifest_hash,
+      coverage: verified.coverage,
+      receipts: verified.receipts,
+      omissions: [...verified.omissions],
+      retractions: verified.retractions,
+      warnings: verified.warnings
+    };
+    for (const evidence of verified.evidence) {
+      if (evidence.kind !== "source.evidence") {
+        throw new Error(`unsupported federated evidence kind ${evidence.kind}`);
+      }
+      const internalId = federatedCandidateId(evidence);
+      federatedEvidenceByInternalId.set(internalId, evidence);
+      const relevance = provisionalSourceRelevance(evidence);
+      if (relevance <= 0) {
+        omittedCandidates.push({
+          id: internalId,
+          kind: "source.evidence",
+          title: evidence.title,
+          similarity: relevance,
+          reason: "provider_filtered",
+          detail: "provider evidence carried no positive resolver relevance signal",
+          path: evidence.provenance.canonical_uri ?? null
+        });
+        continue;
+      }
+      functionBodyById.set(internalId, evidence.content);
+      functionComponentById.set(internalId, null);
+      candidates.push({
+        id: internalId,
+        kind: "source.evidence",
+        title: evidence.title,
+        similarity: relevance,
+        score: relevance * candidateKindWeight("source.evidence"),
+        citation: {
+          path: evidence.provenance.canonical_uri ?? null,
+          version_number: 1,
+          updated_at: evidence.provenance.retrieved_at,
+          author_id: null
+        },
+        componentId: null,
+        componentName: null,
+        decayMultiplier: 1,
+        authorityTier: AUTHORITY_TIER.HISTORICAL,
+        providerEvidence: evidence
+      });
+    }
+  }
   let rerankAuditScores = null;
   let rerankLatencyMs = null;
   let rerankStageMs = 0;
@@ -64802,6 +66720,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     hydrationMs += Date.now() - hydrationStartedAt;
   }
   const enrichmentPromise = usedConsolidatedCandidates && ctx.resolveV2DataPlane ? (() => {
+    if (!queryVec) throw new Error("Consolidated enrichment requires a query embedding");
     const nearMissIds = omittedCandidates.filter((candidate) => candidate.reason === "below_threshold").sort(
       (a2, b2) => (b2.threshold_score ?? b2.similarity) - (a2.threshold_score ?? a2.similarity)
     ).slice(0, 3).map((candidate) => candidate.id);
@@ -64954,7 +66873,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
             candidates.splice(i2, 1);
             continue;
           }
-          c2.score = newScore * KIND_WEIGHTS[c2.kind];
+          c2.score = newScore * candidateKindWeight(c2.kind);
         }
       }
     } catch (e2) {
@@ -64986,11 +66905,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     hydrationMs += Date.now() - hydrationStartedAt;
   }
   const candidateIds = candidates.map((c2) => c2.id);
-  const fitnessMultipliers = await loadFitnessMultipliers(
-    ctx,
-    candidateIds,
-    classifyTask(args.task)
-  );
+  const fitnessMultipliers = providerOnly ? /* @__PURE__ */ new Map() : await loadFitnessMultipliers(ctx, candidateIds, classifyTask(args.task));
   for (const c2 of candidates) {
     c2.fitnessMultiplier = fitnessMultipliers.get(c2.id) ?? 1;
   }
@@ -65000,7 +66915,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   let activeComponent = null;
   const componentNameById = /* @__PURE__ */ new Map();
   const componentRepoById = /* @__PURE__ */ new Map();
-  if (projectId) {
+  if (projectId && !providerOnly) {
     const { data: compRows, error: compErr } = await ctx.supabase.from("components").select("id, name, slug, path_patterns, repo").eq("project_id", projectId);
     if (compErr) {
       console.warn(
@@ -65099,9 +67014,9 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       c2.repo = componentRepoById.get(compId) ?? null;
     }
     if (activeComponentId && compId === activeComponentId) {
-      c2.score += ACTIVE_COMPONENT_BOOST * KIND_WEIGHTS[c2.kind];
+      c2.score += ACTIVE_COMPONENT_BOOST * candidateKindWeight(c2.kind);
     } else if (activeRepo && c2.repo === activeRepo) {
-      c2.score += SAME_REPO_BOOST * KIND_WEIGHTS[c2.kind];
+      c2.score += SAME_REPO_BOOST * candidateKindWeight(c2.kind);
     }
     if (activeRepo && c2.repo && c2.repo !== activeRepo && (c2.kind === "memory" || c2.kind === "skill")) {
       c2.score *= CROSS_REPO_DEMOTION;
@@ -65128,23 +67043,23 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     for (const c2 of candidates) {
       const docRoles = rolesByDoc.get(c2.id) ?? [];
       if (docRoles.some((r2) => userRoles.includes(r2))) {
-        c2.score += ROLE_MATCH_BOOST * KIND_WEIGHTS[c2.kind];
+        c2.score += ROLE_MATCH_BOOST * candidateKindWeight(c2.kind);
       }
     }
   }
   if (approvedColumnIds.size > 0) {
     for (const c2 of candidates) {
       if (approvedColumnIds.has(c2.id)) {
-        c2.score += APPROVED_STATUS_BOOST * KIND_WEIGHTS[c2.kind];
+        c2.score += APPROVED_STATUS_BOOST * candidateKindWeight(c2.kind);
       }
     }
   }
   let pinnedItems = [];
-  const prefetchedPins = pinnedFromV2Policy(ctx);
+  const prefetchedPins = providerOnly ? null : pinnedFromV2Policy(ctx);
   const pinsAdmittedByV2Policy = prefetchedPins !== null;
   if (prefetchedPins) {
     pinnedItems = prefetchedPins;
-  } else {
+  } else if (!providerOnly) {
     try {
       pinnedItems = await assemblePinned(
         ctx,
@@ -65176,26 +67091,28 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     missing_ids: [],
     errors: [...projectBrainPolicy.errors]
   };
-  try {
-    const required2 = requiredCoreFromV2Policy(ctx) ?? await assembleRequiredCore(
-      ctx,
-      projectBrainPolicy.requiredChainIds,
-      projectId,
-      projectBrainPolicy.errors,
-      audit.agentKind ?? null
-    );
-    requiredCoreItems = required2.items;
-    requiredCoreStatus = required2.status;
-  } catch (e2) {
-    const message = e2 instanceof Error ? e2.message : String(e2);
-    requiredCoreStatus = {
-      complete: false,
-      expected_ids: [...projectBrainPolicy.requiredChainIds].sort(),
-      delivered_ids: [],
-      missing_ids: [...projectBrainPolicy.requiredChainIds].sort(),
-      errors: [.../* @__PURE__ */ new Set([...projectBrainPolicy.errors, `required-core assembly: ${message}`])]
-    };
-    console.warn(`[resolver] required-core assembly failed: ${message}`);
+  if (!providerOnly) {
+    try {
+      const required2 = requiredCoreFromV2Policy(ctx) ?? await assembleRequiredCore(
+        ctx,
+        projectBrainPolicy.requiredChainIds,
+        projectId,
+        projectBrainPolicy.errors,
+        audit.agentKind ?? null
+      );
+      requiredCoreItems = required2.items;
+      requiredCoreStatus = required2.status;
+    } catch (e2) {
+      const message = e2 instanceof Error ? e2.message : String(e2);
+      requiredCoreStatus = {
+        complete: false,
+        expected_ids: [...projectBrainPolicy.requiredChainIds].sort(),
+        delivered_ids: [],
+        missing_ids: [...projectBrainPolicy.requiredChainIds].sort(),
+        errors: [.../* @__PURE__ */ new Set([...projectBrainPolicy.errors, `required-core assembly: ${message}`])]
+      };
+      console.warn(`[resolver] required-core assembly failed: ${message}`);
+    }
   }
   const requiredCoreIds = new Set(requiredCoreItems.map((item) => item.id));
   if (requiredCoreIds.size > 0) {
@@ -65227,7 +67144,9 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const dedupeClusters = [];
   let dedupeDroppedCount = 0;
   let dedupeTokensSaved = 0;
-  const dedupeEligibleIds = candidates.filter((c2) => REDUNDANCY_COLLAPSE_KINDS.has(c2.kind)).map((c2) => c2.id);
+  const dedupeEligibleIds = candidates.filter(
+    (c2) => c2.kind !== "source.evidence" && REDUNDANCY_COLLAPSE_KINDS.has(c2.kind)
+  ).map((c2) => c2.id);
   if (!args.skip_dedupe && dedupeThreshold !== null && dedupeEligibleIds.length >= 2) {
     try {
       const { data: pairRows, error: pairErr } = await ctx.supabase.rpc(
@@ -65414,6 +67333,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     }
   }
   const included = [];
+  const includedSourceEvidence = [];
   const excluded = /* @__PURE__ */ new Set();
   const requiredCoreTokens = requiredCoreItems.reduce(
     (total, item) => total + estimateTokens(item.body),
@@ -65503,6 +67423,23 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     if (isPrimary && cost > maxTokens) {
       truncated = true;
     }
+    if (c2.kind === "source.evidence") {
+      if (!c2.providerEvidence) {
+        throw new Error("federated source candidate lost its evidence contract");
+      }
+      includedSourceEvidence.push({
+        ...c2.providerEvidence,
+        kind: "source.evidence",
+        score: {
+          ...c2.providerEvidence.score,
+          final: effectiveScore(c2)
+        },
+        estimated_tokens: cost,
+        authority: "provisional"
+      });
+      used += cost;
+      continue;
+    }
     included.push({
       id: c2.id,
       kind: c2.kind,
@@ -65551,7 +67488,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     // Brand-guidelines context. Always-on (not semantic) — fetched directly
     // from the project's chosen pointer (or the account default) and merged
     // with any project-level override doc.
-    feed("brand-guidelines fetch", null, async () => {
+    providerOnly ? Promise.resolve(null) : feed("brand-guidelines fetch", null, async () => {
       const componentInfoById = /* @__PURE__ */ new Map();
       for (const [id, info] of componentNameById) {
         componentInfoById.set(id, {
@@ -65567,21 +67504,21 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         componentInfoById
       });
     }),
-    wantsClaimGuardrails(args.task) ? feed(
+    !providerOnly && wantsClaimGuardrails(args.task) ? feed(
       "claim-guardrails assembly",
       null,
       () => assembleClaimGuardrails(ctx, projectId)
     ) : Promise.resolve(null),
     // Code-graph architecture. When cwd matched a component, fold that
     // component's functions + cross-component contracts into the bundle.
-    activeComponent && projectId ? feed(
+    !providerOnly && activeComponent && projectId ? feed(
       "architecture assembly",
       null,
       () => assembleArchitecture(ctx, projectId, activeComponent, componentNameById)
     ) : Promise.resolve(null),
     // Concurrent-work awareness — other agents resolving on this project
     // right now, so the bundle can flag who else is in the room.
-    feed(
+    providerOnly ? Promise.resolve([]) : feed(
       "concurrent-work assembly",
       [],
       () => assembleConcurrentWork(
@@ -65595,7 +67532,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     // Axis C. Durable presence: sessions quiet for hours whose branch has an
     // OPEN PR. Fetched here, appended to concurrentWork AFTER collision
     // promotion below — a 6-hour-old session is context, not contention.
-    feed(
+    providerOnly ? Promise.resolve([]) : feed(
       "open-pr presence assembly",
       [],
       () => assembleOpenPrPresence(ctx, projectId, audit.sessionId ?? null, ctx.userId ?? null)
@@ -65603,46 +67540,46 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     // File-level activity — what OTHER sessions actually edited recently.
     // Resolve-level concurrency says "someone's awake"; this says
     // "resolver.ts was touched 3m ago."
-    feed(
+    providerOnly ? Promise.resolve([]) : feed(
       "file-activity assembly",
       [],
       () => assembleFileActivity(ctx, projectId, audit.sessionId ?? null, ctx.userId ?? null)
     ),
     // Transactional ownership involving this session. Unlike the historical
     // activity feed, these rows remain until yield/handoff/reconciliation.
-    feed(
+    providerOnly ? Promise.resolve([]) : feed(
       "edit-ownership assembly",
       [],
       () => assembleEditOwnership(ctx, projectId, audit.sessionId ?? null)
     ),
     // Deploy-in-progress awareness — other agents that look like they're
     // shipping right now. Distinct, louder signal than file collisions.
-    feed(
+    providerOnly ? Promise.resolve([]) : feed(
       "deploy-in-progress assembly",
       [],
       () => assembleDeployInProgress(ctx, projectId, audit.sessionId ?? null, componentNameById)
     ),
-    feed(
+    providerOnly ? Promise.resolve({ others: [], own: null }) : feed(
       "deploy-waiters assembly",
       { others: [], own: null },
       () => assembleDeployWaiters(ctx, projectId, audit.sessionId ?? null)
     ),
     // Work-ledger awareness — open / recently-merged PRs whose title+body is
     // semantically close to this task (the work_items ledger).
-    feed(
+    providerOnly ? Promise.resolve([]) : feed(
       "work-in-flight assembly",
       [],
       () => assembleWorkInFlight(ctx, projectId, queryVec ?? null)
     ),
     // Axis A input: repo-relative paths THIS session edited recently.
-    feed(
+    providerOnly ? Promise.resolve([]) : feed(
       "own-edit-paths assembly",
       [],
       () => assembleOwnEditPaths(ctx, projectId, audit.sessionId ?? null)
     ),
     // Axis A input: leading literal dirs of the active component's
     // path_patterns.
-    activeComponentId ? feed("component path-patterns fetch", [], async () => {
+    !providerOnly && activeComponentId ? feed("component path-patterns fetch", [], async () => {
       const { data: compRow } = await ctx.supabase.from("components").select("path_patterns").eq("id", activeComponentId).maybeSingle();
       return patternPrefixDirs(
         compRow?.path_patterns ?? []
@@ -65659,10 +67596,13 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     // validation and arrived nameless in production (audit df72471c). Falls
     // back to the direct embed for pre-migration databases, where
     // service-role callers still see full identities.
-    feed("workspace-members fetch", [], async () => {
-      const { data: rpcRows, error: rpcErr } = await ctx.supabase.rpc("account_member_identities", {
-        p_account_id: ctx.accountId
-      });
+    providerOnly ? Promise.resolve([]) : feed("workspace-members fetch", [], async () => {
+      const { data: rpcRows, error: rpcErr } = await ctx.supabase.rpc(
+        "account_member_identities",
+        {
+          p_account_id: ctx.accountId
+        }
+      );
       let memberRows;
       if (!rpcErr && rpcRows) {
         memberRows = rpcRows.map((r2) => ({
@@ -65720,7 +67660,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     onOmitted: (candidate) => omittedCandidates.push(candidate)
   };
   let authorRecallMs = 0;
-  const [pathMatchedWork, pathDocs, authorDocs] = await Promise.all([
+  const [pathMatchedWork, pathDocs, authorDocs] = providerOnly ? [[], [], []] : await Promise.all([
     feed(
       "path-matched work assembly",
       [],
@@ -65754,11 +67694,13 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     })
   ]);
   const workInFlight = mergeWorkInFlight(semanticWorkInFlight, pathMatchedWork);
-  await feed(
-    "work-item proposals attach",
-    void 0,
-    () => attachWorkItemProposals(ctx, workInFlight, projectId)
-  );
+  if (!providerOnly) {
+    await feed(
+      "work-item proposals attach",
+      void 0,
+      () => attachWorkItemProposals(ctx, workInFlight, projectId)
+    );
+  }
   let docPathMatches = 0;
   for (const d2 of pathDocs) {
     const cost = estimateTokens(d2.body);
@@ -65809,7 +67751,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       RECALL_FLOOR_MIN
     );
     const floorCandidates = omittedCandidates.filter(
-      (o2) => o2.reason === "below_threshold" && (o2.threshold_score ?? o2.similarity) >= recallFloorFor(o2.kind)
+      (o2) => o2.reason === "below_threshold" && o2.kind !== "source.evidence" && (o2.threshold_score ?? o2.similarity) >= recallFloorFor(o2.kind)
     ).sort(
       (a2, b2) => (b2.threshold_score ?? b2.similarity) - recallFloorFor(b2.kind) - ((a2.threshold_score ?? a2.similarity) - recallFloorFor(a2.kind))
     ).slice(0, 3);
@@ -65823,7 +67765,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         ).eq("id", best.id).eq("account_id", ctx.accountId).eq("locked_to_owners", false).maybeSingle();
         const floorEligible = row != null && row.id === best.id && isDirectResolverDocumentEligible(
           row,
-          { accountId: ctx.accountId, userId: ctx.userId, projectId },
+          { accountId: ctx.accountId, userId: ctx.userId, projectId, audience: ctx.audience },
           { expectedKind: best.kind }
         );
         if (row && floorEligible) {
@@ -65876,6 +67818,36 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const bySkill = included.filter((i2) => i2.kind === "skill");
   const primary = primarySkill ? bySkill.find((i2) => i2.id === primarySkill.id) ?? null : null;
   const supportingSkills = bySkill.filter((i2) => i2.id !== primary?.id);
+  if (providerContextReceipt) {
+    const admitted = new Set(
+      includedSourceEvidence.map((item) => `${item.provider_id}\0${item.id}`)
+    );
+    const alreadyOmitted = new Set(
+      providerContextReceipt.omissions.flatMap(
+        (omission) => omission.subject.kind === "evidence" ? [
+          `${omission.subject.evidence_ref.provider_id}\0${omission.subject.evidence_ref.evidence_id}`
+        ] : []
+      )
+    );
+    for (const [internalId, evidence] of federatedEvidenceByInternalId) {
+      const key = `${evidence.provider_id}\0${evidence.id}`;
+      if (admitted.has(key) || alreadyOmitted.has(key)) continue;
+      const omission = omittedCandidates.find((candidate) => candidate.id === internalId);
+      providerContextReceipt.omissions.push({
+        subject: {
+          kind: "evidence",
+          evidence_ref: {
+            provider_id: evidence.provider_id,
+            evidence_id: evidence.id,
+            ...evidence.provenance.source_version ? { source_version: evidence.provenance.source_version } : {}
+          }
+        },
+        reason_code: `resolver_${omission?.reason ?? "filtered"}`,
+        reason: omission?.detail ?? "evidence was not admitted by the resolver",
+        estimated_tokens: Math.max(0, estimateTokens(evidence.content))
+      });
+    }
+  }
   const bundle = {
     primary_skill: primary,
     supporting_skills: supportingSkills,
@@ -65883,6 +67855,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     goals: included.filter((i2) => i2.kind === "goal"),
     schemas: included.filter((i2) => i2.kind === "schema"),
     decisions: included.filter((i2) => i2.kind === "decision"),
+    source_evidence: includedSourceEvidence,
+    provider_context: providerContextReceipt,
     brand_guidelines: brandGuidelines,
     claim_guardrails: claimGuardrails,
     required_core: requiredCoreItems,
@@ -65902,7 +67876,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     pack_context: [],
     recent_feedback: []
   };
-  if (ctx.packCandidates) {
+  if (ctx.packCandidates && !providerOnly) {
     try {
       const packKinds = ["skill", "decision", "schema"];
       const candidates2 = await ctx.packCandidates(queryVec ?? null, packKinds);
@@ -65950,7 +67924,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     } catch {
     }
   }
-  if (audit.sessionId) {
+  if (audit.sessionId && !providerOnly) {
     try {
       const working = await assembleSessionWorking(ctx, audit.sessionId, projectId);
       const higherPriorityIds = /* @__PURE__ */ new Set([
@@ -65972,68 +67946,69 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       );
     }
   }
-  try {
-    const { data: threadRows, error: threadErr } = await ctx.supabase.rpc("list_open_threads", {
-      p_account_id: ctx.accountId,
-      p_entities: args.entities && args.entities.length > 0 ? args.entities : null,
-      p_status: "open",
-      p_project_id: projectId ?? null,
-      p_limit: 50
-    });
-    if (!threadErr && Array.isArray(threadRows)) {
-      const taskLower = ` ${args.task.toLowerCase()} `;
-      const higherPriorityIds = /* @__PURE__ */ new Set([
-        ...bundle.required_core.map((item) => item.id),
-        ...bundle.pinned.map((item) => item.id),
-        ...bundle.session_working.map((item) => item.id)
-      ]);
-      const OPEN_THREADS_MAX = 5;
-      const OPEN_THREADS_MAX_TOKENS = 1e3;
-      let threadTokens = 0;
-      for (const raw of threadRows) {
-        if (bundle.open_threads.length >= OPEN_THREADS_MAX) break;
-        const id = raw.id;
-        if (higherPriorityIds.has(id)) continue;
-        const entities = Array.isArray(raw.entities) ? raw.entities.filter((e2) => typeof e2 === "string") : [];
-        if (!args.entities || args.entities.length === 0) {
-          const hit = entities.some((e2) => {
-            const esc2 = e2.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-            return new RegExp(`(?:^|\\W)${esc2}(?:\\W|$)`).test(taskLower);
-          });
-          if (!hit) continue;
-        }
-        const body = typeof raw.content === "string" ? raw.content : "";
-        const tokens = estimateTokens(body);
-        if (threadTokens + tokens > OPEN_THREADS_MAX_TOKENS && bundle.open_threads.length > 0) {
-          break;
-        }
-        threadTokens += tokens;
-        higherPriorityIds.add(id);
-        bundle.open_threads.push({
-          id,
-          kind: "memory",
-          title: raw.title ?? "",
-          body,
-          similarity: 0,
-          citation: {
-            path: raw.path ?? null,
-            version_number: raw.version_number ?? 1,
-            updated_at: raw.updated_at ?? "",
-            author_id: null
-          },
-          component_id: null,
-          component_name: null,
-          thread: {
-            status: "open",
-            occurred_at: raw.occurred_at ?? null,
-            entities,
-            resolves: raw.resolves ?? null
+  if (!providerOnly)
+    try {
+      const { data: threadRows, error: threadErr } = await ctx.supabase.rpc("list_open_threads", {
+        p_account_id: ctx.accountId,
+        p_entities: args.entities && args.entities.length > 0 ? args.entities : null,
+        p_status: "open",
+        p_project_id: projectId ?? null,
+        p_limit: 50
+      });
+      if (!threadErr && Array.isArray(threadRows)) {
+        const taskLower = ` ${args.task.toLowerCase()} `;
+        const higherPriorityIds = /* @__PURE__ */ new Set([
+          ...bundle.required_core.map((item) => item.id),
+          ...bundle.pinned.map((item) => item.id),
+          ...bundle.session_working.map((item) => item.id)
+        ]);
+        const OPEN_THREADS_MAX = 5;
+        const OPEN_THREADS_MAX_TOKENS = 1e3;
+        let threadTokens = 0;
+        for (const raw of threadRows) {
+          if (bundle.open_threads.length >= OPEN_THREADS_MAX) break;
+          const id = raw.id;
+          if (higherPriorityIds.has(id)) continue;
+          const entities = Array.isArray(raw.entities) ? raw.entities.filter((e2) => typeof e2 === "string") : [];
+          if (!args.entities || args.entities.length === 0) {
+            const hit = entities.some((e2) => {
+              const esc2 = e2.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+              return new RegExp(`(?:^|\\W)${esc2}(?:\\W|$)`).test(taskLower);
+            });
+            if (!hit) continue;
           }
-        });
+          const body = typeof raw.content === "string" ? raw.content : "";
+          const tokens = estimateTokens(body);
+          if (threadTokens + tokens > OPEN_THREADS_MAX_TOKENS && bundle.open_threads.length > 0) {
+            break;
+          }
+          threadTokens += tokens;
+          higherPriorityIds.add(id);
+          bundle.open_threads.push({
+            id,
+            kind: "memory",
+            title: raw.title ?? "",
+            body,
+            similarity: 0,
+            citation: {
+              path: raw.path ?? null,
+              version_number: raw.version_number ?? 1,
+              updated_at: raw.updated_at ?? "",
+              author_id: null
+            },
+            component_id: null,
+            component_name: null,
+            thread: {
+              status: "open",
+              occurred_at: raw.occurred_at ?? null,
+              entities,
+              resolves: raw.resolves ?? null
+            }
+          });
+        }
       }
+    } catch {
     }
-  } catch {
-  }
   dedupeResolveBundleDocumentLanes(bundle);
   const deliveredSemanticIds = /* @__PURE__ */ new Set([
     ...bundle.primary_skill ? [bundle.primary_skill.id] : [],
@@ -66169,9 +68144,13 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   }
   const resolvedAt = (/* @__PURE__ */ new Date()).toISOString();
   let auditId = "";
-  const taskEmbedding = queryVec ?? null;
+  const taskEmbedding = audit.omitTaskFromAudit ? null : queryVec ?? null;
   const deliveredItems = buildDeliveredItemSnapshots(bundle);
-  used = deliveredItems.reduce((total, item) => total + item.estimated_tokens, 0);
+  const sourceEvidenceTokens = (bundle.source_evidence ?? []).reduce(
+    (total, item) => total + (item.estimated_tokens ?? estimateTokens(item.content)),
+    0
+  );
+  used = deliveredItems.reduce((total, item) => total + item.estimated_tokens, 0) + sourceEvidenceTokens;
   if (used > maxTokens) truncated = true;
   const itemSnapshot = included.map((i2, idx) => ({
     id: i2.id,
@@ -66190,7 +68169,12 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     // to keep pre-existing audit rows byte-identical in shape.
     ...approvedColumnIds.has(i2.id) ? { approved: true } : {}
   }));
-  const contextCounts = buildDeliveredContextCounts(deliveredItems);
+  const documentContextCounts = buildDeliveredContextCounts(deliveredItems);
+  const contextCounts = {
+    ...documentContextCounts,
+    source_evidence: bundle.source_evidence?.length ?? 0,
+    total: documentContextCounts.total + (bundle.source_evidence?.length ?? 0)
+  };
   const truncationReasons = /* @__PURE__ */ new Set();
   if (requiredCoreTokens > maxTokens) truncationReasons.add("required_core_over_budget");
   if (pinnedTokens > maxTokens) truncationReasons.add("pinned_content_over_budget");
@@ -66201,20 +68185,24 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   );
   if (budgetExcluded.some((candidate) => candidate.detail.startsWith("path-matched doc:")))
     truncationReasons.add("path_document_budget_excluded");
-  if (budgetExcluded.some((candidate) => !candidate.detail.startsWith("path-matched doc:")))
+  if (budgetExcluded.some((candidate) => candidate.kind === "source.evidence"))
+    truncationReasons.add("source_evidence_budget_excluded");
+  if (budgetExcluded.some(
+    (candidate) => candidate.kind !== "source.evidence" && !candidate.detail.startsWith("path-matched doc:")
+  ))
     truncationReasons.add("ranked_document_budget_excluded");
   if (primary && estimateTokens(primary.body) > maxTokens)
     truncationReasons.add("primary_skill_over_budget");
   if (used > maxTokens) truncationReasons.add("delivered_context_over_budget");
   if (truncated && truncationReasons.size === 0) truncationReasons.add("other_budget_truncation");
   const empty_context_reason = contextCounts.total > 0 ? null : omittedCandidates.length > 0 ? "all_candidates_filtered" : "no_candidates_found";
-  const auditTask = sanitizeAuditTask(args.task);
+  const auditTask = audit.omitTaskFromAudit ? { task: "[public experience query omitted]", truncated: false, redaction_hits: [] } : sanitizeAuditTask(args.task);
   const auditCwd = sanitizeAuditCwd(args.cwd ?? null);
   const auditMetadata = {
     task: auditTask.task,
     ...resolveRoutingAuditMetadata(args, projectId),
     // Open-threads lane — always on; record which threads were pulled by entity.
-    include_open_threads: true,
+    include_open_threads: !providerOnly,
     thread_entities: args.entities ?? null,
     open_thread_ids: bundle.open_threads.map((t2) => t2.id),
     // Subscribed-pack lane — which packs/items fed this bundle, for audit
@@ -66232,7 +68220,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     // instead of reading raw task strings. Computed at write time so
     // every resolve.invocation row carries its label; backfill script
     // covers historical rows.
-    task_category: classifyTask(args.task),
+    task_category: audit.omitTaskFromAudit ? "unknown" : classifyTask(args.task),
     ...auditTask.truncated ? { task_truncated: true } : {},
     ...auditTask.redaction_hits.length > 0 ? { task_redaction_hits: auditTask.redaction_hits } : {},
     project_id: projectId,
@@ -66353,6 +68341,26 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     required_core_tokens: requiredCoreTokens,
     pinned_ids: bundle.pinned.map((i2) => i2.id),
     pinned_tokens: pinnedTokens,
+    source_evidence_tokens: sourceEvidenceTokens,
+    ...bundle.provider_context ? {
+      provider_context: {
+        retrieved_bundle_id: bundle.provider_context.retrieved_bundle_id,
+        manifest_hash: bundle.provider_context.manifest_hash,
+        coverage: bundle.provider_context.coverage.map((coverage) => ({
+          provider_id: coverage.provider_id,
+          provider_version: coverage.provider_version,
+          status: coverage.status,
+          attempted_context_count: coverage.attempted_contexts.length,
+          covered_context_count: coverage.covered_contexts.length,
+          omitted_context_count: coverage.omitted_contexts.length,
+          truncated: coverage.truncated,
+          reason_code: coverage.reason_code ?? null
+        })),
+        evidence_admitted_count: bundle.source_evidence?.length ?? 0,
+        omission_count: bundle.provider_context.omissions.length,
+        retraction_count: bundle.provider_context.retractions.length
+      }
+    } : {},
     excluded_ids: [...excluded],
     context_counts: contextCounts,
     token_budget: maxTokens,
@@ -66379,7 +68387,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       overrides: projectBrainPolicy.overridePairs
     },
     omitted_candidates_count: omittedCandidates.length,
-    omitted_candidates: auditOmissionSample(omittedCandidates),
+    omitted_candidates: auditOmissionSampleForUsage(omittedCandidates),
     empty_context_reason,
     brand_guidelines_id: brandGuidelines?.brand_guidelines_id ?? null,
     brand_guidelines_source: brandGuidelines?.source ?? null,
@@ -66579,7 +68587,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       })()
     );
   }
-  if (projectId && isForegroundDeployCommand(args.task) && !audit.readOnly) {
+  if (projectId && !providerOnly && isForegroundDeployCommand(args.task) && !audit.readOnly) {
     postAssemblyTasks.push(
       recordDeployActivity(ctx, {
         projectId,
@@ -66747,7 +68755,7 @@ async function assembleBrandGuidelines(ctx, args) {
         const directRow = row;
         if (!isDirectResolverDocumentEligible(
           directRow,
-          { accountId, userId: ctx.userId, projectId },
+          { accountId, userId: ctx.userId, projectId, audience: ctx.audience },
           {
             lifecycle: "sql-live",
             projectAssociation: "active-project",
@@ -66784,7 +68792,7 @@ async function assembleBrandGuidelines(ctx, args) {
     const r2 = row;
     if (!isDirectResolverDocumentEligible(
       r2,
-      { accountId, userId: ctx.userId, projectId },
+      { accountId, userId: ctx.userId, projectId, audience: ctx.audience },
       {
         lifecycle: "sql-live",
         projectAssociation: "account-or-active-project",
@@ -67933,19 +69941,74 @@ async function listActions(ctx, rawArgs) {
   for (const r2 of data ?? []) {
     const meta = r2.metadata ?? {};
     const impl = meta.implementation;
+    let executionMode = "blocked";
+    if (impl?.type === "provider_call") executionMode = "direct";
+    if (impl?.type === "connector" && impl.connector_id) {
+      const connector = getConnector(impl.connector_id);
+      const operation = connector ? getConnectorOperation(connector, impl.operation ?? "invoke") : null;
+      executionMode = operation?.effect === "read" ? "direct" : operation ? "prepare_required" : "blocked";
+    }
     out.push({
       id: r2.id,
       name: typeof meta.name === "string" ? meta.name : r2.title,
       description: typeof meta.description === "string" ? meta.description : "",
       input_schema: meta.input_schema && typeof meta.input_schema === "object" ? meta.input_schema : {},
       implementation_type: impl?.type ?? "unknown",
-      invoke_url: `/api/v1/actions/${r2.id}/execute`
+      execution_mode: executionMode,
+      invoke_url: `/api/v1/actions/${r2.id}/execute`,
+      ...executionMode === "prepare_required" ? { prepare_url: `/api/v1/actions/${r2.id}/prepare` } : {},
+      ...impl?.type === "http" ? {
+        migration_message: "Raw HTTP actions are disabled. Migrate to a statically registered connector/Action Adapter."
+      } : {}
     });
   }
   return out;
 }
 
 // packages/mcp-tools/src/inbox.ts
+function referencedProposalTargetIds(existing) {
+  if (existing.proposal_action === "merge") {
+    const merge2 = existing.merge ?? {};
+    return [
+      ...typeof merge2.survivor_id === "string" ? [merge2.survivor_id] : [],
+      ...Array.isArray(merge2.merged_ids) ? merge2.merged_ids.filter((id) => typeof id === "string") : []
+    ];
+  }
+  if (existing.proposal_action === "supersede") {
+    const supersede = existing.supersede ?? {};
+    return [supersede.keep_id, supersede.retire_id].filter(
+      (id) => typeof id === "string"
+    );
+  }
+  if (existing.proposal_action === "update") {
+    const update = existing.update ?? {};
+    return typeof update.target_id === "string" ? [update.target_id] : [];
+  }
+  return [];
+}
+async function assertActorCanResolveProposalTargets(ctx, actorClient, proposalProjectId, targetIds) {
+  const ids = [...new Set(targetIds)];
+  if (ids.length === 0) return;
+  const { data, error: error2 } = await actorClient.from("documents").select("id, account_id, project_id, scope, created_by, locked_to_owners").eq("account_id", ctx.accountId).in("id", ids);
+  if (error2) throw new Error(`resolve_proposal: target authorization failed: ${error2.message}`);
+  const rows = data ?? [];
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const exact = ids.every((id) => {
+    const row = byId.get(id);
+    if (!row || row.account_id !== ctx.accountId) return false;
+    if ((row.project_id ?? null) !== proposalProjectId) return false;
+    if (ctx.serviceTokenId) {
+      if (row.scope === "personal" && row.created_by !== ctx.userId) return false;
+      if (row.locked_to_owners && ctx.callerRole !== "owner" && ctx.callerRole !== "admin") {
+        return false;
+      }
+    }
+    return true;
+  });
+  if (rows.length !== ids.length || !exact) {
+    throw new Error("resolve_proposal: referenced target not found");
+  }
+}
 var ListArgs = external_exports.object({
   limit: external_exports.number().int().min(1).max(200).optional(),
   /** Optional filter — only return memory proposals of this content sub-type. */
@@ -68029,11 +70092,21 @@ var ResolveArgs = external_exports.object({
 });
 async function resolveProposal(ctx, rawArgs) {
   const args = ResolveArgs.parse(rawArgs);
-  const { data: doc, error: readErr } = await ctx.supabase.from("documents").select("id, account_id, project_id, component_id, kind, title, metadata").eq("id", args.proposal_id).maybeSingle();
+  if (ctx.callerRole === "viewer") {
+    throw new Error("resolve_proposal: proposal resolution requires a writer");
+  }
+  const actorClient = ctx.actorSupabase ?? ctx.supabase;
+  const { data: doc, error: readErr } = await actorClient.from("documents").select("id, account_id, project_id, component_id, kind, title, scope, created_by, metadata").eq("id", args.proposal_id).maybeSingle();
   if (readErr) throw new Error(`resolve_proposal: ${readErr.message}`);
   if (!doc) throw new Error("resolve_proposal: proposal not found");
   if (doc.account_id !== ctx.accountId) {
     throw new Error("resolve_proposal: proposal does not belong to this account");
+  }
+  if (doc.scope === "personal") {
+    const { data: actorUserId, error: actorErr } = await actorClient.rpc("memlin_user_id");
+    if (actorErr || typeof actorUserId !== "string" || !actorUserId || typeof doc.created_by !== "string" || doc.created_by !== actorUserId) {
+      throw new Error("resolve_proposal: proposal not found");
+    }
   }
   const existing = doc.metadata ?? {};
   if (existing.status !== "proposed") {
@@ -68044,10 +70117,36 @@ async function resolveProposal(ctx, rawArgs) {
       );
     }
   }
+  if (ctx.actorSupabase && (existing.proposal_action === "merge" || existing.proposal_action === "supersede" || existing.proposal_action === "update")) {
+    await assertActorCanResolveProposalTargets(
+      ctx,
+      actorClient,
+      doc.project_id ?? null,
+      referencedProposalTargetIds(existing)
+    );
+  }
   const actor = ctx.userId ?? "api";
   const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  if (typeof existing.proposal_action === "string" && existing.proposal_action.startsWith("connector_source_")) {
+    if (!ctx.userId) {
+      throw new Error("resolve_proposal: connector proposal requires an authenticated writer");
+    }
+    const { data, error: error3 } = await actorClient.rpc("resolve_connector_distillation_proposal", {
+      p_account_id: ctx.accountId,
+      p_proposal_id: args.proposal_id,
+      p_actor: ctx.userId,
+      p_action: args.action
+    });
+    if (error3) throw new Error(`resolve_proposal: connector resolution failed: ${error3.message}`);
+    const receipt = Array.isArray(data) ? data[0] : data;
+    return {
+      status: receipt?.result_status === "active" ? "active" : receipt?.result_status === "rejected" ? "rejected" : "applied",
+      kind: doc.kind,
+      title: doc.title
+    };
+  }
   if (args.action === "reject") {
-    const { error: error3 } = await ctx.supabase.from("documents").update({
+    const { error: error3 } = await actorClient.from("documents").update({
       metadata: {
         ...existing,
         status: "rejected",
@@ -68086,7 +70185,7 @@ async function resolveProposal(ctx, rawArgs) {
     componentId: doc.component_id ?? null,
     nowIso
   }) : [];
-  const { error: error2 } = await ctx.supabase.from("documents").update({
+  const { error: error2 } = await actorClient.from("documents").update({
     metadata: {
       ...existing,
       status: "active",
@@ -68238,14 +70337,23 @@ async function applyMergeProposal(ctx, proposalId, doc, existing, actor, nowIso)
   if (!survivor || survivor.account_id !== ctx.accountId) {
     throw new Error("resolve_proposal: merge survivor not found in this account");
   }
+  if ((survivor.project_id ?? null) !== (doc.project_id ?? null)) {
+    throw new Error("resolve_proposal: merge survivor is outside the proposal Project");
+  }
   const survivorMeta = survivor.metadata ?? {};
   const alreadyApplied = typeof merge2.insight_id === "string" && survivorMeta.consolidation_insight_id === merge2.insight_id;
   if (!alreadyApplied) {
-    const { data: twinRows, error: twinReadErr } = await ctx.supabase.from("documents").select("id, metadata").eq("account_id", ctx.accountId).in("id", mergedIds);
+    const { data: twinRows, error: twinReadErr } = await ctx.supabase.from("documents").select("id, account_id, project_id, metadata").eq("account_id", ctx.accountId).in("id", mergedIds);
     if (twinReadErr) {
       throw new Error(`resolve_proposal: twin read failed: ${twinReadErr.message}`);
     }
     const twins = twinRows ?? [];
+    const expectedTwinIds = [...new Set(mergedIds)];
+    if (twins.length !== expectedTwinIds.length || twins.some(
+      (twin) => !expectedTwinIds.includes(twin.id) || twin.account_id !== ctx.accountId || (twin.project_id ?? null) !== (doc.project_id ?? null)
+    )) {
+      throw new Error("resolve_proposal: merge member not found in the proposal Project");
+    }
     await applyCanonicalMerge(ctx, {
       canonical: {
         id: survivorId,
@@ -68304,7 +70412,7 @@ async function applySupersedeProposal(ctx, proposalId, doc, existing, actor, now
   if (!draftKeepId || !draftRetireId) {
     throw new Error("resolve_proposal: supersede proposal is malformed (missing keep/retire ids)");
   }
-  const { data: memberRows, error: memberReadErr } = await ctx.supabase.from("documents").select("id, account_id, kind, status, created_at, metadata").eq("account_id", ctx.accountId).in("id", [draftKeepId, draftRetireId]);
+  const { data: memberRows, error: memberReadErr } = await ctx.supabase.from("documents").select("id, account_id, project_id, kind, status, created_at, metadata").eq("account_id", ctx.accountId).in("id", [draftKeepId, draftRetireId]);
   if (memberReadErr) {
     throw new Error(`resolve_proposal: supersede member read failed: ${memberReadErr.message}`);
   }
@@ -68313,6 +70421,11 @@ async function applySupersedeProposal(ctx, proposalId, doc, existing, actor, now
     throw new Error(
       "resolve_proposal: supersede pair went stale (member missing) \u2014 reject this proposal"
     );
+  }
+  if (members.some(
+    (member) => member.account_id !== ctx.accountId || (member.project_id ?? null) !== (doc.project_id ?? null)
+  )) {
+    throw new Error("resolve_proposal: supersede member is outside the proposal Project");
   }
   const metaOf = (m2) => m2.metadata ?? {};
   const otherOf = (m2) => members.find((o2) => o2.id !== m2.id);
@@ -68394,6 +70507,9 @@ async function applyUpdateProposal(ctx, proposalId, doc, existing, actor, nowIso
   if (!target || target.account_id !== ctx.accountId) {
     throw new Error("resolve_proposal: update target not found in this account");
   }
+  if ((target.project_id ?? null) !== (doc.project_id ?? null)) {
+    throw new Error("resolve_proposal: update target is outside the proposal Project");
+  }
   if (target.status === "archived") {
     throw new Error(
       "resolve_proposal: update target is archived \u2014 unarchive it first, or reject this proposal"
@@ -68464,57 +70580,93 @@ async function applyBrandPointer(ctx, projectId, accountId, proposalId) {
 
 // packages/mcp-tools/src/handoffs.ts
 var AgentKindSchema2 = external_exports.enum(AGENT_KINDS);
+var NO_HANDOFF_ID = "00000000-0000-0000-0000-000000000000";
+var MAX_HANDOFF_LIST_LIMIT = 20;
+var MAX_HANDOFF_PACKET_RESPONSE_CHARS = 32 * 1024;
 var ListHandoffsArgs = external_exports.object({
   project_id: external_exports.string().uuid().nullable().optional(),
   target_agent_kind: AgentKindSchema2.optional(),
   target_session_id: external_exports.string().min(1).max(256).optional(),
   status: external_exports.enum(["pending", "accepted", "completed", "cancelled"]).optional(),
-  limit: external_exports.number().int().min(1).max(50).optional()
+  limit: external_exports.number().int().min(1).max(MAX_HANDOFF_LIST_LIMIT).optional()
 });
 var UpdateHandoffArgs = external_exports.object({
   handoff_id: external_exports.string().uuid(),
   action: external_exports.enum(["accept", "complete", "cancel"])
 });
+async function resolvePickupInstallation(ctx) {
+  if (!ctx.agentInstallationId || !ctx.userId) return null;
+  const { data, error: error2 } = await ctx.supabase.from("agent_installations").select("id, user_id, kind, opt_in_scope, paused_at, auth_revoked_at").eq("id", ctx.agentInstallationId).eq("account_id", ctx.accountId).eq("user_id", ctx.userId).maybeSingle();
+  if (error2) throw new Error(`list_handoffs installation lookup: ${error2.message}`);
+  return data ?? null;
+}
 async function listHandoffs(ctx, rawArgs) {
   const args = ListHandoffsArgs.parse(rawArgs ?? {});
   const projectId = args.project_id ?? ctx.projectId ?? null;
   const status = args.status ?? "pending";
+  const installation = await resolvePickupInstallation(ctx);
+  const inferredAgentKind = AgentKindSchema2.safeParse(ctx.agentKind).data;
+  const targetAgentKind = args.target_agent_kind ?? installation?.kind ?? inferredAgentKind;
   let query = ctx.supabase.from("agent_handoffs").select(
     "id, project_id, component_id, target_agent_installation_id, target_agent_kind, task, path, packet_markdown, status, source_session_id, target_session_id, edit_conflict_id, created_at"
-  ).eq("account_id", ctx.accountId).eq("status", status).order("created_at", { ascending: false }).limit(args.limit ?? 20);
+  ).eq("account_id", ctx.accountId).eq("status", status).order("created_at", { ascending: false }).limit(args.limit ?? MAX_HANDOFF_LIST_LIMIT);
   if (projectId) query = query.eq("project_id", projectId);
-  if (args.target_agent_kind) query = query.eq("target_agent_kind", args.target_agent_kind);
+  if (targetAgentKind) query = query.eq("target_agent_kind", targetAgentKind);
   const targetSessionId = args.target_session_id ?? ctx.sessionId ?? null;
   if (targetSessionId) {
     query = query.or(`target_session_id.is.null,target_session_id.eq.${targetSessionId}`);
   } else {
     query = query.is("target_session_id", null);
   }
-  if (ctx.agentInstallationId) {
-    query = query.or(
-      `target_agent_installation_id.is.null,target_agent_installation_id.eq.${ctx.agentInstallationId}`
-    );
+  if (installation) {
+    const activeForPool = !installation.paused_at && !installation.auth_revoked_at;
+    const sameKindPool = !targetAgentKind || installation.kind === targetAgentKind;
+    if (activeForPool && sameKindPool && installation.opt_in_scope === "team") {
+      query = query.or(
+        `target_agent_installation_id.is.null,target_agent_installation_id.eq.${installation.id}`
+      );
+    } else if (activeForPool && sameKindPool && installation.opt_in_scope === "personal") {
+      query = query.or(
+        `target_agent_installation_id.eq.${installation.id},and(target_agent_installation_id.is.null,created_by.eq.${installation.user_id})`
+      );
+    } else {
+      query = query.eq("id", NO_HANDOFF_ID);
+    }
+  } else {
+    query = query.eq("id", NO_HANDOFF_ID);
   }
   const { data, error: error2 } = await query;
   if (error2) throw new Error(`list_handoffs: ${error2.message}`);
-  const handoffs = data ?? [];
+  const handoffs = (data ?? []).map((handoff) => {
+    if (handoff.packet_markdown.length <= MAX_HANDOFF_PACKET_RESPONSE_CHARS) return handoff;
+    return {
+      ...handoff,
+      packet_markdown: `${handoff.packet_markdown.slice(0, MAX_HANDOFF_PACKET_RESPONSE_CHARS)}
+
+[Legacy packet truncated by Memlin]`,
+      packet_truncated: true
+    };
+  });
   return { handoffs, count: handoffs.length };
 }
 async function updateHandoff(ctx, rawArgs) {
   const args = UpdateHandoffArgs.parse(rawArgs);
-  const now = (/* @__PURE__ */ new Date()).toISOString();
-  const status = args.action === "accept" ? "accepted" : args.action === "complete" ? "completed" : "cancelled";
-  const update = args.action === "accept" ? { status, accepted_at: now, updated_at: now } : args.action === "complete" ? { status, completed_at: now, updated_at: now } : { status, cancelled_at: now, updated_at: now };
-  let query = ctx.supabase.from("agent_handoffs").update(update).eq("id", args.handoff_id).eq("account_id", ctx.accountId);
-  if (ctx.agentInstallationId) {
-    query = query.or(
-      `target_agent_installation_id.is.null,target_agent_installation_id.eq.${ctx.agentInstallationId}`
-    );
+  if (!ctx.userId) throw new Error("update_handoff: authenticated user identity is required");
+  if (args.action !== "cancel" && !ctx.agentInstallationId) {
+    throw new Error("update_handoff: an exact destination installation is required");
   }
-  const { data, error: error2 } = await query.select("id, status").maybeSingle();
+  const { data, error: error2 } = await ctx.supabase.rpc("advance_agent_handoff_lifecycle", {
+    p_account_id: ctx.accountId,
+    p_handoff_id: args.handoff_id,
+    p_actor_user_id: ctx.userId,
+    p_actor_installation_id: ctx.agentInstallationId ?? null,
+    p_target_session_id: ctx.sessionId ?? null,
+    p_action: args.action
+  });
   if (error2) throw new Error(`update_handoff: ${error2.message}`);
-  if (!data) throw new Error("update_handoff: handoff not found");
-  return data;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error("update_handoff: handoff not found");
+  return row;
 }
 
 // packages/mcp-tools/src/edit-coordination.ts
@@ -69602,7 +71754,7 @@ async function addToFeature(ctx, rawArgs) {
 }
 
 // packages/mcp-tools/src/resources.ts
-var RESOURCE_KINDS = ["memory", "skill", "goal", "schema", "decision"];
+var RESOURCE_KINDS2 = ["memory", "skill", "goal", "schema", "decision"];
 var LIST_LIMIT = 50;
 var MIME = "text/markdown";
 function resourceError(message) {
@@ -69621,7 +71773,7 @@ function resourceTemplates() {
   ];
 }
 async function listResources(ctx, options2 = {}) {
-  let q2 = ctx.supabase.from("documents").select("id, kind, title, path, status, project_id, updated_at").eq("account_id", ctx.accountId).in("kind", RESOURCE_KINDS).order("updated_at", { ascending: false }).limit(LIST_LIMIT);
+  let q2 = ctx.supabase.from("documents").select("id, kind, title, path, status, project_id, updated_at").eq("account_id", ctx.accountId).in("kind", RESOURCE_KINDS2).order("updated_at", { ascending: false }).limit(LIST_LIMIT);
   if (ctx.projectId) {
     q2 = q2.or(`project_id.eq.${ctx.projectId},project_id.is.null`);
   }
@@ -69838,6 +71990,130 @@ function withResolverDefaults(ctx, args) {
     ...input.git_remote == null && ctx.defaultGitRemote ? { git_remote: ctx.defaultGitRemote } : {}
   };
 }
+
+// packages/mcp-tools/src/resource-context-provider.ts
+var AuthorizationServiceResultSchema = external_exports.object({
+  authorized_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
+  denied_contexts: external_exports.array(
+    external_exports.object({
+      context_ref: ContextReferenceV1Schema,
+      reason_code: external_exports.string().min(1).max(128),
+      reason: external_exports.string().min(1).max(1024).optional()
+    }).strict()
+  ).max(128)
+}).strict();
+var LinkedThoughtEvidenceRowSchema = external_exports.object({
+  evidence_id: external_exports.string().min(1).max(256),
+  thought_id: external_exports.string().uuid(),
+  thought_revision_id: external_exports.string().uuid(),
+  revision_number: external_exports.coerce.number().int().positive(),
+  context_revision: external_exports.string().min(1).max(256),
+  title: external_exports.string().min(1).max(4e3),
+  body: external_exports.string().max(2e6),
+  thought_kind: external_exports.string().min(1).max(40),
+  workflow_status: external_exports.string().min(1).max(40),
+  thought_authority: external_exports.string().min(1).max(40),
+  created_by: external_exports.string().uuid(),
+  created_at: external_exports.string().datetime({ offset: true }),
+  content_sha256: external_exports.string().regex(/^[0-9a-f]{64}$/),
+  lexical_score: external_exports.coerce.number().finite(),
+  metadata: external_exports.record(external_exports.unknown()).default({})
+}).strict();
+var SearchServiceResultSchema = external_exports.object({
+  rows: external_exports.array(ResourceEvidenceSearchRowV1Schema).max(1e3),
+  linked_thought_rows: external_exports.array(LinkedThoughtEvidenceRowSchema).max(64).default([]),
+  covered_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
+  omitted_contexts: external_exports.array(
+    external_exports.object({
+      context_ref: ContextReferenceV1Schema,
+      reason_code: external_exports.string().min(1).max(128),
+      reason: external_exports.string().min(1).max(1024).optional()
+    }).strict()
+  ).max(128).default([]),
+  index_revision: external_exports.string().min(1).max(512).optional(),
+  truncated: external_exports.boolean().default(false)
+}).strict();
+var RawSearchRowSchema = external_exports.object({
+  evidence_id: external_exports.string().min(1).max(256),
+  resource_id: external_exports.string().uuid(),
+  resource_version_id: external_exports.string().uuid(),
+  chunk_id: external_exports.string().uuid(),
+  context_type: external_exports.enum(["account", "project", "thought"]),
+  context_id: external_exports.string().uuid(),
+  resource_kind: external_exports.string(),
+  title: external_exports.string(),
+  content: external_exports.string(),
+  source_revision: external_exports.string(),
+  content_sha256: external_exports.string(),
+  canonical_uri: external_exports.string().nullable(),
+  locator: ResourceLocatorV1Schema,
+  rights_basis: external_exports.string(),
+  license: external_exports.string().nullable(),
+  observed_at: external_exports.string(),
+  occurred_at: external_exports.string().nullable(),
+  authority: external_exports.enum(["provisional", "verified"]),
+  resource_status: external_exports.literal("active"),
+  version_status: external_exports.literal("active"),
+  source_audience: external_exports.enum(["private", "team", "room", "external", "public"]),
+  classification: external_exports.enum(["public", "internal", "confidential", "restricted"]),
+  authorized_principal_ids: external_exports.array(external_exports.string()).nullable(),
+  audience_context_id: external_exports.string().nullable(),
+  acl_revision: external_exports.string().nullable(),
+  embedding_profile_id: external_exports.string().nullable(),
+  semantic_score: external_exports.number().nullable(),
+  lexical_score: external_exports.number().nullable(),
+  metadata: external_exports.record(external_exports.unknown()).nullable()
+}).strict();
+
+// packages/mcp-tools/src/connector-context-provider.ts
+var AuthorizationResultSchema = external_exports.object({
+  authorized_contexts: external_exports.array(ContextReferenceV1Schema).max(64),
+  denied_contexts: external_exports.array(
+    external_exports.object({
+      context_ref: ContextReferenceV1Schema,
+      reason_code: external_exports.string().min(1).max(128),
+      reason: external_exports.string().min(1).max(1024).optional()
+    }).strict()
+  ).max(64)
+}).strict();
+var ConnectorEvidenceSearchRowSchema = external_exports.object({
+  evidence_id: external_exports.string().uuid(),
+  project_id: external_exports.string().uuid(),
+  provider: external_exports.enum(["jira", "slack"]),
+  provider_connection_id: external_exports.string().min(1).max(256),
+  external_collection_id: external_exports.string().min(1).max(512),
+  external_item_id: external_exports.string().min(1).max(512),
+  title: external_exports.string().max(1024),
+  content: external_exports.string().min(1).max(2e6),
+  source_url: external_exports.string().nullable(),
+  source_revision: external_exports.string().min(1).max(512),
+  content_sha256: external_exports.string().regex(/^[0-9a-f]{64}$/),
+  canonical_locator: external_exports.record(ContractJsonValueSchema).default({}),
+  rights_basis: external_exports.string().max(512).nullable(),
+  license: external_exports.string().max(512).nullable(),
+  classification: external_exports.enum(["public", "internal", "confidential", "restricted"]),
+  occurred_at: external_exports.string().datetime({ offset: true }).nullable(),
+  observed_at: external_exports.string().datetime({ offset: true }),
+  lexical_score: external_exports.coerce.number().finite(),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var SearchResultSchema = external_exports.object({
+  rows: external_exports.array(ConnectorEvidenceSearchRowSchema).max(1e3),
+  covered_contexts: external_exports.array(ContextReferenceV1Schema).max(64),
+  omitted_contexts: external_exports.array(
+    external_exports.object({
+      context_ref: ContextReferenceV1Schema,
+      reason_code: external_exports.string().min(1).max(128),
+      reason: external_exports.string().min(1).max(1024).optional()
+    }).strict()
+  ).max(64).default([]),
+  index_revision: external_exports.string().min(1).max(512).optional(),
+  truncated: external_exports.boolean().default(false)
+}).strict();
+var RawConnectorEvidenceSearchRowSchema = ConnectorEvidenceSearchRowSchema.extend({
+  canonical_locator: external_exports.record(ContractJsonValueSchema).nullable(),
+  metadata: external_exports.record(ContractJsonValueSchema).nullable()
+}).strict();
 
 // packages/plugin-core/dist/pre-tool-use-handler.js
 import { execSync as execSync3 } from "node:child_process";
@@ -70300,7 +72576,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.49";
+  cachedAgentVersion = "0.2.50";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -73961,7 +76237,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.49"?.trim();
+  const env = "0.2.50"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }
