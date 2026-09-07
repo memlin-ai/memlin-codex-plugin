@@ -7684,7 +7684,7 @@ var require_FunctionsClient = __commonJS({
           let timeoutId;
           let timeoutController;
           try {
-            const { headers, method, body: functionArgs, signal, timeout } = options2;
+            const { headers, method, body: functionArgs, signal, timeout: timeout2 } = options2;
             let _headers = {};
             let { region } = options2;
             if (!region) {
@@ -7717,9 +7717,9 @@ var require_FunctionsClient = __commonJS({
               }
             }
             let effectiveSignal = signal;
-            if (timeout) {
+            if (timeout2) {
               timeoutController = new AbortController();
-              timeoutId = setTimeout(() => timeoutController.abort(), timeout);
+              timeoutId = setTimeout(() => timeoutController.abort(), timeout2);
               if (signal) {
                 effectiveSignal = timeoutController.signal;
                 signal.addEventListener("abort", () => timeoutController.abort());
@@ -8411,14 +8411,14 @@ var require_phoenix_cjs = __commonJS({
        * @param {() => Record<string, unknown>} payload - The payload, for example `{user_id: 123}`
        * @param {number} timeout - The push timeout in milliseconds
        */
-      constructor(channel, event, payload, timeout) {
+      constructor(channel, event, payload, timeout2) {
         this.channel = channel;
         this.event = event;
         this.payload = payload || function() {
           return {};
         };
         this.receivedResp = null;
-        this.timeout = timeout;
+        this.timeout = timeout2;
         this.timeoutTimer = null;
         this.recHooks = [];
         this.sent = false;
@@ -8428,8 +8428,8 @@ var require_phoenix_cjs = __commonJS({
        *
        * @param {number} timeout
        */
-      resend(timeout) {
-        this.timeout = timeout;
+      resend(timeout2) {
+        this.timeout = timeout2;
         this.reset();
         this.send();
       }
@@ -8624,11 +8624,11 @@ var require_phoenix_cjs = __commonJS({
        * @param {number} timeout
        * @returns {Push}
        */
-      join(timeout = this.timeout) {
+      join(timeout2 = this.timeout) {
         if (this.joinedOnce) {
           throw new Error("tried to join multiple times. 'join' can only be called a single time per channel instance");
         } else {
-          this.timeout = timeout;
+          this.timeout = timeout2;
           this.joinedOnce = true;
           this.rejoin();
           return this.joinPush;
@@ -8729,14 +8729,14 @@ var require_phoenix_cjs = __commonJS({
        * @param {number} [timeout]
        * @returns {Push}
        */
-      push(event, payload, timeout = this.timeout) {
+      push(event, payload, timeout2 = this.timeout) {
         payload = payload || {};
         if (!this.joinedOnce) {
           throw new Error(`tried to push '${event}' to '${this.topic}' before joining. Use channel.join() before pushing events`);
         }
         let pushEvent = new Push(this, event, function() {
           return payload;
-        }, timeout);
+        }, timeout2);
         if (this.canPush()) {
           pushEvent.send();
         } else {
@@ -8761,7 +8761,7 @@ var require_phoenix_cjs = __commonJS({
        * @param {number} timeout
        * @returns {Push}
        */
-      leave(timeout = this.timeout) {
+      leave(timeout2 = this.timeout) {
         this.rejoinTimer.reset();
         this.joinPush.cancelTimeout();
         this.state = CHANNEL_STATES.leaving;
@@ -8769,7 +8769,7 @@ var require_phoenix_cjs = __commonJS({
           if (this.socket.hasLogger()) this.socket.log("channel", `leave ${this.topic}`);
           this.trigger(CHANNEL_EVENTS.close, "leave");
         };
-        let leavePush = new Push(this, CHANNEL_EVENTS.leave, closure({}), timeout);
+        let leavePush = new Push(this, CHANNEL_EVENTS.leave, closure({}), timeout2);
         leavePush.receive("ok", () => onClose()).receive("timeout", () => onClose());
         leavePush.send();
         if (!this.canPush()) {
@@ -8816,13 +8816,13 @@ var require_phoenix_cjs = __commonJS({
       /**
        * @private
        */
-      rejoin(timeout = this.timeout) {
+      rejoin(timeout2 = this.timeout) {
         if (this.isLeaving()) {
           return;
         }
         this.socket.leaveOpenTopic(this.topic);
         this.state = CHANNEL_STATES.joining;
-        this.joinPush.resend(timeout);
+        this.joinPush.resend(timeout2);
       }
       /**
        * @param {string} event
@@ -8864,29 +8864,29 @@ var require_phoenix_cjs = __commonJS({
       }
     };
     var Ajax = class {
-      static request(method, endPoint, headers, body, timeout, ontimeout, callback) {
+      static request(method, endPoint, headers, body, timeout2, ontimeout, callback) {
         if (global2.XDomainRequest) {
           let req = new global2.XDomainRequest();
-          return this.xdomainRequest(req, method, endPoint, body, timeout, ontimeout, callback);
+          return this.xdomainRequest(req, method, endPoint, body, timeout2, ontimeout, callback);
         } else if (global2.XMLHttpRequest) {
           let req = new global2.XMLHttpRequest();
-          return this.xhrRequest(req, method, endPoint, headers, body, timeout, ontimeout, callback);
+          return this.xhrRequest(req, method, endPoint, headers, body, timeout2, ontimeout, callback);
         } else if (global2.fetch && global2.AbortController) {
-          return this.fetchRequest(method, endPoint, headers, body, timeout, ontimeout, callback);
+          return this.fetchRequest(method, endPoint, headers, body, timeout2, ontimeout, callback);
         } else {
           throw new Error("No suitable XMLHttpRequest implementation found");
         }
       }
-      static fetchRequest(method, endPoint, headers, body, timeout, ontimeout, callback) {
+      static fetchRequest(method, endPoint, headers, body, timeout2, ontimeout, callback) {
         let options2 = {
           method,
           headers,
           body
         };
         let controller = null;
-        if (timeout) {
+        if (timeout2) {
           controller = new AbortController();
-          const _timeoutId = setTimeout(() => controller.abort(), timeout);
+          const _timeoutId = setTimeout(() => controller.abort(), timeout2);
           options2.signal = controller.signal;
         }
         global2.fetch(endPoint, options2).then((response) => response.text()).then((data) => this.parseJSON(data)).then((data) => callback && callback(data)).catch((err) => {
@@ -8898,8 +8898,8 @@ var require_phoenix_cjs = __commonJS({
         });
         return controller;
       }
-      static xdomainRequest(req, method, endPoint, body, timeout, ontimeout, callback) {
-        req.timeout = timeout;
+      static xdomainRequest(req, method, endPoint, body, timeout2, ontimeout, callback) {
+        req.timeout = timeout2;
         req.open(method, endPoint);
         req.onload = () => {
           let response = this.parseJSON(req.responseText);
@@ -8913,9 +8913,9 @@ var require_phoenix_cjs = __commonJS({
         req.send(body);
         return req;
       }
-      static xhrRequest(req, method, endPoint, headers, body, timeout, ontimeout, callback) {
+      static xhrRequest(req, method, endPoint, headers, body, timeout2, ontimeout, callback) {
         req.open(method, endPoint, true);
-        req.timeout = timeout;
+        req.timeout = timeout2;
         for (let [key, value] of Object.entries(headers)) {
           req.setRequestHeader(key, value);
         }
@@ -10323,11 +10323,11 @@ var require_channelAdapter = __commonJS({
       off(event, refNumber) {
         this.channel.off(event, refNumber);
       }
-      subscribe(timeout) {
-        return this.channel.join(timeout);
+      subscribe(timeout2) {
+        return this.channel.join(timeout2);
       }
-      unsubscribe(timeout) {
-        return this.channel.leave(timeout);
+      unsubscribe(timeout2) {
+        return this.channel.leave(timeout2);
       }
       teardown() {
         this.channel.teardown();
@@ -10338,10 +10338,10 @@ var require_channelAdapter = __commonJS({
       onError(callback) {
         return this.channel.onError(callback);
       }
-      push(event, payload, timeout) {
+      push(event, payload, timeout2) {
         let push2;
         try {
-          push2 = this.channel.push(event, payload, timeout);
+          push2 = this.channel.push(event, payload, timeout2);
         } catch (error2) {
           throw new Error(`tried to push '${event}' to '${this.channel.topic}' before joining. Use channel.subscribe() before pushing events`);
         }
@@ -10508,7 +10508,7 @@ var require_RealtimeChannel = __commonJS({
        * Subscribe registers your client with the server
        * @category Realtime
        */
-      subscribe(callback, timeout = this.timeout) {
+      subscribe(callback, timeout2 = this.timeout) {
         var _a2, _b, _c;
         if (!this.socket.isConnected()) {
           this.socket.connect();
@@ -10533,7 +10533,7 @@ var require_RealtimeChannel = __commonJS({
           this._onClose(() => callback === null || callback === void 0 ? void 0 : callback(REALTIME_SUBSCRIBE_STATES.CLOSED));
           this.updateJoinPayload(Object.assign({ config: config2 }, accessTokenPayload));
           this._updateFilterMessage();
-          this.channelAdapter.subscribe(timeout).receive("ok", async ({ postgres_changes: postgres_changes2 }) => {
+          this.channelAdapter.subscribe(timeout2).receive("ok", async ({ postgres_changes: postgres_changes2 }) => {
             if (!this.socket._isManualToken()) {
               this.socket.setAuth();
             }
@@ -10941,9 +10941,9 @@ var require_RealtimeChannel = __commonJS({
        *
        * @category Realtime
        */
-      async unsubscribe(timeout = this.timeout) {
+      async unsubscribe(timeout2 = this.timeout) {
         return new Promise((resolve) => {
-          this.channelAdapter.unsubscribe(timeout).receive("ok", () => resolve("ok")).receive("timeout", () => resolve("timed out")).receive("error", () => resolve("error"));
+          this.channelAdapter.unsubscribe(timeout2).receive("ok", () => resolve("ok")).receive("timeout", () => resolve("timed out")).receive("error", () => resolve("error"));
         });
       }
       /**
@@ -10955,9 +10955,9 @@ var require_RealtimeChannel = __commonJS({
         this.channelAdapter.teardown();
       }
       /** @internal */
-      async _fetchWithTimeout(url, options2, timeout) {
+      async _fetchWithTimeout(url, options2, timeout2) {
         const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), timeout);
+        const id = setTimeout(() => controller.abort(), timeout2);
         const response = await this.socket.fetch(url, Object.assign(Object.assign({}, options2), { signal: controller.signal }));
         clearTimeout(id);
         return response;
@@ -11146,9 +11146,9 @@ var require_socketAdapter = __commonJS({
       connect() {
         this.socket.connect();
       }
-      disconnect(callback, code, reason, timeout = 1e4) {
+      disconnect(callback, code, reason, timeout2 = 1e4) {
         return new Promise((resolve) => {
-          setTimeout(() => resolve("timeout"), timeout);
+          setTimeout(() => resolve("timeout"), timeout2);
           this.socket.disconnect(() => {
             callback();
             resolve("ok");
@@ -18774,15 +18774,15 @@ var require_GoTrueClient = __commonJS({
         } else if (typeof Deno !== "undefined" && typeof Deno.unrefTimer === "function") {
           Deno.unrefTimer(ticker);
         }
-        const timeout = setTimeout(async () => {
+        const timeout2 = setTimeout(async () => {
           await this.initializePromise;
           await this._autoRefreshTokenTick();
         }, 0);
-        this.autoRefreshTickTimeout = timeout;
-        if (timeout && typeof timeout === "object" && typeof timeout.unref === "function") {
-          timeout.unref();
+        this.autoRefreshTickTimeout = timeout2;
+        if (timeout2 && typeof timeout2 === "object" && typeof timeout2.unref === "function") {
+          timeout2.unref();
         } else if (typeof Deno !== "undefined" && typeof Deno.unrefTimer === "function") {
-          Deno.unrefTimer(timeout);
+          Deno.unrefTimer(timeout2);
         }
       }
       /**
@@ -18796,10 +18796,10 @@ var require_GoTrueClient = __commonJS({
         if (ticker) {
           clearInterval(ticker);
         }
-        const timeout = this.autoRefreshTickTimeout;
+        const timeout2 = this.autoRefreshTickTimeout;
         this.autoRefreshTickTimeout = null;
-        if (timeout) {
-          clearTimeout(timeout);
+        if (timeout2) {
+          clearTimeout(timeout2);
         }
       }
       /**
@@ -21807,7 +21807,7 @@ var require_lib2 = __commonJS({
       var _ref = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : {}, _ref$size = _ref.size;
       let size = _ref$size === void 0 ? 0 : _ref$size;
       var _ref$timeout = _ref.timeout;
-      let timeout = _ref$timeout === void 0 ? 0 : _ref$timeout;
+      let timeout2 = _ref$timeout === void 0 ? 0 : _ref$timeout;
       if (body == null) {
         body = null;
       } else if (isURLSearchParams(body)) {
@@ -21828,7 +21828,7 @@ var require_lib2 = __commonJS({
         error: null
       };
       this.size = size;
-      this.timeout = timeout;
+      this.timeout = timeout2;
       if (body instanceof Stream2) {
         body.on("error", function(err) {
           const error2 = err.name === "AbortError" ? err : new FetchError(`Invalid response body while trying to fetch ${_this.url}: ${err.message}`, "system", err);
@@ -25187,9 +25187,9 @@ var require_agent = __commonJS({
         this.timeoutSocketCount = 0;
         this.timeoutSocketCountLastCheck = 0;
         this.on("free", (socket) => {
-          const timeout = this.calcSocketTimeout(socket);
-          if (timeout > 0 && socket.timeout !== timeout) {
-            socket.setTimeout(timeout);
+          const timeout2 = this.calcSocketTimeout(socket);
+          if (timeout2 > 0 && socket.timeout !== timeout2) {
+            socket.setTimeout(timeout2);
           }
         });
       }
@@ -25272,8 +25272,8 @@ var require_agent = __commonJS({
       }
       [INIT_SOCKET](socket, options2) {
         if (options2.timeout) {
-          const timeout = getSocketTimeout(socket);
-          if (!timeout) {
+          const timeout2 = getSocketTimeout(socket);
+          if (!timeout2) {
             socket.setTimeout(options2.timeout);
           }
         }
@@ -25371,7 +25371,7 @@ var require_agent = __commonJS({
       socket.on("close", onClose);
       function onTimeout() {
         const listenerCount = socket.listeners("timeout").length;
-        const timeout = getSocketTimeout(socket);
+        const timeout2 = getSocketTimeout(socket);
         const req = socket._httpMessage;
         const reqTimeoutListenerCount = req && req.listeners("timeout").length || 0;
         debug2(
@@ -25379,7 +25379,7 @@ var require_agent = __commonJS({
           socket[SOCKET_NAME],
           socket[SOCKET_REQUEST_COUNT],
           socket[SOCKET_REQUEST_FINISHED_COUNT],
-          timeout,
+          timeout2,
           listenerCount,
           defaultTimeoutListenerCount,
           !!req,
@@ -25398,7 +25398,7 @@ var require_agent = __commonJS({
           if (reqTimeoutListenerCount === 0) {
             const error2 = new Error("Socket timeout");
             error2.code = "ERR_SOCKET_TIMEOUT";
-            error2.timeout = timeout;
+            error2.timeout = timeout2;
             socket.destroy(error2);
             agent.removeSocket(socket, options2);
             debug2("%s destroy with timeout error", socket[SOCKET_NAME]);
@@ -31488,7 +31488,7 @@ var init_companion_client = __esm({
 
 // apps/mcp-server/src/index.ts
 import { execSync as execSync4 } from "node:child_process";
-import { randomUUID as randomUUID4 } from "node:crypto";
+import { randomUUID as randomUUID5 } from "node:crypto";
 import { readFileSync as readFileSync6 } from "node:fs";
 import path19, { dirname as dirname2, join as join2 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
@@ -41013,11 +41013,11 @@ var Protocol = class {
     const controller = this._requestHandlerAbortControllers.get(notification.params.requestId);
     controller?.abort(notification.params.reason);
   }
-  _setupTimeout(messageId, timeout, maxTotalTimeout, onTimeout, resetTimeoutOnProgress = false) {
+  _setupTimeout(messageId, timeout2, maxTotalTimeout, onTimeout, resetTimeoutOnProgress = false) {
     this._timeoutInfo.set(messageId, {
-      timeoutId: setTimeout(onTimeout, timeout),
+      timeoutId: setTimeout(onTimeout, timeout2),
       startTime: Date.now(),
-      timeout,
+      timeout: timeout2,
       maxTotalTimeout,
       resetTimeoutOnProgress,
       onTimeout
@@ -41479,9 +41479,9 @@ var Protocol = class {
       options2?.signal?.addEventListener("abort", () => {
         cancel(options2?.signal?.reason);
       });
-      const timeout = options2?.timeout ?? DEFAULT_REQUEST_TIMEOUT_MSEC;
-      const timeoutHandler = () => cancel(McpError.fromError(ErrorCode.RequestTimeout, "Request timed out", { timeout }));
-      this._setupTimeout(messageId, timeout, options2?.maxTotalTimeout, timeoutHandler, options2?.resetTimeoutOnProgress ?? false);
+      const timeout2 = options2?.timeout ?? DEFAULT_REQUEST_TIMEOUT_MSEC;
+      const timeoutHandler = () => cancel(McpError.fromError(ErrorCode.RequestTimeout, "Request timed out", { timeout: timeout2 }));
+      this._setupTimeout(messageId, timeout2, options2?.maxTotalTimeout, timeoutHandler, options2?.resetTimeoutOnProgress ?? false);
       const relatedTaskId = relatedTask?.taskId;
       if (relatedTaskId) {
         const responseResolver = (response) => {
@@ -47307,15 +47307,15 @@ var PostgrestClient = class PostgrestClient2 {
   * })
   * ```
   */
-  constructor(url, { headers = {}, schema, fetch: fetch$1, timeout, urlLengthLimit = 8e3, retry } = {}) {
+  constructor(url, { headers = {}, schema, fetch: fetch$1, timeout: timeout2, urlLengthLimit = 8e3, retry } = {}) {
     this.url = url;
     this.headers = new Headers(headers);
     this.schemaName = schema;
     this.urlLengthLimit = urlLengthLimit;
     const originalFetch = fetch$1 !== null && fetch$1 !== void 0 ? fetch$1 : globalThis.fetch;
-    if (timeout !== void 0 && timeout > 0) this.fetch = (input, init2) => {
+    if (timeout2 !== void 0 && timeout2 > 0) this.fetch = (input, init2) => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      const timeoutId = setTimeout(() => controller.abort(), timeout2);
       const existingSignal = init2 === null || init2 === void 0 ? void 0 : init2.signal;
       if (existingSignal) {
         if (existingSignal.aborted) {
@@ -52810,14 +52810,14 @@ var APIClient = class {
   constructor({
     baseURL,
     maxRetries = 2,
-    timeout = 6e5,
+    timeout: timeout2 = 6e5,
     // 10 minutes
     httpAgent,
     fetch: overriddenFetch
   }) {
     this.baseURL = baseURL;
     this.maxRetries = validatePositiveInteger("maxRetries", maxRetries);
-    this.timeout = validatePositiveInteger("timeout", timeout);
+    this.timeout = validatePositiveInteger("timeout", timeout2);
     this.httpAgent = httpAgent;
     this.fetch = overriddenFetch ?? fetch2;
   }
@@ -52968,14 +52968,14 @@ var APIClient = class {
       retriesRemaining = maxRetries;
     }
     await this.prepareOptions(options2);
-    const { req, url, timeout } = this.buildRequest(options2, { retryCount: maxRetries - retriesRemaining });
+    const { req, url, timeout: timeout2 } = this.buildRequest(options2, { retryCount: maxRetries - retriesRemaining });
     await this.prepareRequest(req, { url, options: options2 });
     debug("request", url, options2, req.headers);
     if (options2.signal?.aborted) {
       throw new APIUserAbortError();
     }
     const controller = new AbortController();
-    const response = await this.fetchWithTimeout(url, req, timeout, controller).catch(castToError);
+    const response = await this.fetchWithTimeout(url, req, timeout2, controller).catch(castToError);
     if (response instanceof Error) {
       if (options2.signal?.aborted) {
         throw new APIUserAbortError();
@@ -53035,7 +53035,7 @@ var APIClient = class {
     const { signal, ...options2 } = init2 || {};
     if (signal)
       signal.addEventListener("abort", () => controller.abort());
-    const timeout = setTimeout(() => controller.abort(), ms);
+    const timeout2 = setTimeout(() => controller.abort(), ms);
     const fetchOptions = {
       signal: controller.signal,
       ...options2
@@ -53046,7 +53046,7 @@ var APIClient = class {
     return (
       // use undefined this binding; fetch errors if bound to something else in browser/cloudflare
       this.fetch.call(void 0, url, fetchOptions).finally(() => {
-        clearTimeout(timeout);
+        clearTimeout(timeout2);
       })
     );
   }
@@ -59749,6 +59749,121 @@ async function embed(text, signal) {
   return embedWith(getClient(), text, signal);
 }
 
+// packages/sync-core/src/query-embeddings.ts
+import { randomUUID } from "node:crypto";
+
+// packages/sync-core/src/query-embedding-cache.ts
+import { createHash, createHmac, randomBytes } from "node:crypto";
+var credentialSalt = randomBytes(32);
+function timeout() {
+  return new DOMException("Query embedding deadline exceeded", "TimeoutError");
+}
+var QueryEmbeddingCache = class {
+  constructor(options2 = {}) {
+    this.options = options2;
+  }
+  options;
+  completed = /* @__PURE__ */ new Map();
+  flights = /* @__PURE__ */ new Map();
+  now() {
+    return (this.options.now ?? Date.now)();
+  }
+  get size() {
+    return this.completed.size;
+  }
+  get inFlight() {
+    return this.flights.size;
+  }
+  async get(key, load, options2) {
+    if (options2.signal?.aborted) throw options2.signal.reason ?? timeout();
+    if (options2.deadlineAt <= this.now()) throw timeout();
+    const cached2 = this.completed.get(key);
+    if (cached2 && cached2.expires > this.now()) {
+      this.completed.delete(key);
+      this.completed.set(key, cached2);
+      options2.onCache?.("hit");
+      return [...cached2.vector];
+    }
+    if (cached2) this.completed.delete(key);
+    let flight = this.flights.get(key);
+    options2.onCache?.(flight ? "join" : "miss");
+    if (!flight) {
+      const controller = new AbortController();
+      const waiters = /* @__PURE__ */ new Set();
+      const created = { controller, waiters, promise: Promise.resolve([]) };
+      this.flights.set(key, created);
+      created.promise = Promise.resolve().then(() => {
+        if (controller.signal.aborted) throw controller.signal.reason ?? timeout();
+        return load(
+          controller.signal,
+          () => Math.max(0, ...[...waiters].map((w2) => w2.deadline - this.now()))
+        );
+      }).then((vector) => {
+        if (!vector.length || vector.some((n2) => !Number.isFinite(n2))) {
+          throw new Error("Invalid query embedding vector");
+        }
+        if (!controller.signal.aborted && this.flights.get(key) === created) {
+          const now = this.now();
+          for (const [k2, entry] of this.completed) {
+            if (entry.expires <= now) this.completed.delete(k2);
+          }
+          const limit2 = this.options.maxEntries ?? 1e3;
+          while (this.completed.size >= limit2 && this.completed.size > 0) {
+            this.completed.delete(this.completed.keys().next().value);
+          }
+          if (limit2 > 0)
+            this.completed.set(key, {
+              vector: [...vector],
+              expires: now + (this.options.ttlMs ?? 3e5)
+            });
+        }
+        return vector;
+      }).finally(() => {
+        if (this.flights.get(key) === created) this.flights.delete(key);
+      });
+      flight = created;
+    }
+    const current = flight;
+    const waiter = { deadline: options2.deadlineAt };
+    current.waiters.add(waiter);
+    return await new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (error2, vector) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        options2.signal?.removeEventListener("abort", abort);
+        current.waiters.delete(waiter);
+        if (current.waiters.size === 0) {
+          if (this.flights.get(key) === current) this.flights.delete(key);
+          current.controller.abort(timeout());
+        }
+        if (error2) reject(error2);
+        else resolve([...vector]);
+      };
+      const abort = () => finish(options2.signal?.reason ?? timeout());
+      const timer = setTimeout(
+        () => finish(timeout()),
+        Math.max(1, options2.deadlineAt - this.now())
+      );
+      options2.signal?.addEventListener("abort", abort, { once: true });
+      current.promise.then(
+        (vector) => finish(null, vector),
+        (error2) => finish(error2)
+      );
+      if (options2.signal?.aborted) abort();
+    });
+  }
+  clear() {
+    this.completed.clear();
+    for (const flight of this.flights.values()) flight.controller.abort(timeout());
+    this.flights.clear();
+  }
+};
+
+// packages/sync-core/src/query-embeddings.ts
+var cache = new QueryEmbeddingCache();
+
 // packages/sync-core/src/diff.ts
 var import_diff_match_patch = __toESM(require_diff_match_patch(), 1);
 var dmp = new import_diff_match_patch.default();
@@ -60522,7 +60637,7 @@ var TOOLS = [
 ];
 
 // packages/mcp-tools/src/resolver.ts
-import { createHash } from "node:crypto";
+import { createHash as createHash2 } from "node:crypto";
 
 // packages/mcp-tools/src/rerank.ts
 var SYSTEM_PROMPT = `You are a code-context relevance ranker.
@@ -61617,7 +61732,7 @@ function matchingSkillAntiExample(task, metadata) {
   return null;
 }
 function deterministicCanaryBucket(identityKey, skillId) {
-  const hex = createHash("sha256").update(`${identityKey}\0${skillId}`).digest("hex").slice(0, 13);
+  const hex = createHash2("sha256").update(`${identityKey}\0${skillId}`).digest("hex").slice(0, 13);
   return Number.parseInt(hex, 16) / 4503599627370496;
 }
 var CONCURRENT_WINDOW_MS = 20 * 6e4;
@@ -62919,18 +63034,6 @@ var EmbeddingUnavailableError = class extends Error {
     this.name = "EmbeddingUnavailableError";
   }
 };
-var EMBEDDING_CACHE = /* @__PURE__ */ new Map();
-var MAX_CACHE_SIZE = 1e3;
-function getCachedEmbedding(task) {
-  return EMBEDDING_CACHE.get(task);
-}
-function cacheEmbedding(task, embedding) {
-  if (EMBEDDING_CACHE.size >= MAX_CACHE_SIZE) {
-    const firstKey = EMBEDDING_CACHE.keys().next().value;
-    if (firstKey !== void 0) EMBEDDING_CACHE.delete(firstKey);
-  }
-  EMBEDDING_CACHE.set(task, embedding);
-}
 var AssembleBundleArgs = external_exports.object({
   task: external_exports.string().min(1).max(4e3),
   /** Local Codex hook-to-MCP correlation proof. The hosted resolver ignores
@@ -63093,6 +63196,9 @@ var RERANK_EXCERPT_CHARS = 500;
 var RERANK_MIN_COVERAGE = 0.5;
 var RERANK_SKILL_MIN_SCORE = 0.15;
 var SKILL_RERANK_CANDIDATE_THRESHOLD = 0.35;
+var DECISION_RERANK_CANDIDATE_THRESHOLD = 0.4;
+var DECISION_RERANK_CANDIDATE_LIMIT = 5;
+var RERANK_DECISION_MIN_SCORE = 0.15;
 function skillRerankLaneEligible(thresholdsMode, customThresholds) {
   if (thresholdsMode === "default") return true;
   return (customThresholds?.["skill"] ?? KIND_THRESHOLDS.skill) === KIND_THRESHOLDS.skill;
@@ -63135,7 +63241,7 @@ var SHADOW_MAX_OBSERVATIONS = 10;
 var RANKER_VERSION = "r1.2026-09";
 function taskFingerprint(task) {
   const normalized = task.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim().slice(0, 400);
-  return createHash("sha256").update(normalized).digest("hex").slice(0, 16);
+  return createHash2("sha256").update(normalized).digest("hex").slice(0, 16);
 }
 var SURFACING_UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 var MARGINAL_CUTOFF_OFF = 0;
@@ -63964,12 +64070,12 @@ async function maybeReactivateColdMatches(ctx, accountId, queryVec) {
 function makeAwarenessFeed(audit) {
   return async (name, fallback, run) => {
     if (audit.deterministic) return fallback;
-    let timeout;
+    let timeout2;
     try {
       return await Promise.race([
         run(),
         new Promise((_resolve, reject) => {
-          timeout = setTimeout(
+          timeout2 = setTimeout(
             () => reject(new Error(`timed out after ${AWARENESS_FEED_TIMEOUT_MS}ms`)),
             AWARENESS_FEED_TIMEOUT_MS
           );
@@ -63981,14 +64087,13 @@ function makeAwarenessFeed(audit) {
       );
       return fallback;
     } finally {
-      if (timeout) clearTimeout(timeout);
+      if (timeout2) clearTimeout(timeout2);
     }
   };
 }
 async function assembleBundle(ctx, rawArgs, audit = {}) {
   const bundleStartedAt = Date.now();
   let embeddingMs = 0;
-  let embeddingCacheHit = false;
   let budgetRpcMs = null;
   let budgetWaitMs = 0;
   let enrichmentMs = 0;
@@ -64036,17 +64141,9 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     return { accThresholds: res.data, accThresholdsErr: res.error };
   })();
   const embeddingStartedAt = Date.now();
-  const cachedVec = getCachedEmbedding(args.task);
-  const embeddingPromise = cachedVec ? (() => {
-    embeddingCacheHit = true;
-    embeddingMs = Date.now() - embeddingStartedAt;
-    return Promise.resolve(cachedVec);
-  })() : ctx.embed(args.task).then((vec) => {
-    cacheEmbedding(args.task, vec);
-    return vec;
-  }).catch((e2) => {
+  const embeddingPromise = ctx.embed(args.task).catch((e2) => {
     throw new EmbeddingUnavailableError(
-      `embedding call failed: ${e2 instanceof Error ? e2.message : String(e2)}`
+      "Semantic embedding was unavailable; useful hot context remains available."
     );
   }).finally(() => {
     embeddingMs = Date.now() - embeddingStartedAt;
@@ -64253,6 +64350,12 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const canUseRerankAdmission = rerankerConfigured && !skipRerank;
   for (const { kind: kind2, rows } of kindResults) {
     const threshold = customThresholds?.[kind2] ?? KIND_THRESHOLDS[kind2];
+    const provisionalDecisionIds = new Set(
+      kind2 === "decision" && canUseRerankAdmission && threshold === KIND_THRESHOLDS.decision ? rows.filter((r2) => {
+        const score = r2.cosine_sim ?? (!useHybrid ? r2.similarity : null);
+        return (r2.status === void 0 || r2.status === "approved") && typeof score === "number" && Number.isFinite(score) && score >= DECISION_RERANK_CANDIDATE_THRESHOLD && score < threshold;
+      }).sort((a2, b2) => (b2.cosine_sim ?? b2.similarity) - (a2.cosine_sim ?? a2.similarity)).slice(0, DECISION_RERANK_CANDIDATE_LIMIT).map((r2) => r2.id) : []
+    );
     for (const r2 of rows) {
       const hasCosineEvidence = typeof r2.cosine_sim === "number" && Number.isFinite(r2.cosine_sim);
       const thresholdScore = hasCosineEvidence ? r2.cosine_sim : r2.similarity;
@@ -64262,7 +64365,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         threshold
       );
       const hasAbsoluteEvidence = hasCosineEvidence || !useHybrid;
-      const rerankAdmission = !passesConfiguredThreshold && kind2 === "skill" && skillRerankLaneEligible(thresholdsMode, customThresholds) && canUseRerankAdmission && hasAbsoluteEvidence && thresholdScore >= SKILL_RERANK_CANDIDATE_THRESHOLD ? { thresholdScore, configuredThreshold: threshold } : void 0;
+      const rerankAdmission = !passesConfiguredThreshold && canUseRerankAdmission && hasAbsoluteEvidence && (kind2 === "skill" && skillRerankLaneEligible(thresholdsMode, customThresholds) && thresholdScore >= SKILL_RERANK_CANDIDATE_THRESHOLD || provisionalDecisionIds.has(r2.id)) ? { thresholdScore, configuredThreshold: threshold } : void 0;
       if (!passesConfiguredThreshold && !rerankAdmission) {
         omittedCandidates.push({
           id: r2.id,
@@ -64545,7 +64648,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         }
         if (inheritedDefault) projectBrainPolicy.inheritedDefaultIds.push(c2.id);
         if (inheritedRequired) projectBrainPolicy.requiredIds.push(c2.id);
-        if ((c2.kind === "goal" || c2.kind === "skill") && status !== "approved") {
+        if ((c2.kind === "goal" || c2.kind === "skill" || c2.kind === "decision" && c2.rerankAdmission) && status !== "approved") {
           omittedCandidates.push({
             id: c2.id,
             kind: c2.kind,
@@ -64728,7 +64831,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   }, 0);
   const candidatePoolAdmittedCount = candidates.length;
   const candidatePoolBelowThresholdCount = belowThresholdActiveIds.size;
-  const skillRerankAdmissionCandidateIds = candidates.filter((candidate) => candidate.rerankAdmission).map((candidate) => candidate.id);
+  const skillRerankAdmissionCandidateIds = candidates.filter((candidate) => candidate.kind === "skill" && candidate.rerankAdmission).map((candidate) => candidate.id);
+  const decisionRerankAdmissionCandidateIds = candidates.filter((candidate) => candidate.kind === "decision" && candidate.rerankAdmission).map((candidate) => candidate.id);
   const dropUnverifiedRerankAdmissions = (detail) => {
     for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
       const candidate = candidates[i2];
@@ -64746,8 +64850,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       candidates.splice(i2, 1);
     }
   };
-  const hasProvisionalSkill = skillRerankAdmissionCandidateIds.length > 0;
-  if (rerankerConfigured && (candidates.length >= MIN_CANDIDATES_FOR_RERANK || hasProvisionalSkill) && !skipRerank) {
+  const hasProvisionalCandidate = skillRerankAdmissionCandidateIds.length > 0 || decisionRerankAdmissionCandidateIds.length > 0;
+  if (rerankerConfigured && (candidates.length >= MIN_CANDIDATES_FOR_RERANK || hasProvisionalCandidate) && !skipRerank) {
     const rerankInputs = candidates.map((c2) => ({
       id: c2.id,
       kind: c2.kind,
@@ -64788,11 +64892,11 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
           `[resolver] rerank scored ${scoredCount}/${candidates.length} candidates (< quorum) \u2014 keeping cosine ordering`
         );
         dropUnverifiedRerankAdmissions(
-          `provisional skill dropped because reranker returned ${rerankFallbackReason}`
+          `provisional candidate dropped because reranker returned ${rerankFallbackReason}`
         );
       } else {
         if (ctx.hostedRerank && ctx.rerank) {
-          const provisional = candidates.filter((c2) => c2.rerankAdmission);
+          const provisional = candidates.filter((c2) => c2.kind === "skill" && c2.rerankAdmission);
           if (provisional.length > 0) {
             const judgeInputs = provisional.map((c2) => ({
               id: c2.id,
@@ -64836,14 +64940,15 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
           const c2 = candidates[i2];
           const newScore = scores[c2.id];
           const belowSkillAdmissionFloor = c2.kind === "skill" && !projectBrainPolicy.requiredChainIds.has(c2.id) && newScore !== void 0 && newScore < RERANK_SKILL_MIN_SCORE;
-          if (newScore === void 0 || newScore <= 0 || belowSkillAdmissionFloor) {
+          const belowDecisionAdmissionFloor = c2.kind === "decision" && c2.rerankAdmission && newScore !== void 0 && newScore < RERANK_DECISION_MIN_SCORE;
+          if (newScore === void 0 || !Number.isFinite(newScore) || newScore <= 0 || belowSkillAdmissionFloor || belowDecisionAdmissionFloor) {
             omittedCandidates.push({
               id: c2.id,
               kind: c2.kind,
               title: c2.title,
               similarity: c2.similarity,
               reason: "rerank_filtered",
-              detail: belowSkillAdmissionFloor ? `skill rerank score ${newScore.toFixed(3)} is below the ${RERANK_SKILL_MIN_SCORE.toFixed(2)} application floor` : "reranker omitted or scored this candidate at 0",
+              detail: belowDecisionAdmissionFloor ? `provisional decision rerank score ${newScore.toFixed(3)} is below the ${RERANK_DECISION_MIN_SCORE.toFixed(2)} admission floor` : belowSkillAdmissionFloor ? `skill rerank score ${newScore.toFixed(3)} is below the ${RERANK_SKILL_MIN_SCORE.toFixed(2)} application floor` : "reranker omitted or scored this candidate at 0",
               path: c2.citation.path
             });
             candidates.splice(i2, 1);
@@ -64859,7 +64964,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       rerankLatencyMs = null;
       rerankFallbackReason = e2 instanceof HostedRerankResponseError ? e2.fallbackReason : "rerank_error";
       dropUnverifiedRerankAdmissions(
-        rerankFallbackReason === "rerank_error" ? "provisional skill dropped because reranker failed; configured threshold remains authoritative" : `provisional skill dropped because reranker returned ${rerankFallbackReason}`
+        rerankFallbackReason === "rerank_error" ? "provisional candidate dropped because reranker failed; configured threshold remains authoritative" : `provisional candidate dropped because reranker returned ${rerankFallbackReason}`
       );
     } finally {
       rerankStageMs = Date.now() - rerankStageStartedAt;
@@ -66184,7 +66289,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     latency_ms: {
       total: Date.now() - bundleStartedAt,
       embedding: embeddingMs,
-      embedding_cache_hit: embeddingCacheHit,
+      embedding_cache_hit: ctx.embeddingCacheHit?.() ?? false,
       search_fanout: searchFanoutMs,
       enrichment: enrichmentMs,
       hydration: hydrationMs,
@@ -66217,6 +66322,14 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         // (no LLM channel, hosted rerank below quorum, or no provisional
         // candidates survived to the scoring step).
         judge: admissionJudge
+      }
+    } : {},
+    ...decisionRerankAdmissionCandidateIds.length > 0 ? {
+      decision_rerank_admission: {
+        candidate_ids: decisionRerankAdmissionCandidateIds,
+        delivered_ids: bundle.decisions.map((item) => item.id).filter((id) => decisionRerankAdmissionCandidateIds.includes(id)),
+        candidate_threshold: DECISION_RERANK_CANDIDATE_THRESHOLD,
+        application_floor: RERANK_DECISION_MIN_SCORE
       }
     } : {},
     agent_kind: audit.agentKind ?? null,
@@ -66530,7 +66643,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     postAssemblyTasks.push(
       (async () => {
         try {
-          const bundleHash = createHash("sha256").update(JSON.stringify(bundle)).digest("hex");
+          const bundleHash = createHash2("sha256").update(JSON.stringify(bundle)).digest("hex");
           const surfacedDecisions = bundle.decisions.map((d2) => d2.id).filter((id) => typeof id === "string");
           const { error: snapErr } = await ctx.supabase.rpc("record_bundle_snapshot", {
             p_audit_id: auditId,
@@ -66570,6 +66683,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       audit_write: auditWriteMs,
       post_assembly: postAssemblyMs,
       embedding: embeddingMs,
+      embedding_cache_hit: ctx.embeddingCacheHit?.() ?? false,
       search_fanout: searchFanoutMs,
       enrichment: enrichmentMs,
       hydration: hydrationMs,
@@ -69733,13 +69847,13 @@ import path15 from "node:path";
 import { promises as fs5 } from "node:fs";
 import path6 from "node:path";
 import os5 from "node:os";
-import { randomUUID as randomUUID3 } from "node:crypto";
+import { randomUUID as randomUUID4 } from "node:crypto";
 
 // packages/plugin-core/dist/auth.js
 import { promises as fs3 } from "node:fs";
 import path3 from "node:path";
 import os2 from "node:os";
-import { randomUUID } from "node:crypto";
+import { randomUUID as randomUUID2 } from "node:crypto";
 
 // packages/plugin-core/dist/atomic-rename.js
 import { promises as fs2 } from "node:fs";
@@ -69860,7 +69974,7 @@ function authFileLockPath() {
 }
 async function acquireAuthFileLock() {
   const file = authFileLockPath();
-  const owner = `${process.pid}:${randomUUID()}`;
+  const owner = `${process.pid}:${randomUUID2()}`;
   await fs3.mkdir(path3.dirname(file), { recursive: true });
   const deadline = Date.now() + AUTH_FILE_LOCK_TIMEOUT_MS;
   while (true) {
@@ -69926,7 +70040,7 @@ async function writePersistedToken(t2) {
   await fs3.mkdir(path3.dirname(file), { recursive: true });
   const tmp = path3.join(
     path3.dirname(file),
-    `${path3.basename(file)}.tmp-${process.pid}-${randomUUID()}`
+    `${path3.basename(file)}.tmp-${process.pid}-${randomUUID2()}`
   );
   await fs3.writeFile(tmp, JSON.stringify(t2, null, 2), { mode: 384 });
   await fs3.chmod(tmp, 384).catch(() => {
@@ -70186,7 +70300,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.48";
+  cachedAgentVersion = "0.2.49";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -71164,7 +71278,7 @@ function resolveApiUrl() {
 }
 
 // packages/plugin-core/dist/workspace-binding.js
-import { randomUUID as randomUUID2 } from "node:crypto";
+import { randomUUID as randomUUID3 } from "node:crypto";
 import { constants, promises as fs4 } from "node:fs";
 import path5 from "node:path";
 var WORKSPACE_DIR_NAME = ".memlin";
@@ -73847,7 +73961,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.48"?.trim();
+  const env = "0.2.49"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }
@@ -74053,7 +74167,7 @@ async function reuseHookResolve(args, routing) {
     session_id: reused.session_id ?? null,
     phase: reused.phase,
     owner: "mcp",
-    request_id: randomUUID4()
+    request_id: randomUUID5()
   };
   const reserveUntil = beganAt + COMPANION_MCP_REUSE_WAIT_MS;
   let reservation = await companionReserveResolveDelivery(reserveRequest, { timeoutMs: 500 });

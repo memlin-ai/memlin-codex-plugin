@@ -9165,7 +9165,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.48";
+  cachedAgentVersion = "0.2.49";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -11064,7 +11064,7 @@ function buildCurrentWorkFromResult(result) {
     activeComponent: result.active_component?.name ?? null
   });
 }
-function compileBundle(result, parsedTask, agent) {
+function compileBundle(result, parsedTask, agent, options2 = {}) {
   const b = result.bundle;
   const out = [];
   if (agent === "claude-code") {
@@ -11233,12 +11233,16 @@ function compileBundle(result, parsedTask, agent) {
     }
     out.push("</memlin_context>");
   } else {
-    out.push(`# Memlin Resolved Context \u2014 task: ${truncateTask(parsedTask)}`);
+    out.push(
+      options2.compact ? "# Memlin context" : `# Memlin Resolved Context \u2014 task: ${truncateTask(parsedTask)}`
+    );
     const componentNote = result.active_component ? `${result.active_component.name} (boosted by +0.15)` : "(none \u2014 project-wide search)";
-    out.push(`# component: ${componentNote} \xB7 bundle: ${bundleSummary(result)}`);
+    if (!options2.compact)
+      out.push(`# component: ${componentNote} \xB7 bundle: ${bundleSummary(result)}`);
     const tb = result.token_budget;
     const tokenLine = `# tokens: ${tb.used.toLocaleString()} / ${tb.limit.toLocaleString()}` + (tb.truncated ? " (truncated \u2014 lower-priority items dropped)" : "");
-    out.push(tokenLine);
+    if (!options2.compact) out.push(tokenLine);
+    else if (tb.truncated) out.push("# Selected context; other items omitted.");
     out.push(`# ${READER_CONTRACT}`);
     if (hasDeliveredSkill(b)) {
       out.push(
@@ -11489,7 +11493,7 @@ function compileBundle(result, parsedTask, agent) {
     }
     if (b.primary_skill) {
       out.push(renderItem("PRIMARY SKILL", b.primary_skill));
-    } else {
+    } else if (!options2.compact) {
       out.push("# (no skill above threshold \u2014 proceed with general expertise)");
       out.push("");
     }
@@ -11511,7 +11515,7 @@ function compileBundle(result, parsedTask, agent) {
   }
   out.push(`# resolved_at: ${result.resolved_at}`);
   out.push(`# audit_id: ${result.audit_id || "(audit-log write failed \u2014 bundle is still valid)"}`);
-  if (result.audit_id) {
+  if (result.audit_id && !options2.compact) {
     out.push(`# replay with: memlin audit replay ${result.audit_id}`);
     out.push(`# explain with: memlin audit explain ${result.audit_id}`);
   }

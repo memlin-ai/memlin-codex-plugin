@@ -501,8 +501,8 @@ function buildPendingContextEnvelope() {
     "</memlin-context-pending>"
   ].join("\n");
 }
-function buildProgressiveDeliveryEnvelope(phase, rendered, hookResolveRef) {
-  const phaseLine = phase === "hot" ? "# FAST: honor required/pinned context; semantic enrichment follows." : "# ENRICHMENT: documents delivered in FAST are omitted.";
+function buildProgressiveDeliveryEnvelope(phase, rendered, hookResolveRef, semanticStatus = "pending") {
+  const phaseLine = phase === "hot" ? semanticStatus === "failed" ? "# FAST ONLY: honor required/pinned context; semantic enrichment failed." : "# FAST: honor required/pinned context; semantic enrichment follows." : "# ENRICHMENT: documents delivered in FAST are omitted.";
   return [
     `<memlin-resolved-context phase="${phase}">`,
     phaseLine,
@@ -1056,6 +1056,32 @@ function phaseContext(phase) {
   if (phase.type === "failed") return buildResolveFailedEnvelope(phase.error ?? void 0);
   return buildProgressiveDeliveryEnvelope(phase.type, phase.rendered ?? "", phase.hook_resolve_ref);
 }
+async function emitUndeliveredHot(started, input, beganAt, systemMessage, semanticStatus) {
+  const reservation = await reservePhase(
+    started,
+    input,
+    "hot",
+    beganAt + CODEX_RESOLVE_BUDGET_MAX_MS
+  );
+  if (reservation?.status !== "reserved" || !reservation.reservation_token || reservation.phase?.type !== "hot")
+    return false;
+  const phase = reservation.phase;
+  await emitClaimedPhase({
+    identity: waitRequest(started, input, 0),
+    reservation: { ...reservation, reservation_token: reservation.reservation_token, phase },
+    beganAt,
+    context: buildProgressiveDeliveryEnvelope(
+      "hot",
+      phase.rendered ?? "",
+      phase.hook_resolve_ref,
+      semanticStatus
+    ),
+    systemMessage,
+    fallbackPath: `companion-background-hot-${semanticStatus}`
+  });
+  await reportDelivery(started, input, semanticStatus, beganAt, "", null);
+  return true;
+}
 async function runCompanionPath(mode, input, prompt, cwd, beganAt, systemMessage) {
   if (!input.turn_id?.trim()) return "unavailable";
   if (mode === "hot") {
@@ -1073,7 +1099,7 @@ async function runCompanionPath(mode, input, prompt, cwd, beganAt, systemMessage
     session_id: input.session_id ?? null,
     turn_id: input.turn_id,
     join_only: mode === "full",
-    plugin_version: "0.2.48",
+    plugin_version: "0.2.49",
     deadline_at: new Date(beganAt + CODEX_RESOLVE_BUDGET_MAX_MS).toISOString(),
     workspace_signals: { cwd }
   };
@@ -1136,6 +1162,8 @@ async function runCompanionPath(mode, input, prompt, cwd, beganAt, systemMessage
       return "handled";
     }
     if (phase2?.type === "failed") {
+      if (await emitUndeliveredHot(started, input, beganAt, systemMessage, "failed"))
+        return "handled";
       await emitReservedPhase({
         started,
         input,
@@ -1146,6 +1174,8 @@ async function runCompanionPath(mode, input, prompt, cwd, beganAt, systemMessage
       });
       return "handled";
     }
+    if (await emitUndeliveredHot(started, input, beganAt, systemMessage, "pending"))
+      return "handled";
     if (await emitPriorLatePhase(started, input, cwd, beganAt)) return "handled";
     await reportDelivery(started, input, "host_timeout", beganAt, "", null);
     return "handled";
