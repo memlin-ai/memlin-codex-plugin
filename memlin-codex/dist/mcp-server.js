@@ -31488,7 +31488,7 @@ var init_companion_client = __esm({
 
 // apps/mcp-server/src/index.ts
 import { execSync as execSync4 } from "node:child_process";
-import { randomUUID as randomUUID5 } from "node:crypto";
+import { randomUUID as randomUUID6 } from "node:crypto";
 import { readFileSync as readFileSync6 } from "node:fs";
 import path19, { dirname as dirname2, join as join2 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
@@ -72576,7 +72576,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.50";
+  cachedAgentVersion = "0.2.51";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -75742,6 +75742,63 @@ async function runPreToolUseHandler(payload) {
   };
 }
 
+// packages/plugin-core/dist/plugin-runtime.js
+init_companion_client();
+import { createHash as createHash3, randomUUID as randomUUID5 } from "node:crypto";
+var PLUGIN_RUNTIME_INTERVAL_MS = 1e4;
+var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
+var VERSION2 = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
+var HOSTS2 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
+function ownVersion() {
+  const version4 = "0.2.51";
+  return typeof version4 === "string" && VERSION2.test(version4) ? version4 : null;
+}
+async function reportPluginRuntime(report) {
+  try {
+    return (await companionRequest("runtime.report", report, {
+      timeoutMs: PLUGIN_RUNTIME_TIMEOUT_MS
+    }))?.accepted === true;
+  } catch {
+    return false;
+  }
+}
+function startPluginRuntimeHeartbeat(host) {
+  const version4 = ownVersion();
+  if (!version4 || !HOSTS2.has(host)) return () => {
+  };
+  const report = {
+    host,
+    plugin_version: version4,
+    instance_id: randomUUID5(),
+    source: "mcp",
+    event: "activity",
+    pid: process.pid,
+    started_at: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  let stopped = false;
+  let inFlight = null;
+  const tick = async () => {
+    if (stopped || inFlight) return;
+    inFlight = reportPluginRuntime(report);
+    try {
+      await inFlight;
+    } finally {
+      inFlight = null;
+    }
+  };
+  void tick();
+  const timer = setInterval(() => {
+    void tick();
+  }, PLUGIN_RUNTIME_INTERVAL_MS);
+  timer.unref();
+  return () => {
+    if (stopped) return;
+    stopped = true;
+    clearInterval(timer);
+    void Promise.resolve(inFlight).then(() => reportPluginRuntime({ ...report, event: "end" }));
+  };
+}
+
 // packages/plugin-core/dist/state.js
 import { promises as fs7 } from "node:fs";
 import path16 from "node:path";
@@ -76237,7 +76294,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.50"?.trim();
+  const env = "0.2.51"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }
@@ -76443,7 +76500,7 @@ async function reuseHookResolve(args, routing) {
     session_id: reused.session_id ?? null,
     phase: reused.phase,
     owner: "mcp",
-    request_id: randomUUID5()
+    request_id: randomUUID6()
   };
   const reserveUntil = beganAt + COMPANION_MCP_REUSE_WAIT_MS;
   let reservation = await companionReserveResolveDelivery(reserveRequest, { timeoutMs: 500 });
@@ -76517,36 +76574,44 @@ async function recordResolvedResult(result, args, routing, startedAt) {
     turn_started_at: startedAt
   });
 }
-function createToolContext(accessToken, requestCfg) {
+async function createToolContext(accessToken, requestCfg, requireInstallation = false) {
   const supabase = createClient(requestCfg.supabaseUrl, requestCfg.supabaseAnon, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: `Bearer ${accessToken}` } }
   });
-  void (async () => {
-    try {
-      const { error: error2 } = await supabase.rpc("record_agent_install", {
-        p_account: requestCfg.accountId,
-        p_kind: agentKind(),
-        p_device: agentDevice2(),
-        p_version: agentVersion2(),
-        // REAL version or null — NEVER the '0.1.0'
-        // header floor. The RPC treats null as "no
-        // change" (never blanks a known version) and
-        // its semver-gated propagation only moves a
-        // sibling row UP, so a floor can't smear.
-        p_platform: os12.platform(),
-        p_arch: os12.arch(),
-        p_capabilities: {
-          items: agentCapabilities2().split(",").map((s2) => s2.trim()).filter(Boolean)
-        }
-      });
-      if (error2) console.warn(`[mcp] record_agent_install failed: ${error2.message} \u2014 proceeding`);
-    } catch (e2) {
-      console.warn(
-        `[mcp] record_agent_install threw: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding`
-      );
-    }
+  const installation = (async () => {
+    const request = supabase.rpc("record_agent_install", {
+      p_account: requestCfg.accountId,
+      p_kind: agentKind(),
+      p_device: agentDevice2(),
+      p_version: agentVersion2(),
+      // REAL version or null — NEVER the '0.1.0'
+      // header floor. The RPC treats null as "no
+      // change" (never blanks a known version) and
+      // its semver-gated propagation only moves a
+      // sibling row UP, so a floor can't smear.
+      p_platform: os12.platform(),
+      p_arch: os12.arch(),
+      p_capabilities: {
+        items: agentCapabilities2().split(",").map((s2) => s2.trim()).filter(Boolean)
+      }
+    });
+    const { data, error: error2 } = await (requireInstallation ? request.abortSignal(AbortSignal.timeout(5e3)) : request);
+    if (error2) throw new Error(`installation verification failed: ${error2.message}`);
+    return data;
   })();
+  let agentInstallationId = null;
+  if (requireInstallation) {
+    const id = await installation;
+    if (typeof id !== "string" || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)) {
+      throw new Error("installation verification returned no valid installation ID");
+    }
+    agentInstallationId = id;
+  } else {
+    void installation.catch((error2) => {
+      console.warn(`[mcp] ${error2 instanceof Error ? error2.message : String(error2)} \u2014 proceeding`);
+    });
+  }
   return {
     supabase,
     accountId: requestCfg.accountId,
@@ -76557,6 +76622,7 @@ function createToolContext(accessToken, requestCfg) {
     // actually set — otherwise handlers fall back to ILIKE.
     embed: process.env.OPENAI_API_KEY ? embed : void 0,
     agentKind: agentKind(),
+    agentInstallationId,
     sessionId: agentSessionId(),
     defaultCwd: requestCfg.cwd,
     defaultGitRemote: requestCfg.gitRemote,
@@ -76824,7 +76890,7 @@ server.setRequestHandler(GetPromptRequestSchema, async (req) => {
     },
     requestCfg
   );
-  const result = await getPrompt(createToolContext(token, requestCfg), name, args, resolveFn);
+  const result = await getPrompt(await createToolContext(token, requestCfg), name, args, resolveFn);
   return result;
 });
 async function hasLocallyUsableResourceAuth() {
@@ -76844,7 +76910,7 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
     const requestCfg = await refreshCfg();
     if (!requestCfg.resourceEnumerationAllowed) return [];
     const resources = await listResources(
-      createToolContext(await currentAccessToken(requestCfg.authConfig), requestCfg),
+      await createToolContext(await currentAccessToken(requestCfg.authConfig), requestCfg),
       { signal: controller.signal }
     );
     return resources;
@@ -76872,7 +76938,7 @@ server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
 server.setRequestHandler(ReadResourceRequestSchema, async (req) => {
   const requestCfg = await refreshCfg();
   const result = await readResource(
-    createToolContext(await currentAccessToken(requestCfg.authConfig), requestCfg),
+    await createToolContext(await currentAccessToken(requestCfg.authConfig), requestCfg),
     req.params.uri
   );
   return result;
@@ -76930,7 +76996,11 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
     } catch {
     }
     const result = name === "memlin_resolve_task" ? await resolveViaApi(args, requestCfg, preparedResolve ?? void 0) : await callTool(
-      createToolContext(await currentAccessToken(requestCfg.authConfig), requestCfg),
+      await createToolContext(
+        await currentAccessToken(requestCfg.authConfig),
+        requestCfg,
+        name === "memlin_list_handoffs" || name === "memlin_update_handoff" && args.action !== "cancel"
+      ),
       name,
       args
     );
@@ -76940,6 +77010,12 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   }
 });
 var transport = new StdioServerTransport();
+var stopRuntimeHeartbeat;
+server.oninitialized = () => {
+  stopRuntimeHeartbeat?.();
+  stopRuntimeHeartbeat = startPluginRuntimeHeartbeat(process.env.MEMLIN_HOST ?? "");
+};
+server.onclose = () => stopRuntimeHeartbeat?.();
 await server.connect(transport);
 process.stderr.write("Memlin MCP server ready on stdio\n");
 /*! Bundled license information:
