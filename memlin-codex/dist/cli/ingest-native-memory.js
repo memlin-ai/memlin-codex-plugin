@@ -41,6 +41,47 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
+// packages/plugin-core/src/atomic-rename.ts
+import { promises as fs } from "node:fs";
+import path from "node:path";
+async function renameWithRetry(from, to, rename) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await rename(from, to);
+      return;
+    } catch (error) {
+      const code = error.code;
+      if (attempt >= MAX_ATTEMPTS || !code || !RETRYABLE_CODES.has(code)) throw error;
+      const cap = Math.min(BASE_DELAY_MS * 2 ** (attempt - 1), MAX_DELAY_MS);
+      const delay2 = cap / 2 + Math.random() * (cap / 2);
+      await new Promise((resolve) => setTimeout(resolve, delay2));
+    }
+  }
+}
+async function atomicRename(from, to, dependencies = {}) {
+  const rename = dependencies.rename ?? fs.rename;
+  const queueKey = path.resolve(to);
+  const previous = renameQueues.get(queueKey) ?? Promise.resolve();
+  const run = previous.catch(() => void 0).then(() => renameWithRetry(from, to, rename));
+  renameQueues.set(queueKey, run);
+  try {
+    await run;
+  } finally {
+    if (renameQueues.get(queueKey) === run) renameQueues.delete(queueKey);
+  }
+}
+var RETRYABLE_CODES, MAX_ATTEMPTS, BASE_DELAY_MS, MAX_DELAY_MS, renameQueues;
+var init_atomic_rename = __esm({
+  "packages/plugin-core/src/atomic-rename.ts"() {
+    "use strict";
+    RETRYABLE_CODES = /* @__PURE__ */ new Set(["EPERM", "EACCES", "EBUSY"]);
+    MAX_ATTEMPTS = 10;
+    BASE_DELAY_MS = 10;
+    MAX_DELAY_MS = 100;
+    renameQueues = /* @__PURE__ */ new Map();
+  }
+});
+
 // packages/plugin-core/src/companion-client.ts
 var companion_client_exports = {};
 __export(companion_client_exports, {
@@ -632,7 +673,7 @@ var require_exception = __commonJS({
 var require_mark = __commonJS({
   "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/mark.js"(exports2, module2) {
     "use strict";
-    var common = require_common();
+    var common2 = require_common();
     function Mark(name, buffer, position, line, column) {
       this.name = name;
       this.buffer = buffer;
@@ -666,7 +707,7 @@ var require_mark = __commonJS({
         }
       }
       snippet = this.buffer.slice(start, end);
-      return common.repeat(" ", indent) + head + snippet + tail + "\n" + common.repeat(" ", indent + this.position - start + head.length) + "^";
+      return common2.repeat(" ", indent) + head + snippet + tail + "\n" + common2.repeat(" ", indent + this.position - start + head.length) + "^";
     };
     Mark.prototype.toString = function toString(compact) {
       var snippet, where = "";
@@ -749,7 +790,7 @@ var require_type = __commonJS({
 var require_schema = __commonJS({
   "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/schema.js"(exports2, module2) {
     "use strict";
-    var common = require_common();
+    var common2 = require_common();
     var YAMLException = require_exception();
     var Type = require_type();
     function compileList(schema, name, result) {
@@ -812,8 +853,8 @@ var require_schema = __commonJS({
         default:
           throw new YAMLException("Wrong number of arguments for Schema.create function");
       }
-      schemas = common.toArray(schemas);
-      types = common.toArray(types);
+      schemas = common2.toArray(schemas);
+      types = common2.toArray(types);
       if (!schemas.every(function(schema) {
         return schema instanceof Schema;
       })) {
@@ -971,7 +1012,7 @@ var require_bool = __commonJS({
 var require_int = __commonJS({
   "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/int.js"(exports2, module2) {
     "use strict";
-    var common = require_common();
+    var common2 = require_common();
     var Type = require_type();
     function isHexCode(c) {
       return 48 <= c && c <= 57 || 65 <= c && c <= 70 || 97 <= c && c <= 102;
@@ -1067,7 +1108,7 @@ var require_int = __commonJS({
       return sign * parseInt(value, 10);
     }
     function isInteger(object) {
-      return Object.prototype.toString.call(object) === "[object Number]" && (object % 1 === 0 && !common.isNegativeZero(object));
+      return Object.prototype.toString.call(object) === "[object Number]" && (object % 1 === 0 && !common2.isNegativeZero(object));
     }
     module2.exports = new Type("tag:yaml.org,2002:int", {
       kind: "scalar",
@@ -1104,7 +1145,7 @@ var require_int = __commonJS({
 var require_float = __commonJS({
   "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/type/float.js"(exports2, module2) {
     "use strict";
-    var common = require_common();
+    var common2 = require_common();
     var Type = require_type();
     var YAML_FLOAT_PATTERN = new RegExp(
       // 2.5e4, 2.5 and integers
@@ -1175,14 +1216,14 @@ var require_float = __commonJS({
           case "camelcase":
             return "-.Inf";
         }
-      } else if (common.isNegativeZero(object)) {
+      } else if (common2.isNegativeZero(object)) {
         return "-0.0";
       }
       res = object.toString(10);
       return SCIENTIFIC_WITHOUT_DOT.test(res) ? res.replace("e", ".e") : res;
     }
     function isFloat(object) {
-      return Object.prototype.toString.call(object) === "[object Number]" && (object % 1 !== 0 || common.isNegativeZero(object));
+      return Object.prototype.toString.call(object) === "[object Number]" && (object % 1 !== 0 || common2.isNegativeZero(object));
     }
     module2.exports = new Type("tag:yaml.org,2002:float", {
       kind: "scalar",
@@ -1669,7 +1710,7 @@ var require_default_full = __commonJS({
 var require_loader = __commonJS({
   "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/loader.js"(exports2, module2) {
     "use strict";
-    var common = require_common();
+    var common2 = require_common();
     var YAMLException = require_exception();
     var Mark = require_mark();
     var DEFAULT_SAFE_SCHEMA = require_default_safe();
@@ -1855,7 +1896,7 @@ var require_loader = __commonJS({
     }
     function mergeMappings(state, destination, source, overridableKeys) {
       var sourceKeys, key, index, quantity;
-      if (!common.isObject(source)) {
+      if (!common2.isObject(source)) {
         throwError(state, "cannot merge mappings; the provided source object is unacceptable");
       }
       sourceKeys = Object.keys(source);
@@ -1967,7 +2008,7 @@ var require_loader = __commonJS({
       if (count === 1) {
         state.result += " ";
       } else if (count > 1) {
-        state.result += common.repeat("\n", count - 1);
+        state.result += common2.repeat("\n", count - 1);
       }
     }
     function readPlainScalar(state, nodeIndent, withinFlowCollection) {
@@ -2254,7 +2295,7 @@ var require_loader = __commonJS({
         }
         if (state.lineIndent < textIndent) {
           if (chomping === CHOMPING_KEEP) {
-            state.result += common.repeat("\n", didReadContent ? 1 + emptyLines : emptyLines);
+            state.result += common2.repeat("\n", didReadContent ? 1 + emptyLines : emptyLines);
           } else if (chomping === CHOMPING_CLIP) {
             if (didReadContent) {
               state.result += "\n";
@@ -2265,19 +2306,19 @@ var require_loader = __commonJS({
         if (folding) {
           if (is_WHITE_SPACE(ch)) {
             atMoreIndented = true;
-            state.result += common.repeat("\n", didReadContent ? 1 + emptyLines : emptyLines);
+            state.result += common2.repeat("\n", didReadContent ? 1 + emptyLines : emptyLines);
           } else if (atMoreIndented) {
             atMoreIndented = false;
-            state.result += common.repeat("\n", emptyLines + 1);
+            state.result += common2.repeat("\n", emptyLines + 1);
           } else if (emptyLines === 0) {
             if (didReadContent) {
               state.result += " ";
             }
           } else {
-            state.result += common.repeat("\n", emptyLines);
+            state.result += common2.repeat("\n", emptyLines);
           }
         } else {
-          state.result += common.repeat("\n", didReadContent ? 1 + emptyLines : emptyLines);
+          state.result += common2.repeat("\n", didReadContent ? 1 + emptyLines : emptyLines);
         }
         didReadContent = true;
         detectedIndent = true;
@@ -2772,10 +2813,10 @@ var require_loader = __commonJS({
         options2 = iterator;
         iterator = null;
       }
-      return loadAll(input, iterator, common.extend({ schema: DEFAULT_SAFE_SCHEMA }, options2));
+      return loadAll(input, iterator, common2.extend({ schema: DEFAULT_SAFE_SCHEMA }, options2));
     }
     function safeLoad(input, options2) {
-      return load(input, common.extend({ schema: DEFAULT_SAFE_SCHEMA }, options2));
+      return load(input, common2.extend({ schema: DEFAULT_SAFE_SCHEMA }, options2));
     }
     module2.exports.loadAll = loadAll;
     module2.exports.load = load;
@@ -2788,7 +2829,7 @@ var require_loader = __commonJS({
 var require_dumper = __commonJS({
   "node_modules/.pnpm/js-yaml@3.14.2/node_modules/js-yaml/lib/js-yaml/dumper.js"(exports2, module2) {
     "use strict";
-    var common = require_common();
+    var common2 = require_common();
     var YAMLException = require_exception();
     var DEFAULT_FULL_SCHEMA = require_default_full();
     var DEFAULT_SAFE_SCHEMA = require_default_safe();
@@ -2886,14 +2927,14 @@ var require_dumper = __commonJS({
       } else {
         throw new YAMLException("code point within a string may not be greater than 0xFFFFFFFF");
       }
-      return "\\" + handle + common.repeat("0", length - string.length) + string;
+      return "\\" + handle + common2.repeat("0", length - string.length) + string;
     }
     function State(options2) {
       this.schema = options2["schema"] || DEFAULT_FULL_SCHEMA;
       this.indent = Math.max(1, options2["indent"] || 2);
       this.noArrayIndent = options2["noArrayIndent"] || false;
       this.skipInvalid = options2["skipInvalid"] || false;
-      this.flowLevel = common.isNothing(options2["flowLevel"]) ? -1 : options2["flowLevel"];
+      this.flowLevel = common2.isNothing(options2["flowLevel"]) ? -1 : options2["flowLevel"];
       this.styleMap = compileStyleMap(this.schema, options2["styles"] || null);
       this.sortKeys = options2["sortKeys"] || false;
       this.lineWidth = options2["lineWidth"] || 80;
@@ -2908,7 +2949,7 @@ var require_dumper = __commonJS({
       this.usedDuplicates = null;
     }
     function indentString(string, spaces) {
-      var ind = common.repeat(" ", spaces), position = 0, next = -1, result = "", line, length = string.length;
+      var ind = common2.repeat(" ", spaces), position = 0, next = -1, result = "", line, length = string.length;
       while (position < length) {
         next = string.indexOf("\n", position);
         if (next === -1) {
@@ -2924,7 +2965,7 @@ var require_dumper = __commonJS({
       return result;
     }
     function generateNextLine(state, level) {
-      return "\n" + common.repeat(" ", state.indent * level);
+      return "\n" + common2.repeat(" ", state.indent * level);
     }
     function testImplicitResolving(state, str2) {
       var index, length, type;
@@ -3325,7 +3366,7 @@ var require_dumper = __commonJS({
       return "";
     }
     function safeDump(input, options2) {
-      return dump(input, common.extend({ schema: DEFAULT_SAFE_SCHEMA }, options2));
+      return dump(input, common2.extend({ schema: DEFAULT_SAFE_SCHEMA }, options2));
     }
     module2.exports.dump = dump;
     module2.exports.safeDump = safeDump;
@@ -3767,6 +3808,306 @@ var require_gray_matter = __commonJS({
   }
 });
 
+// packages/plugin-core/src/workspace-binding.ts
+var workspace_binding_exports = {};
+__export(workspace_binding_exports, {
+  WORKSPACE_BINDING_FILE: () => WORKSPACE_BINDING_FILE,
+  WORKSPACE_DIR_NAME: () => WORKSPACE_DIR_NAME,
+  clearWorkspaceBinding: () => clearWorkspaceBinding,
+  findWorkspaceBinding: () => findWorkspaceBinding,
+  resolveGitWorkspaceIdentity: () => resolveGitWorkspaceIdentity,
+  writeWorkspaceBinding: () => writeWorkspaceBinding
+});
+import { randomUUID as randomUUID2 } from "node:crypto";
+import { constants, promises as fs3 } from "node:fs";
+import path5 from "node:path";
+async function walkForWorkspaceBinding(startDir) {
+  let dir = path5.resolve(startDir);
+  for (let i = 0; i < 64; i++) {
+    const candidate = path5.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE);
+    try {
+      const raw = await fs3.readFile(candidate, "utf8");
+      const parsed = JSON.parse(raw);
+      if (typeof parsed.account_id === "string" && parsed.account_id) {
+        return {
+          binding: {
+            account_id: parsed.account_id,
+            project_id: parsed.project_id ?? null,
+            account_name: parsed.account_name
+          },
+          workspaceRoot: dir
+        };
+      }
+    } catch {
+    }
+    const parent = path5.dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+  return null;
+}
+async function readSmallRegularFile(file) {
+  let before;
+  try {
+    before = await fs3.lstat(file);
+  } catch (error) {
+    return isFileNotFound(error) ? { kind: "missing" } : { kind: "invalid" };
+  }
+  try {
+    if (before.isSymbolicLink() || !before.isFile() || before.size > GIT_POINTER_MAX_BYTES) {
+      return { kind: "invalid" };
+    }
+    const noFollow = typeof constants.O_NOFOLLOW === "number" ? constants.O_NOFOLLOW : 0;
+    const handle = await fs3.open(file, constants.O_RDONLY | noFollow);
+    try {
+      const opened = await handle.stat();
+      if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino || opened.size !== before.size || opened.size > GIT_POINTER_MAX_BYTES) {
+        return { kind: "invalid" };
+      }
+      const bytes = await handle.readFile();
+      const [after, afterPath] = await Promise.all([handle.stat(), fs3.lstat(file)]);
+      if (afterPath.isSymbolicLink() || !afterPath.isFile() || after.dev !== opened.dev || after.ino !== opened.ino || after.size !== opened.size || afterPath.dev !== opened.dev || afterPath.ino !== opened.ino || afterPath.size !== opened.size || bytes.byteLength !== opened.size || bytes.includes(0)) {
+        return { kind: "invalid" };
+      }
+      return { kind: "ok", value: bytes.toString("utf8") };
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    return { kind: "invalid" };
+  }
+}
+function containedBy(parent, child) {
+  const relative = path5.relative(parent, child);
+  return relative === "" || relative !== ".." && !relative.startsWith(`..${path5.sep}`) && !path5.isAbsolute(relative);
+}
+async function canonicalSafeDirectory(candidate) {
+  try {
+    const before = await fs3.lstat(candidate);
+    if (before.isSymbolicLink() || !before.isDirectory()) return null;
+    await fs3.access(candidate, constants.R_OK | constants.X_OK);
+    const canonical = await fs3.realpath(candidate);
+    const after = await fs3.lstat(candidate);
+    if (after.isSymbolicLink() || !after.isDirectory() || after.dev !== before.dev || after.ino !== before.ino) {
+      return null;
+    }
+    return canonical;
+  } catch {
+    return null;
+  }
+}
+function gitIdentity(checkoutRoot, state, repositoryRoot = checkoutRoot) {
+  return {
+    checkout_root: checkoutRoot,
+    repository_root: repositoryRoot,
+    state
+  };
+}
+async function resolveGitWorkspaceIdentity(startDir) {
+  const requested = path5.resolve(startDir);
+  let canonicalStart;
+  try {
+    canonicalStart = await fs3.realpath(requested);
+    const startEntry = await fs3.stat(canonicalStart);
+    if (!startEntry.isDirectory()) return gitIdentity(canonicalStart, "unknown");
+  } catch {
+    return gitIdentity(requested, "unknown");
+  }
+  let dir = canonicalStart;
+  for (let i = 0; i < 64; i++) {
+    const gitEntry = path5.join(dir, ".git");
+    let entry;
+    try {
+      entry = await fs3.lstat(gitEntry);
+    } catch (error) {
+      if (!isFileNotFound(error)) return gitIdentity(dir, "unknown");
+      const parent = path5.dirname(dir);
+      if (parent === dir) return gitIdentity(canonicalStart, "none");
+      dir = parent;
+      continue;
+    }
+    const checkoutRoot = dir;
+    if (entry.isSymbolicLink()) return gitIdentity(checkoutRoot, "unknown");
+    if (entry.isDirectory()) {
+      if (!await canonicalSafeDirectory(gitEntry)) return gitIdentity(checkoutRoot, "unknown");
+      return gitIdentity(checkoutRoot, "main");
+    }
+    if (!entry.isFile()) return gitIdentity(checkoutRoot, "unknown");
+    const pointerRead = await readSmallRegularFile(gitEntry);
+    if (pointerRead.kind !== "ok" || pointerRead.value.includes("\0")) {
+      return gitIdentity(checkoutRoot, "unknown");
+    }
+    const pointerMatch = /^gitdir:[ \t]*([^\r\n]+)\r?\n?$/.exec(pointerRead.value);
+    const pointerValue = pointerMatch?.[1];
+    if (!pointerValue) return gitIdentity(checkoutRoot, "unknown");
+    let gitDirCandidate;
+    try {
+      gitDirCandidate = path5.isAbsolute(pointerValue) ? pointerValue : path5.resolve(checkoutRoot, pointerValue);
+    } catch {
+      return gitIdentity(checkoutRoot, "unknown");
+    }
+    const gitDir = await canonicalSafeDirectory(gitDirCandidate);
+    if (!gitDir) return gitIdentity(checkoutRoot, "unknown");
+    const commonRead = await readSmallRegularFile(path5.join(gitDir, "commondir"));
+    if (commonRead.kind === "missing") {
+      const gitDirParent = path5.dirname(gitDir);
+      const looksLikeWorktreeAdmin = path5.basename(gitDirParent) === "worktrees" && path5.basename(path5.dirname(gitDirParent)) === ".git";
+      if (looksLikeWorktreeAdmin) return gitIdentity(checkoutRoot, "unknown");
+      return gitIdentity(checkoutRoot, "main");
+    }
+    if (commonRead.kind !== "ok" || commonRead.value.includes("\0")) {
+      return gitIdentity(checkoutRoot, "unknown");
+    }
+    const commonMatch = /^([^\r\n]+)\r?\n?$/.exec(commonRead.value);
+    const commonValue = commonMatch?.[1];
+    if (!commonValue) return gitIdentity(checkoutRoot, "unknown");
+    let commonCandidate;
+    try {
+      commonCandidate = path5.isAbsolute(commonValue) ? commonValue : path5.resolve(gitDir, commonValue);
+    } catch {
+      return gitIdentity(checkoutRoot, "unknown");
+    }
+    const commonDir = await canonicalSafeDirectory(commonCandidate);
+    if (!commonDir) return gitIdentity(checkoutRoot, "unknown");
+    const worktreesDir = path5.join(commonDir, "worktrees");
+    if (path5.basename(commonDir) !== ".git" || gitDir === worktreesDir || !containedBy(worktreesDir, gitDir)) {
+      return gitIdentity(checkoutRoot, "unknown");
+    }
+    const repositoryRoot = path5.dirname(commonDir);
+    const repositoryGitDir = await canonicalSafeDirectory(path5.join(repositoryRoot, ".git"));
+    if (!repositoryGitDir || repositoryGitDir !== commonDir) {
+      return gitIdentity(checkoutRoot, "unknown");
+    }
+    const reverseRead = await readSmallRegularFile(path5.join(gitDir, "gitdir"));
+    if (reverseRead.kind !== "ok" || reverseRead.value.includes("\0")) {
+      return gitIdentity(checkoutRoot, "unknown");
+    }
+    const reverseMatch = /^([^\r\n]+)\r?\n?$/.exec(reverseRead.value);
+    const reverseValue = reverseMatch?.[1];
+    if (!reverseValue) return gitIdentity(checkoutRoot, "unknown");
+    try {
+      const reverseCandidate = path5.isAbsolute(reverseValue) ? reverseValue : path5.resolve(gitDir, reverseValue);
+      const [reverseTarget, checkoutGitFile] = await Promise.all([
+        fs3.realpath(reverseCandidate),
+        fs3.realpath(gitEntry)
+      ]);
+      if (reverseTarget !== checkoutGitFile) return gitIdentity(checkoutRoot, "unknown");
+    } catch {
+      return gitIdentity(checkoutRoot, "unknown");
+    }
+    return gitIdentity(checkoutRoot, "worktree", repositoryRoot);
+  }
+  return gitIdentity(canonicalStart, "unknown");
+}
+async function findWorkspaceBinding(startDir) {
+  const direct = await walkForWorkspaceBinding(startDir);
+  const gitIdentity2 = await resolveGitWorkspaceIdentity(startDir);
+  if (gitIdentity2.state !== "worktree") return direct;
+  if (direct) {
+    const bindingRoot = await fs3.realpath(direct.workspaceRoot).catch(() => path5.resolve(direct.workspaceRoot));
+    if (containedBy(gitIdentity2.checkout_root, bindingRoot)) return direct;
+  }
+  return walkForWorkspaceBinding(gitIdentity2.repository_root);
+}
+async function writeWorkspaceBinding(workspaceRoot, binding) {
+  if (typeof binding.account_id !== "string" || binding.account_id.length === 0) {
+    throw new Error("Workspace binding account_id is required.");
+  }
+  const root = await fs3.realpath(path5.resolve(workspaceRoot));
+  const rootEntry = await fs3.stat(root);
+  if (!rootEntry.isDirectory()) throw new Error("Workspace root must be a directory.");
+  const dir = path5.join(root, WORKSPACE_DIR_NAME);
+  try {
+    const entry = await fs3.lstat(dir);
+    if (!entry.isDirectory() || entry.isSymbolicLink()) {
+      throw new Error(`Refusing an unsafe Memlin workspace directory at ${dir}`);
+    }
+  } catch (error) {
+    if (!isFileNotFound(error)) throw error;
+    await fs3.mkdir(dir, { mode: 448, recursive: true });
+    const entry = await fs3.lstat(dir);
+    if (!entry.isDirectory() || entry.isSymbolicLink()) {
+      throw new Error(`Refusing an unsafe Memlin workspace directory at ${dir}`);
+    }
+  }
+  const file = path5.join(dir, WORKSPACE_BINDING_FILE);
+  try {
+    const existing = await fs3.lstat(file);
+    if (!existing.isFile() || existing.isSymbolicLink()) {
+      throw new Error(`Refusing to replace an unsafe workspace binding at ${file}`);
+    }
+  } catch (error) {
+    if (!isFileNotFound(error)) throw error;
+  }
+  const body = JSON.stringify(
+    {
+      account_id: binding.account_id,
+      project_id: binding.project_id ?? null,
+      account_name: binding.account_name
+    },
+    null,
+    2
+  );
+  const temporary = path5.join(dir, `.config.${randomUUID2()}.tmp`);
+  let handle;
+  try {
+    handle = await fs3.open(temporary, "wx", 384);
+    await handle.writeFile(body + "\n", "utf8");
+    await handle.sync();
+    await handle.close();
+    handle = void 0;
+    await atomicRename(temporary, file);
+    const installed = await fs3.lstat(file);
+    if (!installed.isFile() || installed.isSymbolicLink()) {
+      throw new Error(`Workspace binding verification failed at ${file}`);
+    }
+    return file;
+  } finally {
+    await handle?.close().catch(() => void 0);
+    await fs3.unlink(temporary).catch(() => void 0);
+  }
+}
+async function clearWorkspaceBinding(workspaceRoot) {
+  const root = await fs3.realpath(path5.resolve(workspaceRoot));
+  const rootEntry = await fs3.stat(root);
+  if (!rootEntry.isDirectory()) throw new Error("Workspace root must be a directory.");
+  const dir = path5.join(root, WORKSPACE_DIR_NAME);
+  try {
+    const entry = await fs3.lstat(dir);
+    if (!entry.isDirectory() || entry.isSymbolicLink()) {
+      throw new Error(`Refusing an unsafe Memlin workspace directory at ${dir}`);
+    }
+  } catch (error) {
+    if (isFileNotFound(error)) return false;
+    throw error;
+  }
+  const file = path5.join(dir, WORKSPACE_BINDING_FILE);
+  try {
+    const entry = await fs3.lstat(file);
+    if (!entry.isFile() || entry.isSymbolicLink()) {
+      throw new Error(`Refusing to remove an unsafe workspace binding at ${file}`);
+    }
+    await fs3.unlink(file);
+    return true;
+  } catch (error) {
+    if (isFileNotFound(error)) return false;
+    throw error;
+  }
+}
+function isFileNotFound(error) {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
+}
+var WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE, GIT_POINTER_MAX_BYTES;
+var init_workspace_binding = __esm({
+  "packages/plugin-core/src/workspace-binding.ts"() {
+    "use strict";
+    init_atomic_rename();
+    WORKSPACE_DIR_NAME = ".memlin";
+    WORKSPACE_BINDING_FILE = "config.json";
+    GIT_POINTER_MAX_BYTES = 8 * 1024;
+  }
+});
+
 // packages/plugin-core/src/cli/ingest-native-memory.ts
 import path9 from "node:path";
 
@@ -3777,45 +4118,11 @@ import os5 from "node:os";
 import { randomUUID as randomUUID3 } from "node:crypto";
 
 // packages/plugin-core/src/auth.ts
+init_atomic_rename();
 import { promises as fs2 } from "node:fs";
 import path3 from "node:path";
 import os2 from "node:os";
 import { randomUUID } from "node:crypto";
-
-// packages/plugin-core/src/atomic-rename.ts
-import { promises as fs } from "node:fs";
-import path from "node:path";
-var RETRYABLE_CODES = /* @__PURE__ */ new Set(["EPERM", "EACCES", "EBUSY"]);
-var MAX_ATTEMPTS = 10;
-var BASE_DELAY_MS = 10;
-var MAX_DELAY_MS = 100;
-var renameQueues = /* @__PURE__ */ new Map();
-async function renameWithRetry(from, to, rename) {
-  for (let attempt = 1; ; attempt++) {
-    try {
-      await rename(from, to);
-      return;
-    } catch (error) {
-      const code = error.code;
-      if (attempt >= MAX_ATTEMPTS || !code || !RETRYABLE_CODES.has(code)) throw error;
-      const cap = Math.min(BASE_DELAY_MS * 2 ** (attempt - 1), MAX_DELAY_MS);
-      const delay2 = cap / 2 + Math.random() * (cap / 2);
-      await new Promise((resolve) => setTimeout(resolve, delay2));
-    }
-  }
-}
-async function atomicRename(from, to, dependencies = {}) {
-  const rename = dependencies.rename ?? fs.rename;
-  const queueKey = path.resolve(to);
-  const previous = renameQueues.get(queueKey) ?? Promise.resolve();
-  const run = previous.catch(() => void 0).then(() => renameWithRetry(from, to, rename));
-  renameQueues.set(queueKey, run);
-  try {
-    await run;
-  } finally {
-    if (renameQueues.get(queueKey) === run) renameQueues.delete(queueKey);
-  }
-}
 
 // packages/plugin-core/src/backend-error.ts
 var MemlinApiError = class extends Error {
@@ -4067,1578 +4374,8 @@ function decodeJwtPayload(jwt) {
   return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
 }
 
-// packages/plugin-core/src/memlin-api-client.ts
-import { readFileSync } from "node:fs";
-import crypto2 from "node:crypto";
-import os4 from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-// packages/plugin-core/src/runtime-shared.ts
-var AGENT_KIND_HEADER = "Memlin-Agent-Kind";
-var AGENT_DEVICE_HEADER = "Memlin-Agent-Device";
-var AGENT_VERSION_HEADER = "Memlin-Agent-Version";
-var AGENT_CAPABILITIES_HEADER = "Memlin-Agent-Capabilities";
-var AGENT_PLATFORM_HEADER = "Memlin-Agent-Platform";
-var AGENT_ARCHITECTURE_HEADER = "Memlin-Agent-Architecture";
-var AGENT_EXPECTED_CAPABILITIES = {
-  "claude-code": ["cli", "commands", "hooks", "sync", "scribe", "resolve"],
-  cursor: ["mcp", "commands", "hooks", "rules", "scribe", "resolve"],
-  codex: ["mcp", "cli", "hooks", "rules", "scribe", "resolve"],
-  windsurf: ["mcp", "cli", "hooks", "rules", "scribe", "resolve"],
-  // VS Code (apps/vscode-extension): MCP + CLI + copilot-instructions; plain
-  // VS Code has no lifecycle-hook or slash-command surface.
-  vscode: ["mcp", "cli", "rules", "resolve"],
-  gemini: ["mcp", "rules", "resolve"],
-  grok: ["mcp", "rules", "resolve"],
-  hermes: ["mcp", "resolve"],
-  openclaw: ["mcp", "rules", "resolve"],
-  antigravity: ["mcp", "cli", "hooks", "commands", "rules", "sync", "scribe", "resolve"],
-  mcp: ["mcp", "resolve"],
-  "claude-ai": ["mcp", "resolve"],
-  // Companion daemon (apps/companion): background token keeper + realtime
-  // plan sync + local IPC socket other agents delegate to. No hooks/commands
-  // of its own.
-  companion: ["cli", "sync", "realtime", "resolve"]
-};
-var PROVIDER_HOSTS = [
-  "github.com",
-  "gitlab.com",
-  "bitbucket.org",
-  "dev.azure.com",
-  "ssh.dev.azure.com",
-  "codeberg.org",
-  "sr.ht",
-  "git.sr.ht"
-];
-function normalizeGitRemote(raw) {
-  if (!raw) return null;
-  let s = raw.trim();
-  if (!s) return null;
-  if (!s.includes("://")) {
-    s = s.replace(/^(?:[^@/\s]+@)?([^:/\s]+):(?!\/)/, "https://$1/");
-  }
-  s = s.replace(/^(?:ssh|git|https?):\/\//, "");
-  s = s.replace(/^[^/@]+@/, "");
-  s = s.replace(/\.git$/, "");
-  s = s.replace(/\/$/, "");
-  const slash = s.indexOf("/");
-  if (slash > 0) {
-    const host = s.slice(0, slash).toLowerCase();
-    const rest = s.slice(slash);
-    s = host + rest;
-    for (const provider of PROVIDER_HOSTS) {
-      if (host === provider) break;
-      if (host.startsWith(provider + "-")) {
-        s = provider + rest;
-        break;
-      }
-    }
-  }
-  return s || null;
-}
-async function closeHttpSockets() {
-  try {
-    const dispatcher = globalThis[/* @__PURE__ */ Symbol.for("undici.globalDispatcher.1")];
-    if (dispatcher && typeof dispatcher.close === "function") {
-      let timer;
-      await Promise.race([
-        dispatcher.close(),
-        new Promise((resolve) => {
-          timer = setTimeout(resolve, 250);
-          timer.unref?.();
-        })
-      ]).finally(() => {
-        if (timer !== void 0) clearTimeout(timer);
-      });
-    }
-  } catch {
-  }
-}
-
-// packages/plugin-core/src/host.ts
-import os3 from "node:os";
-import path4 from "node:path";
-var BaseHost = class {
-  constructor(kind, home) {
-    this.kind = kind;
-    this.home = home;
-  }
-  kind;
-  home;
-  homeDir() {
-    return this.home;
-  }
-  plansDir() {
-    return path4.join(this.home, "plans");
-  }
-};
-var ClaudeCodeHost = class extends BaseHost {
-  constructor() {
-    super("claude-code", path4.join(os3.homedir(), ".claude"));
-  }
-};
-var CursorHost = class extends BaseHost {
-  constructor() {
-    super("cursor", path4.join(os3.homedir(), ".config", "memlin"));
-  }
-};
-var CodexHost = class extends BaseHost {
-  constructor() {
-    super("codex", path4.join(os3.homedir(), ".config", "memlin"));
-  }
-};
-var WindsurfHost = class extends BaseHost {
-  constructor() {
-    super("windsurf", path4.join(os3.homedir(), ".config", "memlin"));
-  }
-};
-var AntigravityHost = class extends BaseHost {
-  constructor() {
-    super("antigravity", path4.join(os3.homedir(), ".config", "memlin"));
-  }
-};
-var VSCodeHost = class extends BaseHost {
-  constructor() {
-    super("vscode", path4.join(os3.homedir(), ".config", "memlin"));
-  }
-};
-var CompanionHost = class extends BaseHost {
-  constructor() {
-    super("companion", path4.join(os3.homedir(), ".config", "memlin"));
-  }
-};
-var HOSTS = {
-  "claude-code": () => new ClaudeCodeHost(),
-  cursor: () => new CursorHost(),
-  codex: () => new CodexHost(),
-  windsurf: () => new WindsurfHost(),
-  antigravity: () => new AntigravityHost(),
-  vscode: () => new VSCodeHost(),
-  companion: () => new CompanionHost()
-};
-function resolveHost() {
-  const envHost = "codex";
-  const make = HOSTS[envHost];
-  return (make ?? HOSTS["claude-code"])();
-}
-
-// packages/plugin-core/src/memlin-api-client.ts
-var DEFAULT_API_URL = "https://memlin.ai/api/v1";
-function agentDevice() {
-  return process.env.MEMLIN_AGENT_DEVICE || os4.hostname() || "unknown";
-}
-var cachedAgentVersion = null;
-function agentVersion() {
-  if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.51";
-  return cachedAgentVersion;
-}
-function agentCapabilities() {
-  return AGENT_EXPECTED_CAPABILITIES[resolveHost().kind] ?? ["api", "resolve"];
-}
-var DEFAULT_REQUEST_TIMEOUT_MS = 15e3;
-var DEFAULT_MAX_RETRIES = 2;
-var DEFAULT_RETRY_BASE_DELAY_MS = 250;
-var NATIVE_MEMORY_BATCH_SIZE = 20;
-var NATIVE_MEMORY_BATCH_CONCURRENCY = 3;
-var NATIVE_MEMORY_REQUEST_TIMEOUT_MS = 9e4;
-var NATIVE_MEMORY_BATCH_INDEX = "# Native memory satellite batch\n";
-var RESOLVE_V2_MAX_LINE_BYTES = 2 * 1024 * 1024;
-var RETRIABLE_STATUS = /* @__PURE__ */ new Set([408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524]);
-var RETRIABLE_NETWORK_CODES = /* @__PURE__ */ new Set([
-  "ECONNRESET",
-  "ECONNREFUSED",
-  "ECONNABORTED",
-  "ETIMEDOUT",
-  "EPIPE",
-  "EHOSTUNREACH",
-  "ENETUNREACH",
-  "EAI_AGAIN",
-  "UND_ERR_CONNECT_TIMEOUT",
-  "UND_ERR_HEADERS_TIMEOUT",
-  "UND_ERR_BODY_TIMEOUT",
-  "UND_ERR_SOCKET"
-]);
-function isRetriableNetworkError(error) {
-  if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
-    return true;
-  }
-  let current = error;
-  for (let depth = 0; current instanceof Error && depth < 5; depth++) {
-    const code = current.code;
-    if (code && RETRIABLE_NETWORK_CODES.has(code)) return true;
-    current = current.cause;
-  }
-  return false;
-}
-function unreachableError(url, cause, timeoutMs) {
-  let host = url;
-  try {
-    host = new URL(url).host;
-  } catch {
-  }
-  if (cause instanceof Error && (cause.name === "TimeoutError" || cause.name === "AbortError")) {
-    return new Error(
-      `Memlin at ${host} took longer than ${Math.ceil(timeoutMs / 1e3)} seconds to respond. The request was stopped; try again.`,
-      { cause }
-    );
-  }
-  return new Error(
-    `Couldn't reach Memlin at ${host}. Check your internet connection and try again.`,
-    { cause }
-  );
-}
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-function delayWithSignal(ms, signal) {
-  if (!signal) return delay(ms);
-  if (signal.aborted) return Promise.reject(signal.reason ?? new Error("request aborted"));
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(done, ms);
-    function done() {
-      signal?.removeEventListener("abort", aborted);
-      resolve();
-    }
-    function aborted() {
-      clearTimeout(timer);
-      reject(signal?.reason ?? new Error("request aborted"));
-    }
-    signal.addEventListener("abort", aborted, { once: true });
-  });
-}
-function resolveV2Event(value) {
-  if (!value || typeof value !== "object") {
-    throw new Error("Memlin progressive resolver returned a non-object event");
-  }
-  const candidate = value;
-  if (candidate.type !== "hot" && candidate.type !== "full" && candidate.type !== "failed" || typeof candidate.resolve_id !== "string" || typeof candidate.turn_id !== "string" || typeof candidate.trace_id !== "string" || typeof candidate.account_id !== "string" || candidate.project_id !== null && typeof candidate.project_id !== "string" || !candidate.timing || typeof candidate.timing.total_ms !== "number" || !candidate.metrics || typeof candidate.metrics.db_calls !== "number") {
-    throw new Error("Memlin progressive resolver returned a malformed event");
-  }
-  if ((candidate.type === "hot" || candidate.type === "full") && !candidate.payload) {
-    throw new Error(`Memlin progressive resolver returned ${candidate.type} without a payload`);
-  }
-  if (candidate.type === "failed" && !candidate.error) {
-    throw new Error("Memlin progressive resolver returned failed without an error receipt");
-  }
-  return candidate;
-}
-async function* parseNdjsonEvents(body) {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  try {
-    for (; ; ) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      for (; ; ) {
-        const newline = buffer.indexOf("\n");
-        if (newline < 0) break;
-        const rawLine = buffer.slice(0, newline);
-        buffer = buffer.slice(newline + 1);
-        if (Buffer.byteLength(rawLine) > RESOLVE_V2_MAX_LINE_BYTES) {
-          throw new Error("Memlin progressive resolver returned an oversized event");
-        }
-        const line = rawLine.trim();
-        if (!line) continue;
-        let parsed;
-        try {
-          parsed = JSON.parse(line);
-        } catch {
-          throw new Error("Memlin progressive resolver returned invalid NDJSON");
-        }
-        yield resolveV2Event(parsed);
-      }
-      if (Buffer.byteLength(buffer) > RESOLVE_V2_MAX_LINE_BYTES) {
-        throw new Error("Memlin progressive resolver returned an oversized event");
-      }
-    }
-    buffer += decoder.decode();
-    if (Buffer.byteLength(buffer) > RESOLVE_V2_MAX_LINE_BYTES) {
-      throw new Error("Memlin progressive resolver returned an oversized event");
-    }
-    const tail = buffer.trim();
-    if (tail) {
-      let parsed;
-      try {
-        parsed = JSON.parse(tail);
-      } catch {
-        throw new Error("Memlin progressive resolver returned invalid NDJSON");
-      }
-      yield resolveV2Event(parsed);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
-var MemlinApiClient = class {
-  constructor(cfg) {
-    this.cfg = cfg;
-  }
-  cfg;
-  // ---------- low-level ----------
-  async authHeaders(includeAccount = true, override = {}) {
-    const token = await this.cfg.getAccessToken();
-    const kind = override.agentKind ?? resolveHost().kind;
-    const version = override.agentKind === void 0 ? agentVersion() : override.agentVersion ?? "dev";
-    const h = {
-      Authorization: `Bearer ${token}`,
-      [AGENT_KIND_HEADER]: kind,
-      [AGENT_DEVICE_HEADER]: agentDevice(),
-      [AGENT_VERSION_HEADER]: version,
-      [AGENT_CAPABILITIES_HEADER]: (override.agentKind ? AGENT_EXPECTED_CAPABILITIES[kind] : agentCapabilities()).join(","),
-      [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os4.platform(),
-      [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os4.arch()
-    };
-    if (includeAccount && this.cfg.accountId) {
-      h["Memlin-Account-Id"] = this.cfg.accountId;
-    }
-    return h;
-  }
-  async request(method, pathAndQuery, body, opts = {}) {
-    const url = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
-    const baseHeaders = await this.authHeaders(opts.includeAccount ?? true, opts);
-    if (opts.accountId) {
-      baseHeaders["Memlin-Account-Id"] = opts.accountId;
-    }
-    const headers = {
-      ...baseHeaders,
-      Accept: "application/json"
-    };
-    if (body !== void 0) headers["Content-Type"] = "application/json";
-    const idempotent = method === "GET";
-    const maxAttempts = idempotent ? Math.max(0, opts.maxRetries ?? this.cfg.maxRetries ?? DEFAULT_MAX_RETRIES) + 1 : 1;
-    const timeoutMs = Math.max(
-      1,
-      opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
-    );
-    for (let attempt = 1; ; attempt++) {
-      let res;
-      let text;
-      try {
-        const timeoutSignal = AbortSignal.timeout(timeoutMs);
-        res = await fetch(url, {
-          method,
-          headers,
-          // A dead socket must abort rather than hang the caller forever.
-          signal: opts.signal ? AbortSignal.any([opts.signal, timeoutSignal]) : timeoutSignal,
-          ...body !== void 0 ? { body: JSON.stringify(body) } : {}
-        });
-        text = await res.text();
-      } catch (error) {
-        if (attempt < maxAttempts && isRetriableNetworkError(error)) {
-          await delay(this.backoffMs(attempt));
-          continue;
-        }
-        throw unreachableError(url, error, timeoutMs);
-      }
-      if (idempotent && attempt < maxAttempts && RETRIABLE_STATUS.has(res.status)) {
-        await delay(this.backoffMs(attempt));
-        continue;
-      }
-      let parsed = null;
-      if (text) {
-        try {
-          parsed = JSON.parse(text);
-        } catch {
-        }
-      }
-      if (!res.ok) {
-        const serverError = parsed?.error;
-        const errMsg = typeof serverError === "string" && serverError ? singleLine(serverError, 300) : describeOpaqueBody(res.status, text);
-        throw new MemlinApiError(
-          `${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`,
-          res.status
-        );
-      }
-      return parsed;
-    }
-  }
-  backoffMs(attempt) {
-    const base = this.cfg.retryBaseDelayMs ?? DEFAULT_RETRY_BASE_DELAY_MS;
-    return base * 2 ** (attempt - 1);
-  }
-  async openResolveV2Stream(method, pathAndQuery, body, opts = {}) {
-    const url = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
-    const headers = await this.authHeaders(true, opts);
-    if (opts.accountId) headers["Memlin-Account-Id"] = opts.accountId;
-    headers.Accept = "application/x-ndjson";
-    if (body !== void 0) headers["Content-Type"] = "application/json";
-    if (opts.traceId) {
-      const normalized = opts.traceId.replaceAll("-", "").toLowerCase();
-      const traceId = /^[0-9a-f]{32}$/.test(normalized) ? normalized : crypto2.createHash("sha256").update(opts.traceId).digest("hex").slice(0, 32);
-      headers.traceparent = `00-${traceId}-${crypto2.randomBytes(8).toString("hex")}-01`;
-    }
-    const timeoutMs = Math.max(
-      1,
-      opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
-    );
-    const timeoutSignal = AbortSignal.timeout(timeoutMs);
-    const signal = opts.signal ? AbortSignal.any([opts.signal, timeoutSignal]) : timeoutSignal;
-    let response;
-    try {
-      response = await fetch(url, {
-        method,
-        headers,
-        signal,
-        ...body !== void 0 ? { body: JSON.stringify(body) } : {}
-      });
-    } catch (error) {
-      throw unreachableError(url, error, timeoutMs);
-    }
-    if (response.ok) {
-      const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
-      if (!contentType.includes("application/x-ndjson")) {
-        await response.body?.cancel().catch(() => void 0);
-        throw new Error("Memlin progressive resolver returned an unexpected response type");
-      }
-      return response;
-    }
-    const text = await response.text().catch(() => "");
-    let serverError;
-    try {
-      const parsed = JSON.parse(text);
-      serverError = typeof parsed.error === "string" ? parsed.error : parsed.error?.message ?? parsed.error?.code;
-    } catch {
-    }
-    const detail = response.status >= 500 ? `HTTP ${response.status} (upstream response suppressed)` : serverError ? singleLine(serverError, 300) : describeOpaqueBody(response.status, text);
-    throw new MemlinApiError(
-      `${method} ${pathAndQuery} \u2192 ${response.status}: ${detail}`,
-      response.status
-    );
-  }
-  async *readResolveV2Response(response) {
-    if (!response.body) {
-      throw new Error("Memlin progressive resolver returned an empty response body");
-    }
-    yield* parseNdjsonEvents(response.body);
-  }
-  // ---------- endpoints ----------
-  /** GET /me — identity + account list. No account header sent (this is the discovery call). */
-  async me() {
-    return this.request("GET", "/me", void 0, { includeAccount: false });
-  }
-  /**
-   * GET /report — account-scoped usage aggregates (tokens saved, resolves,
-   * hit rate). The route nests the window (`window: { from, days }` — no
-   * top-level days field) and clamps days to [1, 31] server-side (default 1);
-   * `projectId` maps to the `?project=` query param. Consumed by the
-   * Companion's Memory panel for its tokens-saved counter.
-   */
-  async report(opts = {}) {
-    const q = new URLSearchParams();
-    if (opts.days !== void 0) q.set("days", String(opts.days));
-    if (opts.projectId) q.set("project", opts.projectId);
-    const qs = q.toString();
-    return this.request("GET", `/report${qs ? `?${qs}` : ""}`);
-  }
-  /**
-   * GET /realtime/config — Supabase connection info for the caller's
-   * effective account. The client config file is deliberately
-   * backend-agnostic (no Supabase URL / anon key), so Realtime subscribers
-   * — the Companion daemon (packages/companion-core) — bootstrap the
-   * connection from here. Dedicated-instance (paid org) accounts get THEIR
-   * instance's values, which is why this rides normal account-header auth.
-   */
-  async getRealtimeConfig(opts = {}) {
-    return this.request("GET", "/realtime/config", void 0, { accountId: opts.accountId });
-  }
-  /**
-   * POST /roles/assign — set a member's functional roles (backend, sre,
-   * ...). Defaults to the caller; pass user_id to assign another member
-   * (owner/admin only). Replaces the member's set wholesale.
-   */
-  async assignRoles(input, opts = {}) {
-    return this.request("POST", "/roles/assign", input, {
-      accountId: opts.accountId
-    });
-  }
-  /**
-   * POST /roles/tag — tag a document into one or more role packs. The
-   * resolver boosts the document for members holding a matching role.
-   * Replaces the document's role tags wholesale.
-   */
-  async tagDocumentRoles(input, opts = {}) {
-    return this.request("POST", "/roles/tag", input, {
-      accountId: opts.accountId
-    });
-  }
-  /**
-   * POST /documents/pin — force-include ("pin") a document, or unpin it.
-   * A pinned doc is fetched out-of-band by the resolver on every resolve in
-   * scope (no similarity threshold) and reserved budget off the top — a
-   * standing directive, not a similarity hit. Owner/admin-only server-side.
-   */
-  async setDocumentPinned(input, opts = {}) {
-    return this.request("POST", "/documents/pin", input, {
-      accountId: opts.accountId
-    });
-  }
-  /** GET /decisions/enforce — pull the guardrail rules currently
-   *  in effect for the caller's account (and optionally a project).
-   *  Returns kind='decision' docs whose `metadata.enforce` is set —
-   *  the PreToolUse handler in plugin-core's pre-tool-use-handler
-   *  module is the primary caller. */
-  async listEnforceDecisions(opts = {}, requestOpts = {}) {
-    const qs = new URLSearchParams();
-    if (opts.project_id !== void 0) {
-      qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
-    }
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.request("GET", `/decisions/enforce${suffix}`, void 0, {
-      accountId: requestOpts.accountId
-    });
-  }
-  /** POST /usage/event — write a usage_events row from the client.
-   *  Server-side enforces an allowlist of event_types (today:
-   *  tool.guardrail, action.invoke, resolve.outcome, edit.activity,
-   *  resolve.delivery) and re-derives account_id and user_id from the auth
-   *  context so callers can't forge rows for other workspaces.
-   *  `opts.accountId` routes the write to a non-default account
-   *  (multi-account workspaces). */
-  async writeUsageEvent(input, opts = {}) {
-    return this.request("POST", "/usage/event", input, { accountId: opts.accountId });
-  }
-  /** Batched, idempotent editor-agent telemetry. This stream is deliberately
-   * separate from usage_events: it powers live sessions, subagent visibility,
-   * model analytics, and operational timelines without affecting metering. */
-  async writeAgentActivityBatch(events, opts = {}) {
-    return this.request("POST", "/agent/activity", { events }, opts);
-  }
-  /** GET /documents — list, filtered. */
-  async listDocuments(opts = {}, callOpts = {}) {
-    const qs = new URLSearchParams();
-    if (opts.kinds) for (const k of opts.kinds) qs.append("kind", k);
-    if (opts.scopes) for (const s of opts.scopes) qs.append("scope", s);
-    if (opts.statuses) for (const s of opts.statuses) qs.append("status", s);
-    if (opts.project_id !== void 0) {
-      qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
-    }
-    if (opts.has_trigger) qs.set("has_trigger", "true");
-    if (opts.path) qs.set("path", opts.path);
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    const res = await this.request("GET", `/documents${suffix}`, void 0, { accountId: callOpts.accountId });
-    return res.documents.map((d) => {
-      const { status, ...rest } = d;
-      return status == null ? rest : { ...rest, status };
-    });
-  }
-  /** POST /documents — create or update a document. */
-  async writeDocument(input, callOpts = {}) {
-    return this.request("POST", "/documents", input, {
-      accountId: callOpts.accountId
-    });
-  }
-  /** Atomically compare-and-sync the server-owned project CONTRACT.md. */
-  async syncWorkspaceContract(input) {
-    return this.request("POST", "/workspace-contract/sync", input);
-  }
-  /** GET /documents/{id} — fetch one doc with body + metadata. */
-  async getDocument(documentId) {
-    return this.request("GET", `/documents/${encodeURIComponent(documentId)}`);
-  }
-  /** POST /documents/{id}/contract-verification — H12. Record a contract
-   *  check. Used by `memlin diff --record`. */
-  async recordContractVerification(documentId, body) {
-    return this.request(
-      "POST",
-      `/documents/${encodeURIComponent(documentId)}/contract-verification`,
-      body
-    );
-  }
-  /** GET /documents/{id}/versions — history. */
-  async listVersions(documentId) {
-    const res = await this.request(
-      "GET",
-      `/documents/${encodeURIComponent(documentId)}/versions`
-    );
-    return res.versions;
-  }
-  /** POST /documents/{id}/revert — non-destructive revert to an older version. */
-  async revertDocument(documentId, targetVersionId, commitMessage) {
-    const res = await this.request(
-      "POST",
-      `/documents/${encodeURIComponent(documentId)}/revert`,
-      {
-        target_version_id: targetVersionId,
-        ...commitMessage ? { commit_message: commitMessage } : {}
-      }
-    );
-    return res.new_version_id;
-  }
-  /** GET /inbox — pending scribe proposals (newest first), plus recently
-   *  auto-activated correction rules (so the user can see what stuck + undo).
-   *  Pass `opts.accountId` to read a different account's inbox than the pinned
-   *  one (e.g. `memlin status` showing the resolver-effective account). */
-  async listInbox(opts = {}) {
-    return this.request("GET", "/inbox", void 0, { accountId: opts.accountId });
-  }
-  /** GET /insights — pending derived insights, including auto-memory proposals. */
-  async listInsights(params = {}, opts = {}) {
-    const search = new URLSearchParams();
-    if (params.kind) search.set("kind", params.kind);
-    if (params.status) search.set("status", params.status);
-    if (params.limit) search.set("limit", String(params.limit));
-    const qs = search.toString();
-    return this.request(
-      "GET",
-      `/insights${qs ? `?${qs}` : ""}`,
-      void 0,
-      { accountId: opts.accountId }
-    );
-  }
-  async resolveInsight(insightId, action) {
-    return this.request("POST", `/insights/${encodeURIComponent(insightId)}/resolve`, { action });
-  }
-  /** POST /inbox/{id} — accept or reject a proposal. */
-  async resolveProposal(proposalId, action) {
-    return this.request("POST", `/inbox/${encodeURIComponent(proposalId)}`, {
-      action
-    });
-  }
-  async listHandoffs(opts = {}, callOpts = {}) {
-    const qs = new URLSearchParams();
-    if (opts.project_id) qs.set("project_id", opts.project_id);
-    if (opts.target_agent_kind) qs.set("target_agent_kind", opts.target_agent_kind);
-    if (opts.target_session_id) qs.set("target_session_id", opts.target_session_id);
-    if (opts.status) qs.set("status", opts.status);
-    if (opts.limit) qs.set("limit", String(opts.limit));
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.request("GET", `/handoffs${suffix}`, void 0, {
-      accountId: callOpts.accountId
-    });
-  }
-  async updateHandoff(handoffId, action, opts = {}) {
-    return this.request(
-      "PATCH",
-      `/handoffs/${encodeURIComponent(handoffId)}`,
-      { action },
-      { accountId: opts.accountId }
-    );
-  }
-  async createHandoff(input) {
-    return this.request("POST", "/handoffs", input);
-  }
-  async listFeatures(opts = {}) {
-    const qs = new URLSearchParams();
-    if (opts.project_id) qs.set("project_id", opts.project_id);
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    return this.request("GET", `/features${suffix}`);
-  }
-  async createFeature(input) {
-    return this.request("POST", "/features", input);
-  }
-  async addFeatureMember(featureId, source) {
-    return this.request("POST", `/features/${featureId}/members`, { source });
-  }
-  /** POST /documents/search — semantic + text. */
-  async search(query, opts = {}) {
-    const res = await this.request("POST", "/documents/search", {
-      query,
-      ...opts
-    });
-    return res.hits;
-  }
-  /** GET /documents?q=... — fuzzy title/path lookup. Used by `memlin revert`. */
-  async findDocumentsByName(needle, limit = 10) {
-    const qs = new URLSearchParams({ q: needle, limit: String(limit) });
-    const res = await this.request("GET", `/documents?${qs.toString()}`);
-    return res.documents;
-  }
-  /**
-   * POST /resolve/v2 — one authenticated progressive NDJSON stream.
-   *
-   * A transport reset after the server claimed the id is recovered through
-   * GET replay, never by starting another POST with a fresh identity. Duplicate
-   * events from the replay are suppressed by phase.
-   */
-  async *resolveV2(args, opts = {}) {
-    const seen = /* @__PURE__ */ new Set();
-    let terminal = false;
-    let postError;
-    try {
-      const response = await this.openResolveV2Stream("POST", "/resolve/v2", args, opts);
-      for await (const event of this.readResolveV2Response(response)) {
-        if (event.resolve_id !== args.resolve_id || event.turn_id !== args.turn_id) {
-          throw new Error("Memlin progressive resolver returned an event for another turn");
-        }
-        if (event.type === "failed" && event.error?.code === "RESOLVE_V2_UNAVAILABLE" && !seen.has("hot") && !seen.has("full")) {
-          throw new MemlinApiError("POST /resolve/v2 \u2192 404: progressive resolve unavailable", 404);
-        }
-        if (event.type === "failed" && event.error?.code === "PENDING") continue;
-        if (!seen.has(event.type)) {
-          seen.add(event.type);
-          yield event;
-        }
-        if (event.type === "full" || event.type === "failed") terminal = true;
-      }
-    } catch (error) {
-      postError = error;
-    }
-    if (terminal) return;
-    if (opts.signal?.aborted) throw postError ?? opts.signal.reason;
-    if (postError instanceof MemlinApiError && (postError.status === 404 || postError.status === 405 || postError.status === 501)) {
-      throw postError;
-    }
-    const requestedDeadline = Date.parse(args.deadline_at);
-    const replayDeadline = Number.isFinite(requestedDeadline) ? requestedDeadline : Date.now() + (opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS);
-    const replayDelays = [50, 100, 200, 350, 500];
-    const replayIdentity = new URLSearchParams({
-      turn_id: args.turn_id,
-      session_id: args.session_id ?? ""
-    });
-    let replayError;
-    for (let attempt = 0; !terminal && Date.now() < replayDeadline; attempt += 1) {
-      if (opts.signal?.aborted) throw postError ?? opts.signal.reason;
-      try {
-        const response = await this.openResolveV2Stream(
-          "GET",
-          `/resolve/v2/${encodeURIComponent(args.resolve_id)}?${replayIdentity.toString()}`,
-          void 0,
-          {
-            ...opts,
-            requestTimeoutMs: Math.max(1, replayDeadline - Date.now())
-          }
-        );
-        for await (const event of this.readResolveV2Response(response)) {
-          if (event.resolve_id !== args.resolve_id || event.turn_id !== args.turn_id) {
-            throw new Error(
-              "Memlin progressive resolver replay returned an event for another turn"
-            );
-          }
-          if (event.type === "failed" && event.error?.code === "PENDING") continue;
-          if (!seen.has(event.type)) {
-            seen.add(event.type);
-            yield event;
-          }
-          if (event.type === "full" || event.type === "failed") terminal = true;
-        }
-        replayError = void 0;
-      } catch (error) {
-        replayError = error;
-        const retryable = !(error instanceof MemlinApiError) || error.status === 408 || error.status === 429 || error.status >= 500;
-        if (!retryable) {
-          if (seen.has("hot") || seen.has("full")) {
-            throw new Error(
-              "Memlin progressive resolver replay was rejected after resolution started"
-            );
-          }
-          throw postError ?? error;
-        }
-      }
-      if (terminal) return;
-      const remaining = replayDeadline - Date.now();
-      if (remaining <= 0) break;
-      await delayWithSignal(
-        Math.min(replayDelays[Math.min(attempt, replayDelays.length - 1)], remaining),
-        opts.signal
-      );
-    }
-    throw postError ?? replayError ?? new Error("Memlin progressive resolver did not reach a terminal phase before its deadline");
-  }
-  /** Read stored phases without starting a resolver operation. */
-  async *replayResolveV2(resolveId, expected, opts = {}) {
-    const identity = new URLSearchParams({
-      turn_id: expected.turn_id,
-      session_id: expected.session_id ?? ""
-    });
-    const response = await this.openResolveV2Stream(
-      "GET",
-      `/resolve/v2/${encodeURIComponent(resolveId)}?${identity.toString()}`,
-      void 0,
-      opts
-    );
-    for await (const event of this.readResolveV2Response(response)) {
-      if (event.resolve_id !== resolveId || event.turn_id !== expected.turn_id) {
-        throw new Error("Memlin progressive resolver replay returned an event for another turn");
-      }
-      yield event;
-    }
-  }
-  /** Hook-emitted delivery truth for a progressive resolve. The route accepts
-   * only this sanitized detail allowlist; prompts and source content never
-   * enter telemetry. */
-  async reportResolveV2Delivery(resolveId, input, opts = {}) {
-    return this.request("POST", `/resolve/v2/${encodeURIComponent(resolveId)}/delivery`, input, {
-      accountId: opts.accountId,
-      requestTimeoutMs: opts.requestTimeoutMs ?? 2e3,
-      signal: opts.signal,
-      agentKind: opts.agentKind,
-      agentVersion: opts.agentVersion
-    });
-  }
-  /**
-   * POST /resolve — the marquee context-assembly endpoint.
-   *
-   * `cwd` and `git_remote` let the server infer the caller's active component
-   * (when the project has any defined) and apply a soft +0.15 boost to
-   * docs tagged to that component. Both are optional; omitting them yields
-   * the same project-wide ranking we used pre-component-awareness.
-   */
-  async resolve(args, opts = {}) {
-    return this.request("POST", "/resolve", args, {
-      accountId: opts.accountId,
-      requestTimeoutMs: opts.requestTimeoutMs,
-      signal: opts.signal,
-      agentKind: opts.agentKind,
-      agentVersion: opts.agentVersion
-    });
-  }
-  /**
-   * GET /account — name/tier/kind for the current account.
-   *
-   * Pass `opts.accountId` to target an account other than the pinned one.
-   * `memlin status` uses this to show the resolver-effective account in a
-   * multi-account workspace, so the returned `id` and `name` always describe
-   * the same account (no global-default/pinned-name mismatch).
-   */
-  async getAccount(opts = {}) {
-    return this.request("GET", "/account", void 0, {
-      accountId: opts.accountId,
-      requestTimeoutMs: opts.requestTimeoutMs,
-      maxRetries: opts.maxRetries
-    });
-  }
-  /**
-   * POST /projects/resolve — server-side project resolution.
-   *
-   * Returns `account_id` when a project matches in any account the user
-   * has access to (via the JWT's memlin_account_ids claim) — not just the
-   * one pinned in config. Callers use the returned account_id to retarget
-   * the actual resolve / write call to the right backend.
-   */
-  async resolveProject(input) {
-    return this.request("POST", "/projects/resolve", input);
-  }
-  /** GET /account/enforce-done-deployed — the workspace done-deployed gate flag. */
-  async getEnforceDoneDeployed(opts = {}) {
-    return this.request("GET", "/account/enforce-done-deployed", void 0, opts);
-  }
-  /** PUT /account/enforce-done-deployed — owner/admin sets the workspace flag. */
-  async setEnforceDoneDeployed(enabled, opts = {}) {
-    return this.request("PUT", "/account/enforce-done-deployed", { enabled }, opts);
-  }
-  /**
-   * POST /deploy-guard — acquire, release, status, or queue the per-project
-   * deploy lease / waiter line.
-   *
-   * The PreToolUse deploy hook calls `acquire` before a raw deploy command
-   * runs; laptop ship scripts call acquire themselves and wait on collision.
-   * `queue` parks a waiter when acquire misses. `acquired: false` means
-   * another session already holds an active lease.
-   * project_id is passed explicitly — the hook resolves it from cwd first.
-   */
-  async deployGuard(input, opts = {}) {
-    return this.request("POST", "/deploy-guard", input, { accountId: opts.accountId });
-  }
-  /**
-   * POST /edit-guard — real-time, pre-edit file-collision check.
-   *
-   * The PreToolUse hook calls this before an Edit/Write/MultiEdit, passing the
-   * repo-relative path(s) about to change. The server reads the same
-   * `edit.activity` feed the resolver's recent_file_edits uses and returns any
-   * LIVE collisions — other sessions that edited the same path within the last
-   * ~10 min — so the hook can warn or block. Read-only; never mutates.
-   * project_id is passed explicitly (the hook resolves it from cwd first).
-   */
-  async editGuard(input, opts = {}) {
-    return this.request("POST", "/edit-guard", input, { accountId: opts.accountId });
-  }
-  /** Transactional edit broker. prepare acquires exact-path ownership or
-   * returns the first holder that still needs compatibility proof. */
-  async editBroker(input, opts = {}) {
-    return this.request("POST", "/edit-guard", input, { accountId: opts.accountId });
-  }
-  /** GET /audit/<id>/replay — reconstruct a past resolve's exact bundle. */
-  async replayAudit(auditId, opts = {}) {
-    return this.request("GET", `/audit/${auditId}/replay`, void 0, {
-      accountId: opts.accountId
-    });
-  }
-  /** GET /audit/<id>/explain — per-item decomposition of a past resolve's
-   *  ranking arithmetic (similarity, kind weight, component boost, rerank,
-   *  decay) plus human-readable reasons. The "homework, shown" companion
-   *  to /replay. */
-  async explainAudit(auditId) {
-    return this.request("GET", `/audit/${auditId}/explain`);
-  }
-  /** GET /actions — list approved actions in the workspace. Same shape
-   *  the memlin_actions_list MCP tool returns. */
-  async listActions(opts = {}) {
-    const q = [];
-    if (opts.filter) q.push(`filter=${encodeURIComponent(opts.filter)}`);
-    if (opts.limit !== void 0) q.push(`limit=${opts.limit}`);
-    const qs = q.length > 0 ? `?${q.join("&")}` : "";
-    const { actions } = await this.request("GET", `/actions${qs}`);
-    return actions;
-  }
-  /** POST /actions/<id>/execute — invoke a callable action by id with
-   *  validated input. Returns the result + audit_id. */
-  async executeAction(actionId, input) {
-    return this.request("POST", `/actions/${actionId}/execute`, { input });
-  }
-  /** POST /prompt-ci — run Prompt CI regression tests for a skill. */
-  async runPromptCi(skillId, content) {
-    return this.request("POST", "/prompt-ci", { skill_id: skillId, content });
-  }
-  /**
-   * POST /memory/propose — extract memory candidates from a recent agent
-   * turn and queue them for user accept/dismiss. Fire-and-forget from the
-   * Stop hook's perspective; the server runs a cheap Haiku extraction and
-   * silently no-ops if it finds nothing worth remembering.
-   */
-  async proposeMemory(input, opts = {}) {
-    return this.request("POST", "/memory/propose", input, { accountId: opts.accountId });
-  }
-  /**
-   * POST /scribe/diff — Phase 2 auto-capture from a single git commit.
-   *
-   * Called by the PostToolUse hook after the agent runs `git commit`.
-   * The server reads the commit message + diff, asks Haiku to extract
-   * any decision/memory/skill baked into the change, and persists the
-   * results. The server may activate or background captures automatically;
-   * only the post-processing `proposals_pending` subset needs inbox review.
-   */
-  async scribeDiff(input, opts = {}) {
-    return this.request("POST", "/scribe/diff", input, { accountId: opts.accountId });
-  }
-  /**
-   * POST /scribe/session — Phase 1 auto-capture from a Claude Code
-   * session transcript. Server slices the transcript (tail-biased
-   * when too large), runs Haiku extraction, persists proposals, and reports
-   * how many still need review after automatic handling.
-   *
-   * Triggered manually by /memlin-scribe today; an auto-triggered
-   * variant on Stop with a 15-min debounce is a fast follow-up.
-   */
-  async scribeSession(input, opts = {}) {
-    return this.request("POST", "/scribe/session", input, { accountId: opts.accountId });
-  }
-  /**
-   * POST /memory/ingest-native — ingest a host's native auto-memory.
-   *
-   * Sends the raw native MEMORY.md index (+ the satellite filenames the
-   * adapter already pulls) so the server parses it and runs the entries
-   * through the scribe dedup (corroborate, don't duplicate). Makes turning
-   * off native auto-memory lossless.
-   */
-  async ingestNativeMemory(input, opts = {}) {
-    const satellites = input.satellites ?? [];
-    if (satellites.length <= NATIVE_MEMORY_BATCH_SIZE) {
-      return this.request("POST", "/memory/ingest-native", input, {
-        accountId: opts.accountId,
-        requestTimeoutMs: NATIVE_MEMORY_REQUEST_TIMEOUT_MS
-      });
-    }
-    const satelliteFiles = [
-      .../* @__PURE__ */ new Set([
-        ...input.satellite_files ?? [],
-        ...satellites.map((satellite) => satellite.name)
-      ])
-    ];
-    const batches = [];
-    for (let offset = 0; offset < satellites.length; offset += NATIVE_MEMORY_BATCH_SIZE) {
-      batches.push(satellites.slice(offset, offset + NATIVE_MEMORY_BATCH_SIZE));
-    }
-    const results = [];
-    for (let offset = 0; offset < batches.length; offset += NATIVE_MEMORY_BATCH_CONCURRENCY) {
-      const group = batches.slice(offset, offset + NATIVE_MEMORY_BATCH_CONCURRENCY);
-      const settled = await Promise.allSettled(
-        group.map((batch, groupIndex) => {
-          const batchIndex = offset + groupIndex;
-          return this.request(
-            "POST",
-            "/memory/ingest-native",
-            {
-              ...input,
-              memory_index_md: batchIndex === 0 ? input.memory_index_md : NATIVE_MEMORY_BATCH_INDEX,
-              satellites: batch,
-              satellite_files: satelliteFiles
-            },
-            {
-              accountId: opts.accountId,
-              requestTimeoutMs: NATIVE_MEMORY_REQUEST_TIMEOUT_MS
-            }
-          );
-        })
-      );
-      const rejected = settled.find(
-        (result) => result.status === "rejected"
-      );
-      if (rejected) throw rejected.reason;
-      const groupResults = settled.filter(
-        (result) => result.status === "fulfilled"
-      ).map((result) => result.value);
-      results.push(...groupResults);
-      if (groupResults.some((result) => result.skipped)) break;
-    }
-    const sum = (key) => results.reduce((total, result) => {
-      const value = result[key];
-      return total + (typeof value === "number" ? value : 0);
-    }, 0);
-    const refused = results.find((result) => result.skipped);
-    return {
-      entries_parsed: sum("entries_parsed"),
-      satellites_received: sum("satellites_received"),
-      proposals_built: sum("proposals_built"),
-      run_id: results.find((result) => result.run_id)?.run_id ?? null,
-      proposals_persisted: sum("proposals_persisted"),
-      proposal_ids: results.flatMap((result) => result.proposal_ids),
-      proposals_corroborated: sum("proposals_corroborated"),
-      proposals_auto_promoted: sum("proposals_auto_promoted"),
-      proposals_auto_activated: sum("proposals_auto_activated"),
-      proposals_reconciled: sum("proposals_reconciled"),
-      ...refused ? { skipped: true, reason: refused.reason ?? "skipped" } : {}
-    };
-  }
-  /**
-   * POST /memory/remember — save one user-typed durable memory
-   * (/memlin-remember). Routes through the server-side scribe dedup, tagged
-   * as a provenance-verified directive so it activates immediately and can
-   * supersede the stale fact it corrects.
-   */
-  async rememberMemory(input, opts = {}) {
-    return this.request("POST", "/memory/remember", input, { accountId: opts.accountId });
-  }
-  /**
-   * POST /plans — upload a Claude Code plan as a first-class plan document.
-   *
-   * Server resolves project from cwd/git_remote (when not pinned), writes
-   * the document via writeDocument (auto-embedding), and inserts a
-   * companion plans row with status='drafted'. Returns the document_id
-   * + version metadata for downstream URL construction.
-   */
-  async pushPlan(input, opts = {}) {
-    return this.request("POST", "/plans", input, { accountId: opts.accountId });
-  }
-  /**
-   * GET /plans — list plans for the account, optionally filtered by
-   * `updated_after` (epoch ms) for cheap delta polling. Used by the
-   * UserPromptSubmit + SessionStart hooks to keep ~/.claude/plans/ in
-   * sync with the server.
-   */
-  async listPlans(opts = {}, callOpts = {}) {
-    const qs = new URLSearchParams();
-    if (opts.status) qs.set("status", opts.status);
-    if (opts.project_id !== void 0) {
-      qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
-    }
-    if (opts.updated_after) qs.set("updated_after", opts.updated_after);
-    const suffix = qs.toString() ? `?${qs.toString()}` : "";
-    const res = await this.request(
-      "GET",
-      `/plans${suffix}`,
-      void 0,
-      { accountId: callOpts.accountId }
-    );
-    return res.plans;
-  }
-  /** GET /plans/<id> — full plan detail (status + body + bundle ref). */
-  async getPlan(id, opts = {}) {
-    return this.request("GET", `/plans/${encodeURIComponent(id)}`, void 0, {
-      accountId: opts.accountId
-    });
-  }
-  /**
-   * PATCH /plans/<id> — replace the plan's body (creates a new
-   * document_version, auto-embeds). Used by the PostToolUse hook to push
-   * Claude Code edits back up to Memlin.
-   */
-  async updatePlan(id, input, opts = {}) {
-    return this.request("PATCH", `/plans/${encodeURIComponent(id)}`, input, {
-      accountId: opts.accountId
-    });
-  }
-  /**
-   * POST /projects — create a project in the caller's current account.
-   * Used by `memlin init` to register a Claude Code workspace.
-   */
-  async createProject(input, opts = {}) {
-    return this.request("POST", "/projects", input, { accountId: opts.accountId });
-  }
-  /** Atomically create/select a project and register one or more logical
-   * local sources. Device paths are intentionally absent from this wire
-   * contract. */
-  async linkLocalSources(input, opts = {}) {
-    return this.request("POST", "/projects/local-link", input, { accountId: opts.accountId });
-  }
-  /**
-   * PATCH /projects/{id} — attach/detach local paths, set/clear the git
-   * remote, or rename. Owner/admin only; 409 when a path or remote is
-   * already attached to another project in the account. Backs
-   * `memlin attach-path` and add-project's attach-instead-of-fork offer.
-   */
-  async patchProject(projectId, input, opts = {}) {
-    return this.request("PATCH", `/projects/${encodeURIComponent(projectId)}`, input, {
-      accountId: opts.accountId
-    });
-  }
-  /** POST /decisions/{id}/verify — record an outcome on the decision
-   *  ledger. Verdicts surface on every future resolve of the decision. */
-  async verifyDecision(decisionId, input, opts = {}) {
-    return this.request("POST", `/decisions/${encodeURIComponent(decisionId)}/verify`, input, {
-      accountId: opts.accountId
-    });
-  }
-  /** GET /decisions/review-due — decisions whose review date arrived. */
-  async listReviewDueDecisions(opts = {}) {
-    const qs = opts.projectId ? `?project_id=${encodeURIComponent(opts.projectId)}` : "";
-    return this.request("GET", `/decisions/review-due${qs}`, void 0, {
-      accountId: opts.accountId
-    });
-  }
-  /**
-   * POST /ask — natural-language Q&A over the team's workspace memory.
-   * Server resolves a bundle, sends it to Claude, returns answer +
-   * citations + audit_id. Used by `memlin ask` CLI and the web /ask
-   * panel.
-   */
-  async ask(input, opts = {}) {
-    return this.request("POST", "/ask", input, { accountId: opts.accountId });
-  }
-  /** GET /projects — list every project in the current account. */
-  async listProjects(opts = {}) {
-    const res = await this.request("GET", "/projects", void 0, { accountId: opts.accountId });
-    return res.projects;
-  }
-};
-function resolveApiUrl() {
-  return process.env.MEMLIN_API_URL?.trim() || DEFAULT_API_URL;
-}
-
-// packages/plugin-core/src/workspace-binding.ts
-import { randomUUID as randomUUID2 } from "node:crypto";
-import { constants, promises as fs3 } from "node:fs";
-import path5 from "node:path";
-var WORKSPACE_DIR_NAME = ".memlin";
-var WORKSPACE_BINDING_FILE = "config.json";
-var GIT_POINTER_MAX_BYTES = 8 * 1024;
-async function walkForWorkspaceBinding(startDir) {
-  let dir = path5.resolve(startDir);
-  for (let i = 0; i < 64; i++) {
-    const candidate = path5.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE);
-    try {
-      const raw = await fs3.readFile(candidate, "utf8");
-      const parsed = JSON.parse(raw);
-      if (typeof parsed.account_id === "string" && parsed.account_id) {
-        return {
-          binding: {
-            account_id: parsed.account_id,
-            project_id: parsed.project_id ?? null,
-            account_name: parsed.account_name
-          },
-          workspaceRoot: dir
-        };
-      }
-    } catch {
-    }
-    const parent = path5.dirname(dir);
-    if (parent === dir) return null;
-    dir = parent;
-  }
-  return null;
-}
-async function readSmallRegularFile(file) {
-  let before;
-  try {
-    before = await fs3.lstat(file);
-  } catch (error) {
-    return isFileNotFound(error) ? { kind: "missing" } : { kind: "invalid" };
-  }
-  try {
-    if (before.isSymbolicLink() || !before.isFile() || before.size > GIT_POINTER_MAX_BYTES) {
-      return { kind: "invalid" };
-    }
-    const noFollow = typeof constants.O_NOFOLLOW === "number" ? constants.O_NOFOLLOW : 0;
-    const handle = await fs3.open(file, constants.O_RDONLY | noFollow);
-    try {
-      const opened = await handle.stat();
-      if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino || opened.size !== before.size || opened.size > GIT_POINTER_MAX_BYTES) {
-        return { kind: "invalid" };
-      }
-      const bytes = await handle.readFile();
-      const [after, afterPath] = await Promise.all([handle.stat(), fs3.lstat(file)]);
-      if (afterPath.isSymbolicLink() || !afterPath.isFile() || after.dev !== opened.dev || after.ino !== opened.ino || after.size !== opened.size || afterPath.dev !== opened.dev || afterPath.ino !== opened.ino || afterPath.size !== opened.size || bytes.byteLength !== opened.size || bytes.includes(0)) {
-        return { kind: "invalid" };
-      }
-      return { kind: "ok", value: bytes.toString("utf8") };
-    } finally {
-      await handle.close();
-    }
-  } catch {
-    return { kind: "invalid" };
-  }
-}
-function containedBy(parent, child) {
-  const relative = path5.relative(parent, child);
-  return relative === "" || relative !== ".." && !relative.startsWith(`..${path5.sep}`) && !path5.isAbsolute(relative);
-}
-async function canonicalSafeDirectory(candidate) {
-  try {
-    const before = await fs3.lstat(candidate);
-    if (before.isSymbolicLink() || !before.isDirectory()) return null;
-    await fs3.access(candidate, constants.R_OK | constants.X_OK);
-    const canonical = await fs3.realpath(candidate);
-    const after = await fs3.lstat(candidate);
-    if (after.isSymbolicLink() || !after.isDirectory() || after.dev !== before.dev || after.ino !== before.ino) {
-      return null;
-    }
-    return canonical;
-  } catch {
-    return null;
-  }
-}
-function gitIdentity(checkoutRoot, state, repositoryRoot = checkoutRoot) {
-  return {
-    checkout_root: checkoutRoot,
-    repository_root: repositoryRoot,
-    state
-  };
-}
-async function resolveGitWorkspaceIdentity(startDir) {
-  const requested = path5.resolve(startDir);
-  let canonicalStart;
-  try {
-    canonicalStart = await fs3.realpath(requested);
-    const startEntry = await fs3.stat(canonicalStart);
-    if (!startEntry.isDirectory()) return gitIdentity(canonicalStart, "unknown");
-  } catch {
-    return gitIdentity(requested, "unknown");
-  }
-  let dir = canonicalStart;
-  for (let i = 0; i < 64; i++) {
-    const gitEntry = path5.join(dir, ".git");
-    let entry;
-    try {
-      entry = await fs3.lstat(gitEntry);
-    } catch (error) {
-      if (!isFileNotFound(error)) return gitIdentity(dir, "unknown");
-      const parent = path5.dirname(dir);
-      if (parent === dir) return gitIdentity(canonicalStart, "none");
-      dir = parent;
-      continue;
-    }
-    const checkoutRoot = dir;
-    if (entry.isSymbolicLink()) return gitIdentity(checkoutRoot, "unknown");
-    if (entry.isDirectory()) {
-      if (!await canonicalSafeDirectory(gitEntry)) return gitIdentity(checkoutRoot, "unknown");
-      return gitIdentity(checkoutRoot, "main");
-    }
-    if (!entry.isFile()) return gitIdentity(checkoutRoot, "unknown");
-    const pointerRead = await readSmallRegularFile(gitEntry);
-    if (pointerRead.kind !== "ok" || pointerRead.value.includes("\0")) {
-      return gitIdentity(checkoutRoot, "unknown");
-    }
-    const pointerMatch = /^gitdir:[ \t]*([^\r\n]+)\r?\n?$/.exec(pointerRead.value);
-    const pointerValue = pointerMatch?.[1];
-    if (!pointerValue) return gitIdentity(checkoutRoot, "unknown");
-    let gitDirCandidate;
-    try {
-      gitDirCandidate = path5.isAbsolute(pointerValue) ? pointerValue : path5.resolve(checkoutRoot, pointerValue);
-    } catch {
-      return gitIdentity(checkoutRoot, "unknown");
-    }
-    const gitDir = await canonicalSafeDirectory(gitDirCandidate);
-    if (!gitDir) return gitIdentity(checkoutRoot, "unknown");
-    const commonRead = await readSmallRegularFile(path5.join(gitDir, "commondir"));
-    if (commonRead.kind === "missing") {
-      const gitDirParent = path5.dirname(gitDir);
-      const looksLikeWorktreeAdmin = path5.basename(gitDirParent) === "worktrees" && path5.basename(path5.dirname(gitDirParent)) === ".git";
-      if (looksLikeWorktreeAdmin) return gitIdentity(checkoutRoot, "unknown");
-      return gitIdentity(checkoutRoot, "main");
-    }
-    if (commonRead.kind !== "ok" || commonRead.value.includes("\0")) {
-      return gitIdentity(checkoutRoot, "unknown");
-    }
-    const commonMatch = /^([^\r\n]+)\r?\n?$/.exec(commonRead.value);
-    const commonValue = commonMatch?.[1];
-    if (!commonValue) return gitIdentity(checkoutRoot, "unknown");
-    let commonCandidate;
-    try {
-      commonCandidate = path5.isAbsolute(commonValue) ? commonValue : path5.resolve(gitDir, commonValue);
-    } catch {
-      return gitIdentity(checkoutRoot, "unknown");
-    }
-    const commonDir = await canonicalSafeDirectory(commonCandidate);
-    if (!commonDir) return gitIdentity(checkoutRoot, "unknown");
-    const worktreesDir = path5.join(commonDir, "worktrees");
-    if (path5.basename(commonDir) !== ".git" || gitDir === worktreesDir || !containedBy(worktreesDir, gitDir)) {
-      return gitIdentity(checkoutRoot, "unknown");
-    }
-    const repositoryRoot = path5.dirname(commonDir);
-    const repositoryGitDir = await canonicalSafeDirectory(path5.join(repositoryRoot, ".git"));
-    if (!repositoryGitDir || repositoryGitDir !== commonDir) {
-      return gitIdentity(checkoutRoot, "unknown");
-    }
-    const reverseRead = await readSmallRegularFile(path5.join(gitDir, "gitdir"));
-    if (reverseRead.kind !== "ok" || reverseRead.value.includes("\0")) {
-      return gitIdentity(checkoutRoot, "unknown");
-    }
-    const reverseMatch = /^([^\r\n]+)\r?\n?$/.exec(reverseRead.value);
-    const reverseValue = reverseMatch?.[1];
-    if (!reverseValue) return gitIdentity(checkoutRoot, "unknown");
-    try {
-      const reverseCandidate = path5.isAbsolute(reverseValue) ? reverseValue : path5.resolve(gitDir, reverseValue);
-      const [reverseTarget, checkoutGitFile] = await Promise.all([
-        fs3.realpath(reverseCandidate),
-        fs3.realpath(gitEntry)
-      ]);
-      if (reverseTarget !== checkoutGitFile) return gitIdentity(checkoutRoot, "unknown");
-    } catch {
-      return gitIdentity(checkoutRoot, "unknown");
-    }
-    return gitIdentity(checkoutRoot, "worktree", repositoryRoot);
-  }
-  return gitIdentity(canonicalStart, "unknown");
-}
-async function findWorkspaceBinding(startDir) {
-  const direct = await walkForWorkspaceBinding(startDir);
-  const gitIdentity2 = await resolveGitWorkspaceIdentity(startDir);
-  if (gitIdentity2.state !== "worktree") return direct;
-  if (direct) {
-    const bindingRoot = await fs3.realpath(direct.workspaceRoot).catch(() => path5.resolve(direct.workspaceRoot));
-    if (containedBy(gitIdentity2.checkout_root, bindingRoot)) return direct;
-  }
-  return walkForWorkspaceBinding(gitIdentity2.repository_root);
-}
-function isFileNotFound(error) {
-  return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
-}
-
 // packages/plugin-core/src/client.ts
-function globalConfigFilePath() {
-  return process.env.MEMLIN_CONFIG_FILE || path6.join(os5.homedir(), ".config", "memlin", "config.json");
-}
-var CONFIG_DIR = path6.join(os5.homedir(), ".config", "memlin");
-var TOKEN_FILE = path6.join(CONFIG_DIR, "token.json");
-async function readConfig() {
-  try {
-    const raw = await fs4.readFile(globalConfigFilePath(), "utf8");
-    const parsed = JSON.parse(raw);
-    if (typeof parsed.account_id !== "string" || !parsed.account_id.trim() || typeof parsed.user_id !== "string" || !parsed.user_id.trim() || typeof parsed.auth0_sub !== "string" || !parsed.auth0_sub.trim()) {
-      return null;
-    }
-    return {
-      api_url: typeof parsed.api_url === "string" && parsed.api_url.trim() ? parsed.api_url : DEFAULT_API_URL,
-      account_id: parsed.account_id,
-      user_id: parsed.user_id,
-      auth0_sub: parsed.auth0_sub,
-      project_id: typeof parsed.project_id === "string" || parsed.project_id === null ? parsed.project_id : null
-    };
-  } catch {
-    return null;
-  }
-}
-function accessTokenSubject(accessToken) {
-  try {
-    const subject = decodeJwtPayload(accessToken).sub;
-    return typeof subject === "string" && subject.length > 0 ? subject : null;
-  } catch {
-    return null;
-  }
-}
-function configMatchesAccessToken(config, accessToken) {
-  const subject = accessTokenSubject(accessToken);
-  return subject !== null && subject === config.auth0_sub;
-}
-async function getIdentityBoundAccessToken(config) {
-  const accessToken = await getValidAccessToken();
-  if (!configMatchesAccessToken(config, accessToken)) {
-    throw new Error("not signed in \u2014 saved Memlin account does not match the saved token");
-  }
-  return accessToken;
-}
-async function getApi(opts = {}) {
-  const config = await readConfig();
-  if (!config) return null;
-  try {
-    await getIdentityBoundAccessToken(config);
-  } catch {
-    return null;
-  }
-  const cwd = opts.cwd ?? process.cwd();
-  const overlay = await findWorkspaceBinding(cwd);
-  const { workspaceBound, workspaceRoot, workspaceAccountName } = applyWorkspaceOverlay(
-    config,
-    overlay
-  );
-  const apiUrl = process.env.MEMLIN_API_URL?.trim() || config.api_url || resolveApiUrl();
-  const api = new MemlinApiClient({
-    baseUrl: apiUrl,
-    getAccessToken: () => getIdentityBoundAccessToken(config),
-    accountId: config.account_id
-  });
-  return { api, config, workspaceBound, workspaceRoot, workspaceAccountName };
-}
-function applyWorkspaceOverlay(config, overlay) {
-  if (!overlay) return { workspaceBound: false, workspaceRoot: null, workspaceAccountName: null };
-  config.account_id = overlay.binding.account_id;
-  if (overlay.binding.project_id !== void 0) {
-    config.project_id = overlay.binding.project_id;
-  }
-  return {
-    workspaceBound: true,
-    workspaceRoot: overlay.workspaceRoot,
-    workspaceAccountName: overlay.binding.account_name ?? null
-  };
-}
-
-// packages/plugin-core/src/cli/cli-runner.ts
-var WATCHDOG_MS = 2e3;
-var CliExit = class extends Error {
-  constructor(code) {
-    super(`CliExit(${code})`);
-    this.code = code;
-    this.name = "CliExit";
-  }
-  code;
-};
-function exitCli(code) {
-  throw new CliExit(code);
-}
-function scheduleProcessExit(code) {
-  process.exitCode = code;
-  void closeHttpSockets();
-  setTimeout(() => process.exit(), WATCHDOG_MS).unref();
-}
-function runCliMain(main2, onError) {
-  main2().then(
-    (code) => scheduleProcessExit(typeof code === "number" ? code : 0),
-    (err) => {
-      if (err instanceof CliExit) {
-        scheduleProcessExit(err.code);
-        return;
-      }
-      let code;
-      try {
-        code = onError(err);
-      } catch (handlerErr) {
-        if (handlerErr instanceof CliExit) {
-          scheduleProcessExit(handlerErr.code);
-          return;
-        }
-        console.error("cli error handler failed:", handlerErr);
-        code = 1;
-      }
-      scheduleProcessExit(code);
-    }
-  );
-}
-
-// packages/plugin-core/src/project-resolver.ts
-import { execSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
-import path7 from "node:path";
-var WORKSPACE_ENV_VARS = [
-  // Claude Code exposes the original project dir to hooks/plugin commands.
-  "CLAUDE_PROJECT_DIR",
-  // Cursor/plugin shims and local tests can set this explicitly.
-  "CURSOR_WORKSPACE_ROOT",
-  "CURSOR_PROJECT_ROOT",
-  "MEMLIN_WORKSPACE_ROOT",
-  // npm/pnpm set INIT_CWD to the directory where the user invoked a script.
-  "INIT_CWD"
-];
-function runtimeCwd(fallback = process.cwd()) {
-  for (const name of WORKSPACE_ENV_VARS) {
-    const raw = process.env[name]?.trim();
-    if (raw && path7.isAbsolute(raw)) return path7.resolve(raw);
-  }
-  return path7.resolve(fallback);
-}
-async function resolveProject(api, cwd, configProjectId) {
-  const absCwd = path7.resolve(cwd);
-  const remotes = detectGitRemotes(cwd);
-  const hasGitRemote = remotes.length > 0;
-  let serverFailure;
-  try {
-    const result = await api.resolveProject({
-      // Primary remote (back-compat with the single-remote server path).
-      git_remote: remotes[0] ?? null,
-      // All detected remotes — for the workspace-root-of-repos case, this is
-      // every sibling repo so the server resolves to the owning project.
-      git_remotes: remotes,
-      cwd: absCwd
-    });
-    if (result.project_id) {
-      return {
-        project_id: result.project_id,
-        project_name: result.name,
-        account_id: result.account_id,
-        reason: result.reason === "none" ? "config" : result.reason,
-        hasGitRemote,
-        enforce_done_deployed: result.enforce_done_deployed
-      };
-    }
-  } catch (e) {
-    serverFailure = summarizeBackendFailure(e) ?? void 0;
-  }
-  if (configProjectId) {
-    const localBinding = await findWorkspaceBinding(absCwd).catch(() => null);
-    if (localBinding?.binding.project_id === configProjectId) {
-      return {
-        project_id: configProjectId,
-        project_name: null,
-        account_id: null,
-        reason: "config",
-        hasGitRemote,
-        server_failure: serverFailure
-      };
-    }
-  }
-  return {
-    project_id: null,
-    project_name: null,
-    account_id: null,
-    reason: "none",
-    hasGitRemote,
-    server_failure: serverFailure
-  };
-}
-function readGitRemote(cwd) {
-  try {
-    const url = execSync("git remote get-url origin", {
-      windowsHide: true,
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8"
-    }).trim();
-    return normalizeGitRemote(url);
-  } catch {
-    return null;
-  }
-}
-var MAX_WORKSPACE_SCAN = 64;
-function detectGitRemotes(cwd) {
-  const enclosing = readGitRemote(cwd);
-  if (enclosing) return [enclosing];
-  const out = [];
-  try {
-    let scanned = 0;
-    for (const entry of readdirSync(cwd, { withFileTypes: true })) {
-      if (scanned >= MAX_WORKSPACE_SCAN) break;
-      if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") {
-        continue;
-      }
-      scanned++;
-      const child = path7.join(cwd, entry.name);
-      if (!existsSync(path7.join(child, ".git"))) continue;
-      const remote = readGitRemote(child);
-      if (remote && !out.includes(remote)) out.push(remote);
-    }
-  } catch {
-  }
-  return out;
-}
-
-// packages/plugin-core/src/native-memory.ts
-import { promises as fs5 } from "node:fs";
-import { existsSync as existsSync2, statSync } from "node:fs";
-import { execFileSync } from "node:child_process";
-import os6 from "node:os";
-import path8 from "node:path";
+init_atomic_rename();
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -9829,6 +8566,7 @@ var WriteDocumentInputSchema = external_exports.object({
   title: external_exports.string().min(1).max(256),
   path: external_exports.string().max(512).nullable(),
   content: external_exports.string(),
+  expected_version: external_exports.number().int().nonnegative().optional(),
   metadata: external_exports.record(external_exports.unknown()).default({}),
   commit_message: external_exports.string().max(512).nullable(),
   // Optional CRDT state from collaborative editors — base64-encoded Y.Doc
@@ -11642,6 +10380,46 @@ var RESOURCE_KINDS = [
   "dataset"
 ];
 var ResourceKindV1Schema = external_exports.enum(RESOURCE_KINDS);
+var ResourceEntityMentionV1Schema = external_exports.object({
+  kind: external_exports.enum(["ticket", "url", "named_mention"]),
+  text: external_exports.string().min(2).max(256),
+  // Unicode code-point offsets, matching PostgreSQL substring positions.
+  start_offset: external_exports.number().int().nonnegative().max(32e3),
+  end_offset: external_exports.number().int().positive().max(32e3)
+}).strict().refine((value) => value.end_offset > value.start_offset, {
+  message: "A mention must cover an exact nonempty source span"
+});
+var ResourceEntityChunkWriteV1Schema = external_exports.object({
+  chunk_id: external_exports.string().uuid(),
+  content_sha256: Sha256Schema,
+  mentions: external_exports.array(ResourceEntityMentionV1Schema).max(16)
+}).strict();
+var PublicStudyResourceV2Schema = external_exports.object({
+  provider: external_exports.enum(["pubmed", "clinicaltrials.gov", "crossref", "openalex", "openfda"]),
+  external_id: external_exports.string().min(1).max(512),
+  title: external_exports.string().min(1).max(500),
+  canonical_url: external_exports.string().url().max(4096),
+  retrieval_url: external_exports.string().url().max(4096),
+  coverage: external_exports.enum(["full_text", "abstract", "registry_protocol", "regulatory_record"]),
+  rights_basis: external_exports.enum([
+    "open_access_license",
+    "provider_api_abstract",
+    "public_registry_record",
+    "us_government_public_record"
+  ]),
+  license_label: external_exports.string().max(512).nullable(),
+  license_url: external_exports.string().url().nullable(),
+  content: external_exports.string().min(1).max(5e5),
+  provenance: external_exports.record(ContractJsonValueSchema),
+  passages: external_exports.array(
+    external_exports.object({
+      heading: external_exports.string().max(500),
+      // Includes the retained corpus's existing 6,000-character limit.
+      text: external_exports.string().min(1).max(6e3),
+      locator: external_exports.record(ContractJsonValueSchema)
+    }).strict()
+  ).min(1).max(512)
+}).strict();
 var WholeResourceLocatorV1Schema = external_exports.object({ kind: external_exports.literal("whole") }).strict();
 var LineResourceLocatorV1Schema = external_exports.object({
   kind: external_exports.literal("line"),
@@ -11703,6 +10481,22 @@ var ResourceLocatorV1Schema = external_exports.union([
   RegionResourceLocatorV1Schema,
   ExternalResourceLocatorV1Schema
 ]);
+var ResourceEntityEvidenceV1Schema = external_exports.object({
+  version: external_exports.literal(1),
+  resource_id: external_exports.string().uuid(),
+  resource_version_id: external_exports.string().uuid(),
+  status: external_exports.enum(["queued", "processing", "partial", "unavailable", "failed"]),
+  truncated: external_exports.boolean(),
+  mentions: external_exports.array(
+    external_exports.object({
+      kind: external_exports.enum(["ticket", "url", "named_mention"]),
+      text: external_exports.string().min(2).max(256),
+      chunk_id: external_exports.string().uuid(),
+      locator: ResourceLocatorV1Schema,
+      excerpt: external_exports.string().max(2e3)
+    }).strict()
+  ).max(64)
+}).strict();
 var ResourceIngestChunkV1Schema = external_exports.object({
   id: external_exports.string().uuid(),
   ordinal: external_exports.number().int().min(0).max(2047),
@@ -11810,15 +10604,2470 @@ var ResourceEvidenceSearchRowV1Schema = external_exports.object({
   metadata: external_exports.record(ContractJsonValueSchema).default({})
 }).strict();
 
+// packages/shared/dist/thought-runtime.js
+var Id = external_exports.string().uuid();
+var Revision = external_exports.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
+var Key = external_exports.string().trim().min(1).max(160);
+var Hash = external_exports.string().regex(/^[a-f0-9]{64}$/);
+var Time = external_exports.string().datetime({ offset: true });
+var Position = external_exports.object({ x: external_exports.number().finite().min(-1e6).max(1e6), y: external_exports.number().finite().min(-1e6).max(1e6) }).strict();
+var Size = external_exports.object({
+  width: external_exports.number().finite().min(80).max(4e3),
+  height: external_exports.number().finite().min(40).max(4e3)
+}).strict();
+var ThoughtRelationKindV2Schema = external_exports.enum([
+  "expands",
+  "answers",
+  "supports",
+  "contradicts",
+  "causes",
+  "depends_on",
+  "leads_to",
+  "related",
+  "references",
+  "decided_by",
+  "produces_action"
+]);
+var ThoughtEntityKindV2Schema = external_exports.enum([
+  "thought",
+  "relation",
+  "placement",
+  "resource_placement",
+  "canvas_element",
+  "canvas_connector",
+  "proposal"
+]);
+var ThoughtEntityPreconditionV2Schema = external_exports.object({ kind: ThoughtEntityKindV2Schema, id: Id, revision: Revision }).strict();
+var ThoughtPatch = external_exports.object({
+  title: external_exports.string().trim().min(1).max(240).optional(),
+  body: external_exports.string().max(2e4).optional(),
+  kind: external_exports.string().trim().min(1).max(40).optional(),
+  workflow_status: external_exports.enum(["active", "resolved", "dismissed"]).optional()
+}).strict().refine((p) => Object.keys(p).length > 0, "empty patch");
+var LayoutPatchShape = external_exports.object({
+  position: Position.optional(),
+  size: Size.optional(),
+  parent_id: Id.nullable().optional(),
+  collapsed: external_exports.boolean().optional(),
+  order: external_exports.number().finite().min(-1e9).max(1e9).optional(),
+  z_index: external_exports.number().int().min(-1e5).max(1e5).optional()
+}).strict();
+var LayoutPatch = LayoutPatchShape.refine((p) => Object.keys(p).length > 0, "empty patch");
+var ThoughtReferenceV2Schema = external_exports.union([
+  external_exports.object({ id: Id }).strict(),
+  external_exports.object({ created: Key }).strict()
+]);
+var ThoughtCommandV2Schema = external_exports.discriminatedUnion("type", [
+  external_exports.object({
+    type: external_exports.literal("thought.create"),
+    key: Key,
+    title: external_exports.string().trim().min(1).max(240),
+    body: external_exports.string().max(2e4).default(""),
+    kind: external_exports.string().trim().min(1).max(40).default("thought"),
+    position: Position.optional()
+  }).strict(),
+  external_exports.object({ type: external_exports.literal("thought.update"), id: Id, patch: ThoughtPatch }).strict(),
+  external_exports.object({ type: external_exports.literal("thought.archive"), id: Id }).strict(),
+  external_exports.object({
+    type: external_exports.literal("relation.create"),
+    key: Key,
+    source: ThoughtReferenceV2Schema,
+    target: ThoughtReferenceV2Schema,
+    relation: ThoughtRelationKindV2Schema,
+    label: external_exports.string().max(120).nullable().optional()
+  }).strict(),
+  external_exports.object({ type: external_exports.literal("relation.archive"), id: Id }).strict(),
+  external_exports.object({
+    type: external_exports.literal("placement.create"),
+    key: Key,
+    thought: ThoughtReferenceV2Schema,
+    position: Position
+  }).strict(),
+  external_exports.object({ type: external_exports.literal("placement.update"), id: Id, patch: LayoutPatch }).strict(),
+  external_exports.object({ type: external_exports.literal("placement.archive"), id: Id }).strict(),
+  external_exports.object({
+    type: external_exports.literal("resource.link"),
+    key: Key,
+    resource_id: Id,
+    thought: ThoughtReferenceV2Schema,
+    position: Position.optional()
+  }).strict(),
+  external_exports.object({ type: external_exports.literal("resource.unlink"), id: Id }).strict(),
+  external_exports.object({ type: external_exports.literal("resource_placement.update"), id: Id, patch: LayoutPatch }).strict(),
+  external_exports.object({
+    type: external_exports.literal("canvas_element.create"),
+    key: Key,
+    kind: external_exports.enum(["frame", "group", "text", "shape", "drawing"]),
+    body: external_exports.string().max(2e4).default(""),
+    position: Position,
+    size: Size
+  }).strict(),
+  external_exports.object({
+    type: external_exports.literal("canvas_element.update"),
+    id: Id,
+    patch: LayoutPatchShape,
+    body: external_exports.string().max(2e4).optional()
+  }).strict(),
+  external_exports.object({ type: external_exports.literal("canvas_element.archive"), id: Id }).strict(),
+  external_exports.object({
+    type: external_exports.literal("canvas_connector.create"),
+    key: Key,
+    source_id: Id,
+    target_id: Id,
+    label: external_exports.string().max(120).default("")
+  }).strict(),
+  external_exports.object({ type: external_exports.literal("canvas_connector.archive"), id: Id }).strict(),
+  external_exports.object({ type: external_exports.literal("proposal.accept"), id: Id }).strict(),
+  external_exports.object({ type: external_exports.literal("proposal.reject"), id: Id }).strict()
+]).superRefine((command, context) => {
+  if (command.type === "canvas_element.update" && Object.keys(command.patch).length === 0 && command.body === void 0)
+    context.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      message: "Canvas content or layout is required",
+      path: ["patch"]
+    });
+});
+var ThoughtCommandBatchV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  base_cursor: Revision,
+  idempotency_key: Key,
+  preconditions: external_exports.array(ThoughtEntityPreconditionV2Schema).max(200),
+  commands: external_exports.array(ThoughtCommandV2Schema).min(1).max(50)
+}).strict().superRefine((batch, ctx) => {
+  const entities = /* @__PURE__ */ new Set();
+  const keys = /* @__PURE__ */ new Set();
+  for (const p of batch.preconditions) {
+    const key = `${p.kind}:${p.id}`;
+    if (entities.has(key))
+      ctx.addIssue({ code: "custom", message: "duplicate entity precondition" });
+    entities.add(key);
+  }
+  for (const c of batch.commands) {
+    if ("key" in c) {
+      if (keys.has(c.key)) ctx.addIssue({ code: "custom", message: "duplicate creation key" });
+      keys.add(c.key);
+    }
+    if (c.type.startsWith("proposal.") && batch.commands.length !== 1)
+      ctx.addIssue({ code: "custom", message: "proposal review must be its own atomic batch" });
+  }
+});
+var CanonicalThoughtV2Schema = external_exports.object({
+  id: Id,
+  account_id: Id,
+  project_id: Id.nullable(),
+  created_by: Id,
+  scope: external_exports.enum(["personal", "project", "team"]),
+  title: external_exports.string(),
+  body: external_exports.string(),
+  kind: external_exports.string(),
+  workflow_status: external_exports.enum(["active", "resolved", "dismissed"]),
+  authority: external_exports.enum(["authored", "proposed", "verified"]),
+  revision: Revision,
+  current_revision_id: Id,
+  updated_at: Time
+}).strict();
+var Layout = external_exports.object({
+  id: Id,
+  revision: Revision,
+  position: Position,
+  size: Size,
+  parent_id: Id.nullable(),
+  collapsed: external_exports.boolean(),
+  order: external_exports.number(),
+  z_index: external_exports.number()
+});
+var ThoughtWorkspaceSnapshotV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root: CanonicalThoughtV2Schema,
+  cursor: Revision,
+  revision_token: external_exports.string().min(1),
+  thoughts: external_exports.array(CanonicalThoughtV2Schema),
+  relations: external_exports.array(
+    external_exports.object({
+      id: Id,
+      revision: Revision,
+      source_thought_id: Id,
+      target_thought_id: Id,
+      relation: ThoughtRelationKindV2Schema,
+      label: external_exports.string().nullable()
+    }).strict()
+  ),
+  placements: external_exports.array(Layout.extend({ thought_id: Id }).strict()),
+  resources: external_exports.array(
+    external_exports.object({
+      id: Id,
+      title: external_exports.string(),
+      kind: external_exports.string(),
+      current_version_id: Id.nullable(),
+      canonical_uri: external_exports.string().nullable(),
+      status: external_exports.string(),
+      coverage: external_exports.enum(["pending", "partial", "complete", "unavailable", "failed"])
+    }).strict()
+  ),
+  resource_placements: external_exports.array(Layout.extend({ resource_id: Id, thought_id: Id }).strict()),
+  canvas_elements: external_exports.array(
+    Layout.extend({
+      kind: external_exports.enum(["frame", "group", "text", "shape", "drawing"]),
+      body: external_exports.string()
+    }).strict()
+  ),
+  canvas_connectors: external_exports.array(
+    external_exports.object({ id: Id, revision: Revision, source_id: Id, target_id: Id, label: external_exports.string() }).strict()
+  ),
+  capabilities: external_exports.object({ read: external_exports.literal(true), edit: external_exports.boolean(), comment: external_exports.boolean() }).strict()
+}).strict();
+var ThoughtWorkspaceChangesQueryV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  after_cursor: Revision,
+  thought_ids: external_exports.array(Id).max(128)
+}).strict();
+var ThoughtWorkspaceChangesV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  cursor: Revision,
+  requires_snapshot: external_exports.boolean(),
+  thoughts: external_exports.array(CanonicalThoughtV2Schema).max(128),
+  missing_thought_ids: external_exports.array(Id).max(128)
+}).strict();
+var ThoughtCommandResultV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  receipt_id: Id,
+  root_thought_id: Id,
+  cursor: Revision,
+  replayed: external_exports.boolean(),
+  created: external_exports.record(external_exports.object({ id: Id, kind: ThoughtEntityKindV2Schema }).strict()),
+  changed: external_exports.array(ThoughtEntityPreconditionV2Schema)
+}).strict();
+var ThoughtCreateV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  idempotency_key: Key,
+  title: external_exports.string().trim().min(1).max(240),
+  body: external_exports.string().max(2e4).default(""),
+  home: external_exports.object({ scope: external_exports.enum(["personal", "project", "team"]), project_id: Id.nullable() }).strict()
+}).strict().refine(
+  (x) => x.home.scope === "project" === (x.home.project_id !== null),
+  "only a project home has a project ID"
+);
+var ThoughtPreferencesV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  thought_id: Id,
+  expected_updated_at: Time,
+  idempotency_key: Key,
+  patch: external_exports.object({
+    importance: external_exports.number().int().min(0).max(5).optional(),
+    scope: external_exports.enum(["personal", "team"]).optional()
+  }).strict().refine((x) => Object.keys(x).length > 0, "empty patch")
+}).strict();
+var ThoughtPreferencesReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  receipt_id: Id,
+  thought_id: Id,
+  cursor: Revision,
+  updated_at: Time,
+  importance: external_exports.number().int().min(0).max(5),
+  scope: external_exports.enum(["personal", "project", "team"]),
+  replayed: external_exports.boolean()
+}).strict();
+var ThoughtListCursorV2Schema = external_exports.object({ updated_at: Time, id: Id }).strict();
+var ThoughtWorkspaceListQueryV2Schema = external_exports.object({
+  query: external_exports.string().trim().max(160).default(""),
+  filter: external_exports.enum(["recent", "personal", "team", "project", "starred", "rooms"]).default("recent"),
+  limit: external_exports.number().int().min(1).max(100).default(30),
+  cursor: ThoughtListCursorV2Schema.nullable().default(null)
+}).strict();
+var ThoughtWorkspaceListV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  items: external_exports.array(
+    external_exports.object({
+      id: Id,
+      title: external_exports.string().max(500),
+      summary: external_exports.string().max(320),
+      scope: external_exports.enum(["personal", "project", "team"]),
+      project_id: Id.nullable(),
+      created_by: Id,
+      is_room: external_exports.boolean(),
+      importance: external_exports.number().int().min(0).max(5),
+      revision: Revision,
+      updated_at: Time,
+      from_ask: external_exports.boolean(),
+      tags: external_exports.array(external_exports.string().max(40)).max(4),
+      due_dates: external_exports.array(external_exports.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(12),
+      card_count: Revision,
+      connection_count: Revision,
+      can_edit_workspace: external_exports.boolean(),
+      can_edit_thought: external_exports.boolean()
+    }).strict()
+  ).max(100),
+  next_cursor: ThoughtListCursorV2Schema.nullable()
+}).strict();
+var ThoughtWorkspaceCountsV2Schema = external_exports.object({
+  all: Revision,
+  starred: Revision,
+  rooms: Revision,
+  team: Revision,
+  personal: Revision
+}).strict();
+var ThoughtAssistRequestV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  thought_id: Id,
+  focus: external_exports.object({ kind: external_exports.enum(["thought", "resource"]), id: Id }).strict().optional(),
+  capability: external_exports.enum([
+    "explore",
+    "research",
+    "plan",
+    "review",
+    "explain",
+    "decide",
+    "refine",
+    "tag",
+    "branch",
+    "handoff"
+  ]),
+  audience: external_exports.enum(["private", "team", "public"]),
+  message: external_exports.string().trim().min(1).max(2e4),
+  presentation: external_exports.enum([
+    "default",
+    "explain-like-matt",
+    "hope",
+    "simple",
+    "teach",
+    "peer",
+    "expert",
+    "executive",
+    "concise",
+    "challenge"
+  ]).default("default"),
+  expected_context_hash: Hash.optional(),
+  idempotency_key: Key
+}).strict();
+var ThoughtProposalV1Schema = external_exports.object({
+  version: external_exports.literal(1),
+  id: Id,
+  root_thought_id: Id,
+  assist_run_id: Id,
+  revision: Revision,
+  context_bundle_id: Hash,
+  context_bundle_sha256: Hash,
+  preconditions: external_exports.array(ThoughtEntityPreconditionV2Schema),
+  commands: external_exports.array(ThoughtCommandV2Schema).min(1).max(50),
+  citations: external_exports.array(external_exports.string().min(1).max(1024)).max(100),
+  status: external_exports.enum(["pending", "accepted", "rejected", "expired", "stale"]),
+  expires_at: Time,
+  acceptance_receipt_id: Id.nullable()
+}).strict();
+var ResourceUploadRequestV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  upload_id: Id,
+  home: external_exports.object({ account_id: Id, project_id: Id.nullable(), scope: external_exports.enum(["private", "project"]) }).strict(),
+  file_name: external_exports.string().trim().min(1).max(255).refine((x) => !/[\\/\u0000-\u001f\u007f]/u.test(x), "unsupported file name"),
+  mime_type: external_exports.string().trim().max(256).default(""),
+  byte_size: external_exports.number().int().positive().max(25 * 1024 * 1024),
+  sha256: Hash,
+  title: external_exports.string().trim().max(240).default(""),
+  license: external_exports.string().trim().max(512).nullable().default(null),
+  rights_confirmed: external_exports.literal(true)
+}).strict().refine(
+  (x) => x.home.scope === "project" === (x.home.project_id !== null),
+  "only a project home has a project ID"
+);
+var ResourceUploadReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  upload_id: Id,
+  resource_id: Id,
+  resource_version_id: Id.nullable(),
+  state: external_exports.enum(["prepared", "completed"]),
+  storage_bucket: external_exports.literal("thought-resource-originals"),
+  storage_path: external_exports.string().min(1).max(2048),
+  upload_token: external_exports.string().min(1).nullable(),
+  upload_required: external_exports.boolean(),
+  mime_type: external_exports.string().min(1).max(256)
+}).strict().refine(
+  (x) => x.upload_required === (x.upload_token !== null),
+  "upload token required only for upload"
+).refine(
+  (x) => x.state !== "completed" || x.resource_version_id !== null && !x.upload_required,
+  "completed uploads require a version"
+);
+var ResourceIngestEnvelopeV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  idempotency_key: Key,
+  home: external_exports.object({
+    account_id: Id,
+    project_id: Id.nullable(),
+    scope: external_exports.enum(["private", "project", "team"])
+  }).strict(),
+  source: external_exports.object({
+    kind: external_exports.enum([
+      "text",
+      "markdown",
+      "webpage",
+      "youtube",
+      "pdf",
+      "document",
+      "image",
+      "audio",
+      "video"
+    ]),
+    title: external_exports.string().trim().min(1).max(500),
+    uri: external_exports.string().url().max(4096).optional()
+  }).strict(),
+  original: external_exports.object({
+    upload_id: Id.optional(),
+    content: external_exports.string().max(1e6).optional(),
+    sha256: Hash.optional()
+  }).strict(),
+  rights_basis: external_exports.string().trim().min(1).max(512),
+  license: external_exports.string().trim().max(512).nullable().optional(),
+  extractors: external_exports.array(external_exports.enum(["text", "ocr", "transcript", "keyframes", "structure"])).max(5),
+  thought_id: Id.optional(),
+  position: Position.optional()
+}).strict().superRefine((x, ctx) => {
+  const issue = (message) => ctx.addIssue({ code: "custom", message });
+  if (!x.original.upload_id && x.original.content === void 0 && !x.source.uri)
+    issue("original or source URI required");
+  if (x.original.upload_id && x.original.content !== void 0) issue("choose one original");
+  if (x.original.content !== void 0 && !["text", "markdown"].includes(x.source.kind))
+    issue("inline originals require text or markdown");
+  if (x.home.scope === "project" !== (x.home.project_id !== null))
+    issue("only a project home has a project ID");
+  if (x.position && !x.thought_id) issue("position requires a Thought");
+  if (x.source.uri && !["http:", "https:"].includes(new URL(x.source.uri).protocol))
+    issue("source URI must use HTTP or HTTPS");
+});
+var ResourceIngestReceiptV2Schema = external_exports.object({
+  id: Id,
+  resource_id: Id,
+  status: external_exports.enum(["pending", "processing", "complete", "partial", "unavailable", "failed"]),
+  replayed: external_exports.boolean(),
+  result: external_exports.unknown().optional(),
+  placement_receipt: external_exports.unknown().optional()
+}).strict();
+var ThoughtCollaborationSessionV1Schema = external_exports.object({
+  version: external_exports.literal(1),
+  session_id: Id,
+  root_thought_id: Id,
+  thought_id: Id,
+  canonical_revision: Revision,
+  event_cursor: Revision,
+  document_revision: Revision,
+  document_epoch: Id,
+  update: external_exports.string().max(4e6),
+  state_vector: external_exports.string().max(1e5),
+  body: external_exports.string().max(2e4),
+  dirty: external_exports.boolean(),
+  channel: external_exports.string().min(1),
+  expires_at: Time,
+  capabilities: external_exports.object({ read: external_exports.literal(true), edit: external_exports.boolean() }).strict()
+}).strict();
+var ThoughtWorkspaceEntryV2Schema = external_exports.object({
+  workspace: ThoughtWorkspaceSnapshotV2Schema,
+  focus_thought_id: Id,
+  contexts: external_exports.array(external_exports.object({ root_thought_id: Id, title: external_exports.string() }).strict()).max(101),
+  more_contexts: external_exports.boolean()
+}).strict();
+var ThoughtAssistHistoryV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  history_enabled: external_exports.boolean(),
+  conversation_id: Id.nullable(),
+  context_revision_token: external_exports.string().min(1),
+  messages: external_exports.array(
+    external_exports.object({
+      id: Id,
+      assist_run_id: Id.optional(),
+      feedback_recorded: external_exports.boolean().optional(),
+      role: external_exports.enum(["user", "assistant"]),
+      body: external_exports.string().min(1).max(2e4),
+      citations: external_exports.array(external_exports.string().min(1).max(1024)).max(100)
+    }).strict()
+  ).max(12)
+}).strict();
+var ThoughtAssistEvidenceV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  assist_run_id: Id,
+  citation: external_exports.string().min(1).max(1024),
+  resource_id: Id,
+  resource_version_id: Id,
+  title: external_exports.string().min(1).max(500),
+  locator: external_exports.string().max(400),
+  excerpt: external_exports.string().max(2e3),
+  truncated: external_exports.boolean()
+}).strict();
+var ThoughtResourcePreviewV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  resource_id: Id,
+  resource_version_id: Id.nullable(),
+  title: external_exports.string(),
+  kind: external_exports.string(),
+  coverage: external_exports.enum(["pending", "partial", "complete", "unavailable", "failed"]),
+  excerpts: external_exports.array(
+    external_exports.object({
+      chunk_id: Id,
+      excerpt: external_exports.string().max(2e3),
+      locator: external_exports.string().max(400),
+      truncated: external_exports.boolean()
+    }).strict()
+  ).max(3),
+  more_available: external_exports.boolean()
+}).strict();
+var ThoughtPublicLinkWriteV2Schema = external_exports.discriminatedUnion("action", [
+  external_exports.object({
+    action: external_exports.literal("create"),
+    expires_in_days: external_exports.union([external_exports.literal(1), external_exports.literal(7), external_exports.literal(30)]).default(7)
+  }).strict(),
+  external_exports.object({ action: external_exports.literal("revoke"), id: Id }).strict()
+]);
+var ThoughtPublicLinksV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  token: external_exports.string().regex(/^[A-Za-z0-9_-]{32,128}$/).nullable(),
+  links: external_exports.array(
+    external_exports.object({
+      id: Id,
+      created_at: Time,
+      expires_at: Time.nullable(),
+      revoked_at: Time.nullable()
+    }).strict()
+  )
+}).strict();
+var ThoughtDocumentCreateV2Schema = external_exports.object({ target: external_exports.enum(["todo", "goal"]), expected_revision: Revision, idempotency_key: Key }).strict();
+var ThoughtDocumentLinkV2Schema = external_exports.discriminatedUnion("action", [
+  external_exports.object({ action: external_exports.literal("link"), document_id: Id }).strict(),
+  external_exports.object({ action: external_exports.literal("unlink"), id: Id }).strict()
+]);
+var ThoughtDocumentsV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  thought_id: Id,
+  can_manage: external_exports.boolean(),
+  can_convert: external_exports.boolean(),
+  links: external_exports.array(
+    external_exports.object({
+      id: Id,
+      document_id: Id,
+      title: external_exports.string(),
+      kind: external_exports.enum(["todo", "goal"]),
+      created_at: Time,
+      reviews: external_exports.array(external_exports.object({ id: Id, created_at: Time }).strict())
+    }).strict()
+  )
+}).strict();
+var ThoughtDocumentCreatedV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  thought_id: Id,
+  document_id: Id,
+  target: external_exports.enum(["todo", "goal"]),
+  replayed: external_exports.boolean()
+}).strict();
+var ThoughtOutcomeResponseV2Schema = external_exports.object({
+  idempotency_key: Key,
+  verdict: external_exports.enum(["held", "broke", "inconclusive"]),
+  note: external_exports.string().max(4e3).nullable().default(null)
+}).strict();
+var ThoughtOutcomeReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  review_id: Id,
+  root_thought_id: Id,
+  replayed: external_exports.boolean(),
+  command_receipt_id: Id.nullable(),
+  legacy_receipt: external_exports.literal(true).optional()
+}).strict();
+var ThoughtDocumentSearchV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  thought_id: Id,
+  items: external_exports.array(
+    external_exports.object({ id: Id, title: external_exports.string(), kind: external_exports.enum(["todo", "goal"]) }).strict()
+  )
+}).strict();
+var ThoughtDecisionAcceptV2Schema = external_exports.object({
+  expected_revision: external_exports.number().int().min(1),
+  idempotency_key: external_exports.string().min(1).max(120),
+  question_id: Id.optional(),
+  question_revision: external_exports.number().int().min(1).optional()
+}).strict().refine(
+  (x) => x.question_id === void 0 === (x.question_revision === void 0),
+  "Question identity and revision are required together"
+);
+var ThoughtDecisionReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  thought_id: Id,
+  thought_revision_id: Id,
+  document_id: Id,
+  document_version_id: Id,
+  projection_id: Id,
+  question_id: Id.nullable(),
+  question_revision_id: Id.nullable(),
+  command_receipt_id: Id,
+  cursor: external_exports.number().int().min(1),
+  replayed: external_exports.boolean()
+}).strict();
+
+// packages/shared/dist/thought-presence.js
+var ThoughtPresenceRequestV2Schema = external_exports.object({
+  session_id: external_exports.string().uuid(),
+  action: external_exports.enum(["touch", "leave"]).default("touch"),
+  selected_thought_id: external_exports.string().uuid().nullable().default(null)
+}).strict();
+var ThoughtPresenceV2Schema = external_exports.object({
+  root_thought_id: external_exports.string().uuid(),
+  expires_at: external_exports.string().datetime({ offset: true }).nullable(),
+  participants: external_exports.array(
+    external_exports.object({
+      user_id: external_exports.string().uuid(),
+      name: external_exports.string(),
+      last_seen_at: external_exports.string().datetime({ offset: true })
+    }).strict()
+  ).max(100),
+  more: external_exports.boolean()
+}).strict();
+
+// packages/shared/dist/thought-discussion.js
+var common = {
+  subject_thought_id: external_exports.string().uuid(),
+  idempotency_key: external_exports.string().min(1).max(96)
+};
+var revision = { comment_id: external_exports.string().uuid(), expected_revision: external_exports.number().int().positive() };
+var ThoughtDiscussionWriteV2Schema = external_exports.discriminatedUnion("action", [
+  external_exports.object({ ...common, action: external_exports.literal("create"), body: external_exports.string().trim().min(1).max(5e3) }).strict(),
+  external_exports.object({
+    ...common,
+    ...revision,
+    action: external_exports.literal("edit"),
+    body: external_exports.string().trim().min(1).max(5e3)
+  }).strict(),
+  external_exports.object({ ...common, ...revision, action: external_exports.literal("archive") }).strict()
+]);
+var ThoughtDiscussionReceiptV2Schema = external_exports.object({
+  comment_id: external_exports.string().uuid(),
+  subject_thought_id: external_exports.string().uuid(),
+  revision: external_exports.number().int().positive(),
+  archived: external_exports.boolean(),
+  replayed: external_exports.boolean()
+}).strict();
+var ThoughtDiscussionV2Schema = external_exports.object({
+  root_thought_id: external_exports.string().uuid(),
+  subject_thought_id: external_exports.string().uuid(),
+  subject_title: external_exports.string(),
+  can_comment: external_exports.boolean(),
+  next_cursor: external_exports.string().nullable(),
+  comments: external_exports.array(
+    external_exports.object({
+      id: external_exports.string().uuid(),
+      body: external_exports.string(),
+      revision: external_exports.number().int().positive(),
+      created_by: external_exports.string().uuid(),
+      author_name: external_exports.string(),
+      can_edit: external_exports.boolean(),
+      created_at: external_exports.string(),
+      updated_at: external_exports.string(),
+      edited_at: external_exports.string().nullable()
+    }).strict()
+  ).max(50)
+}).strict();
+
+// packages/shared/dist/thought-sharing.js
+var ThoughtSharingRoleV2Schema = external_exports.enum(["owner", "editor", "commenter", "viewer"]);
+var ThoughtSharingWriteV2Schema = external_exports.discriminatedUnion("action", [
+  external_exports.object({
+    action: external_exports.literal("set"),
+    expected_version: external_exports.string().regex(/^[a-f0-9]{64}$/),
+    user_id: external_exports.string().uuid(),
+    role: ThoughtSharingRoleV2Schema
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("remove"),
+    expected_version: external_exports.string().regex(/^[a-f0-9]{64}$/),
+    user_id: external_exports.string().uuid()
+  }).strict(),
+  external_exports.object({ action: external_exports.literal("close"), expected_version: external_exports.string().regex(/^[a-f0-9]{64}$/) }).strict()
+]);
+var ThoughtSharingV2Schema = external_exports.object({
+  thought_id: external_exports.string().uuid(),
+  title: external_exports.string(),
+  scope: external_exports.enum(["personal", "team", "project"]),
+  version: external_exports.string().regex(/^[a-f0-9]{64}$/),
+  is_room: external_exports.boolean(),
+  can_manage: external_exports.boolean(),
+  can_leave: external_exports.boolean(),
+  participants: external_exports.array(
+    external_exports.object({
+      user_id: external_exports.string().uuid(),
+      name: external_exports.string(),
+      role: ThoughtSharingRoleV2Schema,
+      is_creator: external_exports.boolean()
+    })
+  ),
+  candidates: external_exports.array(
+    external_exports.object({
+      user_id: external_exports.string().uuid(),
+      name: external_exports.string(),
+      account_role: external_exports.enum(["owner", "admin", "member", "viewer"])
+    })
+  )
+});
+
+// packages/shared/dist/thought-feedback.js
+var ThoughtFeedbackWriteV2Schema = external_exports.object({
+  run_id: external_exports.string().uuid(),
+  helpful: external_exports.boolean().nullable().optional(),
+  inaccurate: external_exports.boolean().default(false),
+  too_simple: external_exports.boolean().default(false),
+  too_complex: external_exports.boolean().default(false),
+  too_long: external_exports.boolean().default(false),
+  tone_wrong: external_exports.boolean().default(false),
+  missing_context: external_exports.boolean().default(false),
+  note: external_exports.string().trim().min(1).max(4e3).nullable().optional()
+}).strict().refine((value) => !(value.too_simple && value.too_complex), {
+  message: "Feedback cannot be both too simple and too complex"
+}).refine(
+  (value) => typeof value.helpful === "boolean" || value.inaccurate || value.too_simple || value.too_complex || value.too_long || value.tone_wrong || value.missing_context || Boolean(value.note),
+  { message: "Feedback needs at least one signal" }
+);
+var ThoughtFeedbackReceiptV2Schema = external_exports.object({
+  status: external_exports.literal("recorded"),
+  feedback_id: external_exports.string().uuid(),
+  run_id: external_exports.string().uuid(),
+  created_at: external_exports.string(),
+  replayed: external_exports.boolean()
+}).strict();
+
+// packages/shared/dist/experience-harness.js
+var EXPERIENCE_HARNESS_MAX_NODES = 32;
+var EXPERIENCE_HARNESS_MAX_EDGES = 256;
+var WorkflowAssignmentV2Schema = external_exports.object({
+  task: external_exports.string().trim().min(1).max(8192),
+  target_agent_installation_id: external_exports.string().uuid()
+}).strict();
+var WorkflowMemoryQueryV2Schema = external_exports.object({ query: external_exports.string().trim().min(1).max(2e3) }).strict();
+var WorkflowRegisteredActionV2Schema = external_exports.object({
+  action_id: external_exports.string().uuid(),
+  input: external_exports.record(ContractJsonValueSchema)
+}).strict().refine(
+  (value) => JSON.stringify(value.input).length <= 8192,
+  "Action input exceeds the workflow limit"
+);
+var ExperienceHarnessArtifactV2Schema = HarnessArtifactRefV1Schema.extend({
+  kind: external_exports.enum([
+    "thought",
+    "markdown",
+    "document",
+    "prompt",
+    "source",
+    "memory",
+    "memory_query",
+    "skill",
+    "schema",
+    "agent",
+    "decision_gate",
+    "action",
+    "output"
+  ]),
+  content_hash: Sha256Schema,
+  memory_query: WorkflowMemoryQueryV2Schema.optional(),
+  assignment: WorkflowAssignmentV2Schema.optional(),
+  registered_action: WorkflowRegisteredActionV2Schema.optional()
+}).strict();
+var ExperienceHarnessManifestV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  id: external_exports.string().uuid(),
+  revision: external_exports.number().int().positive(),
+  root_thought_id: external_exports.string().uuid(),
+  root_revision_token: external_exports.string().min(1).max(2048),
+  context: ContextManifestV1Schema,
+  nodes: external_exports.array(
+    external_exports.object({
+      id: external_exports.string().uuid(),
+      artifact: ExperienceHarnessArtifactV2Schema
+    }).strict()
+  ).min(1).max(EXPERIENCE_HARNESS_MAX_NODES),
+  edges: external_exports.array(
+    external_exports.object({
+      id: external_exports.string().uuid(),
+      from_node_id: external_exports.string().uuid(),
+      output: ContractKeySchema,
+      to_node_id: external_exports.string().uuid(),
+      input: ContractKeySchema
+    }).strict()
+  ).max(EXPERIENCE_HARNESS_MAX_EDGES)
+}).strict();
+var ExperienceHarnessSaveV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: external_exports.string().uuid(),
+  idempotency_key: external_exports.string().min(1).max(160),
+  title: external_exports.string().trim().min(1).max(240),
+  root_revision_token: external_exports.string().min(1).max(2048),
+  harness_id: external_exports.string().uuid().nullable().default(null),
+  expected_revision: external_exports.number().int().positive().nullable().default(null),
+  definition: ExperienceHarnessManifestV2Schema.pick({ context: true, nodes: true, edges: true })
+}).strict().refine(
+  (input) => input.harness_id === null === (input.expected_revision === null),
+  "Existing harness requires its current revision"
+);
+var ExperienceHarnessArtifactSelectionV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  thought_ids: external_exports.array(external_exports.string().uuid()).max(EXPERIENCE_HARNESS_MAX_NODES).default([]),
+  resource_ids: external_exports.array(external_exports.string().uuid()).max(EXPERIENCE_HARNESS_MAX_NODES).default([]),
+  document_ids: external_exports.array(external_exports.string().uuid()).max(EXPERIENCE_HARNESS_MAX_NODES).default([]),
+  memory_queries: external_exports.array(WorkflowMemoryQueryV2Schema).max(1).default([]),
+  assignments: external_exports.array(WorkflowAssignmentV2Schema).max(8).default([]),
+  actions: external_exports.array(WorkflowRegisteredActionV2Schema).max(8).default([]),
+  tool_ids: external_exports.array(
+    external_exports.enum([
+      "memlin.thought.review",
+      "memlin.thought.plan",
+      "memlin.thought.review-gate",
+      "memlin.thought.output"
+    ])
+  ).max(4).default([])
+}).strict().refine((selection) => {
+  const ids = [
+    ...selection.thought_ids,
+    ...selection.resource_ids,
+    ...selection.document_ids,
+    ...selection.tool_ids,
+    ...selection.memory_queries.map((item) => JSON.stringify(item)),
+    ...selection.assignments.map((item) => JSON.stringify(item)),
+    ...selection.actions.map((item) => JSON.stringify(item))
+  ];
+  return ids.length > 0 && ids.length <= EXPERIENCE_HARNESS_MAX_NODES && new Set(ids).size === ids.length;
+}, "Select between 1 and 32 distinct artifacts");
+var ExperienceHarnessCompileRequestV2Schema = external_exports.object({ version: external_exports.literal(2), revision: external_exports.number().int().positive() }).strict();
+var ExperienceHarnessReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  harness_id: external_exports.string().uuid(),
+  version_id: external_exports.string().uuid(),
+  revision: external_exports.number().int().positive(),
+  title: external_exports.string().min(1).max(240),
+  manifest: ExperienceHarnessManifestV2Schema,
+  definition_sha256: Sha256Schema,
+  replayed: external_exports.boolean()
+}).strict().refine(
+  (receipt) => receipt.harness_id === receipt.manifest.id && receipt.revision === receipt.manifest.revision,
+  "Harness receipt identity mismatch"
+);
+var ExperienceHarnessListQueryV2Schema = external_exports.object({
+  after: external_exports.string().uuid().optional(),
+  limit: external_exports.coerce.number().int().min(1).max(50).default(20)
+}).strict();
+var ExperienceHarnessListV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  items: external_exports.array(
+    external_exports.object({
+      id: external_exports.string().uuid(),
+      title: external_exports.string().min(1).max(240),
+      current_revision: external_exports.number().int().positive()
+    }).strict()
+  ).max(50),
+  next: external_exports.string().uuid().nullable()
+}).strict();
+var ExperienceHarnessSchemaRefV2Schema = external_exports.object({
+  id: ContractKeySchema,
+  revision: external_exports.string().min(1).max(128),
+  content_hash: Sha256Schema
+}).strict();
+var ExperienceHarnessAdmissionV2Schema = external_exports.object({
+  receipt_id: external_exports.string().uuid(),
+  manifest_hash: Sha256Schema,
+  artifact: ExperienceHarnessArtifactV2Schema,
+  inputs: external_exports.record(
+    ContractKeySchema,
+    external_exports.object({
+      schema: ExperienceHarnessSchemaRefV2Schema,
+      required: external_exports.boolean()
+    }).strict()
+  ),
+  outputs: external_exports.record(ContractKeySchema, ExperienceHarnessSchemaRefV2Schema),
+  model_role: ExperienceHarnessSchemaRefV2Schema.optional(),
+  action: external_exports.object({
+    adapter: ExperienceHarnessSchemaRefV2Schema,
+    operation: ContractKeySchema
+  }).strict().optional()
+}).strict();
+var ExperienceHarnessStageReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  id: external_exports.string().uuid(),
+  kind: external_exports.enum([
+    "artifact",
+    "resource",
+    "proposal",
+    "handoff",
+    "prepared_action",
+    "executed_action",
+    "approval",
+    "output"
+  ]),
+  data: external_exports.record(ContractJsonValueSchema)
+}).strict();
+var ExperienceHarnessRunStateV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  status: external_exports.enum(["running", "waiting_approval", "completed", "failed", "cancelled"]),
+  stages: external_exports.array(
+    external_exports.object({
+      id: external_exports.string().min(1).max(128),
+      status: external_exports.enum([
+        "pending",
+        "running",
+        "waiting_approval",
+        "completed",
+        "failed",
+        "cancelled"
+      ]),
+      attempt: external_exports.number().int().min(0).max(100),
+      input: external_exports.record(ContractJsonValueSchema).nullable(),
+      input_sha256: Sha256Schema.nullable(),
+      lease_id: external_exports.string().uuid().nullable(),
+      lease_expires_at: external_exports.string().datetime().nullable(),
+      receipt: ExperienceHarnessStageReceiptV2Schema.nullable(),
+      failure: external_exports.string().min(1).max(160).nullable()
+    }).strict()
+  ).min(1).max(EXPERIENCE_HARNESS_MAX_NODES * 3)
+}).strict();
+var ExperienceHarnessRunRequestV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: external_exports.string().uuid(),
+  revision: external_exports.number().int().positive(),
+  idempotency_key: external_exports.string().min(1).max(160)
+}).strict();
+var ExperienceHarnessRunControlV2Schema = external_exports.discriminatedUnion("action", [
+  external_exports.object({
+    version: external_exports.literal(2),
+    action: external_exports.literal("resume"),
+    expected_revision: external_exports.number().int().positive()
+  }).strict(),
+  external_exports.object({
+    version: external_exports.literal(2),
+    action: external_exports.literal("cancel"),
+    expected_revision: external_exports.number().int().nonnegative()
+  }).strict(),
+  external_exports.object({
+    version: external_exports.literal(2),
+    action: external_exports.enum(["approve", "reject"]),
+    expected_revision: external_exports.number().int().positive(),
+    stage_id: external_exports.string().min(1).max(128),
+    input_sha256: Sha256Schema
+  }).strict()
+]);
+
+// packages/shared/dist/light.js
+var LIGHT_LIMITS = Object.freeze({
+  users: 1,
+  projects: 1,
+  files: 50,
+  fileBytes: 16 * 1024,
+  historyVersions: 10,
+  writes: 1e3,
+  captures: 50,
+  accountCostMicros: 1e6,
+  globalCostMicros: 1e8,
+  enrollment: 100,
+  contextTokens: 4e3,
+  captureInputTokens: 8e3,
+  captureOutputTokens: 1e3,
+  captureReservationMicros: 2e4
+});
+function boundLightText(text, byteLimit) {
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(text);
+  return bytes.length <= byteLimit ? text : new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, byteLimit)).replace(/\uFFFD$/, "");
+}
+function redactLightTranscript(text) {
+  return text.replace(
+    /-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----/g,
+    "[private key removed]"
+  ).replace(
+    /\b(?:sk-[\w-]{12,}|gh[pousr]_[\w]{16,}|github_pat_[\w]{16,}|AKIA[A-Z0-9]{16})\b/g,
+    "[credential removed]"
+  ).replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[token removed]").replace(/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/gi, "$1[removed]").replace(
+    /((?:password|secret|api[_-]?key|access[_-]?token)["']?\s*[=:]\s*)[^\s,;]+/gi,
+    "$1[removed]"
+  );
+}
+function lightCaptureExcluded(text, paths = []) {
+  return /(?:^|[\s/\\"'`])(?:\.env(?:\.[\w-]+)?|id_rsa|id_ed25519|credentials\.json)(?=$|[\s/\\"'`:])/m.test(
+    text
+  ) || paths.some((p) => p.length > 0 && text.includes(p));
+}
+
+// packages/shared/dist/thought-handoff-v2.js
+var ThoughtHandoffRequestV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  idempotency_key: external_exports.string().min(1).max(160),
+  task: external_exports.string().trim().min(1).max(8192),
+  target_agent_installation_id: external_exports.string().uuid(),
+  focus_thought_id: external_exports.string().uuid().optional(),
+  context_revision_token: external_exports.string().regex(/^[0-9a-f]{64}$/)
+}).strict();
+var ThoughtHandoffReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  kind: external_exports.literal("thought_handoff_v2"),
+  id: external_exports.string().uuid(),
+  root_thought_id: external_exports.string().uuid(),
+  project_id: external_exports.string().uuid().nullable(),
+  target_agent_installation_id: external_exports.string().uuid(),
+  target_agent_kind: external_exports.enum(AGENT_KINDS),
+  task: external_exports.string(),
+  status: external_exports.enum(["preparing", "pending", "accepted", "completed", "cancelled"]),
+  context_bundle_id: external_exports.string().regex(/^[0-9a-f]{64}$/).nullable(),
+  context_revision_token: external_exports.string(),
+  packet_markdown: external_exports.string().nullable(),
+  target_session_id: external_exports.string().nullable(),
+  created_at: external_exports.string(),
+  stale: external_exports.boolean(),
+  replayed: external_exports.boolean().optional()
+}).passthrough();
+
+// packages/plugin-core/src/memlin-api-client.ts
+import { readFileSync } from "node:fs";
+import crypto2 from "node:crypto";
+import os4 from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// packages/plugin-core/src/runtime-shared.ts
+var AGENT_KIND_HEADER = "Memlin-Agent-Kind";
+var AGENT_DEVICE_HEADER = "Memlin-Agent-Device";
+var AGENT_VERSION_HEADER = "Memlin-Agent-Version";
+var AGENT_CAPABILITIES_HEADER = "Memlin-Agent-Capabilities";
+var AGENT_PLATFORM_HEADER = "Memlin-Agent-Platform";
+var AGENT_ARCHITECTURE_HEADER = "Memlin-Agent-Architecture";
+var AGENT_EXPECTED_CAPABILITIES = {
+  "claude-code": ["cli", "commands", "hooks", "sync", "scribe", "resolve"],
+  cursor: ["mcp", "commands", "hooks", "rules", "scribe", "resolve"],
+  codex: ["mcp", "cli", "hooks", "rules", "scribe", "resolve"],
+  windsurf: ["mcp", "cli", "hooks", "rules", "scribe", "resolve"],
+  // VS Code (apps/vscode-extension): MCP + CLI + copilot-instructions; plain
+  // VS Code has no lifecycle-hook or slash-command surface.
+  vscode: ["mcp", "cli", "rules", "resolve"],
+  gemini: ["mcp", "rules", "resolve"],
+  grok: ["mcp", "rules", "resolve"],
+  hermes: ["mcp", "resolve"],
+  openclaw: ["mcp", "rules", "resolve"],
+  antigravity: ["mcp", "cli", "hooks", "commands", "rules", "sync", "scribe", "resolve"],
+  mcp: ["mcp", "resolve"],
+  "claude-ai": ["mcp", "resolve"],
+  // Companion daemon (apps/companion): background token keeper + realtime
+  // plan sync + local IPC socket other agents delegate to. No hooks/commands
+  // of its own.
+  companion: ["cli", "sync", "realtime", "resolve"]
+};
+var PROVIDER_HOSTS = [
+  "github.com",
+  "gitlab.com",
+  "bitbucket.org",
+  "dev.azure.com",
+  "ssh.dev.azure.com",
+  "codeberg.org",
+  "sr.ht",
+  "git.sr.ht"
+];
+function normalizeGitRemote(raw) {
+  if (!raw) return null;
+  let s = raw.trim();
+  if (!s) return null;
+  if (!s.includes("://")) {
+    s = s.replace(/^(?:[^@/\s]+@)?([^:/\s]+):(?!\/)/, "https://$1/");
+  }
+  s = s.replace(/^(?:ssh|git|https?):\/\//, "");
+  s = s.replace(/^[^/@]+@/, "");
+  s = s.replace(/\.git$/, "");
+  s = s.replace(/\/$/, "");
+  const slash = s.indexOf("/");
+  if (slash > 0) {
+    const host = s.slice(0, slash).toLowerCase();
+    const rest = s.slice(slash);
+    s = host + rest;
+    for (const provider of PROVIDER_HOSTS) {
+      if (host === provider) break;
+      if (host.startsWith(provider + "-")) {
+        s = provider + rest;
+        break;
+      }
+    }
+  }
+  return s || null;
+}
+async function closeHttpSockets() {
+  try {
+    const dispatcher = globalThis[/* @__PURE__ */ Symbol.for("undici.globalDispatcher.1")];
+    if (dispatcher && typeof dispatcher.close === "function") {
+      let timer;
+      await Promise.race([
+        dispatcher.close(),
+        new Promise((resolve) => {
+          timer = setTimeout(resolve, 250);
+          timer.unref?.();
+        })
+      ]).finally(() => {
+        if (timer !== void 0) clearTimeout(timer);
+      });
+    }
+  } catch {
+  }
+}
+
+// packages/plugin-core/src/host.ts
+import os3 from "node:os";
+import path4 from "node:path";
+var BaseHost = class {
+  constructor(kind, home) {
+    this.kind = kind;
+    this.home = home;
+  }
+  kind;
+  home;
+  homeDir() {
+    return this.home;
+  }
+  plansDir() {
+    return path4.join(this.home, "plans");
+  }
+};
+var ClaudeCodeHost = class extends BaseHost {
+  constructor() {
+    super("claude-code", path4.join(os3.homedir(), ".claude"));
+  }
+};
+var CursorHost = class extends BaseHost {
+  constructor() {
+    super("cursor", path4.join(os3.homedir(), ".config", "memlin"));
+  }
+};
+var CodexHost = class extends BaseHost {
+  constructor() {
+    super("codex", path4.join(os3.homedir(), ".config", "memlin"));
+  }
+};
+var WindsurfHost = class extends BaseHost {
+  constructor() {
+    super("windsurf", path4.join(os3.homedir(), ".config", "memlin"));
+  }
+};
+var AntigravityHost = class extends BaseHost {
+  constructor() {
+    super("antigravity", path4.join(os3.homedir(), ".config", "memlin"));
+  }
+};
+var VSCodeHost = class extends BaseHost {
+  constructor() {
+    super("vscode", path4.join(os3.homedir(), ".config", "memlin"));
+  }
+};
+var CompanionHost = class extends BaseHost {
+  constructor() {
+    super("companion", path4.join(os3.homedir(), ".config", "memlin"));
+  }
+};
+var HOSTS = {
+  "claude-code": () => new ClaudeCodeHost(),
+  cursor: () => new CursorHost(),
+  codex: () => new CodexHost(),
+  windsurf: () => new WindsurfHost(),
+  antigravity: () => new AntigravityHost(),
+  vscode: () => new VSCodeHost(),
+  companion: () => new CompanionHost()
+};
+function resolveHost() {
+  const envHost = "codex";
+  const make = HOSTS[envHost];
+  return (make ?? HOSTS["claude-code"])();
+}
+
+// packages/plugin-core/src/memlin-api-client.ts
+var DEFAULT_API_URL = "https://memlin.ai/api/v1";
+function agentDevice() {
+  return process.env.MEMLIN_AGENT_DEVICE || os4.hostname() || "unknown";
+}
+var cachedAgentVersion = null;
+function agentVersion() {
+  if (cachedAgentVersion) return cachedAgentVersion;
+  cachedAgentVersion = "0.2.52";
+  return cachedAgentVersion;
+}
+function agentCapabilities() {
+  return AGENT_EXPECTED_CAPABILITIES[resolveHost().kind] ?? ["api", "resolve"];
+}
+var DEFAULT_REQUEST_TIMEOUT_MS = 15e3;
+var DEFAULT_MAX_RETRIES = 2;
+var DEFAULT_RETRY_BASE_DELAY_MS = 250;
+var NATIVE_MEMORY_BATCH_SIZE = 20;
+var NATIVE_MEMORY_BATCH_CONCURRENCY = 3;
+var NATIVE_MEMORY_REQUEST_TIMEOUT_MS = 9e4;
+var NATIVE_MEMORY_BATCH_INDEX = "# Native memory satellite batch\n";
+var RESOLVE_V2_MAX_LINE_BYTES = 2 * 1024 * 1024;
+var RETRIABLE_STATUS = /* @__PURE__ */ new Set([408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524]);
+var RETRIABLE_NETWORK_CODES = /* @__PURE__ */ new Set([
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "ECONNABORTED",
+  "ETIMEDOUT",
+  "EPIPE",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "EAI_AGAIN",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_BODY_TIMEOUT",
+  "UND_ERR_SOCKET"
+]);
+function isRetriableNetworkError(error) {
+  if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
+    return true;
+  }
+  let current = error;
+  for (let depth = 0; current instanceof Error && depth < 5; depth++) {
+    const code = current.code;
+    if (code && RETRIABLE_NETWORK_CODES.has(code)) return true;
+    current = current.cause;
+  }
+  return false;
+}
+function unreachableError(url, cause, timeoutMs) {
+  let host = url;
+  try {
+    host = new URL(url).host;
+  } catch {
+  }
+  if (cause instanceof Error && (cause.name === "TimeoutError" || cause.name === "AbortError")) {
+    return new Error(
+      `Memlin at ${host} took longer than ${Math.ceil(timeoutMs / 1e3)} seconds to respond. The request was stopped; try again.`,
+      { cause }
+    );
+  }
+  return new Error(
+    `Couldn't reach Memlin at ${host}. Check your internet connection and try again.`,
+    { cause }
+  );
+}
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function delayWithSignal(ms, signal) {
+  if (!signal) return delay(ms);
+  if (signal.aborted) return Promise.reject(signal.reason ?? new Error("request aborted"));
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(done, ms);
+    function done() {
+      signal?.removeEventListener("abort", aborted);
+      resolve();
+    }
+    function aborted() {
+      clearTimeout(timer);
+      reject(signal?.reason ?? new Error("request aborted"));
+    }
+    signal.addEventListener("abort", aborted, { once: true });
+  });
+}
+function resolveV2Event(value) {
+  if (!value || typeof value !== "object") {
+    throw new Error("Memlin progressive resolver returned a non-object event");
+  }
+  const candidate = value;
+  if (candidate.type !== "hot" && candidate.type !== "full" && candidate.type !== "failed" || typeof candidate.resolve_id !== "string" || typeof candidate.turn_id !== "string" || typeof candidate.trace_id !== "string" || typeof candidate.account_id !== "string" || candidate.project_id !== null && typeof candidate.project_id !== "string" || !candidate.timing || typeof candidate.timing.total_ms !== "number" || !candidate.metrics || typeof candidate.metrics.db_calls !== "number") {
+    throw new Error("Memlin progressive resolver returned a malformed event");
+  }
+  if ((candidate.type === "hot" || candidate.type === "full") && !candidate.payload) {
+    throw new Error(`Memlin progressive resolver returned ${candidate.type} without a payload`);
+  }
+  if (candidate.type === "failed" && !candidate.error) {
+    throw new Error("Memlin progressive resolver returned failed without an error receipt");
+  }
+  return candidate;
+}
+async function* parseNdjsonEvents(body) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    for (; ; ) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      for (; ; ) {
+        const newline = buffer.indexOf("\n");
+        if (newline < 0) break;
+        const rawLine = buffer.slice(0, newline);
+        buffer = buffer.slice(newline + 1);
+        if (Buffer.byteLength(rawLine) > RESOLVE_V2_MAX_LINE_BYTES) {
+          throw new Error("Memlin progressive resolver returned an oversized event");
+        }
+        const line = rawLine.trim();
+        if (!line) continue;
+        let parsed;
+        try {
+          parsed = JSON.parse(line);
+        } catch {
+          throw new Error("Memlin progressive resolver returned invalid NDJSON");
+        }
+        yield resolveV2Event(parsed);
+      }
+      if (Buffer.byteLength(buffer) > RESOLVE_V2_MAX_LINE_BYTES) {
+        throw new Error("Memlin progressive resolver returned an oversized event");
+      }
+    }
+    buffer += decoder.decode();
+    if (Buffer.byteLength(buffer) > RESOLVE_V2_MAX_LINE_BYTES) {
+      throw new Error("Memlin progressive resolver returned an oversized event");
+    }
+    const tail = buffer.trim();
+    if (tail) {
+      let parsed;
+      try {
+        parsed = JSON.parse(tail);
+      } catch {
+        throw new Error("Memlin progressive resolver returned invalid NDJSON");
+      }
+      yield resolveV2Event(parsed);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+var MemlinApiClient = class {
+  constructor(cfg) {
+    this.cfg = cfg;
+  }
+  cfg;
+  // ---------- low-level ----------
+  async authHeaders(includeAccount = true, override = {}) {
+    const token = await this.cfg.getAccessToken();
+    const kind = override.agentKind ?? resolveHost().kind;
+    const version = override.agentKind === void 0 ? agentVersion() : override.agentVersion ?? "dev";
+    const h = {
+      Authorization: `Bearer ${token}`,
+      [AGENT_KIND_HEADER]: kind,
+      [AGENT_DEVICE_HEADER]: agentDevice(),
+      [AGENT_VERSION_HEADER]: version,
+      [AGENT_CAPABILITIES_HEADER]: (override.agentKind ? AGENT_EXPECTED_CAPABILITIES[kind] : agentCapabilities()).join(","),
+      [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os4.platform(),
+      [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os4.arch()
+    };
+    if (includeAccount && this.cfg.accountId) {
+      h["Memlin-Account-Id"] = this.cfg.accountId;
+    }
+    return h;
+  }
+  async request(method, pathAndQuery, body, opts = {}) {
+    const url = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
+    const baseHeaders = await this.authHeaders(opts.includeAccount ?? true, opts);
+    if (opts.accountId) {
+      baseHeaders["Memlin-Account-Id"] = opts.accountId;
+    }
+    const headers = {
+      ...baseHeaders,
+      Accept: "application/json"
+    };
+    if (body !== void 0) headers["Content-Type"] = "application/json";
+    const idempotent = method === "GET";
+    const maxAttempts = idempotent ? Math.max(0, opts.maxRetries ?? this.cfg.maxRetries ?? DEFAULT_MAX_RETRIES) + 1 : 1;
+    const timeoutMs = Math.max(
+      1,
+      opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
+    );
+    for (let attempt = 1; ; attempt++) {
+      let res;
+      let text;
+      try {
+        const timeoutSignal = AbortSignal.timeout(timeoutMs);
+        res = await fetch(url, {
+          method,
+          headers,
+          // A dead socket must abort rather than hang the caller forever.
+          signal: opts.signal ? AbortSignal.any([opts.signal, timeoutSignal]) : timeoutSignal,
+          ...body !== void 0 ? { body: JSON.stringify(body) } : {}
+        });
+        text = await res.text();
+      } catch (error) {
+        if (attempt < maxAttempts && isRetriableNetworkError(error)) {
+          await delay(this.backoffMs(attempt));
+          continue;
+        }
+        throw unreachableError(url, error, timeoutMs);
+      }
+      if (idempotent && attempt < maxAttempts && RETRIABLE_STATUS.has(res.status)) {
+        await delay(this.backoffMs(attempt));
+        continue;
+      }
+      let parsed = null;
+      if (text) {
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+        }
+      }
+      if (!res.ok) {
+        const serverError = parsed?.error;
+        const errMsg = typeof serverError === "string" && serverError ? singleLine(serverError, 300) : describeOpaqueBody(res.status, text);
+        throw new MemlinApiError(
+          `${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`,
+          res.status
+        );
+      }
+      return parsed;
+    }
+  }
+  backoffMs(attempt) {
+    const base = this.cfg.retryBaseDelayMs ?? DEFAULT_RETRY_BASE_DELAY_MS;
+    return base * 2 ** (attempt - 1);
+  }
+  async openResolveV2Stream(method, pathAndQuery, body, opts = {}) {
+    const url = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
+    const headers = await this.authHeaders(true, opts);
+    if (opts.accountId) headers["Memlin-Account-Id"] = opts.accountId;
+    headers.Accept = "application/x-ndjson";
+    if (body !== void 0) headers["Content-Type"] = "application/json";
+    if (opts.traceId) {
+      const normalized = opts.traceId.replaceAll("-", "").toLowerCase();
+      const traceId = /^[0-9a-f]{32}$/.test(normalized) ? normalized : crypto2.createHash("sha256").update(opts.traceId).digest("hex").slice(0, 32);
+      headers.traceparent = `00-${traceId}-${crypto2.randomBytes(8).toString("hex")}-01`;
+    }
+    const timeoutMs = Math.max(
+      1,
+      opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS
+    );
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
+    const signal = opts.signal ? AbortSignal.any([opts.signal, timeoutSignal]) : timeoutSignal;
+    let response;
+    try {
+      response = await fetch(url, {
+        method,
+        headers,
+        signal,
+        ...body !== void 0 ? { body: JSON.stringify(body) } : {}
+      });
+    } catch (error) {
+      throw unreachableError(url, error, timeoutMs);
+    }
+    if (response.ok) {
+      const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+      if (!contentType.includes("application/x-ndjson")) {
+        await response.body?.cancel().catch(() => void 0);
+        throw new Error("Memlin progressive resolver returned an unexpected response type");
+      }
+      return response;
+    }
+    const text = await response.text().catch(() => "");
+    let serverError;
+    try {
+      const parsed = JSON.parse(text);
+      serverError = typeof parsed.error === "string" ? parsed.error : parsed.error?.message ?? parsed.error?.code;
+    } catch {
+    }
+    const detail = response.status >= 500 ? `HTTP ${response.status} (upstream response suppressed)` : serverError ? singleLine(serverError, 300) : describeOpaqueBody(response.status, text);
+    throw new MemlinApiError(
+      `${method} ${pathAndQuery} \u2192 ${response.status}: ${detail}`,
+      response.status
+    );
+  }
+  async *readResolveV2Response(response) {
+    if (!response.body) {
+      throw new Error("Memlin progressive resolver returned an empty response body");
+    }
+    yield* parseNdjsonEvents(response.body);
+  }
+  // ---------- endpoints ----------
+  /** GET /me — identity + account list. No account header sent (this is the discovery call). */
+  async me() {
+    return this.request("GET", "/me", void 0, { includeAccount: false });
+  }
+  /**
+   * GET /report — account-scoped usage aggregates (tokens saved, resolves,
+   * hit rate). The route nests the window (`window: { from, days }` — no
+   * top-level days field) and clamps days to [1, 31] server-side (default 1);
+   * `projectId` maps to the `?project=` query param. Consumed by the
+   * Companion's Memory panel for its tokens-saved counter.
+   */
+  async report(opts = {}) {
+    const q = new URLSearchParams();
+    if (opts.days !== void 0) q.set("days", String(opts.days));
+    if (opts.projectId) q.set("project", opts.projectId);
+    const qs = q.toString();
+    return this.request("GET", `/report${qs ? `?${qs}` : ""}`);
+  }
+  /**
+   * GET /realtime/config — Supabase connection info for the caller's
+   * effective account. The client config file is deliberately
+   * backend-agnostic (no Supabase URL / anon key), so Realtime subscribers
+   * — the Companion daemon (packages/companion-core) — bootstrap the
+   * connection from here. Dedicated-instance (paid org) accounts get THEIR
+   * instance's values, which is why this rides normal account-header auth.
+   */
+  async getRealtimeConfig(opts = {}) {
+    return this.request("GET", "/realtime/config", void 0, { accountId: opts.accountId });
+  }
+  /**
+   * POST /roles/assign — set a member's functional roles (backend, sre,
+   * ...). Defaults to the caller; pass user_id to assign another member
+   * (owner/admin only). Replaces the member's set wholesale.
+   */
+  async assignRoles(input, opts = {}) {
+    return this.request("POST", "/roles/assign", input, {
+      accountId: opts.accountId
+    });
+  }
+  /**
+   * POST /roles/tag — tag a document into one or more role packs. The
+   * resolver boosts the document for members holding a matching role.
+   * Replaces the document's role tags wholesale.
+   */
+  async tagDocumentRoles(input, opts = {}) {
+    return this.request("POST", "/roles/tag", input, {
+      accountId: opts.accountId
+    });
+  }
+  /**
+   * POST /documents/pin — force-include ("pin") a document, or unpin it.
+   * A pinned doc is fetched out-of-band by the resolver on every resolve in
+   * scope (no similarity threshold) and reserved budget off the top — a
+   * standing directive, not a similarity hit. Owner/admin-only server-side.
+   */
+  async setDocumentPinned(input, opts = {}) {
+    return this.request("POST", "/documents/pin", input, {
+      accountId: opts.accountId
+    });
+  }
+  /** GET /decisions/enforce — pull the guardrail rules currently
+   *  in effect for the caller's account (and optionally a project).
+   *  Returns kind='decision' docs whose `metadata.enforce` is set —
+   *  the PreToolUse handler in plugin-core's pre-tool-use-handler
+   *  module is the primary caller. */
+  async listEnforceDecisions(opts = {}, requestOpts = {}) {
+    const qs = new URLSearchParams();
+    if (opts.project_id !== void 0) {
+      qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
+    }
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return this.request("GET", `/decisions/enforce${suffix}`, void 0, {
+      accountId: requestOpts.accountId
+    });
+  }
+  /** POST /usage/event — write a usage_events row from the client.
+   *  Server-side enforces an allowlist of event_types (today:
+   *  tool.guardrail, action.invoke, resolve.outcome, edit.activity,
+   *  resolve.delivery) and re-derives account_id and user_id from the auth
+   *  context so callers can't forge rows for other workspaces.
+   *  `opts.accountId` routes the write to a non-default account
+   *  (multi-account workspaces). */
+  async writeUsageEvent(input, opts = {}) {
+    return this.request("POST", "/usage/event", input, { accountId: opts.accountId });
+  }
+  /** Batched, idempotent editor-agent telemetry. This stream is deliberately
+   * separate from usage_events: it powers live sessions, subagent visibility,
+   * model analytics, and operational timelines without affecting metering. */
+  async writeAgentActivityBatch(events, opts = {}) {
+    return this.request("POST", "/agent/activity", { events }, opts);
+  }
+  /** GET /documents — list, filtered. */
+  async listDocuments(opts = {}, callOpts = {}) {
+    const qs = new URLSearchParams();
+    if (opts.kinds) for (const k of opts.kinds) qs.append("kind", k);
+    if (opts.scopes) for (const s of opts.scopes) qs.append("scope", s);
+    if (opts.statuses) for (const s of opts.statuses) qs.append("status", s);
+    if (opts.project_id !== void 0) {
+      qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
+    }
+    if (opts.has_trigger) qs.set("has_trigger", "true");
+    if (opts.path) qs.set("path", opts.path);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    const res = await this.request("GET", `/documents${suffix}`, void 0, { accountId: callOpts.accountId });
+    return res.documents.map((d) => {
+      const { status, ...rest } = d;
+      return status == null ? rest : { ...rest, status };
+    });
+  }
+  async deleteLightMemory(documentId, expectedVersion) {
+    await this.request(
+      "DELETE",
+      "/light/memory",
+      { document_id: documentId, expected_version: expectedVersion },
+      { maxRetries: 0, requestTimeoutMs: 5e3 }
+    );
+  }
+  async recordLightSync(projectId, status) {
+    await this.request(
+      "POST",
+      "/light/sync",
+      { project_id: projectId, status },
+      { maxRetries: 0, requestTimeoutMs: 1500 }
+    );
+  }
+  async lightStatus(accountId) {
+    try {
+      return (await this.request("GET", "/light", void 0, {
+        accountId,
+        requestTimeoutMs: 1500,
+        maxRetries: 0
+      })).light;
+    } catch (error) {
+      if (error.status === 404) return null;
+      throw error;
+    }
+  }
+  /** POST /documents — create or update a document. */
+  async writeDocument(input, callOpts = {}) {
+    return this.request("POST", "/documents", input, {
+      accountId: callOpts.accountId
+    });
+  }
+  /** Atomically compare-and-sync the server-owned project CONTRACT.md. */
+  async syncWorkspaceContract(input) {
+    return this.request("POST", "/workspace-contract/sync", input);
+  }
+  /** GET /documents/{id} — fetch one doc with body + metadata. */
+  async getDocument(documentId) {
+    return this.request("GET", `/documents/${encodeURIComponent(documentId)}`);
+  }
+  /** POST /documents/{id}/contract-verification — H12. Record a contract
+   *  check. Used by `memlin diff --record`. */
+  async recordContractVerification(documentId, body) {
+    return this.request(
+      "POST",
+      `/documents/${encodeURIComponent(documentId)}/contract-verification`,
+      body
+    );
+  }
+  /** GET /documents/{id}/versions — history. */
+  async listVersions(documentId) {
+    const res = await this.request(
+      "GET",
+      `/documents/${encodeURIComponent(documentId)}/versions`
+    );
+    return res.versions;
+  }
+  /** POST /documents/{id}/revert — non-destructive revert to an older version. */
+  async revertDocument(documentId, targetVersionId, commitMessage) {
+    const light = await this.lightStatus();
+    const expectedVersion = light?.active ? (await this.getDocument(documentId)).version_number : void 0;
+    const res = await this.request(
+      "POST",
+      `/documents/${encodeURIComponent(documentId)}/revert`,
+      {
+        target_version_id: targetVersionId,
+        expected_version: expectedVersion,
+        ...commitMessage ? { commit_message: commitMessage } : {}
+      }
+    );
+    return res.new_version_id;
+  }
+  /** GET /inbox — pending scribe proposals (newest first), plus recently
+   *  auto-activated correction rules (so the user can see what stuck + undo).
+   *  Pass `opts.accountId` to read a different account's inbox than the pinned
+   *  one (e.g. `memlin status` showing the resolver-effective account). */
+  async listInbox(opts = {}) {
+    return this.request("GET", "/inbox", void 0, { accountId: opts.accountId });
+  }
+  /** GET /insights — pending derived insights, including auto-memory proposals. */
+  async listInsights(params = {}, opts = {}) {
+    const search = new URLSearchParams();
+    if (params.kind) search.set("kind", params.kind);
+    if (params.status) search.set("status", params.status);
+    if (params.limit) search.set("limit", String(params.limit));
+    const qs = search.toString();
+    return this.request(
+      "GET",
+      `/insights${qs ? `?${qs}` : ""}`,
+      void 0,
+      { accountId: opts.accountId }
+    );
+  }
+  async resolveInsight(insightId, action) {
+    return this.request("POST", `/insights/${encodeURIComponent(insightId)}/resolve`, { action });
+  }
+  /** POST /inbox/{id} — accept or reject a proposal. */
+  async resolveProposal(proposalId, action) {
+    return this.request("POST", `/inbox/${encodeURIComponent(proposalId)}`, {
+      action
+    });
+  }
+  async listHandoffs(opts = {}, callOpts = {}) {
+    const qs = new URLSearchParams();
+    if (opts.project_id) qs.set("project_id", opts.project_id);
+    if (opts.target_agent_kind) qs.set("target_agent_kind", opts.target_agent_kind);
+    if (opts.target_session_id) qs.set("target_session_id", opts.target_session_id);
+    if (opts.target_session_id) qs.set("include_thoughts", "true");
+    if (opts.status) qs.set("status", opts.status);
+    if (opts.limit) qs.set("limit", String(opts.limit));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return this.request("GET", `/handoffs${suffix}`, void 0, {
+      accountId: callOpts.accountId
+    });
+  }
+  async updateHandoff(handoffId, action, opts = {}) {
+    return this.request(
+      "PATCH",
+      `/handoffs/${encodeURIComponent(handoffId)}`,
+      { action, ...opts.sessionId ? { target_session_id: opts.sessionId } : {} },
+      { accountId: opts.accountId }
+    );
+  }
+  async createHandoff(input) {
+    return this.request("POST", "/handoffs", input);
+  }
+  async listFeatures(opts = {}) {
+    const qs = new URLSearchParams();
+    if (opts.project_id) qs.set("project_id", opts.project_id);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return this.request("GET", `/features${suffix}`);
+  }
+  async createFeature(input) {
+    return this.request("POST", "/features", input);
+  }
+  async addFeatureMember(featureId, source) {
+    return this.request("POST", `/features/${featureId}/members`, { source });
+  }
+  /** POST /documents/search — semantic + text. */
+  async search(query, opts = {}) {
+    const res = await this.request("POST", "/documents/search", {
+      query,
+      ...opts
+    });
+    return res.hits;
+  }
+  /** GET /documents?q=... — fuzzy title/path lookup. Used by `memlin revert`. */
+  async findDocumentsByName(needle, limit = 10) {
+    const qs = new URLSearchParams({ q: needle, limit: String(limit) });
+    const res = await this.request("GET", `/documents?${qs.toString()}`);
+    return res.documents;
+  }
+  /**
+   * POST /resolve/v2 — one authenticated progressive NDJSON stream.
+   *
+   * A transport reset after the server claimed the id is recovered through
+   * GET replay, never by starting another POST with a fresh identity. Duplicate
+   * events from the replay are suppressed by phase.
+   */
+  async *resolveV2(args, opts = {}) {
+    const seen = /* @__PURE__ */ new Set();
+    let terminal = false;
+    let postError;
+    try {
+      const response = await this.openResolveV2Stream("POST", "/resolve/v2", args, opts);
+      for await (const event of this.readResolveV2Response(response)) {
+        if (event.resolve_id !== args.resolve_id || event.turn_id !== args.turn_id) {
+          throw new Error("Memlin progressive resolver returned an event for another turn");
+        }
+        if (event.type === "failed" && event.error?.code === "RESOLVE_V2_UNAVAILABLE" && !seen.has("hot") && !seen.has("full")) {
+          throw new MemlinApiError("POST /resolve/v2 \u2192 404: progressive resolve unavailable", 404);
+        }
+        if (event.type === "failed" && event.error?.code === "PENDING") continue;
+        if (!seen.has(event.type)) {
+          seen.add(event.type);
+          yield event;
+        }
+        if (event.type === "full" || event.type === "failed") terminal = true;
+      }
+    } catch (error) {
+      postError = error;
+    }
+    if (terminal) return;
+    if (opts.signal?.aborted) throw postError ?? opts.signal.reason;
+    if (postError instanceof MemlinApiError && (postError.status === 404 || postError.status === 405 || postError.status === 501)) {
+      throw postError;
+    }
+    const requestedDeadline = Date.parse(args.deadline_at);
+    const replayDeadline = Number.isFinite(requestedDeadline) ? requestedDeadline : Date.now() + (opts.requestTimeoutMs ?? this.cfg.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS);
+    const replayDelays = [50, 100, 200, 350, 500];
+    const replayIdentity = new URLSearchParams({
+      turn_id: args.turn_id,
+      session_id: args.session_id ?? ""
+    });
+    let replayError;
+    for (let attempt = 0; !terminal && Date.now() < replayDeadline; attempt += 1) {
+      if (opts.signal?.aborted) throw postError ?? opts.signal.reason;
+      try {
+        const response = await this.openResolveV2Stream(
+          "GET",
+          `/resolve/v2/${encodeURIComponent(args.resolve_id)}?${replayIdentity.toString()}`,
+          void 0,
+          {
+            ...opts,
+            requestTimeoutMs: Math.max(1, replayDeadline - Date.now())
+          }
+        );
+        for await (const event of this.readResolveV2Response(response)) {
+          if (event.resolve_id !== args.resolve_id || event.turn_id !== args.turn_id) {
+            throw new Error(
+              "Memlin progressive resolver replay returned an event for another turn"
+            );
+          }
+          if (event.type === "failed" && event.error?.code === "PENDING") continue;
+          if (!seen.has(event.type)) {
+            seen.add(event.type);
+            yield event;
+          }
+          if (event.type === "full" || event.type === "failed") terminal = true;
+        }
+        replayError = void 0;
+      } catch (error) {
+        replayError = error;
+        const retryable = !(error instanceof MemlinApiError) || error.status === 408 || error.status === 429 || error.status >= 500;
+        if (!retryable) {
+          if (seen.has("hot") || seen.has("full")) {
+            throw new Error(
+              "Memlin progressive resolver replay was rejected after resolution started"
+            );
+          }
+          throw postError ?? error;
+        }
+      }
+      if (terminal) return;
+      const remaining = replayDeadline - Date.now();
+      if (remaining <= 0) break;
+      await delayWithSignal(
+        Math.min(replayDelays[Math.min(attempt, replayDelays.length - 1)], remaining),
+        opts.signal
+      );
+    }
+    throw postError ?? replayError ?? new Error("Memlin progressive resolver did not reach a terminal phase before its deadline");
+  }
+  /** Read stored phases without starting a resolver operation. */
+  async *replayResolveV2(resolveId, expected, opts = {}) {
+    const identity = new URLSearchParams({
+      turn_id: expected.turn_id,
+      session_id: expected.session_id ?? ""
+    });
+    const response = await this.openResolveV2Stream(
+      "GET",
+      `/resolve/v2/${encodeURIComponent(resolveId)}?${identity.toString()}`,
+      void 0,
+      opts
+    );
+    for await (const event of this.readResolveV2Response(response)) {
+      if (event.resolve_id !== resolveId || event.turn_id !== expected.turn_id) {
+        throw new Error("Memlin progressive resolver replay returned an event for another turn");
+      }
+      yield event;
+    }
+  }
+  /** Hook-emitted delivery truth for a progressive resolve. The route accepts
+   * only this sanitized detail allowlist; prompts and source content never
+   * enter telemetry. */
+  async reportResolveV2Delivery(resolveId, input, opts = {}) {
+    return this.request("POST", `/resolve/v2/${encodeURIComponent(resolveId)}/delivery`, input, {
+      accountId: opts.accountId,
+      requestTimeoutMs: opts.requestTimeoutMs ?? 2e3,
+      signal: opts.signal,
+      agentKind: opts.agentKind,
+      agentVersion: opts.agentVersion
+    });
+  }
+  /**
+   * POST /resolve — the marquee context-assembly endpoint.
+   *
+   * `cwd` and `git_remote` let the server infer the caller's active component
+   * (when the project has any defined) and apply a soft +0.15 boost to
+   * docs tagged to that component. Both are optional; omitting them yields
+   * the same project-wide ranking we used pre-component-awareness.
+   */
+  async resolve(args, opts = {}) {
+    return this.request("POST", "/resolve", args, {
+      accountId: opts.accountId,
+      requestTimeoutMs: opts.requestTimeoutMs,
+      signal: opts.signal,
+      agentKind: opts.agentKind,
+      agentVersion: opts.agentVersion
+    });
+  }
+  /**
+   * GET /account — name/tier/kind for the current account.
+   *
+   * Pass `opts.accountId` to target an account other than the pinned one.
+   * `memlin status` uses this to show the resolver-effective account in a
+   * multi-account workspace, so the returned `id` and `name` always describe
+   * the same account (no global-default/pinned-name mismatch).
+   */
+  async getAccount(opts = {}) {
+    return this.request("GET", "/account", void 0, {
+      accountId: opts.accountId,
+      requestTimeoutMs: opts.requestTimeoutMs,
+      maxRetries: opts.maxRetries
+    });
+  }
+  /**
+   * POST /projects/resolve — server-side project resolution.
+   *
+   * Returns `account_id` when a project matches in any account the user
+   * has access to (via the JWT's memlin_account_ids claim) — not just the
+   * one pinned in config. Callers use the returned account_id to retarget
+   * the actual resolve / write call to the right backend.
+   */
+  async resolveProject(input) {
+    return this.request("POST", "/projects/resolve", input);
+  }
+  /** GET /account/enforce-done-deployed — the workspace done-deployed gate flag. */
+  async getEnforceDoneDeployed(opts = {}) {
+    return this.request("GET", "/account/enforce-done-deployed", void 0, opts);
+  }
+  /** PUT /account/enforce-done-deployed — owner/admin sets the workspace flag. */
+  async setEnforceDoneDeployed(enabled, opts = {}) {
+    return this.request("PUT", "/account/enforce-done-deployed", { enabled }, opts);
+  }
+  /**
+   * POST /deploy-guard — acquire, release, status, or queue the per-project
+   * deploy lease / waiter line.
+   *
+   * The PreToolUse deploy hook calls `acquire` before a raw deploy command
+   * runs; laptop ship scripts call acquire themselves and wait on collision.
+   * `queue` parks a waiter when acquire misses. `acquired: false` means
+   * another session already holds an active lease.
+   * project_id is passed explicitly — the hook resolves it from cwd first.
+   */
+  async deployGuard(input, opts = {}) {
+    return this.request("POST", "/deploy-guard", input, { accountId: opts.accountId });
+  }
+  /**
+   * POST /edit-guard — real-time, pre-edit file-collision check.
+   *
+   * The PreToolUse hook calls this before an Edit/Write/MultiEdit, passing the
+   * repo-relative path(s) about to change. The server reads the same
+   * `edit.activity` feed the resolver's recent_file_edits uses and returns any
+   * LIVE collisions — other sessions that edited the same path within the last
+   * ~10 min — so the hook can warn or block. Read-only; never mutates.
+   * project_id is passed explicitly (the hook resolves it from cwd first).
+   */
+  async editGuard(input, opts = {}) {
+    return this.request("POST", "/edit-guard", input, { accountId: opts.accountId });
+  }
+  /** Transactional edit broker. prepare acquires exact-path ownership or
+   * returns the first holder that still needs compatibility proof. */
+  async editBroker(input, opts = {}) {
+    return this.request("POST", "/edit-guard", input, { accountId: opts.accountId });
+  }
+  /** GET /audit/<id>/replay — reconstruct a past resolve's exact bundle. */
+  async replayAudit(auditId, opts = {}) {
+    return this.request("GET", `/audit/${auditId}/replay`, void 0, {
+      accountId: opts.accountId
+    });
+  }
+  /** GET /audit/<id>/explain — per-item decomposition of a past resolve's
+   *  ranking arithmetic (similarity, kind weight, component boost, rerank,
+   *  decay) plus human-readable reasons. The "homework, shown" companion
+   *  to /replay. */
+  async explainAudit(auditId) {
+    return this.request("GET", `/audit/${auditId}/explain`);
+  }
+  /** GET /actions — list approved actions in the workspace. Same shape
+   *  the memlin_actions_list MCP tool returns. */
+  async listActions(opts = {}) {
+    const q = [];
+    if (opts.filter) q.push(`filter=${encodeURIComponent(opts.filter)}`);
+    if (opts.limit !== void 0) q.push(`limit=${opts.limit}`);
+    const qs = q.length > 0 ? `?${q.join("&")}` : "";
+    const { actions } = await this.request("GET", `/actions${qs}`);
+    return actions;
+  }
+  /** POST /actions/<id>/execute — invoke a callable action by id with
+   *  validated input. Returns the result + audit_id. */
+  async executeAction(actionId, input) {
+    return this.request("POST", `/actions/${actionId}/execute`, { input });
+  }
+  /** POST /prompt-ci — run Prompt CI regression tests for a skill. */
+  async runPromptCi(skillId, content) {
+    return this.request("POST", "/prompt-ci", { skill_id: skillId, content });
+  }
+  /**
+   * POST /memory/propose — extract memory candidates from a recent agent
+   * turn and queue them for user accept/dismiss. Fire-and-forget from the
+   * Stop hook's perspective; the server runs a cheap Haiku extraction and
+   * silently no-ops if it finds nothing worth remembering.
+   */
+  async proposeMemory(input, opts = {}) {
+    return this.request("POST", "/memory/propose", input, { accountId: opts.accountId });
+  }
+  /**
+   * POST /scribe/diff — Phase 2 auto-capture from a single git commit.
+   *
+   * Called by the PostToolUse hook after the agent runs `git commit`.
+   * The server reads the commit message + diff, asks Haiku to extract
+   * any decision/memory/skill baked into the change, and persists the
+   * results. The server may activate or background captures automatically;
+   * only the post-processing `proposals_pending` subset needs inbox review.
+   */
+  async scribeDiff(input, opts = {}) {
+    return this.request("POST", "/scribe/diff", input, { accountId: opts.accountId });
+  }
+  /**
+   * POST /scribe/session — Phase 1 auto-capture from a Claude Code
+   * session transcript. Server slices the transcript (tail-biased
+   * when too large), runs Haiku extraction, persists proposals, and reports
+   * how many still need review after automatic handling.
+   *
+   * Triggered manually by /memlin-scribe today; an auto-triggered
+   * variant on Stop with a 15-min debounce is a fast follow-up.
+   */
+  async scribeSession(input, opts = {}) {
+    const light = await this.lightStatus(opts.accountId);
+    if (light?.active) {
+      const { readFile } = await import("node:fs/promises");
+      const { resolve } = await import("node:path");
+      const { findWorkspaceBinding: findWorkspaceBinding2 } = await Promise.resolve().then(() => (init_workspace_binding(), workspace_binding_exports));
+      const binding = await findWorkspaceBinding2(input.cwd ?? process.cwd());
+      let excluded = [];
+      try {
+        excluded = (await readFile(
+          resolve(binding?.workspaceRoot ?? input.cwd ?? process.cwd(), ".memlin/light-exclude"),
+          "utf8"
+        )).split(/\r?\n/).map((s) => s.trim()).filter((s) => s && !s.startsWith("#"));
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
+      if (lightCaptureExcluded(input.transcript, excluded))
+        return {
+          run_id: "",
+          proposals_extracted: 0,
+          proposals_persisted: 0,
+          proposals_pending: 0,
+          proposal_ids: [],
+          latency_ms: 0,
+          truncated: false
+        };
+      input = {
+        ...input,
+        transcript: boundLightText(redactLightTranscript(input.transcript), 5500)
+      };
+    }
+    return this.request("POST", "/scribe/session", input, {
+      accountId: opts.accountId,
+      ...light?.active ? { maxRetries: 0, requestTimeoutMs: 25e3 } : {}
+    });
+  }
+  /**
+   * POST /memory/ingest-native — ingest a host's native auto-memory.
+   *
+   * Sends the raw native MEMORY.md index (+ the satellite filenames the
+   * adapter already pulls) so the server parses it and runs the entries
+   * through the scribe dedup (corroborate, don't duplicate). Makes turning
+   * off native auto-memory lossless.
+   */
+  async ingestNativeMemory(input, opts = {}) {
+    const satellites = input.satellites ?? [];
+    if (satellites.length <= NATIVE_MEMORY_BATCH_SIZE) {
+      return this.request("POST", "/memory/ingest-native", input, {
+        accountId: opts.accountId,
+        requestTimeoutMs: NATIVE_MEMORY_REQUEST_TIMEOUT_MS
+      });
+    }
+    const satelliteFiles = [
+      .../* @__PURE__ */ new Set([
+        ...input.satellite_files ?? [],
+        ...satellites.map((satellite) => satellite.name)
+      ])
+    ];
+    const batches = [];
+    for (let offset = 0; offset < satellites.length; offset += NATIVE_MEMORY_BATCH_SIZE) {
+      batches.push(satellites.slice(offset, offset + NATIVE_MEMORY_BATCH_SIZE));
+    }
+    const results = [];
+    for (let offset = 0; offset < batches.length; offset += NATIVE_MEMORY_BATCH_CONCURRENCY) {
+      const group = batches.slice(offset, offset + NATIVE_MEMORY_BATCH_CONCURRENCY);
+      const settled = await Promise.allSettled(
+        group.map((batch, groupIndex) => {
+          const batchIndex = offset + groupIndex;
+          return this.request(
+            "POST",
+            "/memory/ingest-native",
+            {
+              ...input,
+              memory_index_md: batchIndex === 0 ? input.memory_index_md : NATIVE_MEMORY_BATCH_INDEX,
+              satellites: batch,
+              satellite_files: satelliteFiles
+            },
+            {
+              accountId: opts.accountId,
+              requestTimeoutMs: NATIVE_MEMORY_REQUEST_TIMEOUT_MS
+            }
+          );
+        })
+      );
+      const rejected = settled.find(
+        (result) => result.status === "rejected"
+      );
+      if (rejected) throw rejected.reason;
+      const groupResults = settled.filter(
+        (result) => result.status === "fulfilled"
+      ).map((result) => result.value);
+      results.push(...groupResults);
+      if (groupResults.some((result) => result.skipped)) break;
+    }
+    const sum = (key) => results.reduce((total, result) => {
+      const value = result[key];
+      return total + (typeof value === "number" ? value : 0);
+    }, 0);
+    const refused = results.find((result) => result.skipped);
+    return {
+      entries_parsed: sum("entries_parsed"),
+      satellites_received: sum("satellites_received"),
+      proposals_built: sum("proposals_built"),
+      run_id: results.find((result) => result.run_id)?.run_id ?? null,
+      proposals_persisted: sum("proposals_persisted"),
+      proposal_ids: results.flatMap((result) => result.proposal_ids),
+      proposals_corroborated: sum("proposals_corroborated"),
+      proposals_auto_promoted: sum("proposals_auto_promoted"),
+      proposals_auto_activated: sum("proposals_auto_activated"),
+      proposals_reconciled: sum("proposals_reconciled"),
+      ...refused ? { skipped: true, reason: refused.reason ?? "skipped" } : {}
+    };
+  }
+  /**
+   * POST /memory/remember — save one user-typed durable memory
+   * (/memlin-remember). Routes through the server-side scribe dedup, tagged
+   * as a provenance-verified directive so it activates immediately and can
+   * supersede the stale fact it corrects.
+   */
+  async rememberMemory(input, opts = {}) {
+    return this.request("POST", "/memory/remember", input, { accountId: opts.accountId });
+  }
+  /**
+   * POST /plans — upload a Claude Code plan as a first-class plan document.
+   *
+   * Server resolves project from cwd/git_remote (when not pinned), writes
+   * the document via writeDocument (auto-embedding), and inserts a
+   * companion plans row with status='drafted'. Returns the document_id
+   * + version metadata for downstream URL construction.
+   */
+  async pushPlan(input, opts = {}) {
+    return this.request("POST", "/plans", input, { accountId: opts.accountId });
+  }
+  /**
+   * GET /plans — list plans for the account, optionally filtered by
+   * `updated_after` (epoch ms) for cheap delta polling. Used by the
+   * UserPromptSubmit + SessionStart hooks to keep ~/.claude/plans/ in
+   * sync with the server.
+   */
+  async listPlans(opts = {}, callOpts = {}) {
+    const qs = new URLSearchParams();
+    if (opts.status) qs.set("status", opts.status);
+    if (opts.project_id !== void 0) {
+      qs.set("project_id", opts.project_id === null ? "null" : opts.project_id);
+    }
+    if (opts.updated_after) qs.set("updated_after", opts.updated_after);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    const res = await this.request(
+      "GET",
+      `/plans${suffix}`,
+      void 0,
+      { accountId: callOpts.accountId }
+    );
+    return res.plans;
+  }
+  /** GET /plans/<id> — full plan detail (status + body + bundle ref). */
+  async getPlan(id, opts = {}) {
+    return this.request("GET", `/plans/${encodeURIComponent(id)}`, void 0, {
+      accountId: opts.accountId
+    });
+  }
+  /**
+   * PATCH /plans/<id> — replace the plan's body (creates a new
+   * document_version, auto-embeds). Used by the PostToolUse hook to push
+   * Claude Code edits back up to Memlin.
+   */
+  async updatePlan(id, input, opts = {}) {
+    return this.request("PATCH", `/plans/${encodeURIComponent(id)}`, input, {
+      accountId: opts.accountId
+    });
+  }
+  /**
+   * POST /projects — create a project in the caller's current account.
+   * Used by `memlin init` to register a Claude Code workspace.
+   */
+  async createProject(input, opts = {}) {
+    return this.request("POST", "/projects", input, { accountId: opts.accountId });
+  }
+  /** Atomically create/select a project and register one or more logical
+   * local sources. Device paths are intentionally absent from this wire
+   * contract. */
+  async linkLocalSources(input, opts = {}) {
+    return this.request("POST", "/projects/local-link", input, { accountId: opts.accountId });
+  }
+  /**
+   * PATCH /projects/{id} — attach/detach local paths, set/clear the git
+   * remote, or rename. Owner/admin only; 409 when a path or remote is
+   * already attached to another project in the account. Backs
+   * `memlin attach-path` and add-project's attach-instead-of-fork offer.
+   */
+  async patchProject(projectId, input, opts = {}) {
+    return this.request("PATCH", `/projects/${encodeURIComponent(projectId)}`, input, {
+      accountId: opts.accountId
+    });
+  }
+  /** POST /decisions/{id}/verify — record an outcome on the decision
+   *  ledger. Verdicts surface on every future resolve of the decision. */
+  async verifyDecision(decisionId, input, opts = {}) {
+    return this.request("POST", `/decisions/${encodeURIComponent(decisionId)}/verify`, input, {
+      accountId: opts.accountId
+    });
+  }
+  /** GET /decisions/review-due — decisions whose review date arrived. */
+  async listReviewDueDecisions(opts = {}) {
+    const qs = opts.projectId ? `?project_id=${encodeURIComponent(opts.projectId)}` : "";
+    return this.request("GET", `/decisions/review-due${qs}`, void 0, {
+      accountId: opts.accountId
+    });
+  }
+  /**
+   * POST /ask — natural-language Q&A over the team's workspace memory.
+   * Server resolves a bundle, sends it to Claude, returns answer +
+   * citations + audit_id. Used by `memlin ask` CLI and the web /ask
+   * panel.
+   */
+  async ask(input, opts = {}) {
+    return this.request("POST", "/ask", input, { accountId: opts.accountId });
+  }
+  /** GET /projects — list every project in the current account. */
+  async listProjects(opts = {}) {
+    const res = await this.request("GET", "/projects", void 0, { accountId: opts.accountId });
+    return res.projects;
+  }
+};
+function resolveApiUrl() {
+  return process.env.MEMLIN_API_URL?.trim() || DEFAULT_API_URL;
+}
+
+// packages/plugin-core/src/client.ts
+init_workspace_binding();
+function globalConfigFilePath() {
+  return process.env.MEMLIN_CONFIG_FILE || path6.join(os5.homedir(), ".config", "memlin", "config.json");
+}
+var CONFIG_DIR = path6.join(os5.homedir(), ".config", "memlin");
+var TOKEN_FILE = path6.join(CONFIG_DIR, "token.json");
+async function readConfig() {
+  try {
+    const raw = await fs4.readFile(globalConfigFilePath(), "utf8");
+    const parsed = JSON.parse(raw);
+    if (typeof parsed.account_id !== "string" || !parsed.account_id.trim() || typeof parsed.user_id !== "string" || !parsed.user_id.trim() || typeof parsed.auth0_sub !== "string" || !parsed.auth0_sub.trim()) {
+      return null;
+    }
+    return {
+      api_url: typeof parsed.api_url === "string" && parsed.api_url.trim() ? parsed.api_url : DEFAULT_API_URL,
+      account_id: parsed.account_id,
+      user_id: parsed.user_id,
+      auth0_sub: parsed.auth0_sub,
+      project_id: typeof parsed.project_id === "string" || parsed.project_id === null ? parsed.project_id : null
+    };
+  } catch {
+    return null;
+  }
+}
+function accessTokenSubject(accessToken) {
+  try {
+    const subject = decodeJwtPayload(accessToken).sub;
+    return typeof subject === "string" && subject.length > 0 ? subject : null;
+  } catch {
+    return null;
+  }
+}
+function configMatchesAccessToken(config, accessToken) {
+  const subject = accessTokenSubject(accessToken);
+  return subject !== null && subject === config.auth0_sub;
+}
+async function getIdentityBoundAccessToken(config) {
+  const accessToken = await getValidAccessToken();
+  if (!configMatchesAccessToken(config, accessToken)) {
+    throw new Error("not signed in \u2014 saved Memlin account does not match the saved token");
+  }
+  return accessToken;
+}
+async function getApi(opts = {}) {
+  const config = await readConfig();
+  if (!config) return null;
+  try {
+    await getIdentityBoundAccessToken(config);
+  } catch {
+    return null;
+  }
+  const cwd = opts.cwd ?? process.cwd();
+  const overlay = await findWorkspaceBinding(cwd);
+  const { workspaceBound, workspaceRoot, workspaceAccountName } = applyWorkspaceOverlay(
+    config,
+    overlay
+  );
+  const apiUrl = process.env.MEMLIN_API_URL?.trim() || config.api_url || resolveApiUrl();
+  const api = new MemlinApiClient({
+    baseUrl: apiUrl,
+    getAccessToken: () => getIdentityBoundAccessToken(config),
+    accountId: config.account_id
+  });
+  return { api, config, workspaceBound, workspaceRoot, workspaceAccountName };
+}
+function applyWorkspaceOverlay(config, overlay) {
+  if (!overlay) return { workspaceBound: false, workspaceRoot: null, workspaceAccountName: null };
+  config.account_id = overlay.binding.account_id;
+  if (overlay.binding.project_id !== void 0) {
+    config.project_id = overlay.binding.project_id;
+  }
+  return {
+    workspaceBound: true,
+    workspaceRoot: overlay.workspaceRoot,
+    workspaceAccountName: overlay.binding.account_name ?? null
+  };
+}
+
+// packages/plugin-core/src/cli/cli-runner.ts
+var WATCHDOG_MS = 2e3;
+var CliExit = class extends Error {
+  constructor(code) {
+    super(`CliExit(${code})`);
+    this.code = code;
+    this.name = "CliExit";
+  }
+  code;
+};
+function exitCli(code) {
+  throw new CliExit(code);
+}
+function scheduleProcessExit(code) {
+  process.exitCode = code;
+  void closeHttpSockets();
+  setTimeout(() => process.exit(), WATCHDOG_MS).unref();
+}
+function runCliMain(main2, onError) {
+  main2().then(
+    (code) => scheduleProcessExit(typeof code === "number" ? code : 0),
+    (err) => {
+      if (err instanceof CliExit) {
+        scheduleProcessExit(err.code);
+        return;
+      }
+      let code;
+      try {
+        code = onError(err);
+      } catch (handlerErr) {
+        if (handlerErr instanceof CliExit) {
+          scheduleProcessExit(handlerErr.code);
+          return;
+        }
+        console.error("cli error handler failed:", handlerErr);
+        code = 1;
+      }
+      scheduleProcessExit(code);
+    }
+  );
+}
+
+// packages/plugin-core/src/project-resolver.ts
+import { execSync } from "node:child_process";
+import { existsSync, readdirSync } from "node:fs";
+import path7 from "node:path";
+init_workspace_binding();
+var WORKSPACE_ENV_VARS = [
+  // Claude Code exposes the original project dir to hooks/plugin commands.
+  "CLAUDE_PROJECT_DIR",
+  // Cursor/plugin shims and local tests can set this explicitly.
+  "CURSOR_WORKSPACE_ROOT",
+  "CURSOR_PROJECT_ROOT",
+  "MEMLIN_WORKSPACE_ROOT",
+  // npm/pnpm set INIT_CWD to the directory where the user invoked a script.
+  "INIT_CWD"
+];
+function runtimeCwd(fallback = process.cwd()) {
+  for (const name of WORKSPACE_ENV_VARS) {
+    const raw = process.env[name]?.trim();
+    if (raw && path7.isAbsolute(raw)) return path7.resolve(raw);
+  }
+  return path7.resolve(fallback);
+}
+async function resolveProject(api, cwd, configProjectId) {
+  const absCwd = path7.resolve(cwd);
+  const remotes = detectGitRemotes(cwd);
+  const hasGitRemote = remotes.length > 0;
+  let serverFailure;
+  try {
+    const result = await api.resolveProject({
+      // Primary remote (back-compat with the single-remote server path).
+      git_remote: remotes[0] ?? null,
+      // All detected remotes — for the workspace-root-of-repos case, this is
+      // every sibling repo so the server resolves to the owning project.
+      git_remotes: remotes,
+      cwd: absCwd
+    });
+    if (result.project_id) {
+      return {
+        project_id: result.project_id,
+        project_name: result.name,
+        account_id: result.account_id,
+        reason: result.reason === "none" ? "config" : result.reason,
+        hasGitRemote,
+        enforce_done_deployed: result.enforce_done_deployed
+      };
+    }
+  } catch (e) {
+    serverFailure = summarizeBackendFailure(e) ?? void 0;
+  }
+  if (configProjectId) {
+    const localBinding = await findWorkspaceBinding(absCwd).catch(() => null);
+    if (localBinding?.binding.project_id === configProjectId) {
+      return {
+        project_id: configProjectId,
+        project_name: null,
+        account_id: null,
+        reason: "config",
+        hasGitRemote,
+        server_failure: serverFailure
+      };
+    }
+  }
+  return {
+    project_id: null,
+    project_name: null,
+    account_id: null,
+    reason: "none",
+    hasGitRemote,
+    server_failure: serverFailure
+  };
+}
+function readGitRemote(cwd) {
+  try {
+    const url = execSync("git remote get-url origin", {
+      windowsHide: true,
+      cwd,
+      stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf8"
+    }).trim();
+    return normalizeGitRemote(url);
+  } catch {
+    return null;
+  }
+}
+var MAX_WORKSPACE_SCAN = 64;
+function detectGitRemotes(cwd) {
+  const enclosing = readGitRemote(cwd);
+  if (enclosing) return [enclosing];
+  const out = [];
+  try {
+    let scanned = 0;
+    for (const entry of readdirSync(cwd, { withFileTypes: true })) {
+      if (scanned >= MAX_WORKSPACE_SCAN) break;
+      if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") {
+        continue;
+      }
+      scanned++;
+      const child = path7.join(cwd, entry.name);
+      if (!existsSync(path7.join(child, ".git"))) continue;
+      const remote = readGitRemote(child);
+      if (remote && !out.includes(remote)) out.push(remote);
+    }
+  } catch {
+  }
+  return out;
+}
+
 // packages/plugin-core/src/native-memory.ts
+import { promises as fs5 } from "node:fs";
+import { existsSync as existsSync2, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import os6 from "node:os";
+import path8 from "node:path";
 function gitMainRoot(cwd) {
   try {
-    const common = execFileSync(
+    const common2 = execFileSync(
       "git",
       ["rev-parse", "--path-format=absolute", "--git-common-dir"],
       { windowsHide: true, cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
     ).trim();
-    return common ? path8.dirname(common) : null;
+    return common2 ? path8.dirname(common2) : null;
   } catch {
     return null;
   }
