@@ -10218,6 +10218,10 @@ var ThoughtAssistRequestV2Schema = external_exports.object({
   version: external_exports.literal(2),
   thought_id: Id,
   focus: external_exports.object({ kind: external_exports.enum(["thought", "resource"]), id: Id }).strict().optional(),
+  context: external_exports.object({
+    scope: external_exports.enum(["selected", "branch", "workspace"]),
+    resource_ids: external_exports.array(Id).max(8).refine((ids) => new Set(ids).size === ids.length, "duplicate resource")
+  }).strict().optional(),
   capability: external_exports.enum([
     "explore",
     "research",
@@ -10327,6 +10331,7 @@ var ResourceIngestEnvelopeV2Schema = external_exports.object({
   license: external_exports.string().trim().max(512).nullable().optional(),
   extractors: external_exports.array(external_exports.enum(["text", "ocr", "transcript", "keyframes", "structure"])).max(5),
   thought_id: Id.optional(),
+  root_thought_id: Id.optional(),
   position: Position.optional()
 }).strict().superRefine((x, ctx) => {
   const issue = (message) => ctx.addIssue({ code: "custom", message });
@@ -10337,6 +10342,7 @@ var ResourceIngestEnvelopeV2Schema = external_exports.object({
     issue("inline originals require text or markdown");
   if (x.home.scope === "project" !== (x.home.project_id !== null))
     issue("only a project home has a project ID");
+  if (x.root_thought_id && !x.thought_id) issue("workspace requires a selected Thought");
   if (x.position && !x.thought_id) issue("position requires a Thought");
   if (x.source.uri && !["http:", "https:"].includes(new URL(x.source.uri).protocol))
     issue("source URI must use HTTP or HTTPS");
@@ -10382,6 +10388,7 @@ var ThoughtAssistHistoryV2Schema = external_exports.object({
       id: Id,
       assist_run_id: Id.optional(),
       feedback_recorded: external_exports.boolean().optional(),
+      coverage: external_exports.enum(["complete", "partial", "unavailable"]).optional(),
       role: external_exports.enum(["user", "assistant"]),
       body: external_exports.string().min(1).max(2e4),
       citations: external_exports.array(external_exports.string().min(1).max(1024)).max(100)
@@ -10420,7 +10427,9 @@ var ThoughtResourcePreviewV2Schema = external_exports.object({
 var ThoughtPublicLinkWriteV2Schema = external_exports.discriminatedUnion("action", [
   external_exports.object({
     action: external_exports.literal("create"),
-    expires_in_days: external_exports.union([external_exports.literal(1), external_exports.literal(7), external_exports.literal(30)]).default(7)
+    expires_in_days: external_exports.union([external_exports.literal(1), external_exports.literal(7), external_exports.literal(30)]).default(7),
+    allow_template: external_exports.boolean().optional(),
+    preview_sha256: external_exports.string().regex(/^[0-9a-f]{64}$/).optional()
   }).strict(),
   external_exports.object({ action: external_exports.literal("revoke"), id: Id }).strict()
 ]);
@@ -10433,11 +10442,18 @@ var ThoughtPublicLinksV2Schema = external_exports.object({
       id: Id,
       created_at: Time,
       expires_at: Time.nullable(),
-      revoked_at: Time.nullable()
+      revoked_at: Time.nullable(),
+      allow_template: external_exports.boolean().optional()
     }).strict()
   )
 }).strict();
-var ThoughtDocumentCreateV2Schema = external_exports.object({ target: external_exports.enum(["todo", "goal"]), expected_revision: Revision, idempotency_key: Key }).strict();
+var ThoughtDocumentCreateV2Schema = external_exports.object({
+  target: external_exports.enum(["todo", "goal"]),
+  expected_revision: Revision,
+  idempotency_key: Key,
+  outcome: external_exports.string().trim().min(1).max(2e3).optional(),
+  completion_criteria: external_exports.array(external_exports.string().trim().min(1).max(500)).min(1).max(20).optional()
+}).strict();
 var ThoughtDocumentLinkV2Schema = external_exports.discriminatedUnion("action", [
   external_exports.object({ action: external_exports.literal("link"), document_id: Id }).strict(),
   external_exports.object({ action: external_exports.literal("unlink"), id: Id }).strict()
@@ -10491,6 +10507,9 @@ var ThoughtDocumentSearchV2Schema = external_exports.object({
 var ThoughtDecisionAcceptV2Schema = external_exports.object({
   expected_revision: external_exports.number().int().min(1),
   idempotency_key: external_exports.string().min(1).max(120),
+  chosen_direction: external_exports.string().trim().min(1).max(2e3).optional(),
+  rationale: external_exports.string().trim().min(1).max(6e3).optional(),
+  supersedes_document_id: Id.optional(),
   question_id: Id.optional(),
   question_revision: external_exports.number().int().min(1).optional()
 }).strict().refine(
@@ -10538,14 +10557,25 @@ var common = {
 };
 var revision = { comment_id: external_exports.string().uuid(), expected_revision: external_exports.number().int().positive() };
 var ThoughtDiscussionWriteV2Schema = external_exports.discriminatedUnion("action", [
-  external_exports.object({ ...common, action: external_exports.literal("create"), body: external_exports.string().trim().min(1).max(5e3) }).strict(),
+  external_exports.object({
+    ...common,
+    action: external_exports.literal("create"),
+    body: external_exports.string().trim().min(1).max(5e3),
+    parent_comment_id: external_exports.string().uuid().nullable().optional()
+  }).strict(),
   external_exports.object({
     ...common,
     ...revision,
     action: external_exports.literal("edit"),
     body: external_exports.string().trim().min(1).max(5e3)
   }).strict(),
-  external_exports.object({ ...common, ...revision, action: external_exports.literal("archive") }).strict()
+  external_exports.object({ ...common, ...revision, action: external_exports.literal("archive") }).strict(),
+  external_exports.object({
+    ...common,
+    ...revision,
+    action: external_exports.literal("resolve"),
+    resolved: external_exports.boolean()
+  }).strict()
 ]);
 var ThoughtDiscussionReceiptV2Schema = external_exports.object({
   comment_id: external_exports.string().uuid(),
@@ -10563,6 +10593,7 @@ var ThoughtDiscussionV2Schema = external_exports.object({
   comments: external_exports.array(
     external_exports.object({
       id: external_exports.string().uuid(),
+      parent_comment_id: external_exports.string().uuid().nullable(),
       body: external_exports.string(),
       revision: external_exports.number().int().positive(),
       created_by: external_exports.string().uuid(),
@@ -10570,7 +10601,17 @@ var ThoughtDiscussionV2Schema = external_exports.object({
       can_edit: external_exports.boolean(),
       created_at: external_exports.string(),
       updated_at: external_exports.string(),
-      edited_at: external_exports.string().nullable()
+      edited_at: external_exports.string().nullable(),
+      resolved_at: external_exports.string().nullable(),
+      revisions: external_exports.array(
+        external_exports.object({
+          revision: external_exports.number().int().positive(),
+          body: external_exports.string(),
+          authored_by: external_exports.string().uuid(),
+          author_name: external_exports.string(),
+          created_at: external_exports.string()
+        }).strict()
+      ).max(20)
     }).strict()
   ).max(50)
 }).strict();
@@ -10903,6 +10944,9 @@ var ThoughtHandoffReceiptV2Schema = external_exports.object({
   stale: external_exports.boolean(),
   replayed: external_exports.boolean().optional()
 }).passthrough();
+
+// packages/shared/dist/decision-prompt.js
+var encoder = new TextEncoder();
 
 // packages/plugin-core/src/memlin-api-client.ts
 import { readFileSync } from "node:fs";

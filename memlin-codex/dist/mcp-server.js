@@ -111,7 +111,7 @@ var require_code = __commonJS({
     }
     exports2._ = _2;
     var plus = new _Code("+");
-    function str4(strs, ...args) {
+    function str5(strs, ...args) {
       const expr = [safeStringify(strs[0])];
       let i2 = 0;
       while (i2 < args.length) {
@@ -122,7 +122,7 @@ var require_code = __commonJS({
       optimize(expr);
       return new _Code(expr);
     }
-    exports2.str = str4;
+    exports2.str = str5;
     function addCodeArg(code, arg) {
       if (arg instanceof _Code)
         code.push(...arg._items);
@@ -165,7 +165,7 @@ var require_code = __commonJS({
       return;
     }
     function strConcat(c1, c2) {
-      return c2.emptyStr() ? c1 : c1.emptyStr() ? c2 : str4`${c1}${c2}`;
+      return c2.emptyStr() ? c1 : c1.emptyStr() ? c2 : str5`${c1}${c2}`;
     }
     exports2.strConcat = strConcat;
     function interpolate(x2) {
@@ -1127,22 +1127,22 @@ var require_util = __commonJS({
       return (0, codegen_1._)`${topSchemaRef}${schemaPath}${(0, codegen_1.getProperty)(keyword)}`;
     }
     exports2.schemaRefOrVal = schemaRefOrVal;
-    function unescapeFragment(str4) {
-      return unescapeJsonPointer(decodeURIComponent(str4));
+    function unescapeFragment(str5) {
+      return unescapeJsonPointer(decodeURIComponent(str5));
     }
     exports2.unescapeFragment = unescapeFragment;
-    function escapeFragment(str4) {
-      return encodeURIComponent(escapeJsonPointer(str4));
+    function escapeFragment(str5) {
+      return encodeURIComponent(escapeJsonPointer(str5));
     }
     exports2.escapeFragment = escapeFragment;
-    function escapeJsonPointer(str4) {
-      if (typeof str4 == "number")
-        return `${str4}`;
-      return str4.replace(/~/g, "~0").replace(/\//g, "~1");
+    function escapeJsonPointer(str5) {
+      if (typeof str5 == "number")
+        return `${str5}`;
+      return str5.replace(/~/g, "~0").replace(/\//g, "~1");
     }
     exports2.escapeJsonPointer = escapeJsonPointer;
-    function unescapeJsonPointer(str4) {
-      return str4.replace(/~1/g, "/").replace(/~0/g, "~");
+    function unescapeJsonPointer(str5) {
+      return str5.replace(/~1/g, "/").replace(/~0/g, "~");
     }
     exports2.unescapeJsonPointer = unescapeJsonPointer;
     function eachItem(xs, f2) {
@@ -2167,8 +2167,8 @@ var require_json_schema_traverse = __commonJS({
         post2(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
       }
     }
-    function escapeJsonPtr(str4) {
-      return str4.replace(/~/g, "~0").replace(/\//g, "~1");
+    function escapeJsonPtr(str5) {
+      return str5.replace(/~/g, "~0").replace(/\//g, "~1");
     }
   }
 });
@@ -3232,10 +3232,10 @@ var require_utils = __commonJS({
         return { host, isIPV6: false };
       }
     }
-    function findToken(str4, token) {
+    function findToken(str5, token) {
       let ind = 0;
-      for (let i2 = 0; i2 < str4.length; i2++) {
-        if (str4[i2] === token) ind++;
+      for (let i2 = 0; i2 < str5.length; i2++) {
+        if (str5[i2] === token) ind++;
       }
       return ind;
     }
@@ -3972,7 +3972,7 @@ var require_core = __commonJS({
     var util_1 = require_util();
     var $dataRefSchema = require_data();
     var uri_1 = require_uri();
-    var defaultRegExp = (str4, flags) => new RegExp(str4, flags);
+    var defaultRegExp = (str5, flags) => new RegExp(str5, flags);
     defaultRegExp.code = "new RegExp";
     var META_IGNORE_OPTIONS = ["removeAdditional", "useDefaults", "coerceTypes"];
     var EXT_SCOPE_NAMES = /* @__PURE__ */ new Set([
@@ -4767,16 +4767,16 @@ var require_ucs2length = __commonJS({
   "node_modules/.pnpm/ajv@8.20.0/node_modules/ajv/dist/runtime/ucs2length.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    function ucs2length(str4) {
-      const len = str4.length;
+    function ucs2length(str5) {
+      const len = str5.length;
       let length = 0;
       let pos = 0;
       let value;
       while (pos < len) {
         length++;
-        value = str4.charCodeAt(pos++);
+        value = str5.charCodeAt(pos++);
         if (value >= 55296 && value <= 56319 && pos < len) {
-          value = str4.charCodeAt(pos);
+          value = str5.charCodeAt(pos);
           if ((value & 64512) === 56320)
             pos++;
         }
@@ -6659,8 +6659,8 @@ var require_formats = __commonJS({
     }
     var DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
     var DAYS = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    function date3(str4) {
-      const matches = DATE.exec(str4);
+    function date3(str5) {
+      const matches = DATE.exec(str5);
       if (!matches)
         return false;
       const year = +matches[1];
@@ -6679,8 +6679,8 @@ var require_formats = __commonJS({
     }
     var TIME = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(z|([+-])(\d\d)(?::?(\d\d))?)?$/i;
     function getTime(strictTimeZone) {
-      return function time3(str4) {
-        const matches = TIME.exec(str4);
+      return function time3(str5) {
+        const matches = TIME.exec(str5);
         if (!matches)
           return false;
         const hr2 = +matches[1];
@@ -6726,8 +6726,8 @@ var require_formats = __commonJS({
     var DATE_TIME_SEPARATOR = /t|\s/i;
     function getDateTime(strictTimeZone) {
       const time3 = getTime(strictTimeZone);
-      return function date_time(str4) {
-        const dateTime = str4.split(DATE_TIME_SEPARATOR);
+      return function date_time(str5) {
+        const dateTime = str5.split(DATE_TIME_SEPARATOR);
         return dateTime.length === 2 && date3(dateTime[0]) && time3(dateTime[1]);
       };
     }
@@ -6752,13 +6752,13 @@ var require_formats = __commonJS({
     }
     var NOT_URI_FRAGMENT = /\/|:/;
     var URI = /^(?:[a-z][a-z0-9+\-.]*:)(?:\/?\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:]|%[0-9a-f]{2})*@)?(?:\[(?:(?:(?:(?:[0-9a-f]{1,4}:){6}|::(?:[0-9a-f]{1,4}:){5}|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}|(?:(?:[0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::)(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|[Vv][0-9a-f]+\.[a-z0-9\-._~!$&'()*+,;=:]+)\]|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)|(?:[a-z0-9\-._~!$&'()*+,;=]|%[0-9a-f]{2})*)(?::\d*)?(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*|\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)?|(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)(?:\?(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?(?:#(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?$/i;
-    function uri(str4) {
-      return NOT_URI_FRAGMENT.test(str4) && URI.test(str4);
+    function uri(str5) {
+      return NOT_URI_FRAGMENT.test(str5) && URI.test(str5);
     }
     var BYTE = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/gm;
-    function byte(str4) {
+    function byte(str5) {
       BYTE.lastIndex = 0;
-      return BYTE.test(str4);
+      return BYTE.test(str5);
     }
     var MIN_INT32 = -(2 ** 31);
     var MAX_INT32 = 2 ** 31 - 1;
@@ -6772,11 +6772,11 @@ var require_formats = __commonJS({
       return true;
     }
     var Z_ANCHOR = /[^\\]\\Z/;
-    function regex(str4) {
-      if (Z_ANCHOR.test(str4))
+    function regex(str5) {
+      if (Z_ANCHOR.test(str5))
         return false;
       try {
-        new RegExp(str4);
+        new RegExp(str5);
         return true;
       } catch (e2) {
         return false;
@@ -8027,8 +8027,8 @@ var require_serializer = __commonJS({
       _encodeJsonUserBroadcastPush(message) {
         var _a2, _b;
         const userPayload = (_b = (_a2 = message.payload) === null || _a2 === void 0 ? void 0 : _a2.payload) !== null && _b !== void 0 ? _b : {};
-        const encoder = new TextEncoder();
-        const encodedUserPayload = encoder.encode(JSON.stringify(userPayload)).buffer;
+        const encoder2 = new TextEncoder();
+        const encodedUserPayload = encoder2.encode(JSON.stringify(userPayload)).buffer;
         return this._encodeUserBroadcastPush(message, this.JSON_ENCODING, encodedUserPayload);
       }
       _encodeUserBroadcastPush(message, encodingType, encodedPayload) {
@@ -8411,8 +8411,8 @@ var require_phoenix_cjs = __commonJS({
        * @param {() => Record<string, unknown>} payload - The payload, for example `{user_id: 123}`
        * @param {number} timeout - The push timeout in milliseconds
        */
-      constructor(channel, event, payload, timeout2) {
-        this.channel = channel;
+      constructor(channel2, event, payload, timeout2) {
+        this.channel = channel2;
         this.event = event;
         this.payload = payload || function() {
           return {};
@@ -9132,12 +9132,12 @@ var require_phoenix_cjs = __commonJS({
        * @param {Channel} channel - The Channel
        * @param {PresenceOptions} [opts] - The options, for example `{events: {state: "state", diff: "diff"}}`
        */
-      constructor(channel, opts = {}) {
+      constructor(channel2, opts = {}) {
         let events = opts.events || /** @type {PresenceEvents} */
         { state: "presence_state", diff: "presence_diff" };
         this.state = {};
         this.pendingDiffs = [];
-        this.channel = channel;
+        this.channel = channel2;
         this.joinRef = null;
         this.caller = {
           onJoin: function() {
@@ -9944,9 +9944,9 @@ var require_phoenix_cjs = __commonJS({
        * @param {unknown} [reason] underlying close/error event forwarded to channel error listeners
        */
       triggerChanError(reason) {
-        this.channels.forEach((channel) => {
-          if (!(channel.isErrored() || channel.isLeaving() || channel.isClosed())) {
-            channel.trigger(CHANNEL_EVENTS.error, reason);
+        this.channels.forEach((channel2) => {
+          if (!(channel2.isErrored() || channel2.isLeaving() || channel2.isClosed())) {
+            channel2.trigger(CHANNEL_EVENTS.error, reason);
           }
         });
       }
@@ -9975,9 +9975,9 @@ var require_phoenix_cjs = __commonJS({
        *
        * @param {Channel} channel
        */
-      remove(channel) {
-        this.off(channel.stateChangeRefs);
-        this.channels = this.channels.filter((c2) => c2 !== channel);
+      remove(channel2) {
+        this.off(channel2.stateChangeRefs);
+        this.channels = this.channels.filter((c2) => c2 !== channel2);
       }
       /**
        * Removes `onOpen`, `onClose`, `onError,` and `onMessage` registrations.
@@ -10082,11 +10082,11 @@ var require_phoenix_cjs = __commonJS({
           }
           if (this.hasLogger()) this.log("receive", `${payload.status || ""} ${topic} ${event} ${ref && "(" + ref + ")" || ""}`.trim(), payload);
           for (let i2 = 0; i2 < this.channels.length; i2++) {
-            const channel = this.channels[i2];
-            if (!channel.isMember(topic, event, payload, join_ref)) {
+            const channel2 = this.channels[i2];
+            if (!channel2.isMember(topic, event, payload, join_ref)) {
               continue;
             }
-            channel.trigger(event, payload, ref, join_ref);
+            channel2.trigger(event, payload, ref, join_ref);
           }
           this.triggerStateCallbacks("message", msg);
         });
@@ -10129,19 +10129,19 @@ var require_presenceAdapter = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     var phoenix_1 = require_phoenix_cjs();
     var PresenceAdapter = class _PresenceAdapter {
-      constructor(channel, opts) {
+      constructor(channel2, opts) {
         const phoenixOptions = phoenixPresenceOptions(opts);
-        this.presence = new phoenix_1.Presence(channel.getChannel(), phoenixOptions);
+        this.presence = new phoenix_1.Presence(channel2.getChannel(), phoenixOptions);
         this.presence.onJoin((key2, currentPresence, newPresence) => {
           const onJoinPayload = _PresenceAdapter.onJoinPayload(key2, currentPresence, newPresence);
-          channel.getChannel().trigger("presence", onJoinPayload);
+          channel2.getChannel().trigger("presence", onJoinPayload);
         });
         this.presence.onLeave((key2, currentPresence, leftPresence) => {
           const onLeavePayload = _PresenceAdapter.onLeavePayload(key2, currentPresence, leftPresence);
-          channel.getChannel().trigger("presence", onLeavePayload);
+          channel2.getChannel().trigger("presence", onLeavePayload);
         });
         this.presence.onSync(() => {
-          channel.getChannel().trigger("presence", { event: "sync" });
+          channel2.getChannel().trigger("presence", { event: "sync" });
         });
       }
       get state() {
@@ -10255,8 +10255,8 @@ var require_RealtimePresence = __commonJS({
        * })
        * ```
        */
-      constructor(channel, opts) {
-        this.channel = channel;
+      constructor(channel2, opts) {
+        this.channel = channel2;
         this.presenceAdapter = new presenceAdapter_1.default(this.channel.channelAdapter, opts);
       }
     };
@@ -11465,10 +11465,10 @@ Option 2: Install and provide the "ws" package:
        *
        * @category Realtime
        */
-      async removeChannel(channel) {
-        const status = await channel.unsubscribe();
+      async removeChannel(channel2) {
+        const status = await channel2.unsubscribe();
         if (status === "ok") {
-          channel.teardown();
+          channel2.teardown();
         }
         return status;
       }
@@ -11478,9 +11478,9 @@ Option 2: Install and provide the "ws" package:
        * @category Realtime
        */
       async removeAllChannels() {
-        const promises = this.channels.map(async (channel) => {
-          const result2 = await channel.unsubscribe();
-          channel.teardown();
+        const promises = this.channels.map(async (channel2) => {
+          const result2 = await channel2.unsubscribe();
+          channel2.teardown();
           return result2;
         });
         const result = await Promise.all(promises);
@@ -11630,8 +11630,8 @@ Option 2: Install and provide the "ws" package:
        *
        * @internal
        */
-      _remove(channel) {
-        this.channels = this.channels.filter((c2) => c2.topic !== channel.topic);
+      _remove(channel2) {
+        this.channels = this.channels.filter((c2) => c2.topic !== channel2.topic);
         if (this.channels.length === 0) {
           this.log("transport", "no channels remaining, scheduling disconnect");
           this._schedulePendingDisconnect();
@@ -11689,14 +11689,14 @@ Option 2: Install and provide the "ws" package:
         }
         if (this.accessTokenValue != tokenToSend) {
           this.accessTokenValue = tokenToSend;
-          this.channels.forEach((channel) => {
+          this.channels.forEach((channel2) => {
             const payload = {
               access_token: tokenToSend,
               version: constants_1.DEFAULT_VERSION
             };
-            tokenToSend && channel.updateJoinPayload(payload);
-            if (channel.joinedOnce && channel.channelAdapter.isJoined()) {
-              channel.channelAdapter.push(constants_1.CHANNEL_EVENTS.access_token, {
+            tokenToSend && channel2.updateJoinPayload(payload);
+            if (channel2.joinedOnce && channel2.channelAdapter.isJoined()) {
+              channel2.channelAdapter.push(constants_1.CHANNEL_EVENTS.access_token, {
                 access_token: tokenToSend
               });
             }
@@ -12160,19 +12160,19 @@ var require_base64url = __commonJS({
         throw new Error(`Invalid Base64-URL character "${String.fromCharCode(charCode)}"`);
       }
     }
-    function stringToBase64URL(str4) {
+    function stringToBase64URL(str5) {
       const base642 = [];
       const emitter = (char) => {
         base642.push(char);
       };
       const state = { queue: 0, queuedBits: 0 };
-      stringToUTF8(str4, (byte) => {
+      stringToUTF8(str5, (byte) => {
         byteToBase64URL(byte, state, emitter);
       });
       byteToBase64URL(null, state, emitter);
       return base642.join("");
     }
-    function stringFromBase64URL(str4) {
+    function stringFromBase64URL(str5) {
       const conv = [];
       const utf8Emit = (codepoint) => {
         conv.push(String.fromCodePoint(codepoint));
@@ -12185,8 +12185,8 @@ var require_base64url = __commonJS({
       const byteEmit = (byte) => {
         stringFromUTF8(byte, utf8State, utf8Emit);
       };
-      for (let i2 = 0; i2 < str4.length; i2 += 1) {
-        byteFromBase64URL(str4.charCodeAt(i2), b64State, byteEmit);
+      for (let i2 = 0; i2 < str5.length; i2 += 1) {
+        byteFromBase64URL(str5.charCodeAt(i2), b64State, byteEmit);
       }
       return conv.join("");
     }
@@ -12212,12 +12212,12 @@ var require_base64url = __commonJS({
       }
       throw new Error(`Unrecognized Unicode codepoint: ${codepoint.toString(16)}`);
     }
-    function stringToUTF8(str4, emit) {
-      for (let i2 = 0; i2 < str4.length; i2 += 1) {
-        let codepoint = str4.charCodeAt(i2);
+    function stringToUTF8(str5, emit) {
+      for (let i2 = 0; i2 < str5.length; i2 += 1) {
+        let codepoint = str5.charCodeAt(i2);
         if (codepoint > 55295 && codepoint <= 56319) {
           const highSurrogate = (codepoint - 55296) * 1024 & 65535;
-          const lowSurrogate = str4.charCodeAt(i2 + 1) - 56320 & 65535;
+          const lowSurrogate = str5.charCodeAt(i2 + 1) - 56320 & 65535;
           codepoint = (lowSurrogate | highSurrogate) + 65536;
           i2 += 1;
         }
@@ -12257,20 +12257,20 @@ var require_base64url = __commonJS({
         }
       }
     }
-    function base64UrlToUint8Array(str4) {
+    function base64UrlToUint8Array(str5) {
       const result = [];
       const state = { queue: 0, queuedBits: 0 };
       const onByte = (byte) => {
         result.push(byte);
       };
-      for (let i2 = 0; i2 < str4.length; i2 += 1) {
-        byteFromBase64URL(str4.charCodeAt(i2), state, onByte);
+      for (let i2 = 0; i2 < str5.length; i2 += 1) {
+        byteFromBase64URL(str5.charCodeAt(i2), state, onByte);
       }
       return new Uint8Array(result);
     }
-    function stringToUint8Array(str4) {
+    function stringToUint8Array(str5) {
       const result = [];
-      stringToUTF8(str4, (byte) => result.push(byte));
+      stringToUTF8(str5, (byte) => result.push(byte));
       return new Uint8Array(result);
     }
     function bytesToBase64URL(bytes) {
@@ -12480,8 +12480,8 @@ var require_helpers = __commonJS({
       return Array.from(array2, dec2hex).join("");
     }
     async function sha256(randomString2) {
-      const encoder = new TextEncoder();
-      const encodedData = encoder.encode(randomString2);
+      const encoder2 = new TextEncoder();
+      const encodedData = encoder2.encode(randomString2);
       const hash2 = await crypto.subtle.digest("SHA-256", encodedData);
       const bytes = new Uint8Array(hash2);
       return Array.from(bytes).map((c2) => String.fromCharCode(c2)).join("");
@@ -12549,8 +12549,8 @@ var require_helpers = __commonJS({
       }
     }
     var UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-    function validateUUID(str4) {
-      if (!UUID_REGEX.test(str4)) {
+    function validateUUID(str5) {
+      if (!UUID_REGEX.test(str5)) {
         throw new Error("@supabase/auth-js: Expected parameter to be UUID but is not");
       }
     }
@@ -22542,11 +22542,11 @@ var require_dumper = __commonJS({
     function generateNextLine(state, level) {
       return "\n" + common2.repeat(" ", state.indent * level);
     }
-    function testImplicitResolving(state, str4) {
+    function testImplicitResolving(state, str5) {
       var index, length, type;
       for (index = 0, length = state.implicitTypes.length; index < length; index += 1) {
         type = state.implicitTypes[index];
-        if (type.resolve(str4)) {
+        if (type.resolve(str5)) {
           return true;
         }
       }
@@ -23034,11 +23034,11 @@ var require_engines = __commonJS({
 var require_strip_bom_string = __commonJS({
   "node_modules/.pnpm/strip-bom-string@1.0.0/node_modules/strip-bom-string/index.js"(exports2, module2) {
     "use strict";
-    module2.exports = function(str4) {
-      if (typeof str4 === "string" && str4.charAt(0) === "\uFEFF") {
-        return str4.slice(1);
+    module2.exports = function(str5) {
+      if (typeof str5 === "string" && str5.charAt(0) === "\uFEFF") {
+        return str5.slice(1);
       }
-      return str4;
+      return str5;
     };
   }
 });
@@ -23076,9 +23076,9 @@ var require_utils2 = __commonJS({
     exports2.arrayify = function(val) {
       return val ? Array.isArray(val) ? val : [val] : [];
     };
-    exports2.startsWith = function(str4, substr, len) {
+    exports2.startsWith = function(str5, substr, len) {
       if (typeof len !== "number") len = substr.length;
-      return str4.slice(0, len) === substr;
+      return str5.slice(0, len) === substr;
     };
   }
 });
@@ -23157,7 +23157,7 @@ var require_stringify = __commonJS({
           }
         }
       }
-      const str4 = file.content;
+      const str5 = file.content;
       const opts = defaults2(options2);
       if (data == null) {
         if (!opts.data) return file;
@@ -23177,14 +23177,14 @@ var require_stringify = __commonJS({
         buf = newline(open) + newline(matter3) + newline(close);
       }
       if (typeof file.excerpt === "string" && file.excerpt !== "") {
-        if (str4.indexOf(file.excerpt.trim()) === -1) {
+        if (str5.indexOf(file.excerpt.trim()) === -1) {
           buf += newline(file.excerpt) + newline(close);
         }
       }
-      return buf + newline(str4);
+      return buf + newline(str5);
     };
-    function newline(str4) {
-      return str4.slice(-1) !== "\n" ? str4 + "\n" : str4;
+    function newline(str5) {
+      return str5.slice(-1) !== "\n" ? str5 + "\n" : str5;
     }
   }
 });
@@ -23256,13 +23256,13 @@ var require_parse = __commonJS({
     "use strict";
     var getEngine = require_engine();
     var defaults2 = require_defaults2();
-    module2.exports = function(language, str4, options2) {
+    module2.exports = function(language, str5, options2) {
       const opts = defaults2(options2);
       const engine = getEngine(language, opts);
       if (typeof engine.parse !== "function") {
         throw new TypeError('expected "' + language + '.parse" to be a function');
       }
-      return engine.parse(str4, opts);
+      return engine.parse(str5, opts);
     };
   }
 });
@@ -23300,30 +23300,30 @@ var require_gray_matter = __commonJS({
       const opts = defaults2(options2);
       const open = opts.delimiters[0];
       const close = "\n" + opts.delimiters[1];
-      let str4 = file.content;
+      let str5 = file.content;
       if (opts.language) {
         file.language = opts.language;
       }
       const openLen = open.length;
-      if (!utils.startsWith(str4, open, openLen)) {
+      if (!utils.startsWith(str5, open, openLen)) {
         excerpt(file, opts);
         return file;
       }
-      if (str4.charAt(openLen) === open.slice(-1)) {
+      if (str5.charAt(openLen) === open.slice(-1)) {
         return file;
       }
-      str4 = str4.slice(openLen);
-      const len = str4.length;
-      const language = matter3.language(str4, opts);
+      str5 = str5.slice(openLen);
+      const len = str5.length;
+      const language = matter3.language(str5, opts);
       if (language.name) {
         file.language = language.name;
-        str4 = str4.slice(language.raw.length);
+        str5 = str5.slice(language.raw.length);
       }
-      let closeIndex = str4.indexOf(close);
+      let closeIndex = str5.indexOf(close);
       if (closeIndex === -1) {
         closeIndex = len;
       }
-      file.matter = str4.slice(0, closeIndex);
+      file.matter = str5.slice(0, closeIndex);
       const block = file.matter.replace(/^\s*#[^\n]+/gm, "").trim();
       if (block === "") {
         file.isEmpty = true;
@@ -23335,7 +23335,7 @@ var require_gray_matter = __commonJS({
       if (closeIndex === len) {
         file.content = "";
       } else {
-        file.content = str4.slice(closeIndex + close.length);
+        file.content = str5.slice(closeIndex + close.length);
         if (file.content[0] === "\r") {
           file.content = file.content.slice(1);
         }
@@ -23355,21 +23355,21 @@ var require_gray_matter = __commonJS({
       return stringify2(file, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str4 = fs9.readFileSync(filepath, "utf8");
-      const file = matter3(str4, options2);
+      const str5 = fs9.readFileSync(filepath, "utf8");
+      const file = matter3(str5, options2);
       file.path = filepath;
       return file;
     };
-    matter3.test = function(str4, options2) {
-      return utils.startsWith(str4, defaults2(options2).delimiters[0]);
+    matter3.test = function(str5, options2) {
+      return utils.startsWith(str5, defaults2(options2).delimiters[0]);
     };
-    matter3.language = function(str4, options2) {
+    matter3.language = function(str5, options2) {
       const opts = defaults2(options2);
       const open = opts.delimiters[0];
-      if (matter3.test(str4)) {
-        str4 = str4.slice(open.length);
+      if (matter3.test(str5)) {
+        str5 = str5.slice(open.length);
       }
-      const language = str4.slice(0, str4.search(/\r?\n/));
+      const language = str5.slice(0, str5.search(/\r?\n/));
       return {
         raw: language,
         name: language ? language.trim() : ""
@@ -23574,8 +23574,8 @@ var require_tr46 = __commonJS({
       TRANSITIONAL: 0,
       NONTRANSITIONAL: 1
     };
-    function normalize(str4) {
-      return str4.split("\0").map(function(s2) {
+    function normalize(str5) {
+      return str5.split("\0").map(function(s2) {
         return s2.normalize("NFC");
       }).join("\0");
     }
@@ -23741,8 +23741,8 @@ var require_url_state_machine = __commonJS({
       wss: 443
     };
     var failure = /* @__PURE__ */ Symbol("failure");
-    function countSymbols(str4) {
-      return punycode.ucs2.decode(str4).length;
+    function countSymbols(str5) {
+      return punycode.ucs2.decode(str5).length;
     }
     function at2(input, idx) {
       const c2 = input[idx];
@@ -23800,14 +23800,14 @@ var require_url_state_machine = __commonJS({
     }
     function utf8PercentEncode(c2) {
       const buf = new Buffer(c2);
-      let str4 = "";
+      let str5 = "";
       for (let i2 = 0; i2 < buf.length; ++i2) {
-        str4 += percentEncode(buf[i2]);
+        str5 += percentEncode(buf[i2]);
       }
-      return str4;
+      return str5;
     }
-    function utf8PercentDecode(str4) {
-      const input = new Buffer(str4);
+    function utf8PercentDecode(str5) {
+      const input = new Buffer(str5);
       const output = [];
       for (let i2 = 0; i2 < input.length; ++i2) {
         if (input[i2] !== 37) {
@@ -25489,18 +25489,18 @@ var require_lib2 = __commonJS({
       }
       const ct2 = headers.get("content-type");
       let charset = "utf-8";
-      let res, str4;
+      let res, str5;
       if (ct2) {
         res = /charset=([^;]*)/i.exec(ct2);
       }
-      str4 = buffer.slice(0, 1024).toString();
-      if (!res && str4) {
-        res = /<meta.+?charset=(['"])(.+?)\1/i.exec(str4);
+      str5 = buffer.slice(0, 1024).toString();
+      if (!res && str5) {
+        res = /<meta.+?charset=(['"])(.+?)\1/i.exec(str5);
       }
-      if (!res && str4) {
-        res = /<meta[\s]+?http-equiv=(['"])content-type\1[\s]+?content=(['"])(.+?)\2/i.exec(str4);
+      if (!res && str5) {
+        res = /<meta[\s]+?http-equiv=(['"])content-type\1[\s]+?content=(['"])(.+?)\2/i.exec(str5);
         if (!res) {
-          res = /<meta[\s]+?content=(['"])(.+?)\1[\s]+?http-equiv=(['"])content-type\3/i.exec(str4);
+          res = /<meta[\s]+?content=(['"])(.+?)\1[\s]+?http-equiv=(['"])content-type\3/i.exec(str5);
           if (res) {
             res.pop();
           }
@@ -25509,8 +25509,8 @@ var require_lib2 = __commonJS({
           res = /charset=(.*)/i.exec(res.pop());
         }
       }
-      if (!res && str4) {
-        res = /<\?xml.+?encoding=(['"])(.+?)\1/i.exec(str4);
+      if (!res && str5) {
+        res = /<\?xml.+?encoding=(['"])(.+?)\1/i.exec(str5);
       }
       if (res) {
         charset = res.pop();
@@ -28315,7 +28315,7 @@ var init_Blob = __esm({
         if (typeof options2 !== "object" && !isFunction(options2)) {
           throw new TypeError("Failed to construct 'Blob': parameter 2 cannot convert to dictionary.");
         }
-        const encoder = new TextEncoder();
+        const encoder2 = new TextEncoder();
         for (const raw of blobParts) {
           let part;
           if (ArrayBuffer.isView(raw)) {
@@ -28325,7 +28325,7 @@ var init_Blob = __esm({
           } else if (raw instanceof _Blob) {
             part = raw;
           } else {
-            part = encoder.encode(String(raw));
+            part = encoder2.encode(String(raw));
           }
           __classPrivateFieldSet2(this, _Blob_size, __classPrivateFieldGet2(this, _Blob_size, "f") + (ArrayBuffer.isView(part) ? part.byteLength : part.size), "f");
           __classPrivateFieldGet2(this, _Blob_parts, "f").push(part);
@@ -28474,13 +28474,13 @@ var require_ms = __commonJS({
         "val is not a non-empty string or a valid number. val=" + JSON.stringify(val)
       );
     };
-    function parse4(str4) {
-      str4 = String(str4);
-      if (str4.length > 100) {
+    function parse4(str5) {
+      str5 = String(str5);
+      if (str5.length > 100) {
         return;
       }
       var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
-        str4
+        str5
       );
       if (!match) {
         return;
@@ -36089,14 +36089,14 @@ function promiseAllObject(promisesObj) {
 }
 function randomString(length = 10) {
   const chars = "abcdefghijklmnopqrstuvwxyz";
-  let str4 = "";
+  let str5 = "";
   for (let i2 = 0; i2 < length; i2++) {
-    str4 += chars[Math.floor(Math.random() * chars.length)];
+    str5 += chars[Math.floor(Math.random() * chars.length)];
   }
-  return str4;
+  return str5;
 }
-function esc(str4) {
-  return JSON.stringify(str4);
+function esc(str5) {
+  return JSON.stringify(str5);
 }
 var captureStackTrace = Error.captureStackTrace ? Error.captureStackTrace : (..._args) => {
 };
@@ -36184,8 +36184,8 @@ var getParsedType2 = (data) => {
 };
 var propertyKeyTypes = /* @__PURE__ */ new Set(["string", "number", "symbol"]);
 var primitiveTypes = /* @__PURE__ */ new Set(["string", "number", "bigint", "boolean", "symbol", "undefined"]);
-function escapeRegex(str4) {
-  return str4.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function escapeRegex(str5) {
+  return str5.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 function clone(inst, def, params) {
   const cl = new inst._zod.constr(def ?? inst._zod.def);
@@ -51568,8 +51568,8 @@ var SupabaseClient = class {
   * supabase.removeChannel(myChannel)
   * ```
   */
-  removeChannel(channel) {
-    return this.realtime.removeChannel(channel);
+  removeChannel(channel2) {
+    return this.realtime.removeChannel(channel2);
   }
   /**
   * Unsubscribes and removes all Realtime channels from Realtime client.
@@ -52419,6 +52419,67 @@ function sanitizeAuditCwd(cwd) {
   return stripped.slice(0, AUDIT_CWD_MAX_CHARS);
 }
 
+// packages/shared/dist/sensitive-topics.js
+var SENSITIVE_TOPIC_PATTERNS = [
+  // ---------- Compensation / equity / HR ----------
+  {
+    topic: "compensation",
+    description: "Compensation package / plan / offer / intent",
+    regex: /\bcompensation (?:package|plan|structure|offer|model|intent|negotiation)\b/i
+  },
+  {
+    topic: "equity-grant",
+    description: "Equity grant, vesting, cap table",
+    // No trailing \b — the "83(b)" branch ends in ')', a non-word char, so a
+    // trailing word-boundary can never match after it. The leading \b + the
+    // specific tokens are discriminating enough on their own.
+    regex: /\b(?:equity grant|stock options?|RSUs?|vesting schedule|\d+[- ]year cliff|cap table|409a|83\(b\))/i
+  },
+  {
+    topic: "salary",
+    description: "Base salary / OTE / sign-on bonus",
+    regex: /\b(?:base salary|annual salary|sign[- ]on bonus|\bOTE\b|on[- ]target earnings)\b/i
+  },
+  {
+    topic: "term-sheet",
+    description: "Term sheet / offer letter / employment agreement",
+    regex: /\b(?:term sheet|offer letter|employment agreement)\b/i
+  },
+  {
+    topic: "commission",
+    description: "Margin-share / commission / base+commission comp",
+    // "base+commission" (and "base plus commission") is comp-specific and rarely
+    // appears in product/eng memory — it's what the leaked comp skill's BODY said.
+    regex: /\b(?:margin[- ]share|commission (?:plan|structure|rate)|residual commission|base ?\+ ?commission|base plus commission)\b/i
+  },
+  // ---------- PII ----------
+  {
+    topic: "pii-ssn",
+    description: "US Social Security number (shape or label)",
+    regex: /\b\d{3}-\d{2}-\d{4}\b|\bsocial security number\b/i
+  },
+  {
+    topic: "pii-dob",
+    description: "Date of birth",
+    regex: /\b(?:date of birth|d\.o\.b\.)\b/i
+  },
+  // ---------- Banking ----------
+  {
+    topic: "banking",
+    description: "Bank routing / wire / IBAN / SWIFT",
+    regex: /\b(?:routing number|bank account number|wire transfer details|\bIBAN\b|SWIFT code)\b/i
+  }
+];
+function detectSensitiveTopics(input, extra = []) {
+  if (!input) return { matched: false, topics: [] };
+  const topics = [];
+  for (const p2 of [...SENSITIVE_TOPIC_PATTERNS, ...extra]) {
+    p2.regex.lastIndex = 0;
+    if (p2.regex.test(input) && !topics.includes(p2.topic)) topics.push(p2.topic);
+  }
+  return { matched: topics.length > 0, topics };
+}
+
 // packages/shared/dist/guardrails.js
 function compileGuardrailPattern(raw) {
   const escaped = raw.replace(/\\/g, "\\\\").replace(/[.+^${}()|[\]/]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".");
@@ -53166,9 +53227,14 @@ var AUTHORITY_TIER = {
   APPROVED_POLICY: 5,
   HISTORICAL: 6
 };
+function correctionVerifiedFromMetadata(metadata) {
+  if (!metadata) return false;
+  if (!("provenance" in metadata)) return true;
+  return metadata.correction_verified === true || metadata.correction_head === true || metadata.provenance === "human_typed";
+}
 function authorityTier(input) {
   if (input.requiredGovernance === true) return AUTHORITY_TIER.REQUIRED_GOVERNANCE;
-  if (input.kind === "memory" && (input.memoryType === "correction" || input.memoryType === "preference")) {
+  if (input.kind === "memory" && (input.memoryType === "correction" && input.correctionVerified === true || input.memoryType === "preference")) {
     return AUTHORITY_TIER.USER_CORRECTION;
   }
   if (input.approved === true) return AUTHORITY_TIER.APPROVED_POLICY;
@@ -55410,6 +55476,10 @@ var ThoughtAssistRequestV2Schema = external_exports.object({
   version: external_exports.literal(2),
   thought_id: Id,
   focus: external_exports.object({ kind: external_exports.enum(["thought", "resource"]), id: Id }).strict().optional(),
+  context: external_exports.object({
+    scope: external_exports.enum(["selected", "branch", "workspace"]),
+    resource_ids: external_exports.array(Id).max(8).refine((ids) => new Set(ids).size === ids.length, "duplicate resource")
+  }).strict().optional(),
   capability: external_exports.enum([
     "explore",
     "research",
@@ -55519,6 +55589,7 @@ var ResourceIngestEnvelopeV2Schema = external_exports.object({
   license: external_exports.string().trim().max(512).nullable().optional(),
   extractors: external_exports.array(external_exports.enum(["text", "ocr", "transcript", "keyframes", "structure"])).max(5),
   thought_id: Id.optional(),
+  root_thought_id: Id.optional(),
   position: Position.optional()
 }).strict().superRefine((x2, ctx) => {
   const issue2 = (message) => ctx.addIssue({ code: "custom", message });
@@ -55529,6 +55600,7 @@ var ResourceIngestEnvelopeV2Schema = external_exports.object({
     issue2("inline originals require text or markdown");
   if (x2.home.scope === "project" !== (x2.home.project_id !== null))
     issue2("only a project home has a project ID");
+  if (x2.root_thought_id && !x2.thought_id) issue2("workspace requires a selected Thought");
   if (x2.position && !x2.thought_id) issue2("position requires a Thought");
   if (x2.source.uri && !["http:", "https:"].includes(new URL(x2.source.uri).protocol))
     issue2("source URI must use HTTP or HTTPS");
@@ -55574,6 +55646,7 @@ var ThoughtAssistHistoryV2Schema = external_exports.object({
       id: Id,
       assist_run_id: Id.optional(),
       feedback_recorded: external_exports.boolean().optional(),
+      coverage: external_exports.enum(["complete", "partial", "unavailable"]).optional(),
       role: external_exports.enum(["user", "assistant"]),
       body: external_exports.string().min(1).max(2e4),
       citations: external_exports.array(external_exports.string().min(1).max(1024)).max(100)
@@ -55612,7 +55685,9 @@ var ThoughtResourcePreviewV2Schema = external_exports.object({
 var ThoughtPublicLinkWriteV2Schema = external_exports.discriminatedUnion("action", [
   external_exports.object({
     action: external_exports.literal("create"),
-    expires_in_days: external_exports.union([external_exports.literal(1), external_exports.literal(7), external_exports.literal(30)]).default(7)
+    expires_in_days: external_exports.union([external_exports.literal(1), external_exports.literal(7), external_exports.literal(30)]).default(7),
+    allow_template: external_exports.boolean().optional(),
+    preview_sha256: external_exports.string().regex(/^[0-9a-f]{64}$/).optional()
   }).strict(),
   external_exports.object({ action: external_exports.literal("revoke"), id: Id }).strict()
 ]);
@@ -55625,11 +55700,18 @@ var ThoughtPublicLinksV2Schema = external_exports.object({
       id: Id,
       created_at: Time,
       expires_at: Time.nullable(),
-      revoked_at: Time.nullable()
+      revoked_at: Time.nullable(),
+      allow_template: external_exports.boolean().optional()
     }).strict()
   )
 }).strict();
-var ThoughtDocumentCreateV2Schema = external_exports.object({ target: external_exports.enum(["todo", "goal"]), expected_revision: Revision, idempotency_key: Key }).strict();
+var ThoughtDocumentCreateV2Schema = external_exports.object({
+  target: external_exports.enum(["todo", "goal"]),
+  expected_revision: Revision,
+  idempotency_key: Key,
+  outcome: external_exports.string().trim().min(1).max(2e3).optional(),
+  completion_criteria: external_exports.array(external_exports.string().trim().min(1).max(500)).min(1).max(20).optional()
+}).strict();
 var ThoughtDocumentLinkV2Schema = external_exports.discriminatedUnion("action", [
   external_exports.object({ action: external_exports.literal("link"), document_id: Id }).strict(),
   external_exports.object({ action: external_exports.literal("unlink"), id: Id }).strict()
@@ -55683,6 +55765,9 @@ var ThoughtDocumentSearchV2Schema = external_exports.object({
 var ThoughtDecisionAcceptV2Schema = external_exports.object({
   expected_revision: external_exports.number().int().min(1),
   idempotency_key: external_exports.string().min(1).max(120),
+  chosen_direction: external_exports.string().trim().min(1).max(2e3).optional(),
+  rationale: external_exports.string().trim().min(1).max(6e3).optional(),
+  supersedes_document_id: Id.optional(),
   question_id: Id.optional(),
   question_revision: external_exports.number().int().min(1).optional()
 }).strict().refine(
@@ -55730,14 +55815,25 @@ var common = {
 };
 var revision = { comment_id: external_exports.string().uuid(), expected_revision: external_exports.number().int().positive() };
 var ThoughtDiscussionWriteV2Schema = external_exports.discriminatedUnion("action", [
-  external_exports.object({ ...common, action: external_exports.literal("create"), body: external_exports.string().trim().min(1).max(5e3) }).strict(),
+  external_exports.object({
+    ...common,
+    action: external_exports.literal("create"),
+    body: external_exports.string().trim().min(1).max(5e3),
+    parent_comment_id: external_exports.string().uuid().nullable().optional()
+  }).strict(),
   external_exports.object({
     ...common,
     ...revision,
     action: external_exports.literal("edit"),
     body: external_exports.string().trim().min(1).max(5e3)
   }).strict(),
-  external_exports.object({ ...common, ...revision, action: external_exports.literal("archive") }).strict()
+  external_exports.object({ ...common, ...revision, action: external_exports.literal("archive") }).strict(),
+  external_exports.object({
+    ...common,
+    ...revision,
+    action: external_exports.literal("resolve"),
+    resolved: external_exports.boolean()
+  }).strict()
 ]);
 var ThoughtDiscussionReceiptV2Schema = external_exports.object({
   comment_id: external_exports.string().uuid(),
@@ -55755,6 +55851,7 @@ var ThoughtDiscussionV2Schema = external_exports.object({
   comments: external_exports.array(
     external_exports.object({
       id: external_exports.string().uuid(),
+      parent_comment_id: external_exports.string().uuid().nullable(),
       body: external_exports.string(),
       revision: external_exports.number().int().positive(),
       created_by: external_exports.string().uuid(),
@@ -55762,7 +55859,17 @@ var ThoughtDiscussionV2Schema = external_exports.object({
       can_edit: external_exports.boolean(),
       created_at: external_exports.string(),
       updated_at: external_exports.string(),
-      edited_at: external_exports.string().nullable()
+      edited_at: external_exports.string().nullable(),
+      resolved_at: external_exports.string().nullable(),
+      revisions: external_exports.array(
+        external_exports.object({
+          revision: external_exports.number().int().positive(),
+          body: external_exports.string(),
+          authored_by: external_exports.string().uuid(),
+          author_name: external_exports.string(),
+          created_at: external_exports.string()
+        }).strict()
+      ).max(20)
     }).strict()
   ).max(50)
 }).strict();
@@ -56068,8 +56175,8 @@ var LIGHT_LIMITS = Object.freeze({
   captureReservationMicros: 2e4
 });
 function boundLightText(text, byteLimit) {
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(text);
+  const encoder2 = new TextEncoder();
+  const bytes = encoder2.encode(text);
   return bytes.length <= byteLimit ? text : new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, byteLimit)).replace(/\uFFFD$/, "");
 }
 function redactLightTranscript(text) {
@@ -56124,6 +56231,558 @@ var ThoughtHandoffReceiptV2Schema = external_exports.object({
   replayed: external_exports.boolean().optional()
 }).passthrough();
 
+// packages/shared/dist/memory-decisions.js
+var DECISION_KIND_IDS = ["replace", "conflict", "sensitive", "runbook", "goal"];
+var DECISION_KINDS = {
+  replace: {
+    id: "replace",
+    label: "Replace live memory",
+    raisedWhen: "A new capture would retire or rewrite a live doc that governs agents: a decision, a correction, a verified directive, or anything a person wrote.",
+    whyHuman: "Agents follow the existing doc today. Replacing it changes what every agent is told, and the evidence alone cannot say the new version is right.",
+    options: [
+      {
+        id: "replace",
+        label: "Replace",
+        consequence: "The new capture goes live and the existing doc is retired.",
+        reversible: true
+      },
+      {
+        id: "keep_both",
+        label: "Keep both",
+        consequence: "Both stay live. Agents may be given both.",
+        reversible: true
+      },
+      {
+        id: "keep_existing",
+        label: "Keep existing",
+        consequence: "Nothing changes for agents. The new capture stays searchable only.",
+        reversible: true
+      }
+    ],
+    defaultOption: "keep_existing",
+    deadlineDays: 7,
+    urgent: true,
+    aiExplanation: true
+  },
+  conflict: {
+    id: "conflict",
+    label: "Two live docs disagree",
+    raisedWhen: "Two live docs contradict, at least one was served to agents in the last 30 days, and at least one is a decision or was written by a person.",
+    whyHuman: "Agents are being given both answers. Which one is current is a judgement about your project that neither doc settles.",
+    options: [
+      {
+        id: "a_wins",
+        label: "First is current",
+        consequence: "The first doc stays live and the second is retired.",
+        reversible: true
+      },
+      {
+        id: "b_wins",
+        label: "Second is current",
+        consequence: "The second doc stays live and the first is retired.",
+        reversible: true
+      },
+      {
+        id: "both_valid",
+        label: "Both are valid",
+        consequence: "Both stay live; the pair is marked as not a conflict and is not raised again.",
+        reversible: true
+      }
+    ],
+    defaultOption: "both_valid",
+    deadlineDays: 14,
+    urgent: false,
+    aiExplanation: true
+  },
+  sensitive: {
+    id: "sensitive",
+    label: "Sensitive content",
+    raisedWhen: "A capture matches a sensitive topic: compensation, HR, personal data or banking.",
+    whyHuman: "Whether this should be remembered, and who may see it, is not something automation should decide.",
+    options: [
+      {
+        id: "keep",
+        label: "Keep for the team",
+        consequence: "It goes live at its captured scope.",
+        reversible: true
+      },
+      {
+        id: "private",
+        label: "Keep private to me",
+        consequence: "It goes live, visible only to you.",
+        reversible: true
+      },
+      {
+        id: "discard",
+        label: "Discard",
+        consequence: "It is removed and will not be captured again.",
+        reversible: true
+      }
+    ],
+    defaultOption: "discard",
+    deadlineDays: 7,
+    urgent: true,
+    aiExplanation: false
+  },
+  runbook: {
+    id: "runbook",
+    label: "Incident runbook",
+    raisedWhen: "A session that handled an incident produced a runbook.",
+    whyHuman: "A runbook steers future incident response. You were there; you know whether it is what should happen next time.",
+    options: [
+      {
+        id: "keep_live",
+        label: "Keep live",
+        consequence: "Agents are given it for similar incidents.",
+        reversible: true
+      },
+      {
+        id: "searchable_only",
+        label: "Searchable only",
+        consequence: "It is kept and findable, but not given to agents unprompted.",
+        reversible: true
+      },
+      {
+        id: "discard",
+        label: "Discard",
+        consequence: "It is removed.",
+        reversible: true
+      }
+    ],
+    defaultOption: "searchable_only",
+    deadlineDays: 7,
+    urgent: false,
+    aiExplanation: true
+  },
+  goal: {
+    id: "goal",
+    label: "Goal approval",
+    raisedWhen: "A goal was proposed and needs approval before agents work toward it.",
+    whyHuman: "Goals direct what agents optimise for. Only a person can commit the team to one.",
+    options: [
+      {
+        id: "approve",
+        label: "Approve",
+        consequence: "Agents are given the goal.",
+        reversible: true
+      },
+      {
+        id: "not_now",
+        label: "Not now",
+        consequence: "It stays a draft that agents are not given.",
+        reversible: true
+      },
+      {
+        id: "reject",
+        label: "Reject",
+        consequence: "It is closed.",
+        reversible: true
+      }
+    ],
+    defaultOption: "not_now",
+    deadlineDays: 14,
+    urgent: false,
+    aiExplanation: true
+  }
+};
+function isDecisionKind(value) {
+  return typeof value === "string" && DECISION_KIND_IDS.includes(value);
+}
+function isValidAnswer(kind2, option) {
+  return DECISION_KINDS[kind2].options.some((o2) => o2.id === option);
+}
+function decisionDeadline(kind2, raisedAtMs) {
+  return new Date(raisedAtMs + DECISION_KINDS[kind2].deadlineDays * 864e5).toISOString();
+}
+var DECISION_CHANNELS = ["session", "web", "cli", "mcp"];
+var DECISION_CAPS = {
+  /** Decisions a single capture may raise. */
+  perCapture: 3,
+  /** Questions injected into one user turn. */
+  perTurn: 1,
+  /** Questions asked in one session before the rest wait for the web list. */
+  perSession: 3,
+  /** Urgent end-of-turn interruptions in one session. */
+  urgentPerSession: 1
+};
+function toSessionDecision(d2) {
+  return {
+    id: d2.id,
+    kind: d2.kind,
+    question: d2.question,
+    why_human: d2.whyHuman,
+    recommendation: d2.recommendation,
+    options: d2.options.map((o2) => ({ ...o2, pros: [...o2.pros], cons: [...o2.cons] })),
+    default_option: d2.defaultOption,
+    deadline_at: d2.deadlineAt,
+    urgent: DECISION_KINDS[d2.kind]?.urgent === true
+  };
+}
+var CAPTURE_PROVENANCE = [
+  "human_typed",
+  "imported_file",
+  "model_extracted",
+  "agent_written"
+];
+var DOCUMENT_LIFECYCLE_STATUSES = [
+  "proposed",
+  "active",
+  "background",
+  "rejected",
+  "expired",
+  "archived",
+  "superseded",
+  "merged",
+  "applied"
+];
+var RETIRED_STATUSES = [
+  "rejected",
+  "expired",
+  "archived",
+  "superseded",
+  "merged",
+  "applied"
+];
+var LEGAL_TRANSITIONS = {
+  proposed: ["active", "background", "rejected", "expired", "merged", "applied"],
+  background: ["active", "archived", "rejected"],
+  active: ["background", "archived", "superseded", "rejected"],
+  archived: ["background", "active"],
+  rejected: [],
+  expired: [],
+  superseded: [],
+  merged: [],
+  applied: []
+};
+function isLegalTransition(from, to) {
+  return from !== to && LEGAL_TRANSITIONS[from].includes(to);
+}
+function retirementNeedsHuman(doc) {
+  if (doc.requiredGovernance === true) return true;
+  if (doc.kind === "decision" || doc.kind === "goal" || doc.kind === "skill") return true;
+  if (doc.sqlStatus === "approved") return true;
+  if (doc.provenance === "human_typed") return true;
+  if (doc.memoryType === "correction" || doc.memoryType === "preference") return true;
+  return false;
+}
+function actorMayRetire(actor, doc) {
+  if (!retirementNeedsHuman(doc)) return true;
+  return actor.type === "human";
+}
+
+// packages/shared/dist/memory-transitions.js
+var MEMORY_TRANSITION_APPLY_RPC = "memory_transition_apply";
+var TRANSITION_REFUSALS = ["illegal", "needs_human", "stale"];
+function isTransitionRefusal(o2) {
+  return typeof o2 === "object" && o2 !== null && typeof o2.refused === "string" && TRANSITION_REFUSALS.includes(o2.refused);
+}
+function isLifecycleStatus(value) {
+  return typeof value === "string" && DOCUMENT_LIFECYCLE_STATUSES.includes(value);
+}
+function lifecycleStatusOf(metadata) {
+  const s2 = (metadata ?? {}).status;
+  return typeof s2 === "string" && s2.length > 0 ? s2 : "active";
+}
+function isRetirementMove(from, to) {
+  return (from === "active" || from === "background") && RETIRED_STATUSES.includes(to);
+}
+function requiredGovernanceOf(meta) {
+  const r2 = meta.required_for_projects;
+  if (r2 === true || r2 === "true") return true;
+  return Array.isArray(r2) && r2.length > 0;
+}
+function retirementSubjectOf(row) {
+  const meta = row.metadata ?? {};
+  const provenance = CAPTURE_PROVENANCE.includes(String(meta.provenance)) ? meta.provenance : null;
+  const metaType = typeof meta.memory_type === "string" ? meta.memory_type : null;
+  return {
+    kind: row.kind,
+    sqlStatus: row.status ?? null,
+    provenance,
+    memoryType: row.memory_type ?? metaType,
+    requiredGovernance: requiredGovernanceOf(meta)
+  };
+}
+function checkTransition(input) {
+  const { current, expectedFrom, to, actor } = input;
+  if (expectedFrom && expectedFrom !== current) {
+    return {
+      refused: "stale",
+      from: current,
+      to,
+      message: `expected ${expectedFrom}, found ${current}`
+    };
+  }
+  if (!isLifecycleStatus(current) || !isLegalTransition(current, to)) {
+    return { refused: "illegal", from: current, to, message: `${current} -> ${to} is not legal` };
+  }
+  if (isRetirementMove(current, to) && !actorMayRetire(actor, retirementSubjectOf(input.subject))) {
+    return {
+      refused: "needs_human",
+      from: current,
+      to,
+      message: `only a person may retire this ${input.subject.kind}`
+    };
+  }
+  return null;
+}
+function refusalFromRpcError(message) {
+  if (message.includes("memory_transition_stale")) return "stale";
+  if (message.includes("memory_transition_needs_human")) return "needs_human";
+  if (message.includes("memory_transition_illegal")) return "illegal";
+  return null;
+}
+
+// packages/shared/dist/decision-prompt.js
+var encoder = new TextEncoder();
+function utf8Bytes(value) {
+  return encoder.encode(value).length;
+}
+function oneLine(value, max = 400) {
+  const s2 = value.replace(/\s+/g, " ").trim();
+  return s2.length > max ? `${s2.slice(0, max - 1).trimEnd()}\u2026` : s2;
+}
+function optionLabel(decision, id3) {
+  return decision.options.find((o2) => o2.id === id3)?.label ?? DECISION_KINDS[decision.kind]?.options.find((o2) => o2.id === id3)?.label ?? id3;
+}
+function describeDeadline(deadlineAt, nowMs = Date.now()) {
+  const t2 = Date.parse(deadlineAt);
+  if (!Number.isFinite(t2)) return "at its deadline";
+  const date3 = new Date(t2).toISOString().slice(0, 10);
+  const days = Math.ceil((t2 - nowMs) / 864e5);
+  if (days <= 0) return `on ${date3} (due now)`;
+  return `on ${date3} (in ${days} day${days === 1 ? "" : "s"})`;
+}
+function askLine(host, decision) {
+  switch (host) {
+    case "claude-code":
+      return `1. Ask with your AskUserQuestion tool: one question, one choice per option (${decision.options.map((o2) => `"${o2.label}"`).join(", ")}), each choice described by its consequence. Put why a person is needed and the recommendation in the question text.`;
+    case "codex":
+      return "1. The user was shown a one-line notice about this. Ask the question in your reply, in plain language, listing the options.";
+    case "mcp":
+      return "1. Ask me in your reply, in plain language, listing the options.";
+    default:
+      return "1. Ask the question in your reply, in plain language, listing the options.";
+  }
+}
+function renderAt(decision, host, detail, nowMs) {
+  const lines = [];
+  lines.push(`<memlin-decision id="${decision.id}" kind="${decision.kind}">`);
+  lines.push(
+    "# Memlin needs ONE decision from the user. Finish the user's current request first; do not let this interrupt or change that work."
+  );
+  lines.push(`Question: ${oneLine(decision.question, 300)}`);
+  if (detail !== "minimal") {
+    lines.push(`Why a person is needed: ${oneLine(decision.why_human, 400)}`);
+  }
+  const rec = decision.recommendation;
+  if (rec) {
+    const reason = detail === "minimal" ? "" : ` \u2014 ${oneLine(rec.rationale, detail === "full" ? 500 : 240)}`;
+    lines.push(`Recommendation: ${optionLabel(decision, rec.option)} (${rec.option})${reason}`);
+  } else if (detail !== "minimal") {
+    lines.push(
+      DECISION_KINDS[decision.kind]?.aiExplanation === false ? "Recommendation: none \u2014 this kind is never sent to an AI model, so present the facts only." : "Recommendation: none yet \u2014 present the options evenly."
+    );
+  }
+  lines.push("Options:");
+  for (const o2 of decision.options) {
+    if (detail === "minimal") {
+      lines.push(`- ${o2.label} (${o2.id})`);
+      continue;
+    }
+    lines.push(
+      `- ${o2.label} (${o2.id}): ${oneLine(o2.consequence, 200)}${o2.reversible ? " Can be undone." : " Cannot be undone."}`
+    );
+    if (detail === "full") {
+      for (const p2 of o2.pros) lines.push(`  + ${oneLine(p2, 200)}`);
+      for (const c2 of o2.cons) lines.push(`  - ${oneLine(c2, 200)}`);
+    }
+  }
+  lines.push(
+    `If unanswered: ${optionLabel(decision, decision.default_option)} (${decision.default_option}) applies automatically ${describeDeadline(decision.deadline_at, nowMs)}. Ignoring it is safe.`
+  );
+  lines.push("How to ask, after the current request is done:");
+  lines.push(askLine(host, decision));
+  lines.push(
+    "2. Say why a person is needed, the recommendation and its reason, what each option does with its pros and cons, and what happens if they do not answer."
+  );
+  lines.push(
+    `3. Offer to explain more. If they want to know where it came from, what automation already did or the diff, call memlin_explain_decision {"decision_id":"${decision.id}"} and answer from it.`
+  );
+  lines.push(
+    `4. When they choose, call memlin_decide {"decision_id":"${decision.id}","option":"<option id>","note":"<their reason>","user_quote":"<their exact words>"}.`
+  );
+  lines.push(
+    "5. Never choose for them. If they decline, change the subject or do not answer, do nothing: the default applies."
+  );
+  lines.push("</memlin-decision>");
+  return lines.join("\n") + "\n";
+}
+function renderDecisionBlock(decision, opts) {
+  const nowMs = opts.nowMs ?? Date.now();
+  for (const detail of ["full", "compact", "minimal"]) {
+    const block = renderAt(decision, opts.host, detail, nowMs);
+    if (opts.maxBytes === void 0 || utf8Bytes(block) <= opts.maxBytes) return block;
+  }
+  return "";
+}
+
+// packages/shared/dist/admission.js
+var ADMISSION_VERSION = "admission@2026-09-13";
+function provenanceForWriter(writer, opts = {}) {
+  switch (writer) {
+    case "remember":
+    case "web_editor":
+      return "human_typed";
+    case "mcp_write":
+      return opts.humanSession === true ? "human_typed" : "agent_written";
+    case "import":
+    case "native_memory":
+      return "imported_file";
+    case "repo_scan":
+      return opts.fileDerived === true ? "imported_file" : "model_extracted";
+    case "session_scribe":
+    case "diff_scribe":
+    case "pr_scribe":
+    case "connector":
+    case "propose_auto":
+    case "correction_rule":
+    case "light":
+      return "model_extracted";
+  }
+}
+var HIGH_CONFIDENCE_FLOOR = 0.9;
+var ADMISSION_GATED_KINDS = /* @__PURE__ */ new Set(["goal"]);
+var ADMISSION_NO_FIRST_SIGHT_KINDS = /* @__PURE__ */ new Set(["brand_guidelines"]);
+var TOMBSTONE_STATUSES = /* @__PURE__ */ new Set([
+  "rejected",
+  "superseded",
+  "expired",
+  "archived"
+]);
+function highConfidenceBar(autoPromoteThreshold) {
+  if (!Number.isFinite(autoPromoteThreshold)) return HIGH_CONFIDENCE_FLOOR;
+  if (autoPromoteThreshold >= 1) return Number.POSITIVE_INFINITY;
+  if (autoPromoteThreshold <= 0) return 0;
+  return Math.max(autoPromoteThreshold, HIGH_CONFIDENCE_FLOOR);
+}
+var TRANSIENT_STATUS_SIGNALS = [
+  // A commit or build hash: 7-40 hex characters with both a digit and a letter.
+  { id: "commit_sha", re: /\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b/i },
+  { id: "verified_live", re: /\b(?:verified[- ]live|now live|went live|is live now)\b/i },
+  {
+    id: "pr_number",
+    re: /\b(?:merge[ds]?|merging|land(?:ed)?|ship(?:ped)?|revert(?:ed)?)\s+(?:pr\s*)?#\d+|\bPR\s*#?\d{2,}\b|(?:^|\s)#\d{3,}\b/i
+  },
+  {
+    id: "next_step",
+    re: /\b(?:before (?:deploying|merging|shipping)|after (?:the )?next|next (?:step|sweep|run|deploy|promotion)|examine after|follow[- ]up|not yet|still (?:pending|open|failing|broken))\b/i
+  },
+  {
+    id: "queue_state",
+    re: /\b(?:backlog (?:collapsed|cleared|drained)|queue (?:is empty|shows)|empty [\w-]+ queue)\b/i
+  },
+  {
+    id: "observed_gap",
+    re: /\b(?:produced no|(?:has|have) no [\w-]+ (?:filter|check|guard|validation|test))\b/i
+  },
+  {
+    id: "build_state",
+    re: /\b(?:deploy(?:ed)? (?:verified|succeeded|failed)|build (?:is )?(?:green|red|passing|failing))\b/i
+  }
+];
+var DURABLE_RULE_MARKER = /\b(?:never|always|must|do not|don't|avoid|prefer|instead of|because)\b|,\s*not\s/i;
+function signalsIn(text) {
+  return TRANSIENT_STATUS_SIGNALS.filter((s2) => s2.re.test(text)).map((s2) => s2.id);
+}
+function transientStatusSignals(text) {
+  const title = text.title ?? "";
+  const body = text.body ?? "";
+  const lead = body.split(/(?<=[.!?])\s+/, 1)[0] ?? "";
+  const inTitle = signalsIn(title);
+  const all = [.../* @__PURE__ */ new Set([...inTitle, ...signalsIn(body)])];
+  const durable = DURABLE_RULE_MARKER.test(title) || DURABLE_RULE_MARKER.test(lead);
+  return { transient: !durable && (inTitle.length > 0 || all.length >= 3), signals: all };
+}
+function mayReplace(input) {
+  const provenance = provenanceForWriter(input.writer, input);
+  if (provenance === "human_typed") return true;
+  return input.labels?.directive === true && input.userQuoteVerified === true;
+}
+function admitCapture(input) {
+  const provenance = provenanceForWriter(input.writer, input);
+  const labels = input.labels ?? {};
+  const verified = input.userQuoteVerified === true;
+  const stamps = (reason) => ({
+    provenance,
+    admission_reason: reason,
+    admission_version: ADMISSION_VERSION,
+    ...labels.directive === true ? { directive_verified: verified } : {},
+    ...labels.memoryType === "correction" ? { correction_verified: verified } : {}
+  });
+  const result = (outcome, status, reason, extra = {}) => ({ outcome, status, reason, stamps: stamps(reason), retire: [], ...extra });
+  if (input.humanRejectedBefore === true) {
+    return result("drop", null, "rejected_before");
+  }
+  if (input.duplicate) {
+    const tomb = TOMBSTONE_STATUSES.has(input.duplicate.status);
+    return result("drop", null, tomb ? "rejected_before" : "restatement", {
+      existingId: input.duplicate.id
+    });
+  }
+  if (provenance === "model_extracted" && input.text && transientStatusSignals(input.text).transient) {
+    return result("drop", null, "transient_status");
+  }
+  if (input.sensitive?.matched === true) {
+    if (input.sensitivePolicy === "drop") return result("drop", null, "sensitive_dropped");
+    return result("decision", "proposed", "sensitive", {
+      decision: { kind: "sensitive", targetIds: [] }
+    });
+  }
+  if (ADMISSION_GATED_KINDS.has(input.kind)) {
+    return result("decision", "proposed", "goal", { decision: { kind: "goal", targetIds: [] } });
+  }
+  if (labels.incidentRunbook === true && input.incidentDetected === true) {
+    return result("decision", "proposed", "runbook", {
+      decision: { kind: "runbook", targetIds: [] }
+    });
+  }
+  const candidates = mayReplace(input) ? input.supersedeCandidates ?? [] : [];
+  const liveCandidates = candidates.filter((c2) => !TOMBSTONE_STATUSES.has(c2.status ?? "active"));
+  const protectedTargets = liveCandidates.filter((c2) => retirementNeedsHuman(c2)).map((c2) => c2.id);
+  const retirable = liveCandidates.filter((c2) => !retirementNeedsHuman(c2)).map((c2) => c2.id);
+  if (protectedTargets.length > 0) {
+    return result("decision", "background", "replace", {
+      decision: { kind: "replace", targetIds: protectedTargets },
+      retire: retirable
+    });
+  }
+  if (provenance === "human_typed" || provenance === "imported_file") {
+    return result("live", "active", provenance, { retire: retirable });
+  }
+  if (provenance === "agent_written") {
+    return result("background", "background", "agent_written");
+  }
+  if (labels.directive === true && verified) {
+    return result("live", "active", "high_confidence", { retire: retirable });
+  }
+  const threshold = input.autoPromoteThreshold;
+  if (Number.isFinite(threshold) && threshold >= 1) {
+    return result("background", "background", "manual_workspace");
+  }
+  if (ADMISSION_NO_FIRST_SIGHT_KINDS.has(input.kind)) {
+    return result("background", "background", "no_first_sight_kind");
+  }
+  const confidence = typeof labels.confidence === "number" && Number.isFinite(labels.confidence) ? labels.confidence : 0;
+  if (confidence < highConfidenceBar(threshold)) {
+    return result("background", "background", "below_bar");
+  }
+  if ((input.liveOverlapCount ?? 0) > 0) {
+    return result("background", "background", "live_overlap");
+  }
+  return result("live", "active", "high_confidence");
+}
+
 // node_modules/.pnpm/openai@4.104.0_ws@8.20.1_zod@3.25.76/node_modules/openai/internal/qs/formats.mjs
 var default_format = "RFC3986";
 var formatters = {
@@ -56142,15 +56801,15 @@ var hex_table = (() => {
   return array2;
 })();
 var limit = 1024;
-var encode = (str4, _defaultEncoder, charset, _kind, format) => {
-  if (str4.length === 0) {
-    return str4;
+var encode = (str5, _defaultEncoder, charset, _kind, format) => {
+  if (str5.length === 0) {
+    return str5;
   }
-  let string3 = str4;
-  if (typeof str4 === "symbol") {
-    string3 = Symbol.prototype.toString.call(str4);
-  } else if (typeof str4 !== "string") {
-    string3 = String(str4);
+  let string3 = str5;
+  if (typeof str5 === "symbol") {
+    string3 = Symbol.prototype.toString.call(str5);
+  } else if (typeof str5 !== "string") {
+    string3 = String(str5);
   }
   if (charset === "iso-8859-1") {
     return escape(string3).replace(/%u[0-9a-f]{4}/gi, function($0) {
@@ -56257,7 +56916,7 @@ function is_non_nullish_primitive(v2) {
   return typeof v2 === "string" || typeof v2 === "number" || typeof v2 === "boolean" || typeof v2 === "symbol" || typeof v2 === "bigint";
 }
 var sentinel = {};
-function inner_stringify(object4, prefix, generateArrayPrefix, commaRoundTrip, allowEmptyArrays, strictNullHandling, skipNulls, encodeDotInKeys, encoder, filter, sort, allowDots, serializeDate, format, formatter, encodeValuesOnly, charset, sideChannel) {
+function inner_stringify(object4, prefix, generateArrayPrefix, commaRoundTrip, allowEmptyArrays, strictNullHandling, skipNulls, encodeDotInKeys, encoder2, filter, sort, allowDots, serializeDate, format, formatter, encodeValuesOnly, charset, sideChannel) {
   let obj = object4;
   let tmp_sc = sideChannel;
   let step = 0;
@@ -56290,19 +56949,19 @@ function inner_stringify(object4, prefix, generateArrayPrefix, commaRoundTrip, a
   }
   if (obj === null) {
     if (strictNullHandling) {
-      return encoder && !encodeValuesOnly ? (
+      return encoder2 && !encodeValuesOnly ? (
         // @ts-expect-error
-        encoder(prefix, defaults.encoder, charset, "key", format)
+        encoder2(prefix, defaults.encoder, charset, "key", format)
       ) : prefix;
     }
     obj = "";
   }
   if (is_non_nullish_primitive(obj) || is_buffer(obj)) {
-    if (encoder) {
-      const key_value = encodeValuesOnly ? prefix : encoder(prefix, defaults.encoder, charset, "key", format);
+    if (encoder2) {
+      const key_value = encodeValuesOnly ? prefix : encoder2(prefix, defaults.encoder, charset, "key", format);
       return [
         formatter?.(key_value) + "=" + // @ts-expect-error
-        formatter?.(encoder(obj, defaults.encoder, charset, "value", format))
+        formatter?.(encoder2(obj, defaults.encoder, charset, "value", format))
       ];
     }
     return [formatter?.(prefix) + "=" + formatter?.(String(obj))];
@@ -56313,8 +56972,8 @@ function inner_stringify(object4, prefix, generateArrayPrefix, commaRoundTrip, a
   }
   let obj_keys;
   if (generateArrayPrefix === "comma" && is_array2(obj)) {
-    if (encodeValuesOnly && encoder) {
-      obj = maybe_map(obj, encoder);
+    if (encodeValuesOnly && encoder2) {
+      obj = maybe_map(obj, encoder2);
     }
     obj_keys = [{ value: obj.length > 0 ? obj.join(",") || null : void 0 }];
   } else if (is_array2(filter)) {
@@ -56352,7 +57011,7 @@ function inner_stringify(object4, prefix, generateArrayPrefix, commaRoundTrip, a
       skipNulls,
       encodeDotInKeys,
       // @ts-ignore
-      generateArrayPrefix === "comma" && encodeValuesOnly && is_array2(obj) ? null : encoder,
+      generateArrayPrefix === "comma" && encodeValuesOnly && is_array2(obj) ? null : encoder2,
       filter,
       sort,
       allowDots,
@@ -56712,8 +57371,8 @@ function isPlainObject4(value) {
 var isPlainObject_default = isPlainObject4;
 
 // node_modules/.pnpm/form-data-encoder@1.7.2/node_modules/form-data-encoder/lib/esm/util/normalizeValue.js
-var normalizeValue = (value) => String(value).replace(/\r|\n/g, (match, i2, str4) => {
-  if (match === "\r" && str4[i2 + 1] !== "\n" || match === "\n" && str4[i2 - 1] !== "\r") {
+var normalizeValue = (value) => String(value).replace(/\r|\n/g, (match, i2, str5) => {
+  if (match === "\r" && str5[i2 + 1] !== "\n" || match === "\n" && str5[i2 - 1] !== "\r") {
     return "\r\n";
   }
   return match;
@@ -56882,13 +57541,13 @@ async function fileFromPath3(path20, ...args) {
 var defaultHttpAgent = new import_agentkeepalive.default({ keepAlive: true, timeout: 5 * 60 * 1e3 });
 var defaultHttpsAgent = new import_agentkeepalive.default.HttpsAgent({ keepAlive: true, timeout: 5 * 60 * 1e3 });
 async function getMultipartRequestOptions2(form, opts) {
-  const encoder = new FormDataEncoder(form);
-  const readable = Readable.from(encoder);
+  const encoder2 = new FormDataEncoder(form);
+  const readable = Readable.from(encoder2);
   const body = new MultipartBody(readable);
   const headers = {
     ...opts.headers,
-    ...encoder.headers,
-    "Content-Length": encoder.contentLength
+    ...encoder2.headers,
+    "Content-Length": encoder2.contentLength
   };
   return { ...opts, body, headers };
 }
@@ -57305,7 +57964,7 @@ var Stream = class _Stream {
   toReadableStream() {
     const self2 = this;
     let iter;
-    const encoder = new TextEncoder();
+    const encoder2 = new TextEncoder();
     return new ReadableStream2({
       async start() {
         iter = self2[Symbol.asyncIterator]();
@@ -57315,7 +57974,7 @@ var Stream = class _Stream {
           const { value, done } = await iter.next();
           if (done)
             return ctrl.close();
-          const bytes = encoder.encode(JSON.stringify(value) + "\n");
+          const bytes = encoder2.encode(JSON.stringify(value) + "\n");
           ctrl.enqueue(bytes);
         } catch (err) {
           ctrl.error(err);
@@ -57408,12 +58067,12 @@ var SSEDecoder = class {
     return null;
   }
 };
-function partition(str4, delimiter) {
-  const index = str4.indexOf(delimiter);
+function partition(str5, delimiter) {
+  const index = str5.indexOf(delimiter);
   if (index !== -1) {
-    return [str4.substring(0, index), delimiter, str4.substring(index + delimiter.length)];
+    return [str5.substring(0, index), delimiter, str5.substring(index + delimiter.length)];
   }
-  return [str4, "", ""];
+  return [str5, "", ""];
 }
 
 // node_modules/.pnpm/openai@4.104.0_ws@8.20.1_zod@3.25.76/node_modules/openai/uploads.mjs
@@ -57691,8 +58350,8 @@ var APIClient = class {
         return Buffer.byteLength(body, "utf8").toString();
       }
       if (typeof TextEncoder !== "undefined") {
-        const encoder = new TextEncoder();
-        const encoded = encoder.encode(body);
+        const encoder2 = new TextEncoder();
+        const encoded = encoder2.encode(body);
         return encoded.length.toString();
       }
     } else if (ArrayBuffer.isView(body)) {
@@ -63617,7 +64276,68 @@ var TOOLS = [
           type: "string",
           description: "The proposal document id (uuid) from memlin_list_proposals."
         },
-        action: { type: "string", enum: ["accept", "reject"] }
+        action: { type: "string", enum: ["accept", "reject"] },
+        note: {
+          type: "string",
+          maxLength: 1e3,
+          description: "Optional reviewer note \u2014 why it was accepted or rejected, in the user's words. Stored on the proposal."
+        }
+      }
+    }
+  },
+  {
+    name: "memlin_list_decisions",
+    description: "List the open memory decisions waiting on a person \u2014 the only questions Memlin ever asks (replace live memory, two live docs disagree, sensitive content, incident runbook, goal approval). Most consequential first. Returns { decisions, count }; count is the one open-decision number every surface shows. Each decision carries its question, why a person is needed, options with consequences, the default applied if nobody answers, and the deadline. Pair with memlin_explain_decision and memlin_decide.",
+    annotations: { readOnlyHint: true, destructiveHint: false },
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: {
+          type: "number",
+          minimum: 1,
+          maximum: 200,
+          description: "Max decisions to return. Default 50."
+        }
+      }
+    }
+  },
+  {
+    name: "memlin_explain_decision",
+    description: "Explain one memory decision before asking the user: where it came from, why a person is needed, what automation already did, a short diff against the doc it affects, what happens if nobody answers and when, and whether each option can be undone. Includes the cached AI recommendation with pros/cons when the kind allows one (sensitive items never do). Makes no model call.",
+    annotations: { readOnlyHint: true, destructiveHint: false },
+    inputSchema: {
+      type: "object",
+      required: ["decision_id"],
+      properties: {
+        decision_id: {
+          type: "string",
+          description: "The decision id (uuid) from memlin_list_decisions."
+        }
+      }
+    }
+  },
+  {
+    name: "memlin_decide",
+    description: "Record the user's answer to a memory decision. Only call this with an option the user chose \u2014 never pick one yourself. option must be one of the decision's option ids. Pass the user's own words as user_quote when they answered in conversation, and any reason as note. Returns the chosen option's consequence and whether it is reversible. Answering the same option twice is a no-op; a different answer to a closed decision is refused.",
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    inputSchema: {
+      type: "object",
+      required: ["decision_id", "option"],
+      properties: {
+        decision_id: {
+          type: "string",
+          description: "The decision id (uuid) from memlin_list_decisions."
+        },
+        option: {
+          type: "string",
+          description: "One of the decision's option ids, e.g. keep_existing, both_valid, discard."
+        },
+        note: { type: "string", maxLength: 4e3, description: "Optional reason for the answer." },
+        user_quote: {
+          type: "string",
+          maxLength: 4e3,
+          description: "The user's own words when they answered in the session."
+        }
       }
     }
   },
@@ -63806,13 +64526,19 @@ var TOOLS = [
   },
   {
     name: "memlin_update_handoff",
-    description: "Update a handoff lifecycle state. Use action=accept when taking ownership, complete when finished, or cancel when it is no longer relevant. Get ids from memlin_list_handoffs.",
+    description: "Update a handoff lifecycle state. Use action=accept when taking ownership, complete when finished, or cancel when it is no longer relevant. Get ids from memlin_list_handoffs. For kind=thought_handoff_v2, complete with result_summary describing the concrete result and evidence. It stays unreviewed until the sender accepts it in Thoughts.",
     inputSchema: {
       type: "object",
       required: ["handoff_id", "action"],
       properties: {
         handoff_id: { type: "string", description: "Handoff uuid from memlin_list_handoffs." },
-        action: { type: "string", enum: ["accept", "complete", "cancel"] }
+        action: { type: "string", enum: ["accept", "complete", "cancel"] },
+        result_summary: {
+          type: "string",
+          minLength: 1,
+          maxLength: 8e3,
+          description: "Concrete result and evidence for a canonical Thought handoff completion only. Does not approve memory."
+        }
       }
     }
   },
@@ -68407,7 +69133,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
           kind: c2.kind,
           requiredGovernance: inheritedRequired,
           approved: status === "approved",
-          memoryType: c2.memory_type ?? null
+          memoryType: c2.memory_type ?? null,
+          correctionVerified: correctionVerifiedFromMetadata(meta)
         });
         if (excludeDocumentIds.size > 0 && excludeDocumentIds.has(c2.id)) {
           omittedCandidates.push({
@@ -70904,6 +71631,847 @@ async function resolveProjectFilter(ctx, requested) {
   return requested;
 }
 
+// packages/mcp-tools/src/transitions.ts
+async function callRpc(ctx, name, args) {
+  let res = await ctx.supabase.rpc(name, args);
+  if (res.error && /permission denied/i.test(res.error.message) && ctx.privilegedSupabase && ctx.privilegedSupabase !== ctx.supabase) {
+    res = await ctx.privilegedSupabase.rpc(name, args);
+  }
+  return res;
+}
+function firstRow(data) {
+  const row = Array.isArray(data) ? data[0] : data;
+  return row && typeof row === "object" ? row : null;
+}
+async function transitionDocument(ctx, args) {
+  let subject = args.subject;
+  if (!subject) {
+    const { data: data2, error: error3 } = await ctx.supabase.from("documents").select("id, kind, status, memory_type, metadata").eq("id", args.documentId).eq("account_id", ctx.accountId).maybeSingle();
+    if (error3) throw new Error(`transition: document read failed: ${error3.message}`);
+    if (!data2) throw new Error("transition: document not found");
+    subject = data2;
+  }
+  const current = lifecycleStatusOf(subject.metadata);
+  const refusal = checkTransition({
+    current,
+    expectedFrom: args.from ?? null,
+    to: args.to,
+    actor: args.actor,
+    subject
+  });
+  if (refusal) return refusal;
+  const { data, error: error2 } = await callRpc(ctx, MEMORY_TRANSITION_APPLY_RPC, {
+    p_account_id: ctx.accountId,
+    p_document_id: args.documentId,
+    p_from_status: current,
+    p_to_status: args.to,
+    p_actor_type: args.actor.type,
+    p_actor_id: args.actor.id,
+    p_actor_version: args.actor.version ?? null,
+    p_reason: args.reason,
+    p_evidence: args.evidence ?? {},
+    p_decision_id: args.decisionId ?? null,
+    p_metadata_patch: args.metadataPatch ?? {},
+    p_sql_status: args.sqlStatus ?? null,
+    p_touch_updated_at: args.touchUpdatedAt ?? false
+  });
+  if (error2) {
+    const reason = refusalFromRpcError(error2.message);
+    if (reason) return { refused: reason, from: current, to: args.to, message: error2.message };
+    throw new Error(`transition: ${error2.message}`);
+  }
+  const row = firstRow(data);
+  if (!row || typeof row.transition_id !== "string") {
+    throw new Error("transition: apply returned no ledger row");
+  }
+  return {
+    transitionId: row.transition_id,
+    from: current,
+    to: args.to
+  };
+}
+
+// packages/mcp-tools/src/decision-outcomes.ts
+var DECISION_OUTCOME_VERSION = "decision_outcomes.v1";
+var RECORD_OUTCOME_RPC = "memory_decision_record_outcome";
+var MAKE_PRIVATE_RPC = "memory_decision_make_private";
+var MARK_COMPATIBLE_RPC = "memory_decision_mark_compatible";
+function planDecisionOutcome(decision, option) {
+  const subject = decision.subjectDocumentId;
+  const targets = decision.targetDocumentIds;
+  const tag = `decision:${decision.kind}:${option}`;
+  const subjectTo = (to, reason, extra = {}) => subject ? [{ documentId: subject, role: "subject", to, reason, ...extra }] : [];
+  const none = { ops: [], moves: [] };
+  switch (decision.kind) {
+    case "replace":
+      if (option === "replace") {
+        return {
+          ops: [],
+          moves: [
+            ...subjectTo("active", "A person chose to replace the live doc with this capture"),
+            ...targets.map(
+              (id3) => ({
+                documentId: id3,
+                role: "target",
+                to: "superseded",
+                reason: "A person chose the new capture over this doc",
+                metadataPatch: {
+                  superseded_by: subject,
+                  superseded_reason: tag
+                },
+                afterSubject: true
+              })
+            )
+          ]
+        };
+      }
+      if (option === "keep_both") {
+        return { ops: [], moves: subjectTo("active", "A person kept both docs live") };
+      }
+      if (option === "keep_existing") {
+        return {
+          ops: [],
+          moves: subjectTo("background", "The existing doc stays; the capture is searchable only")
+        };
+      }
+      return none;
+    case "conflict": {
+      const second = targets[0] ?? null;
+      if (option === "a_wins" && second) {
+        return {
+          ops: [],
+          moves: [
+            {
+              documentId: second,
+              role: "target",
+              to: "superseded",
+              reason: "A person chose the other doc as current",
+              metadataPatch: { superseded_by: subject, superseded_reason: tag }
+            }
+          ]
+        };
+      }
+      if (option === "b_wins" && subject && second) {
+        return {
+          ops: [],
+          moves: [
+            {
+              documentId: subject,
+              role: "target",
+              to: "superseded",
+              reason: "A person chose the other doc as current",
+              metadataPatch: { superseded_by: second, superseded_reason: tag }
+            }
+          ]
+        };
+      }
+      if (option === "both_valid") return { ops: ["mark_compatible"], moves: [] };
+      return none;
+    }
+    case "sensitive":
+      if (option === "keep") {
+        return {
+          ops: [],
+          moves: subjectTo("active", "A person kept this for the team", {
+            metadataPatch: { sensitive_hold: false, sensitive_resolution: "keep" }
+          })
+        };
+      }
+      if (option === "private") {
+        return {
+          ops: ["make_private"],
+          moves: subjectTo("active", "A person kept this private to its author", {
+            metadataPatch: { sensitive_hold: false, sensitive_resolution: "private" }
+          })
+        };
+      }
+      if (option === "discard") {
+        return {
+          ops: [],
+          moves: subjectTo("rejected", "Sensitive capture discarded", {
+            metadataPatch: { sensitive_resolution: "discard", rejected_reason: tag }
+          })
+        };
+      }
+      return none;
+    case "runbook":
+      if (option === "keep_live") {
+        return {
+          ops: [],
+          moves: subjectTo("active", "A person kept this runbook live", {
+            metadataPatch: { fast_track: false }
+          })
+        };
+      }
+      if (option === "searchable_only") {
+        return {
+          ops: [],
+          moves: subjectTo("background", "Runbook kept searchable only", {
+            metadataPatch: { fast_track: false }
+          })
+        };
+      }
+      if (option === "discard") {
+        return {
+          ops: [],
+          moves: subjectTo("rejected", "Runbook discarded", {
+            metadataPatch: { rejected_reason: tag }
+          })
+        };
+      }
+      return none;
+    case "goal":
+      if (option === "approve") {
+        return {
+          ops: [],
+          moves: subjectTo("active", "A person approved this goal", { sqlStatus: "approved" })
+        };
+      }
+      if (option === "reject") {
+        return {
+          ops: [],
+          moves: subjectTo("rejected", "A person rejected this goal", {
+            metadataPatch: { rejected_reason: tag }
+          })
+        };
+      }
+      return none;
+  }
+}
+async function loadRows(ctx, ids) {
+  const out = /* @__PURE__ */ new Map();
+  if (ids.length === 0) return out;
+  const read = (client2) => client2.from("documents").select("id, kind, status, memory_type, metadata").eq("account_id", ctx.accountId).in("id", ids);
+  let { data, error: error2 } = await read(ctx.supabase);
+  if (error2 && ctx.privilegedSupabase && ctx.privilegedSupabase !== ctx.supabase) {
+    ({ data, error: error2 } = await read(ctx.privilegedSupabase));
+  }
+  if (error2) throw new Error(`decision outcome: document read failed: ${error2.message}`);
+  for (const r2 of data ?? []) out.set(r2.id, r2);
+  return out;
+}
+async function rpcWithFallback(ctx, name, args) {
+  let res = await ctx.supabase.rpc(name, args);
+  if (res.error && /permission denied/i.test(res.error.message) && ctx.privilegedSupabase && ctx.privilegedSupabase !== ctx.supabase) {
+    res = await ctx.privilegedSupabase.rpc(name, args);
+  }
+  return res;
+}
+async function applyDecisionOutcome(ctx, decision, option, actor) {
+  const plan = planDecisionOutcome(decision, option);
+  const result = {
+    applied: true,
+    transitions: [],
+    unchanged: [],
+    refusals: [],
+    recorded: false
+  };
+  const isDefault = actor.type === "decision_default";
+  let opFailed = false;
+  for (const op of plan.ops) {
+    const name = op === "make_private" ? MAKE_PRIVATE_RPC : MARK_COMPATIBLE_RPC;
+    const { error: error3 } = await rpcWithFallback(ctx, name, {
+      p_account_id: ctx.accountId,
+      p_decision_id: decision.id
+    });
+    if (error3) {
+      opFailed = true;
+      result.refusals.push({
+        documentId: decision.subjectDocumentId,
+        refused: "failed",
+        from: null,
+        to: null,
+        message: `${op}: ${error3.message}`
+      });
+    }
+  }
+  const rows = await loadRows(ctx, [...new Set(plan.moves.map((m2) => m2.documentId))]);
+  let subjectRefused = opFailed;
+  for (const move of plan.moves) {
+    if (move.role === "subject" && opFailed || move.afterSubject && subjectRefused) {
+      result.refusals.push({
+        documentId: move.documentId,
+        refused: "stale",
+        from: null,
+        to: move.to,
+        message: move.role === "subject" ? "skipped: a prerequisite step failed" : "skipped: the replacement did not go live"
+      });
+      continue;
+    }
+    const row = rows.get(move.documentId);
+    if (!row) {
+      if (move.role === "subject") subjectRefused = true;
+      result.refusals.push({
+        documentId: move.documentId,
+        refused: "missing",
+        from: null,
+        to: move.to,
+        message: "document not found"
+      });
+      continue;
+    }
+    const current = lifecycleStatusOf(row.metadata);
+    if (current === move.to) {
+      result.unchanged.push(move.documentId);
+      continue;
+    }
+    if (isDefault && isRetirementMove(current, move.to)) {
+      if (move.role === "subject") subjectRefused = true;
+      result.refusals.push({
+        documentId: move.documentId,
+        refused: "needs_human",
+        from: current,
+        to: move.to,
+        message: "a default never retires a doc agents are given"
+      });
+      continue;
+    }
+    try {
+      const out = await transitionDocument(ctx, {
+        documentId: move.documentId,
+        to: move.to,
+        actor,
+        reason: move.reason,
+        decisionId: decision.id,
+        evidence: {
+          decision_kind: decision.kind,
+          option,
+          outcome_version: DECISION_OUTCOME_VERSION
+        },
+        ...move.sqlStatus ? { sqlStatus: move.sqlStatus } : {},
+        ...move.metadataPatch ? { metadataPatch: move.metadataPatch } : {},
+        subject: row,
+        touchUpdatedAt: true
+      });
+      if (isTransitionRefusal(out)) {
+        if (move.role === "subject") subjectRefused = true;
+        result.refusals.push({
+          documentId: move.documentId,
+          refused: out.refused,
+          from: out.from,
+          to: out.to,
+          message: out.message
+        });
+      } else {
+        result.transitions.push({
+          documentId: move.documentId,
+          transitionId: out.transitionId,
+          from: out.from,
+          to: out.to
+        });
+      }
+    } catch (e2) {
+      if (move.role === "subject") subjectRefused = true;
+      result.refusals.push({
+        documentId: move.documentId,
+        refused: "failed",
+        from: current,
+        to: move.to,
+        message: e2 instanceof Error ? e2.message : String(e2)
+      });
+    }
+  }
+  result.applied = result.refusals.length === 0;
+  const { error: error2 } = await rpcWithFallback(ctx, RECORD_OUTCOME_RPC, {
+    p_account_id: ctx.accountId,
+    p_decision_id: decision.id,
+    p_result: {
+      applied: result.applied,
+      transitions: result.transitions,
+      unchanged: result.unchanged,
+      refusals: result.refusals,
+      version: DECISION_OUTCOME_VERSION
+    }
+  });
+  result.recorded = !error2;
+  if (error2) {
+    console.warn(`[decision-outcomes] recording outcome for ${decision.id} failed: ${error2.message}`);
+  }
+  return result;
+}
+function createDecisionOutcomeApplier(ctx) {
+  return {
+    apply: (decision, option, actor) => applyDecisionOutcome(ctx, decision, option, actor)
+  };
+}
+
+// packages/mcp-tools/src/decisions.ts
+var DECISION_EXPLANATION_VERSION = 1;
+var MAX_DIFF_SOURCE_CHARS = 2e4;
+var MAX_DIFF_SOURCE_LINES = 400;
+var DEFAULT_DIFF_LINES = 24;
+var noopDecisionOutcomeApplier = {
+  async apply() {
+  }
+};
+var DecisionError = class extends Error {
+  constructor(code, message) {
+    super(message);
+    this.code = code;
+    this.name = "DecisionError";
+  }
+  code;
+};
+function str3(v2) {
+  return typeof v2 === "string" && v2.length > 0 ? v2 : null;
+}
+function stringList(v2, max = 5) {
+  if (!Array.isArray(v2)) return [];
+  return v2.filter((s2) => typeof s2 === "string" && s2.trim().length > 0).map((s2) => s2.trim().slice(0, 400)).slice(0, max);
+}
+function channel(v2) {
+  return typeof v2 === "string" && DECISION_CHANNELS.includes(v2) ? v2 : null;
+}
+function decisionFromRow(row) {
+  const kind2 = row.kind;
+  const spec = DECISION_KINDS[kind2];
+  const explanation = spec?.aiExplanation ? validateExplanation(kind2, row.explanation) : null;
+  const stored = Array.isArray(row.options) ? row.options : [];
+  const specOptions = spec ? spec.options : [];
+  const options2 = specOptions.map((o2) => {
+    const fromRow = stored.find((s2) => s2.id === o2.id);
+    const fromAi = explanation?.options.find((s2) => s2.id === o2.id);
+    return {
+      ...o2,
+      pros: fromAi?.pros ?? stringList(fromRow?.pros),
+      cons: fromAi?.cons ?? stringList(fromRow?.cons)
+    };
+  });
+  const origin = row.origin && typeof row.origin === "object" ? row.origin : {};
+  return {
+    id: String(row.id),
+    accountId: String(row.account_id),
+    projectId: str3(row.project_id),
+    kind: kind2,
+    state: row.state,
+    subjectDocumentId: str3(row.subject_document_id),
+    targetDocumentIds: Array.isArray(row.target_document_ids) ? row.target_document_ids.filter((x2) => typeof x2 === "string") : [],
+    origin,
+    question: String(row.question ?? ""),
+    whyHuman: String(row.why_human ?? spec?.whyHuman ?? ""),
+    evidence: row.evidence && typeof row.evidence === "object" ? row.evidence : {},
+    options: options2,
+    recommendation: spec?.aiExplanation ? explanation?.recommendation ?? validateRecommendation(kind2, row.recommendation) : null,
+    defaultOption: String(row.default_option ?? spec?.defaultOption ?? ""),
+    deadlineAt: String(row.deadline_at),
+    consequenceScore: typeof row.consequence_score === "number" ? row.consequence_score : 0,
+    askedAt: str3(row.asked_at),
+    askedVia: channel(row.asked_via),
+    answeredAt: str3(row.answered_at),
+    answeredBy: str3(row.answered_by),
+    answeredVia: channel(row.answered_via),
+    answerOption: str3(row.answer_option),
+    answerNote: str3(row.answer_note),
+    answerQuote: str3(row.answer_quote),
+    explanationVersion: typeof row.explanation_version === "number" ? row.explanation_version : 0,
+    createdAt: String(row.created_at)
+  };
+}
+function validateRecommendation(kind2, raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const r2 = raw;
+  const option = str3(r2.option);
+  if (!option || !isValidAnswer(kind2, option)) return null;
+  const confidence = typeof r2.confidence === "number" ? r2.confidence : Number.NaN;
+  if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) return null;
+  const rationale = str3(typeof r2.rationale === "string" ? r2.rationale.trim() : null);
+  if (!rationale) return null;
+  return { option, confidence, rationale: rationale.slice(0, 1200) };
+}
+function validateExplanation(kind2, raw) {
+  if (!isDecisionKind(kind2) || !raw || typeof raw !== "object") return null;
+  const r2 = raw;
+  const recommendation = validateRecommendation(kind2, r2.recommendation);
+  if (!recommendation) return null;
+  const rawOptions = Array.isArray(r2.options) ? r2.options : [];
+  const options2 = DECISION_KINDS[kind2].options.map((o2) => {
+    const found = rawOptions.find((x2) => x2 && x2.id === o2.id);
+    return { id: o2.id, pros: stringList(found?.pros), cons: stringList(found?.cons) };
+  });
+  return { recommendation, options: options2 };
+}
+function actorClient(ctx) {
+  return ctx.actorSupabase ?? ctx.supabase;
+}
+function serviceClient(ctx) {
+  return ctx.privilegedSupabase ?? ctx.supabase;
+}
+function rpcFailure(prefix, error2) {
+  const message = `${prefix}: ${error2.message ?? "request failed"}`;
+  switch (error2.code) {
+    case "42501":
+      return new DecisionError("forbidden", message);
+    case "P0002":
+      return new DecisionError("not_found", message);
+    case "22023":
+      return new DecisionError("invalid", message);
+    case "PT409":
+      return new DecisionError("conflict", message);
+    default:
+      return new DecisionError("failed", message);
+  }
+}
+function questionFor(kind2, subjectTitle) {
+  const label = DECISION_KINDS[kind2].label;
+  const title = subjectTitle?.trim();
+  return (title ? `${label}: "${title.slice(0, 200)}"` : label).slice(0, 2e3);
+}
+async function raiseDecision(ctx, input, deps = {}) {
+  if (!isDecisionKind(input.kind)) {
+    throw new DecisionError(
+      "invalid",
+      `raise_decision: unknown decision kind "${String(input.kind)}"`
+    );
+  }
+  const spec = DECISION_KINDS[input.kind];
+  const raisedAtMs = input.raisedAtMs ?? (deps.now ?? Date.now)();
+  const { data, error: error2 } = await serviceClient(ctx).rpc("memory_decision_raise", {
+    p_account_id: ctx.accountId,
+    p_project_id: input.projectId ?? null,
+    p_kind: input.kind,
+    p_subject_document_id: input.subjectDocumentId ?? null,
+    p_target_document_ids: input.targetDocumentIds ?? [],
+    p_origin: input.origin ?? {},
+    p_question: questionFor(input.kind, input.subjectTitle),
+    p_why_human: spec.whyHuman,
+    p_evidence: input.evidence ?? {},
+    p_options: spec.options.map((o2) => ({ ...o2, pros: [], cons: [] })),
+    p_default_option: spec.defaultOption,
+    p_deadline_at: decisionDeadline(input.kind, raisedAtMs),
+    p_consequence_score: Math.max(0, Math.round(input.consequenceScore ?? 0)),
+    p_capture_cap: DECISION_CAPS.perCapture
+  });
+  if (error2) throw rpcFailure("raise_decision", error2);
+  const out = data ?? {};
+  if (out.capped === true) return { status: "capped", decision: null, explained: false };
+  if (!out.id) throw new DecisionError("failed", "raise_decision: no row returned");
+  const decision = decisionFromRow(out);
+  if (out.created !== true) return { status: "existing", decision, explained: false };
+  let explained = false;
+  if (deps.explain && spec.aiExplanation) {
+    try {
+      explained = await cacheExplanation(ctx, decision, deps.explain);
+    } catch {
+    }
+  }
+  return { status: "raised", decision, explained };
+}
+async function raiseDecisions(ctx, inputs, deps = {}) {
+  const results = [];
+  let raised = 0;
+  for (const input of inputs) {
+    if (raised >= DECISION_CAPS.perCapture) {
+      results.push({ status: "capped", decision: null, explained: false });
+      continue;
+    }
+    const r2 = await raiseDecision(ctx, input, deps);
+    if (r2.status === "raised") raised++;
+    results.push(r2);
+  }
+  return results;
+}
+async function cacheExplanation(ctx, decision, generate) {
+  if (!DECISION_KINDS[decision.kind].aiExplanation) return false;
+  const evidence = await buildDecisionEvidence(ctx, decision);
+  const explanation = validateExplanation(decision.kind, await generate({ decision, evidence }));
+  if (!explanation) return false;
+  const { data, error: error2 } = await serviceClient(ctx).rpc("memory_decision_set_explanation", {
+    p_account_id: ctx.accountId,
+    p_decision_id: decision.id,
+    p_explanation: explanation,
+    p_version: DECISION_EXPLANATION_VERSION
+  });
+  if (error2) throw rpcFailure("explain_decision", error2);
+  return data === true;
+}
+async function visibleToCaller(ctx, decisions) {
+  if (!ctx.serviceTokenId) return decisions;
+  const candidates = decisions.filter((d2) => d2.kind !== "sensitive");
+  const ids = [
+    ...new Set(
+      candidates.flatMap((d2) => [
+        ...d2.subjectDocumentId ? [d2.subjectDocumentId] : [],
+        ...d2.targetDocumentIds
+      ])
+    )
+  ];
+  if (ids.length === 0) return candidates;
+  const { data, error: error2 } = await actorClient(ctx).from("documents").select("id, scope, created_by").eq("account_id", ctx.accountId).in("id", ids);
+  if (error2) throw rpcFailure("decision_visibility", error2);
+  const hidden = new Set(
+    (data ?? []).filter((d2) => d2.scope === "personal" && d2.created_by !== ctx.userId).map((d2) => d2.id)
+  );
+  return candidates.filter(
+    (d2) => !(d2.subjectDocumentId && hidden.has(d2.subjectDocumentId)) && !d2.targetDocumentIds.some((id3) => hidden.has(id3))
+  );
+}
+async function getDecision(ctx, decisionId) {
+  const { data, error: error2 } = await actorClient(ctx).rpc("memory_decision_get", {
+    p_account_id: ctx.accountId,
+    p_decision_id: decisionId
+  });
+  if (error2) throw rpcFailure("get_decision", error2);
+  if (!data || typeof data !== "object") return null;
+  const row = data;
+  if (row.account_id !== ctx.accountId) return null;
+  const [visible] = await visibleToCaller(ctx, [decisionFromRow(row)]);
+  return visible ?? null;
+}
+async function listOpenDecisions(ctx, args = {}) {
+  const limit2 = Math.min(Math.max(Math.trunc(args.limit ?? 50), 1), 200);
+  const { data, error: error2 } = await actorClient(ctx).rpc("memory_decisions_list_open", {
+    p_account_id: ctx.accountId,
+    p_limit: limit2
+  });
+  if (error2) throw rpcFailure("list_decisions", error2);
+  const rows = Array.isArray(data) ? data : [];
+  const decisions = rows.filter((r2) => r2.account_id === ctx.accountId).map(decisionFromRow).sort(
+    (a2, b2) => b2.consequenceScore - a2.consequenceScore || Date.parse(a2.deadlineAt) - Date.parse(b2.deadlineAt)
+  ).slice(0, limit2);
+  return visibleToCaller(ctx, decisions);
+}
+async function countOpenDecisions(ctx) {
+  if (ctx.serviceTokenId) return (await listOpenDecisions(ctx, { limit: 200 })).length;
+  const { data, error: error2 } = await actorClient(ctx).rpc("memory_decisions_open_count", {
+    p_account_id: ctx.accountId
+  });
+  if (error2) throw rpcFailure("count_decisions", error2);
+  return typeof data === "number" ? data : Number(data ?? 0) || 0;
+}
+async function markDecisionAsked(ctx, decisionId, via) {
+  const { data, error: error2 } = await actorClient(ctx).rpc("memory_decision_mark_asked", {
+    p_account_id: ctx.accountId,
+    p_decision_id: decisionId,
+    p_via: via
+  });
+  if (error2) throw rpcFailure("mark_asked", error2);
+  return decisionFromRow(data);
+}
+var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+async function answerDecision(ctx, input, deps = {}) {
+  if (ctx.callerRole === "viewer") {
+    throw new DecisionError("forbidden", "decide: answering a decision requires a writer");
+  }
+  if (!DECISION_CHANNELS.includes(input.via)) {
+    throw new DecisionError("invalid", `decide: unknown channel "${String(input.via)}"`);
+  }
+  const current = await getDecision(ctx, input.decisionId);
+  if (!current) throw new DecisionError("not_found", "decide: decision not found");
+  const spec = DECISION_KINDS[current.kind];
+  if (!isValidAnswer(current.kind, input.option)) {
+    throw new DecisionError(
+      "invalid",
+      `decide: "${input.option}" is not an option for a ${current.kind} decision (choose one of: ${spec.options.map((o2) => o2.id).join(", ")})`
+    );
+  }
+  const { data, error: error2 } = await actorClient(ctx).rpc("memory_decision_answer", {
+    p_account_id: ctx.accountId,
+    p_decision_id: input.decisionId,
+    p_option: input.option,
+    p_via: input.via,
+    p_note: input.note?.trim() || null,
+    p_quote: input.userQuote?.trim() || null,
+    // Honoured only for the service role; a user's own JWT identity wins.
+    p_answered_by: ctx.userId && UUID_RE.test(ctx.userId) ? ctx.userId : null
+  });
+  if (error2) throw rpcFailure("decide", error2);
+  const row = data;
+  const decision = decisionFromRow(row);
+  const option = spec.options.find((o2) => o2.id === input.option);
+  const replayed = row.replayed === true;
+  let applied = false;
+  let applyError = null;
+  let outcome = null;
+  if (!replayed) {
+    try {
+      outcome = await (deps.applier ?? noopDecisionOutcomeApplier).apply(decision, option.id, {
+        type: "human",
+        id: decision.answeredBy ?? ctx.userId ?? "unknown"
+      }) ?? null;
+      applied = outcome ? outcome.applied : true;
+    } catch (e2) {
+      applyError = e2 instanceof Error ? e2.message : String(e2);
+    }
+  }
+  return {
+    decision,
+    option,
+    consequence: option.consequence,
+    reversible: option.reversible,
+    replayed,
+    applied,
+    applyError,
+    outcome
+  };
+}
+function originSummary(origin) {
+  const parts = [];
+  if (origin.agent) parts.push(`${origin.agent} session`);
+  else if (origin.sessionId) parts.push("agent session");
+  if (origin.sessionId) parts.push(origin.sessionId.slice(0, 12));
+  if (origin.commitSha) parts.push(`commit ${origin.commitSha.slice(0, 7)}`);
+  if (origin.userId) parts.push("work by a workspace member");
+  return parts.length ? parts.join(" \xB7 ") : "unknown origin";
+}
+function shortTextDiff(before, after, maxLines = DEFAULT_DIFF_LINES) {
+  const clip = (s2) => {
+    const lines = s2.slice(0, MAX_DIFF_SOURCE_CHARS).split("\n");
+    return {
+      lines: lines.slice(0, MAX_DIFF_SOURCE_LINES),
+      clipped: s2.length > MAX_DIFF_SOURCE_CHARS || lines.length > MAX_DIFF_SOURCE_LINES
+    };
+  };
+  const a2 = clip(before);
+  const b2 = clip(after);
+  const n2 = a2.lines.length;
+  const m2 = b2.lines.length;
+  const lcs = Array.from({ length: n2 + 1 }, () => new Uint16Array(m2 + 1));
+  for (let i3 = n2 - 1; i3 >= 0; i3--) {
+    for (let j3 = m2 - 1; j3 >= 0; j3--) {
+      lcs[i3][j3] = a2.lines[i3] === b2.lines[j3] ? lcs[i3 + 1][j3 + 1] + 1 : Math.max(lcs[i3 + 1][j3], lcs[i3][j3 + 1]);
+    }
+  }
+  const out = [];
+  let added = 0;
+  let removed = 0;
+  let i2 = 0;
+  let j2 = 0;
+  while (i2 < n2 || j2 < m2) {
+    if (i2 < n2 && j2 < m2 && a2.lines[i2] === b2.lines[j2]) {
+      i2++;
+      j2++;
+    } else if (j2 < m2 && (i2 >= n2 || lcs[i2][j2 + 1] >= lcs[i2 + 1][j2])) {
+      added++;
+      out.push(`+ ${b2.lines[j2]}`);
+      j2++;
+    } else {
+      removed++;
+      out.push(`- ${a2.lines[i2]}`);
+      i2++;
+    }
+  }
+  return {
+    text: out.slice(0, maxLines).join("\n"),
+    added,
+    removed,
+    truncated: out.length > maxLines || a2.clipped || b2.clipped
+  };
+}
+async function readDocs(ctx, ids) {
+  const out = /* @__PURE__ */ new Map();
+  if (ids.length === 0) return out;
+  const { data, error: error2 } = await actorClient(ctx).from("documents").select("id, title, document_versions!documents_current_version_fk ( content )").eq("account_id", ctx.accountId).in("id", ids);
+  if (error2 || !Array.isArray(data)) return out;
+  for (const row of data) {
+    const v2 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+    out.set(String(row.id), {
+      id: String(row.id),
+      title: str3(row.title),
+      content: typeof v2?.content === "string" ? v2.content : ""
+    });
+  }
+  return out;
+}
+async function buildDecisionEvidence(ctx, decision) {
+  const spec = DECISION_KINDS[decision.kind];
+  const ev = decision.evidence;
+  const targetId = decision.targetDocumentIds[0] ?? null;
+  const subjectId = decision.subjectDocumentId;
+  const docs = await readDocs(
+    ctx,
+    [subjectId, targetId].filter((x2) => typeof x2 === "string")
+  );
+  const [beforeId, afterId] = decision.kind === "conflict" ? [subjectId, targetId] : [targetId, subjectId];
+  const before = beforeId ? docs.get(beforeId) : void 0;
+  const after = afterId ? docs.get(afterId) : void 0;
+  let diff = null;
+  if (before || after) {
+    diff = {
+      before: before ? { id: before.id, title: before.title } : null,
+      after: after ? { id: after.id, title: after.title } : null,
+      ...shortTextDiff(before?.content ?? "", after?.content ?? "")
+    };
+  }
+  const def = spec.options.find((o2) => o2.id === spec.defaultOption);
+  return {
+    reason: {
+      kind: decision.kind,
+      label: spec.label,
+      raisedWhen: spec.raisedWhen,
+      whyHuman: spec.whyHuman,
+      detail: str3(ev.reason)
+    },
+    origin: { ...decision.origin, summary: originSummary(decision.origin) },
+    automation: stringList(ev.automation, 20),
+    diff,
+    deadline: {
+      at: decision.deadlineAt,
+      defaultOption: def.id,
+      defaultLabel: def.label,
+      consequence: def.consequence
+    },
+    options: spec.options.map((o2) => ({ ...o2 })),
+    reversible: spec.options.every((o2) => o2.reversible)
+  };
+}
+async function explainDecision(ctx, decisionId) {
+  const decision = await getDecision(ctx, decisionId);
+  if (!decision) throw new DecisionError("not_found", "explain_decision: decision not found");
+  const aiAllowed = DECISION_KINDS[decision.kind].aiExplanation;
+  const evidence = await buildDecisionEvidence(ctx, decision);
+  const ai = aiAllowed && decision.recommendation ? {
+    recommendation: decision.recommendation,
+    options: decision.options.map((o2) => ({ id: o2.id, pros: o2.pros, cons: o2.cons }))
+  } : null;
+  return { decision, evidence, ai, aiAllowed };
+}
+var ListDecisionsArgs = external_exports.object({
+  limit: external_exports.number().int().min(1).max(200).optional()
+});
+var ExplainDecisionArgs = external_exports.object({ decision_id: external_exports.string().uuid() });
+var DecideArgs = external_exports.object({
+  decision_id: external_exports.string().uuid(),
+  option: external_exports.string().min(1).max(64),
+  note: external_exports.string().max(4e3).optional(),
+  user_quote: external_exports.string().max(4e3).optional()
+});
+async function listDecisionsTool(ctx, rawArgs) {
+  const args = ListDecisionsArgs.parse(rawArgs ?? {});
+  const [decisions, count] = await Promise.all([
+    listOpenDecisions(ctx, { limit: args.limit }),
+    countOpenDecisions(ctx)
+  ]);
+  return { decisions, count };
+}
+async function explainDecisionTool(ctx, rawArgs) {
+  const args = ExplainDecisionArgs.parse(rawArgs);
+  return explainDecision(ctx, args.decision_id);
+}
+async function decideTool(ctx, rawArgs, deps = {}) {
+  const args = DecideArgs.parse(rawArgs);
+  return answerDecision(
+    ctx,
+    {
+      decisionId: args.decision_id,
+      option: args.option,
+      note: args.note,
+      userQuote: args.user_quote,
+      via: "mcp"
+    },
+    {
+      ...deps,
+      // The answer is carried out on the answering person's own client, so the
+      // ledger's caller check sees them; the privileged client is the fallback
+      // the transition path already uses for Auth0 sessions.
+      applier: deps.applier ?? createDecisionOutcomeApplier({
+        supabase: actorClient(ctx),
+        privilegedSupabase: ctx.privilegedSupabase,
+        accountId: ctx.accountId
+      })
+    }
+  );
+}
+
 // packages/mcp-tools/src/curation.ts
 var CurationError = class extends Error {
   code;
@@ -70977,7 +72545,7 @@ async function setDocumentStatus(ctx, rawArgs) {
   if (args.action === "approve") {
     meta.approved_at = nowIso;
     meta.approved_by = actor;
-    if (meta.status === "proposed") {
+    if (meta.status === "proposed" || meta.status === "background") {
       meta.status = "active";
       meta.accepted_at = nowIso;
       meta.accepted_by_user_sub = actor;
@@ -71620,6 +73188,25 @@ async function executeDocumentWrite(ctx, args) {
       throw new Error("write_memory: document kind mismatch");
     }
   }
+  const admission = args.document_id ? null : admitCapture({
+    writer: "mcp_write",
+    humanSession: ctx.captureProvenance === "human_typed",
+    kind: args.kind,
+    labels: {},
+    autoPromoteThreshold: 1,
+    sensitive: detectSensitiveTopics(`${args.title}
+${args.content}`)
+  });
+  const admissionMeta = admission ? {
+    status: admission.status,
+    ...admission.stamps,
+    ...admission.decision ? { decision_pending: admission.decision.kind } : {},
+    ...admission.decision?.kind === "sensitive" ? {
+      sensitive_hold: true,
+      sensitive_topics: detectSensitiveTopics(`${args.title}
+${args.content}`).topics
+    } : {}
+  } : {};
   const light = await loadLightStatus(ctx.supabase, ctx.accountId);
   let embedding = null;
   if (!light?.active && ctx.embed && args.content.length > 0) {
@@ -71642,7 +73229,7 @@ async function executeDocumentWrite(ctx, args) {
       p_path: args.path ?? null,
       p_content: args.content,
       p_embedding: embedding,
-      p_metadata: filterClientMetadata(args.metadata, args.kind),
+      p_metadata: { ...filterClientMetadata(args.metadata, args.kind), ...admissionMeta },
       p_commit_message: args.commit_message ?? null,
       p_yjs_state_b64: null,
       // Client writes MERGE metadata: a re-version that omits keys must not
@@ -71658,6 +73245,26 @@ async function executeDocumentWrite(ctx, args) {
   if (error2) throw new Error(`write_memory: ${error2.message}`);
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) throw new Error("write_memory: RPC returned no row");
+  if (admission?.decision && ctx.privilegedSupabase) {
+    try {
+      await raiseDecisions(ctx, [
+        {
+          kind: admission.decision.kind,
+          projectId,
+          subjectDocumentId: row.document_id,
+          targetDocumentIds: admission.decision.targetIds,
+          origin: { scribeRunId: `write:${row.document_id}`, userId: ctx.userId ?? null },
+          subjectTitle: args.title,
+          evidence: {
+            reason: admission.decision.kind === "sensitive" ? "A written document matched a sensitive topic." : "A goal was written.",
+            admission: { reason: admission.reason, provenance: admission.stamps.provenance },
+            automation: ["Held out of recall until a person decides."]
+          }
+        }
+      ]);
+    } catch {
+    }
+  }
   return {
     document_id: row.document_id,
     version_id: row.version_id,
@@ -72047,10 +73654,10 @@ function referencedProposalTargetIds(existing) {
   }
   return [];
 }
-async function assertActorCanResolveProposalTargets(ctx, actorClient, proposalProjectId, targetIds) {
+async function assertActorCanResolveProposalTargets(ctx, actorClient2, proposalProjectId, targetIds) {
   const ids = [...new Set(targetIds)];
   if (ids.length === 0) return;
-  const { data, error: error2 } = await actorClient.from("documents").select("id, account_id, project_id, scope, created_by, locked_to_owners").eq("account_id", ctx.accountId).in("id", ids);
+  const { data, error: error2 } = await actorClient2.from("documents").select("id, account_id, project_id, scope, created_by, locked_to_owners").eq("account_id", ctx.accountId).in("id", ids);
   if (error2) throw new Error(`resolve_proposal: target authorization failed: ${error2.message}`);
   const rows = data ?? [];
   const byId = new Map(rows.map((row) => [row.id, row]));
@@ -72149,22 +73756,55 @@ var RecentCapturesArgs = external_exports.object({
 });
 var ResolveArgs = external_exports.object({
   proposal_id: external_exports.string().uuid(),
-  action: external_exports.enum(["accept", "reject"])
+  action: external_exports.enum(["accept", "reject"]),
+  /** Reviewer's reason, stored as metadata.reviewer_note — the same key the
+   *  web inbox form writes. */
+  note: external_exports.string().max(4e3).optional()
 });
+function normalizeReviewerNote(note) {
+  const trimmed = note?.trim();
+  return trimmed ? trimmed.slice(0, 1e3) : null;
+}
 async function resolveProposal(ctx, rawArgs) {
   const args = ResolveArgs.parse(rawArgs);
+  const result = await resolveProposalCore(ctx, args);
+  const note = normalizeReviewerNote(args.note);
+  if (note) {
+    result.note_recorded = await recordReviewerNote(ctx, args.proposal_id, note);
+  }
+  return result;
+}
+async function recordReviewerNote(ctx, proposalId, note) {
+  const client2 = ctx.actorSupabase ?? ctx.supabase;
+  try {
+    const { data, error: error2 } = await client2.from("documents").select("id, account_id, metadata").eq("id", proposalId).maybeSingle();
+    if (error2 || !data || data.account_id !== ctx.accountId) return false;
+    const { error: updateErr } = await client2.from("documents").update({
+      metadata: {
+        ...data.metadata ?? {},
+        reviewer_note: note,
+        reviewed_at: (/* @__PURE__ */ new Date()).toISOString(),
+        reviewed_by_user_sub: ctx.userId ?? "api"
+      }
+    }).eq("id", proposalId).eq("account_id", ctx.accountId);
+    return !updateErr;
+  } catch {
+    return false;
+  }
+}
+async function resolveProposalCore(ctx, args) {
   if (ctx.callerRole === "viewer") {
     throw new Error("resolve_proposal: proposal resolution requires a writer");
   }
-  const actorClient = ctx.actorSupabase ?? ctx.supabase;
-  const { data: doc, error: readErr } = await actorClient.from("documents").select("id, account_id, project_id, component_id, kind, title, scope, created_by, metadata").eq("id", args.proposal_id).maybeSingle();
+  const actorClient2 = ctx.actorSupabase ?? ctx.supabase;
+  const { data: doc, error: readErr } = await actorClient2.from("documents").select("id, account_id, project_id, component_id, kind, title, scope, created_by, metadata").eq("id", args.proposal_id).maybeSingle();
   if (readErr) throw new Error(`resolve_proposal: ${readErr.message}`);
   if (!doc) throw new Error("resolve_proposal: proposal not found");
   if (doc.account_id !== ctx.accountId) {
     throw new Error("resolve_proposal: proposal does not belong to this account");
   }
   if (doc.scope === "personal") {
-    const { data: actorUserId, error: actorErr } = await actorClient.rpc("memlin_user_id");
+    const { data: actorUserId, error: actorErr } = await actorClient2.rpc("memlin_user_id");
     if (actorErr || typeof actorUserId !== "string" || !actorUserId || typeof doc.created_by !== "string" || doc.created_by !== actorUserId) {
       throw new Error("resolve_proposal: proposal not found");
     }
@@ -72181,7 +73821,7 @@ async function resolveProposal(ctx, rawArgs) {
   if (ctx.actorSupabase && (existing.proposal_action === "merge" || existing.proposal_action === "supersede" || existing.proposal_action === "update")) {
     await assertActorCanResolveProposalTargets(
       ctx,
-      actorClient,
+      actorClient2,
       doc.project_id ?? null,
       referencedProposalTargetIds(existing)
     );
@@ -72192,13 +73832,13 @@ async function resolveProposal(ctx, rawArgs) {
     if (!ctx.userId) {
       throw new Error("resolve_proposal: connector proposal requires an authenticated writer");
     }
-    const { data, error: error3 } = await actorClient.rpc("resolve_connector_distillation_proposal", {
+    const { data, error: error2 } = await actorClient2.rpc("resolve_connector_distillation_proposal", {
       p_account_id: ctx.accountId,
       p_proposal_id: args.proposal_id,
       p_actor: ctx.userId,
       p_action: args.action
     });
-    if (error3) throw new Error(`resolve_proposal: connector resolution failed: ${error3.message}`);
+    if (error2) throw new Error(`resolve_proposal: connector resolution failed: ${error2.message}`);
     const receipt = Array.isArray(data) ? data[0] : data;
     return {
       status: receipt?.result_status === "active" ? "active" : receipt?.result_status === "rejected" ? "rejected" : "applied",
@@ -72206,16 +73846,26 @@ async function resolveProposal(ctx, rawArgs) {
       title: doc.title
     };
   }
+  const transitionCtx = { supabase: actorClient2, accountId: ctx.accountId };
+  const humanActor = { type: "human", id: actor, version: null };
+  const subject = { kind: String(doc.kind), metadata: existing };
   if (args.action === "reject") {
-    const { error: error3 } = await actorClient.from("documents").update({
-      metadata: {
-        ...existing,
-        status: "rejected",
-        rejected_at: nowIso,
-        rejected_by_user_sub: actor
-      }
-    }).eq("id", args.proposal_id);
-    if (error3) throw new Error(`resolve_proposal: reject failed: ${error3.message}`);
+    const outcome = await transitionDocument(transitionCtx, {
+      documentId: args.proposal_id,
+      from: existing.status === "proposed" ? "proposed" : "active",
+      to: "rejected",
+      actor: humanActor,
+      reason: existing.status === "proposed" ? "Rejected from the inbox" : "Captured correction undone from the inbox",
+      metadataPatch: { rejected_at: nowIso, rejected_by_user_sub: actor },
+      subject
+    }).catch((e2) => {
+      throw new Error(
+        `resolve_proposal: reject failed: ${e2 instanceof Error ? e2.message : String(e2)}`
+      );
+    });
+    if (isTransitionRefusal(outcome)) {
+      throw new Error(`resolve_proposal: reject failed: ${outcome.refused} (${outcome.message})`);
+    }
     if (existing.proposal_action === "merge" || existing.proposal_action === "supersede") {
       const merge2 = existing.merge ?? existing.supersede;
       if (merge2?.insight_id) {
@@ -72246,17 +73896,24 @@ async function resolveProposal(ctx, rawArgs) {
     componentId: doc.component_id ?? null,
     nowIso
   }) : [];
-  const { error: error2 } = await actorClient.from("documents").update({
-    metadata: {
-      ...existing,
-      status: "active",
-      accepted_at: nowIso,
-      accepted_by_user_sub: actor
-    }
-  }).eq("id", args.proposal_id);
-  if (error2) {
+  let acceptFailure = null;
+  try {
+    const outcome = await transitionDocument(transitionCtx, {
+      documentId: args.proposal_id,
+      from: "proposed",
+      to: "active",
+      actor: humanActor,
+      reason: "Accepted from the inbox",
+      metadataPatch: { accepted_at: nowIso, accepted_by_user_sub: actor },
+      subject
+    });
+    if (isTransitionRefusal(outcome)) acceptFailure = `${outcome.refused} (${outcome.message})`;
+  } catch (e2) {
+    acceptFailure = e2 instanceof Error ? e2.message : String(e2);
+  }
+  if (acceptFailure) {
     await restoreBrandLayers(ctx, retiredBrandLayers);
-    throw new Error(`resolve_proposal: accept failed: ${error2.message}`);
+    throw new Error(`resolve_proposal: accept failed: ${acceptFailure}`);
   }
   if (doc.kind === "goal" || doc.kind === "skill") {
     try {
@@ -72268,7 +73925,7 @@ async function resolveProposal(ctx, rawArgs) {
     }
   }
   if (existing.directive_hold === true) {
-    await runHeldDirectiveSupersede(ctx, args.proposal_id, doc.kind, nowIso);
+    await clearDirectiveHold(ctx, args.proposal_id, nowIso);
   }
   if (doc.kind === "brand_guidelines") {
     try {
@@ -72326,55 +73983,15 @@ async function restoreBrandLayers(ctx, rows) {
     )
   );
 }
-var HELD_DIRECTIVE_SUPERSEDE_THRESHOLD = 0.86;
-async function runHeldDirectiveSupersede(ctx, acceptedId, kind2, nowIso) {
+async function clearDirectiveHold(ctx, acceptedId, nowIso) {
   try {
-    const { data: row } = await ctx.supabase.from("documents").select("id, embedding, metadata").eq("id", acceptedId).eq("account_id", ctx.accountId).maybeSingle();
-    const embedding = row?.embedding ?? null;
-    let retired = 0;
-    if (embedding) {
-      const { data: hits, error: searchErr } = await ctx.supabase.rpc(
-        "search_documents_for_dedup",
-        {
-          p_account_id: ctx.accountId,
-          p_query_embedding: embedding,
-          p_kind: kind2,
-          p_limit: 5,
-          p_include_suppressors: false
-        }
-      );
-      if (!searchErr && Array.isArray(hits)) {
-        for (const hit of hits) {
-          if (hit.id === acceptedId) continue;
-          if (hit.similarity < HELD_DIRECTIVE_SUPERSEDE_THRESHOLD) continue;
-          if (hit.status && hit.status !== "active") continue;
-          const { data: hitRow } = await ctx.supabase.from("documents").select("metadata").eq("id", hit.id).eq("account_id", ctx.accountId).maybeSingle();
-          if (!hitRow) continue;
-          const hitMeta = hitRow.metadata ?? {};
-          const liveStatus = typeof hitMeta.status === "string" && hitMeta.status ? hitMeta.status : "active";
-          if (liveStatus !== "active") continue;
-          const { error: retireErr } = await ctx.supabase.from("documents").update({
-            metadata: {
-              ...hitMeta,
-              status: "rejected",
-              rejected_reason: "superseded_by_directive",
-              superseded_by: acceptedId,
-              superseded_at: nowIso
-            },
-            updated_at: nowIso
-          }).eq("id", hit.id).eq("account_id", ctx.accountId);
-          if (!retireErr) retired += 1;
-        }
-      }
-    }
-    const meta = row?.metadata ?? {};
+    const { data: row } = await ctx.supabase.from("documents").select("id, metadata").eq("id", acceptedId).eq("account_id", ctx.accountId).maybeSingle();
+    const meta = { ...row?.metadata ?? {} };
     delete meta.directive_hold;
-    await ctx.supabase.from("documents").update({
-      metadata: { ...meta, directive_verified_at: nowIso, directive_superseded_count: retired }
-    }).eq("id", acceptedId).eq("account_id", ctx.accountId);
+    await ctx.supabase.from("documents").update({ metadata: { ...meta, directive_verified_at: nowIso } }).eq("id", acceptedId).eq("account_id", ctx.accountId);
   } catch (e2) {
     console.warn(
-      `resolve_proposal: held-directive supersede failed (stale docs stay live): ${e2 instanceof Error ? e2.message : String(e2)}`
+      `resolve_proposal: clearing the directive hold failed (accept stands): ${e2 instanceof Error ? e2.message : String(e2)}`
     );
   }
 }
@@ -72653,7 +74270,8 @@ var ListHandoffsArgs = external_exports.object({
 });
 var UpdateHandoffArgs = external_exports.object({
   handoff_id: external_exports.string().uuid(),
-  action: external_exports.enum(["accept", "complete", "cancel"])
+  action: external_exports.enum(["accept", "complete", "cancel"]),
+  result_summary: external_exports.string().trim().min(1).max(8e3).optional()
 });
 async function resolvePickupInstallation(ctx) {
   if (!ctx.agentInstallationId || !ctx.userId) return null;
@@ -72728,17 +74346,22 @@ async function updateHandoff(ctx, rawArgs) {
   if (args.action !== "cancel" && !ctx.agentInstallationId) {
     throw new Error("update_handoff: an exact destination installation is required");
   }
-  const { data, error: error2 } = await (ctx.actorSupabase ?? ctx.supabase).rpc(
-    "advance_agent_handoff_lifecycle",
-    {
-      p_account_id: ctx.accountId,
-      p_handoff_id: args.handoff_id,
-      p_actor_user_id: ctx.userId,
-      p_actor_installation_id: ctx.agentInstallationId ?? null,
-      p_target_session_id: ctx.sessionId ?? null,
-      p_action: args.action
-    }
-  );
+  if (args.result_summary !== void 0 && args.action !== "complete")
+    throw new Error("A result can only accompany completion");
+  const { data, error: error2 } = args.result_summary !== void 0 ? await (ctx.actorSupabase ?? ctx.supabase).rpc("thought_handoff_report_v2", {
+    p_account_id: ctx.accountId,
+    p_handoff_id: args.handoff_id,
+    p_installation_id: ctx.agentInstallationId,
+    p_session_id: ctx.sessionId ?? null,
+    p_summary: args.result_summary
+  }) : await (ctx.actorSupabase ?? ctx.supabase).rpc("advance_agent_handoff_lifecycle", {
+    p_account_id: ctx.accountId,
+    p_handoff_id: args.handoff_id,
+    p_actor_user_id: ctx.userId,
+    p_actor_installation_id: ctx.agentInstallationId ?? null,
+    p_target_session_id: ctx.sessionId ?? null,
+    p_action: args.action
+  });
   if (error2) throw new Error(`update_handoff: ${error2.message}`);
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) throw new Error("update_handoff: handoff not found");
@@ -73385,6 +75008,17 @@ var PROMPTS = [
     ]
   },
   {
+    name: "memlin-decide",
+    description: "Go through the memory decisions Memlin needs from you \u2014 the rare questions it cannot settle itself (replace live memory, two live docs disagree, sensitive content, incident runbook, goal approval). Each comes with why a person is needed, a recommendation with pros and cons, and what happens if you do not answer. Your answer and your words are recorded.",
+    arguments: [
+      {
+        name: "decision_id",
+        description: "Optional: one decision (uuid) to go through. Omit for the most consequential open ones.",
+        required: false
+      }
+    ]
+  },
+  {
     name: "memlin-verify",
     description: "Record a measured outcome (held / broke / inconclusive) on a past decision, so the workspace learns what actually worked.",
     arguments: [
@@ -73500,9 +75134,71 @@ If that already looks like a document id (uuid), use it directly; otherwise call
         messages: [{ role: "user", content: { type: "text", text } }]
       };
     }
+    case "memlin-decide": {
+      const decisionId = typeof a2.decision_id === "string" && a2.decision_id.trim() ? a2.decision_id.trim() : null;
+      const text = await renderDecidePrompt(ctx, decisionId);
+      return {
+        description: decisionId ? `Memlin decision ${decisionId}` : "Memlin decisions waiting on you",
+        messages: [{ role: "user", content: { type: "text", text } }]
+      };
+    }
     default:
       throw notFoundError(`unknown prompt: ${name}`);
   }
+}
+function renderEvidence(view) {
+  const ev = view.evidence;
+  const lines = [`Where it came from: ${ev.origin.summary}`];
+  if (ev.reason.detail) lines.push(`Reason recorded by Memlin: ${ev.reason.detail}`);
+  if (ev.automation.length) {
+    lines.push("What automation already did:");
+    for (const step of ev.automation.slice(0, 5)) lines.push(`- ${step}`);
+  }
+  if (ev.diff && ev.diff.text) {
+    const title = (ref) => ref?.title ?? "(untitled)";
+    lines.push(`Change (${title(ev.diff.before)} \u2192 ${title(ev.diff.after)}):`);
+    lines.push("```diff", ev.diff.text, "```");
+  }
+  return lines.join("\n");
+}
+async function renderDecidePrompt(ctx, decisionId) {
+  let views = [];
+  let failure = null;
+  try {
+    if (decisionId) {
+      views = [await explainDecision(ctx, decisionId)];
+    } else {
+      const open = await listOpenDecisions(ctx, { limit: DECISION_CAPS.perSession });
+      for (const d2 of open.slice(0, DECISION_CAPS.perSession)) {
+        try {
+          views.push(await explainDecision(ctx, d2.id));
+        } catch {
+        }
+      }
+    }
+  } catch (err) {
+    failure = err instanceof Error ? err.message : String(err);
+  }
+  if (failure) {
+    return `Could not load Memlin decisions (${failure}). Call \`memlin_list_decisions\` to see what is waiting, then go through them with me one at a time.`;
+  }
+  if (views.length === 0) {
+    return "Memlin has no open decisions waiting on me right now. Tell me that in one line; there is nothing to ask.";
+  }
+  const parts = [
+    `Memlin needs ${views.length === 1 ? "one decision" : `${views.length} decisions`} from me. Go through them ONE at a time, most important first: ask, wait for my answer, record it, then move to the next. The instructions inside each block apply; there is no other request to finish first.`,
+    ""
+  ];
+  for (const view of views) {
+    parts.push(renderDecisionBlock(toSessionDecision(view.decision), { host: "mcp" }).trimEnd());
+    parts.push(renderEvidence(view));
+    parts.push("");
+    try {
+      await markDecisionAsked(ctx, view.decision.id, "mcp");
+    } catch {
+    }
+  }
+  return parts.join("\n").trimEnd();
 }
 function renderBundleText(result, task) {
   const b2 = result?.bundle;
@@ -73908,12 +75604,12 @@ function parseUri(uri) {
 }
 
 // packages/mcp-tools/src/correct-memory.ts
-function str3(v2) {
+function str4(v2) {
   return typeof v2 === "string" && v2.length > 0 ? v2 : null;
 }
 async function correctMemory(ctx, rawArgs) {
   const args = rawArgs ?? {};
-  const mode = str3(args.mode);
+  const mode = str4(args.mode);
   if (mode !== "revise" && mode !== "revoke" && mode !== "ignore_once") {
     throw new Error("mode must be 'revise', 'revoke', or 'ignore_once'");
   }
@@ -73934,9 +75630,9 @@ async function correctMemory(ctx, rawArgs) {
         p_user_id: ctx.userId ?? null,
         p_metadata: {
           target_document_ids: targetIds,
-          source_audit_id: str3(args.source_audit_id),
-          user_quote: sanitizeAuditTask(str3(args.user_quote) ?? "").task || null,
-          session_id: str3(args.session_id)
+          source_audit_id: str4(args.source_audit_id),
+          user_quote: sanitizeAuditTask(str4(args.user_quote) ?? "").task || null,
+          session_id: str4(args.session_id)
         }
       });
     } catch {
@@ -73949,7 +75645,7 @@ async function correctMemory(ctx, rawArgs) {
     };
   }
   const repl = args.replacement ?? null;
-  if (mode === "revise" && (!repl || !str3(repl.title) || !str3(repl.content))) {
+  if (mode === "revise" && (!repl || !str4(repl.title) || !str4(repl.content))) {
     throw new Error("revise requires replacement { title, content }");
   }
   let replacementEmbedding = null;
@@ -73964,24 +75660,24 @@ async function correctMemory(ctx, rawArgs) {
     p_account_id: ctx.accountId,
     p_mode: mode,
     p_target_ids: targetIds,
-    p_claim_key: str3(args.claim_key),
-    p_replacement_title: repl ? str3(repl.title) : null,
-    p_replacement_content: repl ? str3(repl.content) : null,
-    p_replacement_kind: repl && str3(repl.kind) || "memory",
-    p_replacement_scope: repl && str3(repl.scope) || "project",
-    p_replacement_project_id: repl && str3(repl.project_id) || ctx.projectId || null,
+    p_claim_key: str4(args.claim_key),
+    p_replacement_title: repl ? str4(repl.title) : null,
+    p_replacement_content: repl ? str4(repl.content) : null,
+    p_replacement_kind: repl && str4(repl.kind) || "memory",
+    p_replacement_scope: repl && str4(repl.scope) || "project",
+    p_replacement_project_id: repl && str4(repl.project_id) || ctx.projectId || null,
     // Default memory-kind heads to memory_type 'correction' so the replacement
     // carries USER_CORRECTION authority from birth — an unstamped head is born
     // HISTORICAL (tier 6) and loses to the very doc it corrects. The RPC also
     // defaults this server-side; explicit caller metadata still wins.
     p_replacement_metadata: {
-      ...(repl && str3(repl.kind) || "memory") === "memory" ? { memory_type: "correction" } : {},
+      ...(repl && str4(repl.kind) || "memory") === "memory" ? { memory_type: "correction" } : {},
       ...repl && repl.metadata && typeof repl.metadata === "object" ? repl.metadata : {}
     },
-    p_source_audit_id: str3(args.source_audit_id),
-    p_user_quote: str3(args.user_quote),
-    p_scope: str3(args.scope),
-    p_session_id: str3(args.session_id),
+    p_source_audit_id: str4(args.source_audit_id),
+    p_user_quote: str4(args.user_quote),
+    p_scope: str4(args.scope),
+    p_session_id: str4(args.session_id),
     p_replacement_embedding: replacementEmbedding
   });
   if (error2) throw new Error(`correct_memory failed: ${error2.message}`);
@@ -73996,7 +75692,7 @@ async function correctMemory(ctx, rawArgs) {
 }
 async function correctMemoryUndo(ctx, rawArgs) {
   const args = rawArgs ?? {};
-  const correctionId = str3(args.correction_id);
+  const correctionId = str4(args.correction_id);
   if (!correctionId) throw new Error("correction_id is required");
   const { data, error: error2 } = await ctx.supabase.rpc("correct_memory_undo", {
     p_account_id: ctx.accountId,
@@ -74334,7 +76030,10 @@ async function callTool(ctx, name, args) {
     "memlin_resolve_task",
     "memlin_capture_session",
     "memlin_list_proposals",
-    "memlin_resolve_proposal"
+    "memlin_resolve_proposal",
+    "memlin_list_decisions",
+    "memlin_explain_decision",
+    "memlin_decide"
   ].includes(name))
     throw new Error("light_upgrade_required");
   switch (name) {
@@ -74376,6 +76075,12 @@ async function callTool(ctx, name, args) {
       return listProposals(ctx, args);
     case "memlin_resolve_proposal":
       return resolveProposal(ctx, args);
+    case "memlin_list_decisions":
+      return listDecisionsTool(ctx, args);
+    case "memlin_explain_decision":
+      return explainDecisionTool(ctx, args);
+    case "memlin_decide":
+      return decideTool(ctx, args);
     case "memlin_list_duplicates":
       return sweepDuplicates(ctx, args);
     case "memlin_merge_documents":
@@ -74988,7 +76693,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.54";
+  cachedAgentVersion = "0.2.55";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -75480,10 +77185,11 @@ var MemlinApiClient = class {
   async resolveInsight(insightId, action) {
     return this.request("POST", `/insights/${encodeURIComponent(insightId)}/resolve`, { action });
   }
-  /** POST /inbox/{id} — accept or reject a proposal. */
-  async resolveProposal(proposalId, action) {
+  /** POST /inbox/{id} — accept or reject a proposal, optionally with the reviewer's reason. */
+  async resolveProposal(proposalId, action, note) {
     return this.request("POST", `/inbox/${encodeURIComponent(proposalId)}`, {
-      action
+      action,
+      ...note?.trim() ? { note: note.trim() } : {}
     });
   }
   async listHandoffs(opts = {}, callOpts = {}) {
@@ -75503,7 +77209,11 @@ var MemlinApiClient = class {
     return this.request(
       "PATCH",
       `/handoffs/${encodeURIComponent(handoffId)}`,
-      { action, ...opts.sessionId ? { target_session_id: opts.sessionId } : {} },
+      {
+        action,
+        ...opts.sessionId ? { target_session_id: opts.sessionId } : {},
+        ...opts.resultSummary !== void 0 ? { result_summary: opts.resultSummary } : {}
+      },
       { accountId: opts.accountId }
     );
   }
@@ -76010,6 +77720,44 @@ var MemlinApiClient = class {
     return this.request("GET", `/decisions/review-due${qs}`, void 0, {
       accountId: opts.accountId
     });
+  }
+  /** GET /decisions — open memory decisions (most consequential first) + the one open count. */
+  async listDecisions(opts = {}) {
+    const qs = opts.limit ? `?limit=${encodeURIComponent(String(opts.limit))}` : "";
+    return this.request("GET", `/decisions${qs}`, void 0, {
+      accountId: opts.accountId,
+      maxRetries: opts.maxRetries,
+      requestTimeoutMs: opts.requestTimeoutMs
+    });
+  }
+  /** GET /decisions/{id} — one decision with its code-built evidence and cached AI explanation. */
+  async getDecision(decisionId, opts = {}) {
+    return this.request("GET", `/decisions/${encodeURIComponent(decisionId)}`, void 0, {
+      accountId: opts.accountId
+    });
+  }
+  /** POST /decisions/{id}/asked — this decision was put to the person (idempotent). */
+  async markDecisionAsked(decisionId, via = "session", opts = {}) {
+    return this.request(
+      "POST",
+      `/decisions/${encodeURIComponent(decisionId)}/asked`,
+      { via },
+      { accountId: opts.accountId, requestTimeoutMs: 1500 }
+    );
+  }
+  /** POST /decisions/{id}/answer — record a person's answer, their reason and their words. */
+  async answerDecision(decisionId, input, opts = {}) {
+    return this.request(
+      "POST",
+      `/decisions/${encodeURIComponent(decisionId)}/answer`,
+      {
+        option: input.option,
+        ...input.note?.trim() ? { note: input.note.trim() } : {},
+        ...input.user_quote?.trim() ? { user_quote: input.user_quote.trim() } : {},
+        via: input.via ?? "cli"
+      },
+      { accountId: opts.accountId }
+    );
   }
   /**
    * POST /ask — natural-language Q&A over the team's workspace memory.
@@ -78032,7 +79780,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION2 = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS2 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version5 = "0.2.54";
+  const version5 = "0.2.55";
   return typeof version5 === "string" && VERSION2.test(version5) ? version5 : null;
 }
 async function reportPluginRuntime(report) {
@@ -78578,7 +80326,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.54"?.trim();
+  const env = "0.2.55"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }

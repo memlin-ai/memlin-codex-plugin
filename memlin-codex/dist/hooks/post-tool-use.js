@@ -3696,7 +3696,7 @@ var require_parse = __commonJS({
 var require_gray_matter = __commonJS({
   "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
-    var fs7 = __require("fs");
+    var fs8 = __require("fs");
     var sections = require_section_matter();
     var defaults = require_defaults();
     var stringify = require_stringify();
@@ -3780,7 +3780,7 @@ var require_gray_matter = __commonJS({
       return stringify(file, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str2 = fs7.readFileSync(filepath, "utf8");
+      const str2 = fs8.readFileSync(filepath, "utf8");
       const file = matter3(str2, options2);
       file.path = filepath;
       return file;
@@ -4110,7 +4110,7 @@ var init_workspace_binding = __esm({
 
 // apps/codex-plugin/src/hooks/post-tool-use.ts
 import { spawn } from "node:child_process";
-import path17 from "node:path";
+import path18 from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 
 // packages/plugin-core/dist/client.js
@@ -4857,8 +4857,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path18, errorMaps, issueData } = params;
-  const fullPath = [...path18, ...issueData.path || []];
+  const { data, path: path19, errorMaps, issueData } = params;
+  const fullPath = [...path19, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -4974,11 +4974,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path18, key) {
+  constructor(parent, value, path19, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path18;
+    this._path = path19;
     this._key = key;
   }
   get path() {
@@ -9333,19 +9333,19 @@ var ContextManifestV1Schema = external_exports.object({
       location: `linked_contexts.${index}`
     }))
   ];
-  references.forEach(({ ref, path: path18, location }) => {
+  references.forEach(({ ref, path: path19, location }) => {
     const identity = contextReferenceIdentityKey(ref);
     const prior = seen.get(identity);
     if (prior && prior.revision !== ref.revision) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path18,
+        path: path19,
         message: `context ${identity} has conflicting revisions in ${prior.location} and ${location}`
       });
     } else if (prior && location.startsWith("linked_contexts.")) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path18,
+        path: path19,
         message: `duplicate linked context ${identity}`
       });
     }
@@ -9659,11 +9659,11 @@ var ContextBundleV1Schema = external_exports.object({
         path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
       }))
     ];
-    for (const { ref, path: path18 } of references) {
+    for (const { ref, path: path19 } of references) {
       if (!contextKeys.has(contextReferenceKey(ref))) {
         ctx.addIssue({
           code: external_exports.ZodIssueCode.custom,
-          path: path18,
+          path: path19,
           message: "provider coverage is outside the exact manifest contexts"
         });
       }
@@ -10930,6 +10930,10 @@ var ThoughtAssistRequestV2Schema = external_exports.object({
   version: external_exports.literal(2),
   thought_id: Id,
   focus: external_exports.object({ kind: external_exports.enum(["thought", "resource"]), id: Id }).strict().optional(),
+  context: external_exports.object({
+    scope: external_exports.enum(["selected", "branch", "workspace"]),
+    resource_ids: external_exports.array(Id).max(8).refine((ids) => new Set(ids).size === ids.length, "duplicate resource")
+  }).strict().optional(),
   capability: external_exports.enum([
     "explore",
     "research",
@@ -11039,6 +11043,7 @@ var ResourceIngestEnvelopeV2Schema = external_exports.object({
   license: external_exports.string().trim().max(512).nullable().optional(),
   extractors: external_exports.array(external_exports.enum(["text", "ocr", "transcript", "keyframes", "structure"])).max(5),
   thought_id: Id.optional(),
+  root_thought_id: Id.optional(),
   position: Position.optional()
 }).strict().superRefine((x, ctx) => {
   const issue = (message) => ctx.addIssue({ code: "custom", message });
@@ -11049,6 +11054,7 @@ var ResourceIngestEnvelopeV2Schema = external_exports.object({
     issue("inline originals require text or markdown");
   if (x.home.scope === "project" !== (x.home.project_id !== null))
     issue("only a project home has a project ID");
+  if (x.root_thought_id && !x.thought_id) issue("workspace requires a selected Thought");
   if (x.position && !x.thought_id) issue("position requires a Thought");
   if (x.source.uri && !["http:", "https:"].includes(new URL(x.source.uri).protocol))
     issue("source URI must use HTTP or HTTPS");
@@ -11094,6 +11100,7 @@ var ThoughtAssistHistoryV2Schema = external_exports.object({
       id: Id,
       assist_run_id: Id.optional(),
       feedback_recorded: external_exports.boolean().optional(),
+      coverage: external_exports.enum(["complete", "partial", "unavailable"]).optional(),
       role: external_exports.enum(["user", "assistant"]),
       body: external_exports.string().min(1).max(2e4),
       citations: external_exports.array(external_exports.string().min(1).max(1024)).max(100)
@@ -11132,7 +11139,9 @@ var ThoughtResourcePreviewV2Schema = external_exports.object({
 var ThoughtPublicLinkWriteV2Schema = external_exports.discriminatedUnion("action", [
   external_exports.object({
     action: external_exports.literal("create"),
-    expires_in_days: external_exports.union([external_exports.literal(1), external_exports.literal(7), external_exports.literal(30)]).default(7)
+    expires_in_days: external_exports.union([external_exports.literal(1), external_exports.literal(7), external_exports.literal(30)]).default(7),
+    allow_template: external_exports.boolean().optional(),
+    preview_sha256: external_exports.string().regex(/^[0-9a-f]{64}$/).optional()
   }).strict(),
   external_exports.object({ action: external_exports.literal("revoke"), id: Id }).strict()
 ]);
@@ -11145,11 +11154,18 @@ var ThoughtPublicLinksV2Schema = external_exports.object({
       id: Id,
       created_at: Time,
       expires_at: Time.nullable(),
-      revoked_at: Time.nullable()
+      revoked_at: Time.nullable(),
+      allow_template: external_exports.boolean().optional()
     }).strict()
   )
 }).strict();
-var ThoughtDocumentCreateV2Schema = external_exports.object({ target: external_exports.enum(["todo", "goal"]), expected_revision: Revision, idempotency_key: Key }).strict();
+var ThoughtDocumentCreateV2Schema = external_exports.object({
+  target: external_exports.enum(["todo", "goal"]),
+  expected_revision: Revision,
+  idempotency_key: Key,
+  outcome: external_exports.string().trim().min(1).max(2e3).optional(),
+  completion_criteria: external_exports.array(external_exports.string().trim().min(1).max(500)).min(1).max(20).optional()
+}).strict();
 var ThoughtDocumentLinkV2Schema = external_exports.discriminatedUnion("action", [
   external_exports.object({ action: external_exports.literal("link"), document_id: Id }).strict(),
   external_exports.object({ action: external_exports.literal("unlink"), id: Id }).strict()
@@ -11203,6 +11219,9 @@ var ThoughtDocumentSearchV2Schema = external_exports.object({
 var ThoughtDecisionAcceptV2Schema = external_exports.object({
   expected_revision: external_exports.number().int().min(1),
   idempotency_key: external_exports.string().min(1).max(120),
+  chosen_direction: external_exports.string().trim().min(1).max(2e3).optional(),
+  rationale: external_exports.string().trim().min(1).max(6e3).optional(),
+  supersedes_document_id: Id.optional(),
   question_id: Id.optional(),
   question_revision: external_exports.number().int().min(1).optional()
 }).strict().refine(
@@ -11250,14 +11269,25 @@ var common = {
 };
 var revision = { comment_id: external_exports.string().uuid(), expected_revision: external_exports.number().int().positive() };
 var ThoughtDiscussionWriteV2Schema = external_exports.discriminatedUnion("action", [
-  external_exports.object({ ...common, action: external_exports.literal("create"), body: external_exports.string().trim().min(1).max(5e3) }).strict(),
+  external_exports.object({
+    ...common,
+    action: external_exports.literal("create"),
+    body: external_exports.string().trim().min(1).max(5e3),
+    parent_comment_id: external_exports.string().uuid().nullable().optional()
+  }).strict(),
   external_exports.object({
     ...common,
     ...revision,
     action: external_exports.literal("edit"),
     body: external_exports.string().trim().min(1).max(5e3)
   }).strict(),
-  external_exports.object({ ...common, ...revision, action: external_exports.literal("archive") }).strict()
+  external_exports.object({ ...common, ...revision, action: external_exports.literal("archive") }).strict(),
+  external_exports.object({
+    ...common,
+    ...revision,
+    action: external_exports.literal("resolve"),
+    resolved: external_exports.boolean()
+  }).strict()
 ]);
 var ThoughtDiscussionReceiptV2Schema = external_exports.object({
   comment_id: external_exports.string().uuid(),
@@ -11275,6 +11305,7 @@ var ThoughtDiscussionV2Schema = external_exports.object({
   comments: external_exports.array(
     external_exports.object({
       id: external_exports.string().uuid(),
+      parent_comment_id: external_exports.string().uuid().nullable(),
       body: external_exports.string(),
       revision: external_exports.number().int().positive(),
       created_by: external_exports.string().uuid(),
@@ -11282,7 +11313,17 @@ var ThoughtDiscussionV2Schema = external_exports.object({
       can_edit: external_exports.boolean(),
       created_at: external_exports.string(),
       updated_at: external_exports.string(),
-      edited_at: external_exports.string().nullable()
+      edited_at: external_exports.string().nullable(),
+      resolved_at: external_exports.string().nullable(),
+      revisions: external_exports.array(
+        external_exports.object({
+          revision: external_exports.number().int().positive(),
+          body: external_exports.string(),
+          authored_by: external_exports.string().uuid(),
+          author_name: external_exports.string(),
+          created_at: external_exports.string()
+        }).strict()
+      ).max(20)
     }).strict()
   ).max(50)
 }).strict();
@@ -11588,8 +11629,8 @@ var LIGHT_LIMITS = Object.freeze({
   captureReservationMicros: 2e4
 });
 function boundLightText(text, byteLimit) {
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(text);
+  const encoder2 = new TextEncoder();
+  const bytes = encoder2.encode(text);
   return bytes.length <= byteLimit ? text : new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, byteLimit)).replace(/\uFFFD$/, "");
 }
 function redactLightTranscript(text) {
@@ -11637,6 +11678,177 @@ var ThoughtHandoffReceiptV2Schema = external_exports.object({
   stale: external_exports.boolean(),
   replayed: external_exports.boolean().optional()
 }).passthrough();
+
+// packages/shared/dist/memory-decisions.js
+var DECISION_KIND_IDS = ["replace", "conflict", "sensitive", "runbook", "goal"];
+var DECISION_KINDS = {
+  replace: {
+    id: "replace",
+    label: "Replace live memory",
+    raisedWhen: "A new capture would retire or rewrite a live doc that governs agents: a decision, a correction, a verified directive, or anything a person wrote.",
+    whyHuman: "Agents follow the existing doc today. Replacing it changes what every agent is told, and the evidence alone cannot say the new version is right.",
+    options: [
+      {
+        id: "replace",
+        label: "Replace",
+        consequence: "The new capture goes live and the existing doc is retired.",
+        reversible: true
+      },
+      {
+        id: "keep_both",
+        label: "Keep both",
+        consequence: "Both stay live. Agents may be given both.",
+        reversible: true
+      },
+      {
+        id: "keep_existing",
+        label: "Keep existing",
+        consequence: "Nothing changes for agents. The new capture stays searchable only.",
+        reversible: true
+      }
+    ],
+    defaultOption: "keep_existing",
+    deadlineDays: 7,
+    urgent: true,
+    aiExplanation: true
+  },
+  conflict: {
+    id: "conflict",
+    label: "Two live docs disagree",
+    raisedWhen: "Two live docs contradict, at least one was served to agents in the last 30 days, and at least one is a decision or was written by a person.",
+    whyHuman: "Agents are being given both answers. Which one is current is a judgement about your project that neither doc settles.",
+    options: [
+      {
+        id: "a_wins",
+        label: "First is current",
+        consequence: "The first doc stays live and the second is retired.",
+        reversible: true
+      },
+      {
+        id: "b_wins",
+        label: "Second is current",
+        consequence: "The second doc stays live and the first is retired.",
+        reversible: true
+      },
+      {
+        id: "both_valid",
+        label: "Both are valid",
+        consequence: "Both stay live; the pair is marked as not a conflict and is not raised again.",
+        reversible: true
+      }
+    ],
+    defaultOption: "both_valid",
+    deadlineDays: 14,
+    urgent: false,
+    aiExplanation: true
+  },
+  sensitive: {
+    id: "sensitive",
+    label: "Sensitive content",
+    raisedWhen: "A capture matches a sensitive topic: compensation, HR, personal data or banking.",
+    whyHuman: "Whether this should be remembered, and who may see it, is not something automation should decide.",
+    options: [
+      {
+        id: "keep",
+        label: "Keep for the team",
+        consequence: "It goes live at its captured scope.",
+        reversible: true
+      },
+      {
+        id: "private",
+        label: "Keep private to me",
+        consequence: "It goes live, visible only to you.",
+        reversible: true
+      },
+      {
+        id: "discard",
+        label: "Discard",
+        consequence: "It is removed and will not be captured again.",
+        reversible: true
+      }
+    ],
+    defaultOption: "discard",
+    deadlineDays: 7,
+    urgent: true,
+    aiExplanation: false
+  },
+  runbook: {
+    id: "runbook",
+    label: "Incident runbook",
+    raisedWhen: "A session that handled an incident produced a runbook.",
+    whyHuman: "A runbook steers future incident response. You were there; you know whether it is what should happen next time.",
+    options: [
+      {
+        id: "keep_live",
+        label: "Keep live",
+        consequence: "Agents are given it for similar incidents.",
+        reversible: true
+      },
+      {
+        id: "searchable_only",
+        label: "Searchable only",
+        consequence: "It is kept and findable, but not given to agents unprompted.",
+        reversible: true
+      },
+      {
+        id: "discard",
+        label: "Discard",
+        consequence: "It is removed.",
+        reversible: true
+      }
+    ],
+    defaultOption: "searchable_only",
+    deadlineDays: 7,
+    urgent: false,
+    aiExplanation: true
+  },
+  goal: {
+    id: "goal",
+    label: "Goal approval",
+    raisedWhen: "A goal was proposed and needs approval before agents work toward it.",
+    whyHuman: "Goals direct what agents optimise for. Only a person can commit the team to one.",
+    options: [
+      {
+        id: "approve",
+        label: "Approve",
+        consequence: "Agents are given the goal.",
+        reversible: true
+      },
+      {
+        id: "not_now",
+        label: "Not now",
+        consequence: "It stays a draft that agents are not given.",
+        reversible: true
+      },
+      {
+        id: "reject",
+        label: "Reject",
+        consequence: "It is closed.",
+        reversible: true
+      }
+    ],
+    defaultOption: "not_now",
+    deadlineDays: 14,
+    urgent: false,
+    aiExplanation: true
+  }
+};
+function isDecisionKind(value) {
+  return typeof value === "string" && DECISION_KIND_IDS.includes(value);
+}
+var DECISION_CAPS = {
+  /** Decisions a single capture may raise. */
+  perCapture: 3,
+  /** Questions injected into one user turn. */
+  perTurn: 1,
+  /** Questions asked in one session before the rest wait for the web list. */
+  perSession: 3,
+  /** Urgent end-of-turn interruptions in one session. */
+  urgentPerSession: 1
+};
+
+// packages/shared/dist/decision-prompt.js
+var encoder = new TextEncoder();
 
 // packages/plugin-core/dist/memlin-api-client.js
 import { readFileSync } from "node:fs";
@@ -11802,7 +12014,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.54";
+  cachedAgentVersion = "0.2.55";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -12294,10 +12506,11 @@ var MemlinApiClient = class {
   async resolveInsight(insightId, action) {
     return this.request("POST", `/insights/${encodeURIComponent(insightId)}/resolve`, { action });
   }
-  /** POST /inbox/{id} — accept or reject a proposal. */
-  async resolveProposal(proposalId, action) {
+  /** POST /inbox/{id} — accept or reject a proposal, optionally with the reviewer's reason. */
+  async resolveProposal(proposalId, action, note) {
     return this.request("POST", `/inbox/${encodeURIComponent(proposalId)}`, {
-      action
+      action,
+      ...note?.trim() ? { note: note.trim() } : {}
     });
   }
   async listHandoffs(opts = {}, callOpts = {}) {
@@ -12317,7 +12530,11 @@ var MemlinApiClient = class {
     return this.request(
       "PATCH",
       `/handoffs/${encodeURIComponent(handoffId)}`,
-      { action, ...opts.sessionId ? { target_session_id: opts.sessionId } : {} },
+      {
+        action,
+        ...opts.sessionId ? { target_session_id: opts.sessionId } : {},
+        ...opts.resultSummary !== void 0 ? { result_summary: opts.resultSummary } : {}
+      },
       { accountId: opts.accountId }
     );
   }
@@ -12824,6 +13041,44 @@ var MemlinApiClient = class {
     return this.request("GET", `/decisions/review-due${qs}`, void 0, {
       accountId: opts.accountId
     });
+  }
+  /** GET /decisions — open memory decisions (most consequential first) + the one open count. */
+  async listDecisions(opts = {}) {
+    const qs = opts.limit ? `?limit=${encodeURIComponent(String(opts.limit))}` : "";
+    return this.request("GET", `/decisions${qs}`, void 0, {
+      accountId: opts.accountId,
+      maxRetries: opts.maxRetries,
+      requestTimeoutMs: opts.requestTimeoutMs
+    });
+  }
+  /** GET /decisions/{id} — one decision with its code-built evidence and cached AI explanation. */
+  async getDecision(decisionId, opts = {}) {
+    return this.request("GET", `/decisions/${encodeURIComponent(decisionId)}`, void 0, {
+      accountId: opts.accountId
+    });
+  }
+  /** POST /decisions/{id}/asked — this decision was put to the person (idempotent). */
+  async markDecisionAsked(decisionId, via = "session", opts = {}) {
+    return this.request(
+      "POST",
+      `/decisions/${encodeURIComponent(decisionId)}/asked`,
+      { via },
+      { accountId: opts.accountId, requestTimeoutMs: 1500 }
+    );
+  }
+  /** POST /decisions/{id}/answer — record a person's answer, their reason and their words. */
+  async answerDecision(decisionId, input, opts = {}) {
+    return this.request(
+      "POST",
+      `/decisions/${encodeURIComponent(decisionId)}/answer`,
+      {
+        option: input.option,
+        ...input.note?.trim() ? { note: input.note.trim() } : {},
+        ...input.user_quote?.trim() ? { user_quote: input.user_quote.trim() } : {},
+        via: input.via ?? "cli"
+      },
+      { accountId: opts.accountId }
+    );
   }
   /**
    * POST /ask — natural-language Q&A over the team's workspace memory.
@@ -13421,6 +13676,177 @@ async function releaseDeployLease(ctx, args) {
 
 // packages/plugin-core/dist/scribe-commit.js
 import { execSync as execSync4 } from "node:child_process";
+
+// packages/plugin-core/dist/state.js
+init_atomic_rename();
+import { promises as fs6 } from "node:fs";
+import path16 from "node:path";
+import os11 from "node:os";
+import crypto5 from "node:crypto";
+var STATE_FILE = path16.join(os11.homedir(), ".config", "memlin", "state.json");
+var EMPTY = { documents: {} };
+async function readState2() {
+  try {
+    const raw = await fs6.readFile(STATE_FILE, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return { ...EMPTY };
+  }
+}
+async function writeState2(state) {
+  await fs6.mkdir(path16.dirname(STATE_FILE), { recursive: true });
+  const tmp = `${STATE_FILE}.${process.pid}.tmp`;
+  await fs6.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
+  await atomicRename(tmp, STATE_FILE);
+}
+var LOCK_DIR = `${STATE_FILE}.lock`;
+var LOCK_STALE_MS2 = 2e3;
+var LOCK_WAIT_MS = 2e3;
+var LOCK_RETRY_MS = 50;
+async function acquireStateLock() {
+  const deadline = Date.now() + LOCK_WAIT_MS;
+  for (; ; ) {
+    try {
+      await fs6.mkdir(LOCK_DIR);
+      return true;
+    } catch {
+      try {
+        const stat = await fs6.stat(LOCK_DIR);
+        if (Date.now() - stat.mtimeMs > LOCK_STALE_MS2) {
+          await fs6.rmdir(LOCK_DIR).catch(() => {
+          });
+          continue;
+        }
+      } catch {
+        continue;
+      }
+      if (Date.now() >= deadline) return false;
+      await new Promise((r) => setTimeout(r, LOCK_RETRY_MS));
+    }
+  }
+}
+async function releaseStateLock() {
+  await fs6.rmdir(LOCK_DIR).catch(() => {
+  });
+}
+async function updateState(mutate) {
+  const locked = await acquireStateLock();
+  try {
+    const state = await readState2();
+    await mutate(state);
+    await writeState2(state);
+    return state;
+  } finally {
+    if (locked) await releaseStateLock();
+  }
+}
+
+// packages/plugin-core/dist/session-decisions.js
+var MAX_SESSION_QUEUES = 16;
+function strings(v) {
+  return Array.isArray(v) ? v.filter((s) => typeof s === "string" && s.trim().length > 0).slice(0, 5) : [];
+}
+function parseSessionDecisions(raw) {
+  if (!Array.isArray(raw)) return [];
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const id = typeof item.id === "string" ? item.id : "";
+    if (!id || seen.has(id) || !isDecisionKind(item.kind)) continue;
+    const spec = DECISION_KINDS[item.kind];
+    const rawOptions = Array.isArray(item.options) ? item.options : [];
+    const options2 = spec.options.filter((o) => rawOptions.length === 0 || rawOptions.some((r) => r?.id === o.id)).map((o) => {
+      const r = rawOptions.find((x) => x?.id === o.id) ?? {};
+      return {
+        ...o,
+        label: typeof r.label === "string" && r.label ? r.label : o.label,
+        pros: strings(r.pros),
+        cons: strings(r.cons)
+      };
+    });
+    if (options2.length === 0) continue;
+    const rec = item.recommendation;
+    const recommendation = rec && typeof rec.option === "string" && options2.some((o) => o.id === rec.option) && typeof rec.rationale === "string" && typeof rec.confidence === "number" ? { option: rec.option, confidence: rec.confidence, rationale: rec.rationale } : null;
+    const defaultOption = typeof item.default_option === "string" && options2.some((o) => o.id === item.default_option) ? item.default_option : spec.defaultOption;
+    seen.add(id);
+    out.push({
+      id,
+      kind: item.kind,
+      question: typeof item.question === "string" && item.question ? item.question : spec.label,
+      why_human: typeof item.why_human === "string" && item.why_human ? item.why_human : spec.whyHuman,
+      recommendation,
+      options: options2,
+      default_option: defaultOption,
+      deadline_at: typeof item.deadline_at === "string" ? item.deadline_at : "",
+      urgent: item.urgent === true && spec.urgent
+    });
+  }
+  return out;
+}
+function queueSessionDecisions(existing, input) {
+  const base = existing && existing.session_id === input.sessionId ? {
+    ...existing,
+    pending: [...existing.pending ?? []],
+    asked_ids: [...existing.asked_ids ?? []],
+    urgent_asked: existing.urgent_asked ?? 0
+  } : {
+    session_id: input.sessionId,
+    account_id: input.accountId,
+    pending: [],
+    asked_ids: [],
+    urgent_asked: 0,
+    at: input.at
+  };
+  const known = /* @__PURE__ */ new Set([...base.pending.map((d) => d.id), ...base.asked_ids]);
+  let room = DECISION_CAPS.perSession - base.asked_ids.length - base.pending.length;
+  let added = 0;
+  for (const d of input.decisions) {
+    if (room <= 0) break;
+    if (known.has(d.id)) continue;
+    known.add(d.id);
+    base.pending.push(d);
+    room--;
+    added++;
+  }
+  base.account_id = input.accountId ?? base.account_id;
+  base.at = input.at;
+  return { queue: base, added };
+}
+function boundQueues(map) {
+  const entries = Object.entries(map);
+  if (entries.length <= MAX_SESSION_QUEUES) return map;
+  return Object.fromEntries(
+    entries.sort(([, a], [, b]) => (b.at ?? 0) - (a.at ?? 0)).slice(0, MAX_SESSION_QUEUES)
+  );
+}
+function recordSessionDecisions(state, input) {
+  const map = { ...state.session_decisions ?? {} };
+  const { queue, added } = queueSessionDecisions(map[input.sessionId], input);
+  map[input.sessionId] = queue;
+  state.session_decisions = boundQueues(map);
+  return added;
+}
+async function storeScribeDecisions(input) {
+  const decisions = parseSessionDecisions(input.decisions);
+  if (decisions.length === 0 || !input.sessionId) return 0;
+  let added = 0;
+  try {
+    await updateState((state) => {
+      added = recordSessionDecisions(state, {
+        sessionId: input.sessionId,
+        accountId: input.accountId,
+        decisions,
+        at: input.at ?? Date.now()
+      });
+    });
+  } catch {
+    return 0;
+  }
+  return added;
+}
+
+// packages/plugin-core/dist/scribe-commit.js
 var GIT_COMMIT_RE = /\bgit\s+(?:-[A-Za-z]+\s+)*commit\b/;
 var DIFF_MAX_BYTES = 2e5;
 async function maybeScribeCommit(ctx, payload) {
@@ -13502,25 +13928,33 @@ async function maybeScribeCommit(ctx, payload) {
         `diff scribe: ${result.proposals_persisted} proposal(s) for commit ${commitSha.slice(0, 7)}`
       );
     }
+    if (payload.session_id) {
+      const queued = await storeScribeDecisions({
+        sessionId: payload.session_id,
+        accountId: accountOverride ?? ctx.config.account_id ?? null,
+        decisions: result.decisions
+      });
+      if (queued > 0) log(`diff scribe: ${queued} decision(s) queued to ask in this session`);
+    }
   } catch (err) {
     log(`diff scribe call failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
 // packages/plugin-core/dist/heartbeat.js
-import crypto5 from "node:crypto";
-import { promises as fs6 } from "node:fs";
-import os11 from "node:os";
-import path16 from "node:path";
+import crypto6 from "node:crypto";
+import { promises as fs7 } from "node:fs";
+import os12 from "node:os";
+import path17 from "node:path";
 var DEFAULT_THROTTLE_MS = 6e4;
 var HEARTBEAT_REQUEST_TIMEOUT_MS = 750;
 function statePath(cwd, host) {
-  const key = crypto5.createHash("sha256").update(cwd).digest("hex").slice(0, 16);
-  return path16.join(os11.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
+  const key = crypto6.createHash("sha256").update(cwd).digest("hex").slice(0, 16);
+  return path17.join(os12.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
 }
 async function recentlySent(file, throttleMs) {
   try {
-    const raw = await fs6.readFile(file, "utf8");
+    const raw = await fs7.readFile(file, "utf8");
     const parsed = JSON.parse(raw);
     return typeof parsed.sent_at === "number" && Date.now() - parsed.sent_at < throttleMs;
   } catch {
@@ -13550,7 +13984,7 @@ async function recordInstallHeartbeat(cwd, reason, opts = {}) {
       requestTimeoutMs: HEARTBEAT_REQUEST_TIMEOUT_MS,
       maxRetries: 0
     });
-    await fs6.writeFile(file, JSON.stringify({ sent_at: Date.now(), reason, host }), "utf8");
+    await fs7.writeFile(file, JSON.stringify({ sent_at: Date.now(), reason, host }), "utf8");
     log(`${host} activity recorded: ${reason}`);
   } catch (err) {
     log(`${host} activity failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -13590,8 +14024,8 @@ function readHookInput() {
 }
 
 // apps/codex-plugin/src/hooks/post-tool-use.ts
-var HOOK_DIR = path17.dirname(fileURLToPath2(import.meta.url));
-var PUSH_PLAN_BIN = path17.resolve(HOOK_DIR, "../cli/push-plan.js");
+var HOOK_DIR = path18.dirname(fileURLToPath2(import.meta.url));
+var PUSH_PLAN_BIN = path18.resolve(HOOK_DIR, "../cli/push-plan.js");
 function editedFile(input) {
   const ti = input?.tool_input;
   const fp = ti?.file_path;
@@ -13615,8 +14049,8 @@ async function main() {
   }
   const file = editedFile(input);
   const plansDir = resolveHost().plansDir();
-  const abs = file ? path17.resolve(file) : "";
-  if (abs && abs.startsWith(plansDir + path17.sep) && abs.endsWith(".md")) {
+  const abs = file ? path18.resolve(file) : "";
+  if (abs && abs.startsWith(plansDir + path18.sep) && abs.endsWith(".md")) {
     try {
       const child = spawn(process.execPath, [PUSH_PLAN_BIN, abs], {
         windowsHide: true,

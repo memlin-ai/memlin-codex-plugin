@@ -3696,7 +3696,7 @@ var require_parse = __commonJS({
 var require_gray_matter = __commonJS({
   "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
-    var fs7 = __require("fs");
+    var fs5 = __require("fs");
     var sections = require_section_matter();
     var defaults = require_defaults();
     var stringify = require_stringify();
@@ -3780,7 +3780,7 @@ var require_gray_matter = __commonJS({
       return stringify(file, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str2 = fs7.readFileSync(filepath, "utf8");
+      const str2 = fs5.readFileSync(filepath, "utf8");
       const file = matter3(str2, options2);
       file.path = filepath;
       return file;
@@ -4108,11 +4108,6 @@ var init_workspace_binding = __esm({
   }
 });
 
-// packages/plugin-core/src/cli/bind-plans.ts
-import path10 from "node:path";
-import os7 from "node:os";
-import { execSync as execSync2 } from "node:child_process";
-
 // packages/plugin-core/src/client.ts
 import { promises as fs4 } from "node:fs";
 import path6 from "node:path";
@@ -4151,46 +4146,6 @@ function describeOpaqueBody(status, text) {
     return `HTTP ${status} (${via}HTML error page suppressed, ${trimmed.length} chars)`;
   }
   return `HTTP ${status}: ${singleLine(trimmed)}`;
-}
-function backendUnreachableLine(detail) {
-  return `memlin: backend unreachable (${detail}), no memory available`;
-}
-var ROUTING_PATTERN = /account routing (unavailable|lookup failed)/i;
-var CLOUDFLARE_STATUS = /\b(52[0-7])\b/;
-function statusOf(err) {
-  if (err instanceof MemlinApiError) return err.status;
-  const status = err?.status;
-  if (typeof status === "number" && status >= 100 && status <= 599) return status;
-  const message = err instanceof Error ? err.message : String(err);
-  const arrow = message.match(/→ (\d{3}):/);
-  if (arrow) return Number(arrow[1]);
-  return null;
-}
-function summarizeBackendFailure(err) {
-  const message = err instanceof Error ? err.message : String(err ?? "");
-  const status = statusOf(err);
-  if (ROUTING_PATTERN.test(message)) {
-    const embedded = message.match(CLOUDFLARE_STATUS)?.[1];
-    const code = embedded ?? (status !== null && status >= 500 ? String(status) : null);
-    const detail = code ? `routing ${code}` : "routing unavailable";
-    return { kind: "routing", status: code ? Number(code) : status, detail, line: backendUnreachableLine(detail) };
-  }
-  if (status !== null && status >= 500) {
-    const detail = `HTTP ${status}`;
-    return { kind: "http", status, detail, line: backendUnreachableLine(detail) };
-  }
-  if (/took longer than \d+ seconds/i.test(message)) {
-    return { kind: "network", status: null, detail: "timeout", line: backendUnreachableLine("timeout") };
-  }
-  if (/couldn'?t reach|fetch failed|ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|network/i.test(message)) {
-    return {
-      kind: "network",
-      status: null,
-      detail: "network unreachable",
-      line: backendUnreachableLine("network unreachable")
-    };
-  }
-  return null;
 }
 
 // packages/plugin-core/src/auth.ts
@@ -4857,8 +4812,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path11, errorMaps, issueData } = params;
-  const fullPath = [...path11, ...issueData.path || []];
+  const { data, path: path7, errorMaps, issueData } = params;
+  const fullPath = [...path7, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -4974,11 +4929,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path11, key) {
+  constructor(parent, value, path7, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path11;
+    this._path = path7;
     this._key = key;
   }
   get path() {
@@ -9317,19 +9272,19 @@ var ContextManifestV1Schema = external_exports.object({
       location: `linked_contexts.${index}`
     }))
   ];
-  references.forEach(({ ref, path: path11, location }) => {
+  references.forEach(({ ref, path: path7, location }) => {
     const identity = contextReferenceIdentityKey(ref);
     const prior = seen.get(identity);
     if (prior && prior.revision !== ref.revision) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path11,
+        path: path7,
         message: `context ${identity} has conflicting revisions in ${prior.location} and ${location}`
       });
     } else if (prior && location.startsWith("linked_contexts.")) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path11,
+        path: path7,
         message: `duplicate linked context ${identity}`
       });
     }
@@ -9643,11 +9598,11 @@ var ContextBundleV1Schema = external_exports.object({
         path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
       }))
     ];
-    for (const { ref, path: path11 } of references) {
+    for (const { ref, path: path7 } of references) {
       if (!contextKeys.has(contextReferenceKey(ref))) {
         ctx.addIssue({
           code: external_exports.ZodIssueCode.custom,
-          path: path11,
+          path: path7,
           message: "provider coverage is outside the exact manifest contexts"
         });
       }
@@ -11700,42 +11655,6 @@ var AGENT_EXPECTED_CAPABILITIES = {
   // of its own.
   companion: ["cli", "sync", "realtime", "resolve"]
 };
-var PROVIDER_HOSTS = [
-  "github.com",
-  "gitlab.com",
-  "bitbucket.org",
-  "dev.azure.com",
-  "ssh.dev.azure.com",
-  "codeberg.org",
-  "sr.ht",
-  "git.sr.ht"
-];
-function normalizeGitRemote(raw) {
-  if (!raw) return null;
-  let s = raw.trim();
-  if (!s) return null;
-  if (!s.includes("://")) {
-    s = s.replace(/^(?:[^@/\s]+@)?([^:/\s]+):(?!\/)/, "https://$1/");
-  }
-  s = s.replace(/^(?:ssh|git|https?):\/\//, "");
-  s = s.replace(/^[^/@]+@/, "");
-  s = s.replace(/\.git$/, "");
-  s = s.replace(/\/$/, "");
-  const slash = s.indexOf("/");
-  if (slash > 0) {
-    const host = s.slice(0, slash).toLowerCase();
-    const rest = s.slice(slash);
-    s = host + rest;
-    for (const provider of PROVIDER_HOSTS) {
-      if (host === provider) break;
-      if (host.startsWith(provider + "-")) {
-        s = provider + rest;
-        break;
-      }
-    }
-  }
-  return s || null;
-}
 async function closeHttpSockets() {
   try {
     const dispatcher = globalThis[/* @__PURE__ */ Symbol.for("undici.globalDispatcher.1")];
@@ -12994,6 +12913,82 @@ function applyWorkspaceOverlay(config, overlay) {
   };
 }
 
+// packages/plugin-core/src/cli/args.ts
+function parseSlashArgs(raw) {
+  const tokens = [];
+  let cur = "";
+  let inSingle = false;
+  let inDouble = false;
+  let started = false;
+  let i = 0;
+  const flush = () => {
+    if (started) {
+      tokens.push(cur);
+      cur = "";
+      started = false;
+    }
+  };
+  while (i < raw.length) {
+    const ch = raw[i];
+    if (inSingle) {
+      if (ch === "'") {
+        inSingle = false;
+      } else {
+        cur += ch;
+      }
+      i++;
+      continue;
+    }
+    if (inDouble) {
+      if (ch === "\\" && i + 1 < raw.length) {
+        const next = raw[i + 1];
+        if (next === '"' || next === "\\") {
+          cur += next;
+          i += 2;
+          continue;
+        }
+        cur += ch;
+        i++;
+        continue;
+      }
+      if (ch === '"') {
+        inDouble = false;
+        i++;
+        continue;
+      }
+      cur += ch;
+      i++;
+      continue;
+    }
+    if (ch === "'") {
+      inSingle = true;
+      started = true;
+      i++;
+      continue;
+    }
+    if (ch === '"') {
+      inDouble = true;
+      started = true;
+      i++;
+      continue;
+    }
+    if (ch === " " || ch === "	" || ch === "\n") {
+      flush();
+      i++;
+      continue;
+    }
+    cur += ch;
+    started = true;
+    i++;
+  }
+  flush();
+  return tokens;
+}
+function argvAsSlashArgs() {
+  const raw = process.argv.slice(2).join(" ").trim();
+  return parseSlashArgs(raw);
+}
+
 // packages/plugin-core/src/cli/cli-runner.ts
 var WATCHDOG_MS = 2e3;
 var CliExit = class extends Error {
@@ -13036,434 +13031,107 @@ function runCliMain(main2, onError) {
   );
 }
 
-// packages/plugin-core/src/project-resolver.ts
-import { execSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
-import path7 from "node:path";
-init_workspace_binding();
-var WORKSPACE_ENV_VARS = [
-  // Claude Code exposes the original project dir to hooks/plugin commands.
-  "CLAUDE_PROJECT_DIR",
-  // Cursor/plugin shims and local tests can set this explicitly.
-  "CURSOR_WORKSPACE_ROOT",
-  "CURSOR_PROJECT_ROOT",
-  "MEMLIN_WORKSPACE_ROOT",
-  // npm/pnpm set INIT_CWD to the directory where the user invoked a script.
-  "INIT_CWD"
-];
-function runtimeCwd(fallback = process.cwd()) {
-  for (const name of WORKSPACE_ENV_VARS) {
-    const raw = process.env[name]?.trim();
-    if (raw && path7.isAbsolute(raw)) return path7.resolve(raw);
-  }
-  return path7.resolve(fallback);
+// packages/plugin-core/src/cli/decide-args.ts
+var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuid(value) {
+  return UUID_RE.test(value);
 }
-async function resolveProject(api, cwd, configProjectId) {
-  const absCwd = path7.resolve(cwd);
-  const remotes = detectGitRemotes(cwd);
-  const hasGitRemote = remotes.length > 0;
-  let serverFailure;
-  try {
-    const result = await api.resolveProject({
-      // Primary remote (back-compat with the single-remote server path).
-      git_remote: remotes[0] ?? null,
-      // All detected remotes — for the workspace-root-of-repos case, this is
-      // every sibling repo so the server resolves to the owning project.
-      git_remotes: remotes,
-      cwd: absCwd
-    });
-    if (result.project_id) {
-      return {
-        project_id: result.project_id,
-        project_name: result.name,
-        account_id: result.account_id,
-        reason: result.reason === "none" ? "config" : result.reason,
-        hasGitRemote,
-        enforce_done_deployed: result.enforce_done_deployed
-      };
-    }
-  } catch (e) {
-    serverFailure = summarizeBackendFailure(e) ?? void 0;
-  }
-  if (configProjectId) {
-    const localBinding = await findWorkspaceBinding(absCwd).catch(() => null);
-    if (localBinding?.binding.project_id === configProjectId) {
-      return {
-        project_id: configProjectId,
-        project_name: null,
-        account_id: null,
-        reason: "config",
-        hasGitRemote,
-        server_failure: serverFailure
-      };
-    }
-  }
-  return {
-    project_id: null,
-    project_name: null,
-    account_id: null,
-    reason: "none",
-    hasGitRemote,
-    server_failure: serverFailure
-  };
-}
-function readGitRemote(cwd) {
-  try {
-    const url = execSync("git remote get-url origin", {
-      windowsHide: true,
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8"
-    }).trim();
-    return normalizeGitRemote(url);
-  } catch {
-    return null;
-  }
-}
-var MAX_WORKSPACE_SCAN = 64;
-function detectGitRemotes(cwd) {
-  const enclosing = readGitRemote(cwd);
-  if (enclosing) return [enclosing];
-  const out = [];
-  try {
-    let scanned = 0;
-    for (const entry of readdirSync(cwd, { withFileTypes: true })) {
-      if (scanned >= MAX_WORKSPACE_SCAN) break;
-      if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") {
-        continue;
+function extractNoteFlag(args) {
+  const rest = [];
+  let note = null;
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "--note") {
+      const value = args[i + 1];
+      if (value === void 0 || value.startsWith("--")) {
+        return { args: rest, note: null, error: 'missing value for --note \u2014 use --note "your reason"' };
       }
-      scanned++;
-      const child = path7.join(cwd, entry.name);
-      if (!existsSync(path7.join(child, ".git"))) continue;
-      const remote = readGitRemote(child);
-      if (remote && !out.includes(remote)) out.push(remote);
-    }
-  } catch {
-  }
-  return out;
-}
-
-// packages/plugin-core/src/plan-sync.ts
-import { promises as fs6 } from "node:fs";
-import path9 from "node:path";
-
-// packages/plugin-core/src/state.ts
-init_atomic_rename();
-import { promises as fs5 } from "node:fs";
-import path8 from "node:path";
-import os6 from "node:os";
-import crypto3 from "node:crypto";
-var STATE_FILE = path8.join(os6.homedir(), ".config", "memlin", "state.json");
-var EMPTY = { documents: {} };
-async function readState() {
-  try {
-    const raw = await fs5.readFile(STATE_FILE, "utf8");
-    return JSON.parse(raw);
-  } catch {
-    return { ...EMPTY };
-  }
-}
-async function writeState(state) {
-  await fs5.mkdir(path8.dirname(STATE_FILE), { recursive: true });
-  const tmp = `${STATE_FILE}.${process.pid}.tmp`;
-  await fs5.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
-  await atomicRename(tmp, STATE_FILE);
-}
-var LOCK_DIR = `${STATE_FILE}.lock`;
-var LOCK_STALE_MS = 2e3;
-var LOCK_WAIT_MS = 2e3;
-var LOCK_RETRY_MS = 50;
-async function acquireStateLock() {
-  const deadline = Date.now() + LOCK_WAIT_MS;
-  for (; ; ) {
-    try {
-      await fs5.mkdir(LOCK_DIR);
-      return true;
-    } catch {
-      try {
-        const stat = await fs5.stat(LOCK_DIR);
-        if (Date.now() - stat.mtimeMs > LOCK_STALE_MS) {
-          await fs5.rmdir(LOCK_DIR).catch(() => {
-          });
-          continue;
-        }
-      } catch {
-        continue;
-      }
-      if (Date.now() >= deadline) return false;
-      await new Promise((r) => setTimeout(r, LOCK_RETRY_MS));
-    }
-  }
-}
-async function releaseStateLock() {
-  await fs5.rmdir(LOCK_DIR).catch(() => {
-  });
-}
-async function updateState(mutate) {
-  const locked = await acquireStateLock();
-  try {
-    const state = await readState();
-    await mutate(state);
-    await writeState(state);
-    return state;
-  } finally {
-    if (locked) await releaseStateLock();
-  }
-}
-function hash(content) {
-  return crypto3.createHash("sha256").update(content).digest("hex");
-}
-
-// packages/plugin-core/src/plan-sync.ts
-function homeBase(host) {
-  return (host ?? resolveHost()).homeDir();
-}
-function plansDir(host) {
-  return (host ?? resolveHost()).plansDir();
-}
-function resolveTargetDocId(stateEntry, binding) {
-  return stateEntry?.document_id || binding?.documentId || void 0;
-}
-async function pushPlanFile(api, file, opts = {}) {
-  const raw = await fs6.readFile(file, "utf8");
-  const { title, body, binding: existingBinding } = parsePlanFile(raw);
-  if (!body.trim()) {
-    throw new Error("plan body is empty");
-  }
-  const relPath = path9.relative(homeBase(opts.host), file);
-  const state = await readState();
-  const existing = state.documents[relPath];
-  const targetDocId = resolveTargetDocId(existing, existingBinding);
-  if (targetDocId) {
-    const result2 = await api.updatePlan(
-      targetDocId,
-      {
-        body,
-        title,
-        commit_message: "edit from claude-code"
-      },
-      opts.accountId ? { accountId: opts.accountId } : {}
-    );
-    await stampPlanFile(file, {
-      documentId: result2.document_id,
-      projectId: existingBinding?.projectId ?? null
-    });
-    const stampedUpdate = await fs6.readFile(file, "utf8").catch(() => raw);
-    await updateState((s) => {
-      s.documents[relPath] = {
-        document_id: result2.document_id,
-        version_id: existing?.version_id ?? "",
-        version_number: result2.version_number,
-        content_hash: hash(stampedUpdate),
-        last_synced_at: (/* @__PURE__ */ new Date()).toISOString(),
-        scope: existing?.scope ?? (existingBinding?.projectId ? "project" : "personal"),
-        kind: "plan"
-      };
-    });
-    return {
-      document_id: result2.document_id,
-      version_number: result2.version_number,
-      created: false
-    };
-  }
-  const result = await api.pushPlan(
-    {
-      title,
-      body,
-      cwd: opts.cwd ?? null,
-      git_remote: opts.gitRemote ?? null
-    },
-    opts.accountId ? { accountId: opts.accountId } : {}
-  );
-  await updateState((s) => {
-    s.documents[relPath] = {
-      document_id: result.document_id,
-      version_id: "",
-      version_number: result.version_number,
-      content_hash: hash(raw),
-      last_synced_at: (/* @__PURE__ */ new Date()).toISOString(),
-      scope: result.project_id ? "project" : "personal",
-      kind: "plan"
-    };
-  });
-  await stampPlanFile(file, {
-    documentId: result.document_id,
-    projectId: result.project_id
-  });
-  const stamped = await fs6.readFile(file, "utf8").catch(() => raw);
-  await updateState((s) => {
-    const entry = s.documents[relPath];
-    if (entry) entry.content_hash = hash(stamped);
-  });
-  return {
-    document_id: result.document_id,
-    version_number: result.version_number,
-    created: true
-  };
-}
-async function listUnboundPlans(host) {
-  const out = [];
-  let entries;
-  try {
-    entries = await fs6.readdir(plansDir(host));
-  } catch {
-    return out;
-  }
-  const state = await readState();
-  for (const f of entries) {
-    if (!f.endsWith(".md")) continue;
-    const abs = path9.join(plansDir(host), f);
-    let raw;
-    let size = 0;
-    try {
-      const st = await fs6.stat(abs);
-      if (!st.isFile() || st.size === 0) continue;
-      size = st.size;
-      raw = await fs6.readFile(abs, "utf8");
-    } catch {
+      note = value;
+      i++;
       continue;
     }
-    const relPath = path9.relative(homeBase(host), abs);
-    const { title, binding } = parsePlanFile(raw);
-    if (state.documents[relPath]?.document_id || binding?.documentId) continue;
-    out.push({ file: f, title, size });
+    if (arg.startsWith("--note=")) {
+      note = arg.slice("--note=".length);
+      continue;
+    }
+    rest.push(arg);
   }
-  return out;
+  const trimmed = note?.trim() ?? "";
+  return { args: rest, note: trimmed ? trimmed : null, error: null };
 }
-async function stampPlanFile(file, binding) {
-  let raw;
-  try {
-    raw = await fs6.readFile(file, "utf8");
-  } catch {
-    return;
+var DECIDE_USAGE = 'usage: memlin decide <id> <option> [--note "why"]';
+function parseDecideArgs(args) {
+  const split = extractNoteFlag(args);
+  if (split.error) return { error: split.error };
+  const unknown = split.args.find((a) => a.startsWith("--"));
+  if (unknown) return { error: `unknown flag ${unknown} \u2014 ${DECIDE_USAGE}` };
+  const [id, option, ...extra] = split.args;
+  if (!id || !option) return { error: DECIDE_USAGE };
+  if (extra.length > 0) {
+    return { error: `unexpected argument "${extra[0]}" \u2014 quote the note: --note "\u2026"` };
   }
-  const parsed = parsePlanFile(raw);
-  const stampLine = `<!-- memlin-binding: doc=${binding.documentId} project=${binding.projectId ?? "none"} -->`;
-  const bodyNoStamp = parsed.body.replace(/<!--\s*memlin-binding:[^>]*-->\s*\n?/g, "");
-  const composed = [
-    `# ${parsed.title}`,
-    "",
-    parsed.status ? `<!-- memlin-plan-status: ${parsed.status} -->` : null,
-    stampLine,
-    "",
-    bodyNoStamp.trim(),
-    ""
-  ].filter((l) => l !== null).join("\n");
-  await fs6.writeFile(file, composed, "utf8");
+  return { id, option, note: split.note };
 }
-function parsePlanFile(raw) {
-  const firstNl = raw.indexOf("\n");
-  const first = firstNl === -1 ? raw : raw.slice(0, firstNl);
-  const title = first.replace(/^#\s+/, "").trim() || "(untitled plan)";
-  const rest = firstNl === -1 ? "" : raw.slice(firstNl + 1).trim();
-  const statusMatch = rest.match(/<!--\s*memlin-plan-status:\s*([a-z_]+)\s*-->/);
-  const status = statusMatch ? statusMatch[1] ?? null : null;
-  const bindMatch = rest.match(/<!--\s*memlin-binding:\s*doc=([0-9a-f-]+)\s+project=(\S+)\s*-->/i);
-  const binding = bindMatch ? {
-    documentId: bindMatch[1],
-    projectId: bindMatch[2] === "none" ? null : bindMatch[2] ?? null
-  } : null;
-  const body = rest.replace(/<!--\s*memlin-plan-status:[^>]*-->\s*\n?/g, "").replace(/<!--\s*memlin-binding:[^>]*-->\s*\n?/g, "").trim();
-  return { title, body, status, binding };
+function matchById(items, needle, noun = "open decision") {
+  const exact = items.find((d) => d.id === needle);
+  if (exact) return exact;
+  const matches = items.filter((d) => d.id.startsWith(needle));
+  if (matches.length === 1) return matches[0];
+  if (matches.length === 0) return { error: `no ${noun} matches "${needle}"` };
+  return {
+    error: `"${needle}" is ambiguous \u2014 matches ${matches.length} ${noun}s; use more characters`
+  };
 }
 
-// packages/plugin-core/src/cli/bind-plans.ts
-var PLANS_DIR = path10.join(os7.homedir(), ".claude", "plans");
-function readGitRemote2(cwd) {
-  try {
-    const url = execSync2("git remote get-url origin", {
-      windowsHide: true,
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8"
-    }).trim();
-    return normalizeGitRemote(url);
-  } catch {
-    return null;
-  }
-}
+// packages/plugin-core/src/cli/decide.ts
 async function main() {
+  const parsed = parseDecideArgs(argvAsSlashArgs());
+  if ("error" in parsed) {
+    process.stderr.write(`${parsed.error}
+`);
+    exitCli(1);
+  }
   const ctx = await getApi();
   if (!ctx) {
     process.stderr.write("not signed in \u2014 run /memlin-login first\n");
     exitCli(1);
   }
-  const argv = process.argv.slice(2);
-  const all = argv.includes("--all");
-  const fileArg = argv.find((a) => !a.startsWith("--"));
-  const unbound = await listUnboundPlans();
-  if (!all && !fileArg) {
-    if (unbound.length === 0) {
-      process.stdout.write(
-        "No unbound plans \u2014 everything in ~/.claude/plans/ is synced or stamped.\n"
+  let id = parsed.id;
+  if (!isUuid(id)) {
+    const { decisions } = await ctx.api.listDecisions({ limit: 200 });
+    const match = matchById(decisions, id);
+    if ("error" in match) {
+      process.stderr.write(`${match.error}
+`);
+      exitCli(2);
+    }
+    const valid = match.options.map((o) => o.id);
+    if (!valid.includes(parsed.option)) {
+      process.stderr.write(
+        `"${parsed.option}" is not an option for this ${match.kind} decision \u2014 choose one of: ${valid.join(", ")}
+`
       );
-      exitCli(0);
+      exitCli(1);
     }
-    process.stdout.write(`${unbound.length} unbound plan(s) in ~/.claude/plans/:
-
-`);
-    for (const p of unbound) {
-      const kb = (p.size / 1024).toFixed(1);
-      process.stdout.write(`  ${p.file}  (${kb} KB)
-    "${p.title}"
-`);
-    }
-    process.stdout.write(
-      "\nThese have no known project. To bind:\n  \u2022 cd into the relevant repo, then: memlin bind-plans <file.md>\n  \u2022 or bind everything to the current repo: memlin bind-plans --all\n\nNothing is sent to Memlin until you bind it.\n"
-    );
-    exitCli(0);
+    id = match.id;
   }
-  const cwd = runtimeCwd();
-  const gitRemote = readGitRemote2(cwd);
-  let resolved;
-  try {
-    resolved = await resolveProject(ctx.api, cwd, ctx.config.project_id);
-  } catch (err) {
-    process.stderr.write(
-      `could not resolve a project from ${cwd}: ${err instanceof Error ? err.message : String(err)}
-`
-    );
-    exitCli(1);
-  }
-  if (!resolved.project_id) {
-    process.stderr.write(
-      `cwd ${cwd} does not resolve to a known Memlin project.
-cd into the repo whose project these plans belong to, then re-run.
-`
-    );
-    exitCli(1);
-  }
-  const targets = all ? unbound.map((p) => p.file) : [fileArg].map((f) => path10.basename(f));
-  if (targets.length === 0) {
-    process.stdout.write("Nothing to bind.\n");
-    exitCli(0);
-  }
-  process.stdout.write(
-    `Binding ${targets.length} plan(s) to project ${resolved.project_id.slice(0, 8)}\u2026 (${resolved.project_name ?? "unnamed"})
-`
-  );
-  let bound = 0;
-  let failed = 0;
-  for (const file of targets) {
-    const abs = path10.join(PLANS_DIR, file);
-    try {
-      const result = await pushPlanFile(ctx.api, abs, { cwd, gitRemote });
-      process.stdout.write(`  \u2713 ${file} \u2192 ${result.document_id.slice(0, 8)}
+  const result = await ctx.api.answerDecision(id, {
+    option: parsed.option,
+    note: parsed.note,
+    via: "cli"
+  });
+  const verb = result.replayed ? "Already recorded" : "Recorded";
+  process.stdout.write(`\u2713 ${verb}: ${result.option.label} \u2014 ${result.decision.question}
 `);
-      bound += 1;
-    } catch (err) {
-      process.stderr.write(`  \u2717 ${file}: ${err instanceof Error ? err.message : String(err)}
+  process.stdout.write(`  ${result.consequence}
 `);
-      failed += 1;
-    }
-  }
-  process.stdout.write(`
-done \u2014 bound ${bound}, failed ${failed}.
+  if (parsed.note) process.stdout.write(`  Note kept with the answer: "${parsed.note}"
 `);
-  return failed > 0 ? 1 : 0;
+  if (result.reversible) process.stdout.write("  Can be undone from the Handled page.\n");
 }
 runCliMain(main, (err) => {
-  console.error("memlin bind-plans failed:", err instanceof Error ? err.message : err);
+  process.stderr.write(`memlin decide failed: ${err instanceof Error ? err.message : String(err)}
+`);
   return 1;
 });
 /*! Bundled license information:
