@@ -52425,7 +52425,7 @@ var SENSITIVE_TOPIC_PATTERNS = [
   {
     topic: "compensation",
     description: "Compensation package / plan / offer / intent",
-    regex: /\bcompensation (?:package|plan|structure|offer|model|intent|negotiation)\b/i
+    regex: /\bcompensation (?:package|plan|structure|offer|model|intent|negotiation|bands?|ranges?)\b/i
   },
   {
     topic: "equity-grant",
@@ -52437,8 +52437,8 @@ var SENSITIVE_TOPIC_PATTERNS = [
   },
   {
     topic: "salary",
-    description: "Base salary / OTE / sign-on bonus",
-    regex: /\b(?:base salary|annual salary|sign[- ]on bonus|\bOTE\b|on[- ]target earnings)\b/i
+    description: "Base salary / salary bands / OTE / sign-on bonus",
+    regex: /\b(?:base salary|annual salary|salary (?:bands?|ranges?)|pay (?:bands?|scales?)|sign[- ]on bonus|\bOTE\b|on[- ]target earnings)\b/i
   },
   {
     topic: "term-sheet",
@@ -56391,6 +56391,21 @@ function isDecisionKind(value) {
 function isValidAnswer(kind2, option) {
   return DECISION_KINDS[kind2].options.some((o2) => o2.id === option);
 }
+function escapeRegExp(s2) {
+  return s2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function labelDecisionOptionIds(kind2, text) {
+  const spec = DECISION_KINDS[kind2];
+  if (!spec || !text) return text;
+  let out = text;
+  const options2 = [...spec.options].sort((a2, b2) => b2.id.length - a2.id.length);
+  for (const o2 of options2) {
+    const id3 = escapeRegExp(o2.id);
+    const bare = o2.id.includes("_") ? `|(?<![\\w-])${id3}(?![\\w-])` : "";
+    out = out.replace(new RegExp(`\`${id3}\`${bare}`, "gi"), o2.label);
+  }
+  return out;
+}
 function decisionDeadline(kind2, raisedAtMs) {
   return new Date(raisedAtMs + DECISION_KINDS[kind2].deadlineDays * 864e5).toISOString();
 }
@@ -56566,6 +56581,7 @@ function askLine(host, decision) {
   }
 }
 function renderAt(decision, host, detail, nowMs) {
+  const prose = (text, max) => oneLine(labelDecisionOptionIds(decision.kind, text), max);
   const lines = [];
   lines.push(`<memlin-decision id="${decision.id}" kind="${decision.kind}">`);
   lines.push(
@@ -56577,7 +56593,7 @@ function renderAt(decision, host, detail, nowMs) {
   }
   const rec = decision.recommendation;
   if (rec) {
-    const reason = detail === "minimal" ? "" : ` \u2014 ${oneLine(rec.rationale, detail === "full" ? 500 : 240)}`;
+    const reason = detail === "minimal" ? "" : ` \u2014 ${prose(rec.rationale, detail === "full" ? 500 : 240)}`;
     lines.push(`Recommendation: ${optionLabel(decision, rec.option)} (${rec.option})${reason}`);
   } else if (detail !== "minimal") {
     lines.push(
@@ -56594,8 +56610,8 @@ function renderAt(decision, host, detail, nowMs) {
       `- ${o2.label} (${o2.id}): ${oneLine(o2.consequence, 200)}${o2.reversible ? " Can be undone." : " Cannot be undone."}`
     );
     if (detail === "full") {
-      for (const p2 of o2.pros) lines.push(`  + ${oneLine(p2, 200)}`);
-      for (const c2 of o2.cons) lines.push(`  - ${oneLine(c2, 200)}`);
+      for (const p2 of o2.pros) lines.push(`  + ${prose(p2, 200)}`);
+      for (const c2 of o2.cons) lines.push(`  - ${prose(c2, 200)}`);
     }
   }
   lines.push(
@@ -71996,7 +72012,7 @@ function createDecisionOutcomeApplier(ctx) {
 }
 
 // packages/mcp-tools/src/decisions.ts
-var DECISION_EXPLANATION_VERSION = 1;
+var DECISION_EXPLANATION_VERSION = 2;
 var MAX_DIFF_SOURCE_CHARS = 2e4;
 var MAX_DIFF_SOURCE_LINES = 400;
 var DEFAULT_DIFF_LINES = 24;
@@ -76263,6 +76279,20 @@ var RawConnectorEvidenceSearchRowSchema = ConnectorEvidenceSearchRowSchema.exten
   metadata: external_exports.record(ContractJsonValueSchema).nullable()
 }).strict();
 
+// packages/mcp-tools/src/backlog-rehome.ts
+var MACHINE_HYGIENE_INSIGHT_KINDS = [
+  "redundant_memory",
+  "proposal_cluster",
+  "plan_cluster",
+  "stable_primary",
+  "policy_gap"
+];
+var REHOME_INSIGHT_KINDS = [
+  "contradiction",
+  "work_duplicate",
+  ...MACHINE_HYGIENE_INSIGHT_KINDS
+];
+
 // packages/plugin-core/dist/pre-tool-use-handler.js
 import { execSync as execSync3 } from "node:child_process";
 import path15 from "node:path";
@@ -76693,7 +76723,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.55";
+  cachedAgentVersion = "0.2.56";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -79780,7 +79810,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION2 = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS2 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version5 = "0.2.55";
+  const version5 = "0.2.56";
   return typeof version5 === "string" && VERSION2.test(version5) ? version5 : null;
 }
 async function reportPluginRuntime(report) {
@@ -80326,7 +80356,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.55"?.trim();
+  const env = "0.2.56"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }
