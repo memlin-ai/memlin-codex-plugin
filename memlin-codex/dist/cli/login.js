@@ -82,6 +82,117 @@ var init_atomic_rename = __esm({
   }
 });
 
+// packages/plugin-core/src/auth-refusal.ts
+import crypto from "node:crypto";
+import { promises as fs2 } from "node:fs";
+import os from "node:os";
+import path2 from "node:path";
+function isReason(value) {
+  return value === "not_member" || value === "no_profile";
+}
+function classifyAuthRefusal(status, body) {
+  if (status !== 403 || typeof body !== "object" || body === null) return null;
+  const record2 = body;
+  if (isReason(record2.code)) return record2.code;
+  let message = record2.error;
+  if (typeof record2.error === "object" && record2.error !== null) {
+    const nested = record2.error;
+    if (isReason(nested.code)) return nested.code;
+    message = nested.message;
+  }
+  if (typeof message !== "string") return null;
+  for (const reason of Object.keys(AUTH_REFUSAL_MESSAGES)) {
+    if (message === AUTH_REFUSAL_MESSAGES[reason]) return reason;
+  }
+  return null;
+}
+function authRefusalDir() {
+  return process.env.MEMLIN_AUTH_REFUSAL_DIR ?? path2.join(os.homedir(), ".config", "memlin", "auth-refusal");
+}
+function sha(value) {
+  return crypto.createHash("sha256").update(value).digest("hex").slice(0, 32);
+}
+function normalizeBinding(binding) {
+  return binding ? path2.resolve(binding) : null;
+}
+function accountDir(accountId) {
+  return path2.join(authRefusalDir(), sha(accountId));
+}
+function entryPath(accountId, binding) {
+  return path2.join(accountDir(accountId), `${sha(binding ?? "(global)")}.json`);
+}
+function isEntry(value) {
+  if (typeof value !== "object" || value === null) return false;
+  const e = value;
+  return typeof e.account_id === "string" && (e.binding === null || typeof e.binding === "string") && isReason(e.reason) && typeof e.expires_at === "number" && Array.isArray(e.notified_sessions);
+}
+async function readRaw(file2) {
+  try {
+    const parsed = JSON.parse(await fs2.readFile(file2, "utf8"));
+    return isEntry(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+async function writeEntry(entry) {
+  const file2 = entryPath(entry.account_id, entry.binding);
+  await fs2.mkdir(path2.dirname(file2), { recursive: true });
+  const tmp = `${file2}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  await fs2.writeFile(tmp, JSON.stringify(entry), { mode: 384 });
+  await atomicRename(tmp, file2);
+}
+async function recordAuthRefusal(input) {
+  const now = input.now ?? Date.now();
+  const binding = normalizeBinding(input.binding);
+  const previous = await readRaw(entryPath(input.accountId, binding));
+  const entry = {
+    account_id: input.accountId,
+    binding,
+    reason: input.reason,
+    account_name: input.accountName ?? previous?.account_name ?? null,
+    refused_at: now,
+    expires_at: now + AUTH_REFUSAL_TTL_MS,
+    notified_sessions: previous?.notified_sessions ?? []
+  };
+  await writeEntry(entry);
+  return entry;
+}
+async function readAuthRefusal(accountId, binding, now = Date.now()) {
+  const file2 = entryPath(accountId, normalizeBinding(binding));
+  const entry = await readRaw(file2);
+  if (!entry) return null;
+  if (now >= entry.expires_at) {
+    await fs2.rm(file2, { force: true }).catch(() => {
+    });
+    return null;
+  }
+  return entry;
+}
+async function clearAuthRefusalsForAccount(accountId) {
+  await fs2.rm(accountDir(accountId), { recursive: true, force: true }).catch(() => {
+  });
+}
+async function clearAllAuthRefusals() {
+  await fs2.rm(authRefusalDir(), { recursive: true, force: true }).catch(() => {
+  });
+}
+function accountIdsChanged(before, after) {
+  const normalize = (value) => Array.isArray(value) ? value.filter((v) => typeof v === "string").sort().join(",") : "";
+  return normalize(before) !== normalize(after);
+}
+var AUTH_REFUSAL_MESSAGES, AUTH_REFUSAL_TTL_MS;
+var init_auth_refusal = __esm({
+  "packages/plugin-core/src/auth-refusal.ts"() {
+    "use strict";
+    init_atomic_rename();
+    AUTH_REFUSAL_MESSAGES = {
+      not_member: "not a member of this account",
+      no_profile: "no Memlin profile for this user \u2014 sign in to the web app first"
+    };
+    AUTH_REFUSAL_TTL_MS = 15 * 60 * 1e3;
+  }
+});
+
 // node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js
 var require_kind_of = __commonJS({
   "node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js"(exports2, module2) {
@@ -3453,7 +3564,7 @@ var require_parse = __commonJS({
 var require_gray_matter = __commonJS({
   "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
-    var fs10 = __require("fs");
+    var fs11 = __require("fs");
     var sections = require_section_matter();
     var defaults = require_defaults();
     var stringify = require_stringify();
@@ -3537,7 +3648,7 @@ var require_gray_matter = __commonJS({
       return stringify(file2, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str2 = fs10.readFileSync(filepath, "utf8");
+      const str2 = fs11.readFileSync(filepath, "utf8");
       const file2 = matter3(str2, options2);
       file2.path = filepath;
       return file2;
@@ -3576,14 +3687,14 @@ __export(workspace_binding_exports, {
   writeWorkspaceBinding: () => writeWorkspaceBinding
 });
 import { randomUUID as randomUUID2 } from "node:crypto";
-import { constants, promises as fs3 } from "node:fs";
-import path4 from "node:path";
+import { constants, promises as fs4 } from "node:fs";
+import path5 from "node:path";
 async function walkForWorkspaceBinding(startDir) {
-  let dir = path4.resolve(startDir);
+  let dir = path5.resolve(startDir);
   for (let i = 0; i < 64; i++) {
-    const candidate = path4.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE);
+    const candidate = path5.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE);
     try {
-      const raw = await fs3.readFile(candidate, "utf8");
+      const raw = await fs4.readFile(candidate, "utf8");
       const parsed = JSON.parse(raw);
       if (typeof parsed.account_id === "string" && parsed.account_id) {
         return {
@@ -3597,7 +3708,7 @@ async function walkForWorkspaceBinding(startDir) {
       }
     } catch {
     }
-    const parent = path4.dirname(dir);
+    const parent = path5.dirname(dir);
     if (parent === dir) return null;
     dir = parent;
   }
@@ -3606,7 +3717,7 @@ async function walkForWorkspaceBinding(startDir) {
 async function readSmallRegularFile(file2) {
   let before;
   try {
-    before = await fs3.lstat(file2);
+    before = await fs4.lstat(file2);
   } catch (error40) {
     return isFileNotFound(error40) ? { kind: "missing" } : { kind: "invalid" };
   }
@@ -3615,14 +3726,14 @@ async function readSmallRegularFile(file2) {
       return { kind: "invalid" };
     }
     const noFollow = typeof constants.O_NOFOLLOW === "number" ? constants.O_NOFOLLOW : 0;
-    const handle = await fs3.open(file2, constants.O_RDONLY | noFollow);
+    const handle = await fs4.open(file2, constants.O_RDONLY | noFollow);
     try {
       const opened = await handle.stat();
       if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino || opened.size !== before.size || opened.size > GIT_POINTER_MAX_BYTES) {
         return { kind: "invalid" };
       }
       const bytes = await handle.readFile();
-      const [after, afterPath] = await Promise.all([handle.stat(), fs3.lstat(file2)]);
+      const [after, afterPath] = await Promise.all([handle.stat(), fs4.lstat(file2)]);
       if (afterPath.isSymbolicLink() || !afterPath.isFile() || after.dev !== opened.dev || after.ino !== opened.ino || after.size !== opened.size || afterPath.dev !== opened.dev || afterPath.ino !== opened.ino || afterPath.size !== opened.size || bytes.byteLength !== opened.size || bytes.includes(0)) {
         return { kind: "invalid" };
       }
@@ -3635,16 +3746,16 @@ async function readSmallRegularFile(file2) {
   }
 }
 function containedBy(parent, child) {
-  const relative = path4.relative(parent, child);
-  return relative === "" || relative !== ".." && !relative.startsWith(`..${path4.sep}`) && !path4.isAbsolute(relative);
+  const relative = path5.relative(parent, child);
+  return relative === "" || relative !== ".." && !relative.startsWith(`..${path5.sep}`) && !path5.isAbsolute(relative);
 }
 async function canonicalSafeDirectory(candidate) {
   try {
-    const before = await fs3.lstat(candidate);
+    const before = await fs4.lstat(candidate);
     if (before.isSymbolicLink() || !before.isDirectory()) return null;
-    await fs3.access(candidate, constants.R_OK | constants.X_OK);
-    const canonical = await fs3.realpath(candidate);
-    const after = await fs3.lstat(candidate);
+    await fs4.access(candidate, constants.R_OK | constants.X_OK);
+    const canonical = await fs4.realpath(candidate);
+    const after = await fs4.lstat(candidate);
     if (after.isSymbolicLink() || !after.isDirectory() || after.dev !== before.dev || after.ino !== before.ino) {
       return null;
     }
@@ -3661,24 +3772,24 @@ function gitIdentity(checkoutRoot, state, repositoryRoot = checkoutRoot) {
   };
 }
 async function resolveGitWorkspaceIdentity(startDir) {
-  const requested = path4.resolve(startDir);
+  const requested = path5.resolve(startDir);
   let canonicalStart;
   try {
-    canonicalStart = await fs3.realpath(requested);
-    const startEntry = await fs3.stat(canonicalStart);
+    canonicalStart = await fs4.realpath(requested);
+    const startEntry = await fs4.stat(canonicalStart);
     if (!startEntry.isDirectory()) return gitIdentity(canonicalStart, "unknown");
   } catch {
     return gitIdentity(requested, "unknown");
   }
   let dir = canonicalStart;
   for (let i = 0; i < 64; i++) {
-    const gitEntry = path4.join(dir, ".git");
+    const gitEntry = path5.join(dir, ".git");
     let entry;
     try {
-      entry = await fs3.lstat(gitEntry);
+      entry = await fs4.lstat(gitEntry);
     } catch (error40) {
       if (!isFileNotFound(error40)) return gitIdentity(dir, "unknown");
-      const parent = path4.dirname(dir);
+      const parent = path5.dirname(dir);
       if (parent === dir) return gitIdentity(canonicalStart, "none");
       dir = parent;
       continue;
@@ -3699,16 +3810,16 @@ async function resolveGitWorkspaceIdentity(startDir) {
     if (!pointerValue) return gitIdentity(checkoutRoot, "unknown");
     let gitDirCandidate;
     try {
-      gitDirCandidate = path4.isAbsolute(pointerValue) ? pointerValue : path4.resolve(checkoutRoot, pointerValue);
+      gitDirCandidate = path5.isAbsolute(pointerValue) ? pointerValue : path5.resolve(checkoutRoot, pointerValue);
     } catch {
       return gitIdentity(checkoutRoot, "unknown");
     }
     const gitDir = await canonicalSafeDirectory(gitDirCandidate);
     if (!gitDir) return gitIdentity(checkoutRoot, "unknown");
-    const commonRead = await readSmallRegularFile(path4.join(gitDir, "commondir"));
+    const commonRead = await readSmallRegularFile(path5.join(gitDir, "commondir"));
     if (commonRead.kind === "missing") {
-      const gitDirParent = path4.dirname(gitDir);
-      const looksLikeWorktreeAdmin = path4.basename(gitDirParent) === "worktrees" && path4.basename(path4.dirname(gitDirParent)) === ".git";
+      const gitDirParent = path5.dirname(gitDir);
+      const looksLikeWorktreeAdmin = path5.basename(gitDirParent) === "worktrees" && path5.basename(path5.dirname(gitDirParent)) === ".git";
       if (looksLikeWorktreeAdmin) return gitIdentity(checkoutRoot, "unknown");
       return gitIdentity(checkoutRoot, "main");
     }
@@ -3720,22 +3831,22 @@ async function resolveGitWorkspaceIdentity(startDir) {
     if (!commonValue) return gitIdentity(checkoutRoot, "unknown");
     let commonCandidate;
     try {
-      commonCandidate = path4.isAbsolute(commonValue) ? commonValue : path4.resolve(gitDir, commonValue);
+      commonCandidate = path5.isAbsolute(commonValue) ? commonValue : path5.resolve(gitDir, commonValue);
     } catch {
       return gitIdentity(checkoutRoot, "unknown");
     }
     const commonDir = await canonicalSafeDirectory(commonCandidate);
     if (!commonDir) return gitIdentity(checkoutRoot, "unknown");
-    const worktreesDir = path4.join(commonDir, "worktrees");
-    if (path4.basename(commonDir) !== ".git" || gitDir === worktreesDir || !containedBy(worktreesDir, gitDir)) {
+    const worktreesDir = path5.join(commonDir, "worktrees");
+    if (path5.basename(commonDir) !== ".git" || gitDir === worktreesDir || !containedBy(worktreesDir, gitDir)) {
       return gitIdentity(checkoutRoot, "unknown");
     }
-    const repositoryRoot = path4.dirname(commonDir);
-    const repositoryGitDir = await canonicalSafeDirectory(path4.join(repositoryRoot, ".git"));
+    const repositoryRoot = path5.dirname(commonDir);
+    const repositoryGitDir = await canonicalSafeDirectory(path5.join(repositoryRoot, ".git"));
     if (!repositoryGitDir || repositoryGitDir !== commonDir) {
       return gitIdentity(checkoutRoot, "unknown");
     }
-    const reverseRead = await readSmallRegularFile(path4.join(gitDir, "gitdir"));
+    const reverseRead = await readSmallRegularFile(path5.join(gitDir, "gitdir"));
     if (reverseRead.kind !== "ok" || reverseRead.value.includes("\0")) {
       return gitIdentity(checkoutRoot, "unknown");
     }
@@ -3743,10 +3854,10 @@ async function resolveGitWorkspaceIdentity(startDir) {
     const reverseValue = reverseMatch?.[1];
     if (!reverseValue) return gitIdentity(checkoutRoot, "unknown");
     try {
-      const reverseCandidate = path4.isAbsolute(reverseValue) ? reverseValue : path4.resolve(gitDir, reverseValue);
+      const reverseCandidate = path5.isAbsolute(reverseValue) ? reverseValue : path5.resolve(gitDir, reverseValue);
       const [reverseTarget, checkoutGitFile] = await Promise.all([
-        fs3.realpath(reverseCandidate),
-        fs3.realpath(gitEntry)
+        fs4.realpath(reverseCandidate),
+        fs4.realpath(gitEntry)
       ]);
       if (reverseTarget !== checkoutGitFile) return gitIdentity(checkoutRoot, "unknown");
     } catch {
@@ -3761,7 +3872,7 @@ async function findWorkspaceBinding(startDir) {
   const gitIdentity2 = await resolveGitWorkspaceIdentity(startDir);
   if (gitIdentity2.state !== "worktree") return direct;
   if (direct) {
-    const bindingRoot = await fs3.realpath(direct.workspaceRoot).catch(() => path4.resolve(direct.workspaceRoot));
+    const bindingRoot = await fs4.realpath(direct.workspaceRoot).catch(() => path5.resolve(direct.workspaceRoot));
     if (containedBy(gitIdentity2.checkout_root, bindingRoot)) return direct;
   }
   return walkForWorkspaceBinding(gitIdentity2.repository_root);
@@ -3770,26 +3881,26 @@ async function writeWorkspaceBinding(workspaceRoot, binding) {
   if (typeof binding.account_id !== "string" || binding.account_id.length === 0) {
     throw new Error("Workspace binding account_id is required.");
   }
-  const root = await fs3.realpath(path4.resolve(workspaceRoot));
-  const rootEntry = await fs3.stat(root);
+  const root = await fs4.realpath(path5.resolve(workspaceRoot));
+  const rootEntry = await fs4.stat(root);
   if (!rootEntry.isDirectory()) throw new Error("Workspace root must be a directory.");
-  const dir = path4.join(root, WORKSPACE_DIR_NAME);
+  const dir = path5.join(root, WORKSPACE_DIR_NAME);
   try {
-    const entry = await fs3.lstat(dir);
+    const entry = await fs4.lstat(dir);
     if (!entry.isDirectory() || entry.isSymbolicLink()) {
       throw new Error(`Refusing an unsafe Memlin workspace directory at ${dir}`);
     }
   } catch (error40) {
     if (!isFileNotFound(error40)) throw error40;
-    await fs3.mkdir(dir, { mode: 448, recursive: true });
-    const entry = await fs3.lstat(dir);
+    await fs4.mkdir(dir, { mode: 448, recursive: true });
+    const entry = await fs4.lstat(dir);
     if (!entry.isDirectory() || entry.isSymbolicLink()) {
       throw new Error(`Refusing an unsafe Memlin workspace directory at ${dir}`);
     }
   }
-  const file2 = path4.join(dir, WORKSPACE_BINDING_FILE);
+  const file2 = path5.join(dir, WORKSPACE_BINDING_FILE);
   try {
-    const existing = await fs3.lstat(file2);
+    const existing = await fs4.lstat(file2);
     if (!existing.isFile() || existing.isSymbolicLink()) {
       throw new Error(`Refusing to replace an unsafe workspace binding at ${file2}`);
     }
@@ -3805,32 +3916,33 @@ async function writeWorkspaceBinding(workspaceRoot, binding) {
     null,
     2
   );
-  const temporary = path4.join(dir, `.config.${randomUUID2()}.tmp`);
+  const temporary = path5.join(dir, `.config.${randomUUID2()}.tmp`);
   let handle;
   try {
-    handle = await fs3.open(temporary, "wx", 384);
+    handle = await fs4.open(temporary, "wx", 384);
     await handle.writeFile(body + "\n", "utf8");
     await handle.sync();
     await handle.close();
     handle = void 0;
     await atomicRename(temporary, file2);
-    const installed = await fs3.lstat(file2);
+    const installed = await fs4.lstat(file2);
     if (!installed.isFile() || installed.isSymbolicLink()) {
       throw new Error(`Workspace binding verification failed at ${file2}`);
     }
+    await clearAllAuthRefusals();
     return file2;
   } finally {
     await handle?.close().catch(() => void 0);
-    await fs3.unlink(temporary).catch(() => void 0);
+    await fs4.unlink(temporary).catch(() => void 0);
   }
 }
 async function clearWorkspaceBinding(workspaceRoot) {
-  const root = await fs3.realpath(path4.resolve(workspaceRoot));
-  const rootEntry = await fs3.stat(root);
+  const root = await fs4.realpath(path5.resolve(workspaceRoot));
+  const rootEntry = await fs4.stat(root);
   if (!rootEntry.isDirectory()) throw new Error("Workspace root must be a directory.");
-  const dir = path4.join(root, WORKSPACE_DIR_NAME);
+  const dir = path5.join(root, WORKSPACE_DIR_NAME);
   try {
-    const entry = await fs3.lstat(dir);
+    const entry = await fs4.lstat(dir);
     if (!entry.isDirectory() || entry.isSymbolicLink()) {
       throw new Error(`Refusing an unsafe Memlin workspace directory at ${dir}`);
     }
@@ -3838,13 +3950,14 @@ async function clearWorkspaceBinding(workspaceRoot) {
     if (isFileNotFound(error40)) return false;
     throw error40;
   }
-  const file2 = path4.join(dir, WORKSPACE_BINDING_FILE);
+  const file2 = path5.join(dir, WORKSPACE_BINDING_FILE);
   try {
-    const entry = await fs3.lstat(file2);
+    const entry = await fs4.lstat(file2);
     if (!entry.isFile() || entry.isSymbolicLink()) {
       throw new Error(`Refusing to remove an unsafe workspace binding at ${file2}`);
     }
-    await fs3.unlink(file2);
+    await fs4.unlink(file2);
+    await clearAllAuthRefusals();
     return true;
   } catch (error40) {
     if (isFileNotFound(error40)) return false;
@@ -3859,6 +3972,7 @@ var init_workspace_binding = __esm({
   "packages/plugin-core/src/workspace-binding.ts"() {
     "use strict";
     init_atomic_rename();
+    init_auth_refusal();
     WORKSPACE_DIR_NAME = ".memlin";
     WORKSPACE_BINDING_FILE = "config.json";
     GIT_POINTER_MAX_BYTES = 8 * 1024;
@@ -3867,16 +3981,16 @@ var init_workspace_binding = __esm({
 
 // packages/plugin-core/src/companion-client.ts
 import http from "node:http";
-import crypto2 from "node:crypto";
-import os9 from "node:os";
-import path12 from "node:path";
+import crypto3 from "node:crypto";
+import os10 from "node:os";
+import path13 from "node:path";
 function companionSocketPath(env = process.env) {
   const override = env[COMPANION_SOCKET_ENV];
   if (override) return override;
   if (process.platform === "win32") {
-    return `\\\\.\\pipe\\memlin-companion-${os9.userInfo().username}`;
+    return `\\\\.\\pipe\\memlin-companion-${os10.userInfo().username}`;
   }
-  return path12.join(os9.homedir(), ".config", "memlin", "run", "companion.sock");
+  return path13.join(os10.homedir(), ".config", "memlin", "run", "companion.sock");
 }
 function companionDisabled(env = process.env) {
   const off = env[NO_COMPANION_ENV];
@@ -3990,19 +4104,21 @@ import { writeSync } from "node:fs";
 
 // packages/plugin-core/src/auth.ts
 init_atomic_rename();
-import { promises as fs2 } from "node:fs";
-import path2 from "node:path";
-import os from "node:os";
+import { promises as fs3 } from "node:fs";
+import path3 from "node:path";
+import os2 from "node:os";
 import { randomUUID } from "node:crypto";
 
 // packages/plugin-core/src/backend-error.ts
 var MemlinApiError = class extends Error {
-  constructor(message, status) {
+  constructor(message, status, code) {
     super(message);
     this.status = status;
+    this.code = code;
     this.name = "MemlinApiError";
   }
   status;
+  code;
 };
 function looksLikeHtml(text) {
   const head = text.slice(0, 512).trimStart().toLowerCase();
@@ -4023,6 +4139,7 @@ function describeOpaqueBody(status, text) {
 }
 
 // packages/plugin-core/src/auth.ts
+init_auth_refusal();
 var MEMLIN_PROD_AUTH0_DOMAIN = "memlin.us.auth0.com";
 var MEMLIN_PROD_AUTH0_CLIENT_ID = "fyYMQ4Cxc6Nu5juVwL8Ihqq4fgAFecG9";
 var AUTH0_DOMAIN = process.env.MEMLIN_AUTH0_DOMAIN || MEMLIN_PROD_AUTH0_DOMAIN;
@@ -4030,7 +4147,7 @@ var AUTH0_CLIENT_ID = process.env.MEMLIN_AUTH0_CLIENT_ID || MEMLIN_PROD_AUTH0_CL
 var AUTH0_AUDIENCE = process.env.MEMLIN_AUTH0_AUDIENCE ?? "https://api.memlin.ai";
 var SCOPE = "openid profile email offline_access";
 function persistedTokenFilePath() {
-  return process.env.MEMLIN_TOKEN_FILE || path2.join(os.homedir(), ".config", "memlin", "token.json");
+  return process.env.MEMLIN_TOKEN_FILE || path3.join(os2.homedir(), ".config", "memlin", "token.json");
 }
 var AUTH_FILE_LOCK_TIMEOUT_MS = 15e3;
 var AUTH_FILE_LOCK_STALE_MS = 2 * 6e4;
@@ -4041,18 +4158,18 @@ function authFileLockPath() {
 async function acquireAuthFileLock() {
   const file2 = authFileLockPath();
   const owner = `${process.pid}:${randomUUID()}`;
-  await fs2.mkdir(path2.dirname(file2), { recursive: true });
+  await fs3.mkdir(path3.dirname(file2), { recursive: true });
   const deadline = Date.now() + AUTH_FILE_LOCK_TIMEOUT_MS;
   while (true) {
     try {
-      const handle = await fs2.open(file2, "wx", 384);
+      const handle = await fs3.open(file2, "wx", 384);
       try {
         await handle.writeFile(owner, "utf8");
         await handle.sync();
       } catch (error40) {
         await handle.close().catch(() => {
         });
-        await fs2.rm(file2, { force: true }).catch(() => {
+        await fs3.rm(file2, { force: true }).catch(() => {
         });
         throw error40;
       }
@@ -4062,16 +4179,16 @@ async function acquireAuthFileLock() {
         released = true;
         await handle.close().catch(() => {
         });
-        const currentOwner = await fs2.readFile(file2, "utf8").catch(() => null);
-        if (currentOwner === owner) await fs2.rm(file2, { force: true }).catch(() => {
+        const currentOwner = await fs3.readFile(file2, "utf8").catch(() => null);
+        if (currentOwner === owner) await fs3.rm(file2, { force: true }).catch(() => {
         });
       };
     } catch (error40) {
       if (error40.code !== "EEXIST") throw error40;
       try {
-        const stat = await fs2.stat(file2);
+        const stat = await fs3.stat(file2);
         if (Date.now() - stat.mtimeMs > AUTH_FILE_LOCK_STALE_MS) {
-          await fs2.rm(file2, { force: true });
+          await fs3.rm(file2, { force: true });
           continue;
         }
       } catch (statError) {
@@ -4093,17 +4210,43 @@ async function withAuthFileLock(operation) {
     await release();
   }
 }
+async function readPersistedToken() {
+  try {
+    const raw = await fs3.readFile(persistedTokenFilePath(), "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
 async function writePersistedToken(t) {
   const file2 = persistedTokenFilePath();
-  await fs2.mkdir(path2.dirname(file2), { recursive: true });
-  const tmp = path2.join(
-    path2.dirname(file2),
-    `${path2.basename(file2)}.tmp-${process.pid}-${randomUUID()}`
+  await fs3.mkdir(path3.dirname(file2), { recursive: true });
+  const tmp = path3.join(
+    path3.dirname(file2),
+    `${path3.basename(file2)}.tmp-${process.pid}-${randomUUID()}`
   );
-  await fs2.writeFile(tmp, JSON.stringify(t, null, 2), { mode: 384 });
-  await fs2.chmod(tmp, 384).catch(() => {
+  const previous = await readPersistedToken().catch(() => null);
+  await fs3.writeFile(tmp, JSON.stringify(t, null, 2), { mode: 384 });
+  await fs3.chmod(tmp, 384).catch(() => {
   });
   await atomicRename(tmp, file2);
+  await clearRefusalsIfAccountsChanged(previous?.access_token ?? null, t.access_token);
+}
+async function clearRefusalsIfAccountsChanged(before, after) {
+  try {
+    const claimIds = (jwt2) => {
+      if (!jwt2) return void 0;
+      try {
+        return decodeJwtPayload(jwt2).memlin_account_ids;
+      } catch {
+        return void 0;
+      }
+    };
+    if (accountIdsChanged(claimIds(before), claimIds(after))) {
+      await clearAllAuthRefusals();
+    }
+  } catch {
+  }
 }
 async function startDeviceFlow() {
   requireClientId();
@@ -4259,15 +4402,16 @@ function runCliMain(main2, onError) {
 }
 
 // packages/plugin-core/src/login-bootstrap.ts
-import { promises as fs6 } from "node:fs";
-import path7 from "node:path";
+import { promises as fs7 } from "node:fs";
+import path8 from "node:path";
 import { randomUUID as randomUUID4 } from "node:crypto";
 init_atomic_rename();
+init_auth_refusal();
 
 // packages/plugin-core/src/client.ts
-import { promises as fs4 } from "node:fs";
-import path5 from "node:path";
-import os4 from "node:os";
+import { promises as fs5 } from "node:fs";
+import path6 from "node:path";
+import os5 from "node:os";
 import { randomUUID as randomUUID3 } from "node:crypto";
 init_atomic_rename();
 
@@ -4749,8 +4893,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path13, errorMaps, issueData } = params;
-  const fullPath = [...path13, ...issueData.path || []];
+  const { data, path: path14, errorMaps, issueData } = params;
+  const fullPath = [...path14, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -4866,11 +5010,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path13, key) {
+  constructor(parent, value, path14, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path13;
+    this._path = path14;
     this._key = key;
   }
   get path() {
@@ -9391,19 +9535,19 @@ var ContextManifestV1Schema = external_exports.object({
       location: `linked_contexts.${index}`
     }))
   ];
-  references.forEach(({ ref, path: path13, location }) => {
+  references.forEach(({ ref, path: path14, location }) => {
     const identity = contextReferenceIdentityKey(ref);
     const prior = seen.get(identity);
     if (prior && prior.revision !== ref.revision) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path13,
+        path: path14,
         message: `context ${identity} has conflicting revisions in ${prior.location} and ${location}`
       });
     } else if (prior && location.startsWith("linked_contexts.")) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path13,
+        path: path14,
         message: `duplicate linked context ${identity}`
       });
     }
@@ -9717,11 +9861,11 @@ var ContextBundleV1Schema = external_exports.object({
         path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
       }))
     ];
-    for (const { ref, path: path13 } of references) {
+    for (const { ref, path: path14 } of references) {
       if (!contextKeys.has(contextReferenceKey(ref))) {
         ctx.addIssue({
           code: external_exports.ZodIssueCode.custom,
-          path: path13,
+          path: path14,
           message: "provider coverage is outside the exact manifest contexts"
         });
       }
@@ -12632,10 +12776,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path13) {
-  if (!path13)
+function getElementAtPath(obj, path14) {
+  if (!path14)
     return obj;
-  return path13.reduce((acc, key) => acc?.[key], obj);
+  return path14.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -12955,11 +13099,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path13, issues) {
+function prefixIssues(path14, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path13);
+    iss.path.unshift(path14);
     return iss;
   });
 }
@@ -13096,7 +13240,7 @@ function treeifyError(error40, _mapper) {
     return issue2.message;
   };
   const result = { errors: [] };
-  const processError = (error41, path13 = []) => {
+  const processError = (error41, path14 = []) => {
     var _a, _b;
     for (const issue2 of error41.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
@@ -13106,7 +13250,7 @@ function treeifyError(error40, _mapper) {
       } else if (issue2.code === "invalid_element") {
         processError({ issues: issue2.issues }, issue2.path);
       } else {
-        const fullpath = [...path13, ...issue2.path];
+        const fullpath = [...path14, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -13136,9 +13280,9 @@ function treeifyError(error40, _mapper) {
   processError(error40);
   return result;
 }
-function toDotPath(path13) {
+function toDotPath(path14) {
   const segs = [];
-  for (const seg of path13) {
+  for (const seg of path14) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -23796,10 +23940,10 @@ function validateFlowDefinitionSemantics(flow) {
       ],
       ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, path: `stages.${stageIndex}.bypass_target` }]
     ];
-    targets.forEach(({ target, path: path13 }) => {
+    targets.forEach(({ target, path: path14 }) => {
       if (!isReservedTarget(target) && !stageById.has(target)) {
         issues.push({
-          path: path13,
+          path: path14,
           code: "missing_transition_target",
           message: `transition target ${JSON.stringify(target)} does not exist`
         });
@@ -23829,7 +23973,7 @@ function validateFlowDefinitionSemantics(flow) {
   const visiting = /* @__PURE__ */ new Set();
   const visited = /* @__PURE__ */ new Set();
   let hasReachableEnd = false;
-  const visit = (stageId, path13, pathBounds) => {
+  const visit = (stageId, path14, pathBounds) => {
     reachable.add(stageId);
     if (visited.has(stageId)) return;
     visiting.add(stageId);
@@ -23845,7 +23989,7 @@ function validateFlowDefinitionSemantics(flow) {
         ...stage.default_transition === null ? [] : [{ target: stage.default_transition, bounded: false }],
         ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, bounded: false }]
       ];
-      const currentPath = [...path13, stageId];
+      const currentPath = [...path14, stageId];
       for (const edge of edges) {
         const { target } = edge;
         if (target === "$end") {
@@ -23953,18 +24097,18 @@ var FlowPackManifestBaseSchema = external_exports2.object({
   evals: external_exports2.array(ManifestEvalSchema).max(256),
   model_roles: external_exports2.array(ManifestModelRoleSchema).max(64)
 }).strict();
-function validateRelativePackPath(path13) {
-  if (path13.startsWith("/") || path13.startsWith("\\")) return "path must be relative";
-  if (/^[A-Za-z]:/.test(path13) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path13)) {
+function validateRelativePackPath(path14) {
+  if (path14.startsWith("/") || path14.startsWith("\\")) return "path must be relative";
+  if (/^[A-Za-z]:/.test(path14) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path14)) {
     return "drive-qualified paths and URI schemes are not allowed";
   }
-  if (/[\u0000-\u001f\u007f]/.test(path13)) return "control characters are not allowed";
-  if (/%(?:2e|2f|5c)/i.test(path13)) return "encoded path traversal is not allowed";
-  if (path13.includes("\\")) return "path must use forward slashes";
-  if (path13.split("/").some((segment) => segment === ".." || segment === ".")) {
+  if (/[\u0000-\u001f\u007f]/.test(path14)) return "control characters are not allowed";
+  if (/%(?:2e|2f|5c)/i.test(path14)) return "encoded path traversal is not allowed";
+  if (path14.includes("\\")) return "path must use forward slashes";
+  if (path14.split("/").some((segment) => segment === ".." || segment === ".")) {
     return "path traversal and dot segments are not allowed";
   }
-  if (path13.split("/").some((segment) => segment.length === 0)) {
+  if (path14.split("/").some((segment) => segment.length === 0)) {
     return "path cannot contain empty segments";
   }
   return null;
@@ -24011,22 +24155,22 @@ function validateFlowPackManifestSemantics(manifest) {
       issues
     );
     role.independence.compare_against_roles.forEach((comparedRole, comparedIndex) => {
-      const path13 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
+      const path14 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
       if (comparedRole === role.id) {
         issues.push({
-          path: path13,
+          path: path14,
           code: "self_referential_model_independence",
           message: "a model role cannot require independence from itself"
         });
       } else if (!modelRolesById.has(comparedRole)) {
         issues.push({
-          path: path13,
+          path: path14,
           code: "missing_independence_model_role",
           message: `independence policy references undeclared model role ${JSON.stringify(comparedRole)}`
         });
       } else if (modelRolesById.get(comparedRole)?.independence !== null) {
         issues.push({
-          path: path13,
+          path: path14,
           code: "independence_reference_not_author",
           message: `independence policy must compare against an author role; ${JSON.stringify(comparedRole)} declares its own independence policy`
         });
@@ -24106,15 +24250,16 @@ var FlowPackManifestSchema = FlowPackManifestBaseSchema.superRefine((value, ctx)
 });
 
 // packages/plugin-core/src/memlin-api-client.ts
+init_auth_refusal();
 import { readFileSync } from "node:fs";
-import crypto from "node:crypto";
-import os3 from "node:os";
+import crypto2 from "node:crypto";
+import os4 from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // packages/plugin-core/src/host.ts
-import os2 from "node:os";
-import path3 from "node:path";
+import os3 from "node:os";
+import path4 from "node:path";
 var BaseHost = class {
   constructor(kind, home) {
     this.kind = kind;
@@ -24126,42 +24271,42 @@ var BaseHost = class {
     return this.home;
   }
   plansDir() {
-    return path3.join(this.home, "plans");
+    return path4.join(this.home, "plans");
   }
 };
 var ClaudeCodeHost = class extends BaseHost {
   constructor() {
-    super("claude-code", path3.join(os2.homedir(), ".claude"));
+    super("claude-code", path4.join(os3.homedir(), ".claude"));
   }
 };
 var CursorHost = class extends BaseHost {
   constructor() {
-    super("cursor", path3.join(os2.homedir(), ".config", "memlin"));
+    super("cursor", path4.join(os3.homedir(), ".config", "memlin"));
   }
 };
 var CodexHost = class extends BaseHost {
   constructor() {
-    super("codex", path3.join(os2.homedir(), ".config", "memlin"));
+    super("codex", path4.join(os3.homedir(), ".config", "memlin"));
   }
 };
 var WindsurfHost = class extends BaseHost {
   constructor() {
-    super("windsurf", path3.join(os2.homedir(), ".config", "memlin"));
+    super("windsurf", path4.join(os3.homedir(), ".config", "memlin"));
   }
 };
 var AntigravityHost = class extends BaseHost {
   constructor() {
-    super("antigravity", path3.join(os2.homedir(), ".config", "memlin"));
+    super("antigravity", path4.join(os3.homedir(), ".config", "memlin"));
   }
 };
 var VSCodeHost = class extends BaseHost {
   constructor() {
-    super("vscode", path3.join(os2.homedir(), ".config", "memlin"));
+    super("vscode", path4.join(os3.homedir(), ".config", "memlin"));
   }
 };
 var CompanionHost = class extends BaseHost {
   constructor() {
-    super("companion", path3.join(os2.homedir(), ".config", "memlin"));
+    super("companion", path4.join(os3.homedir(), ".config", "memlin"));
   }
 };
 var HOSTS = {
@@ -24182,12 +24327,12 @@ function resolveHost() {
 // packages/plugin-core/src/memlin-api-client.ts
 var DEFAULT_API_URL = "https://memlin.ai/api/v1";
 function agentDevice() {
-  return process.env.MEMLIN_AGENT_DEVICE || os3.hostname() || "unknown";
+  return process.env.MEMLIN_AGENT_DEVICE || os4.hostname() || "unknown";
 }
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.57";
+  cachedAgentVersion = "0.2.58";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -24345,8 +24490,8 @@ var MemlinApiClient = class {
       [AGENT_DEVICE_HEADER]: agentDevice(),
       [AGENT_VERSION_HEADER]: version2,
       [AGENT_CAPABILITIES_HEADER]: (override.agentKind ? AGENT_EXPECTED_CAPABILITIES[kind] : agentCapabilities()).join(","),
-      [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os3.platform(),
-      [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os3.arch()
+      [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os4.platform(),
+      [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os4.arch()
     };
     if (includeAccount && this.cfg.accountId) {
       h["Memlin-Account-Id"] = this.cfg.accountId;
@@ -24355,6 +24500,8 @@ var MemlinApiClient = class {
   }
   async request(method, pathAndQuery, body, opts = {}) {
     const url2 = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
+    const refusalAccountId = this.refusalAccountId(opts.includeAccount ?? true, opts.accountId);
+    await this.throwIfAuthRefused(method, pathAndQuery, refusalAccountId);
     const baseHeaders = await this.authHeaders(opts.includeAccount ?? true, opts);
     if (opts.accountId) {
       baseHeaders["Memlin-Account-Id"] = opts.accountId;
@@ -24401,12 +24548,14 @@ var MemlinApiClient = class {
         } catch {
         }
       }
+      const refusalCode = await this.noteAuthOutcome(res.status, parsed, refusalAccountId);
       if (!res.ok) {
         const serverError = parsed?.error;
         const errMsg = typeof serverError === "string" && serverError ? singleLine(serverError, 300) : describeOpaqueBody(res.status, text);
         throw new MemlinApiError(
           `${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`,
-          res.status
+          res.status,
+          refusalCode
         );
       }
       return parsed;
@@ -24416,16 +24565,64 @@ var MemlinApiClient = class {
     const base = this.cfg.retryBaseDelayMs ?? DEFAULT_RETRY_BASE_DELAY_MS;
     return base * 2 ** (attempt - 1);
   }
+  /** Accounts whose refusals this client already cleared after a 2xx. */
+  refusalCleared = /* @__PURE__ */ new Set();
+  /** The account a request is scoped to (the Memlin-Account-Id it sends). */
+  refusalAccountId(includeAccount, override) {
+    if (override) return override;
+    return includeAccount && this.cfg.accountId ? this.cfg.accountId : null;
+  }
+  /** Zero-network short circuit while a membership refusal is fresh. */
+  async throwIfAuthRefused(method, pathAndQuery, accountId) {
+    if (!this.cfg.authRefusal || !accountId) return;
+    const entry = await readAuthRefusal(accountId, this.cfg.authRefusal.binding);
+    if (!entry) return;
+    throw new MemlinApiError(
+      `${method} ${pathAndQuery} \u2192 403: ${AUTH_REFUSAL_MESSAGES[entry.reason]} (recently refused; not retried \u2014 run /memlin-link or /memlin-login)`,
+      403,
+      entry.reason
+    );
+  }
+  /**
+   * Keep the refusal cache in step with what the server said: any 2xx for an
+   * account clears its refusals (every binding); a not_member / no_profile
+   * 403 records one. Returns the refusal code, if any. Never throws.
+   */
+  async noteAuthOutcome(status, body, accountId) {
+    if (!accountId) return void 0;
+    if (status >= 200 && status < 300) {
+      if (!this.refusalCleared.has(accountId)) {
+        this.refusalCleared.add(accountId);
+        await clearAuthRefusalsForAccount(accountId);
+      }
+      return void 0;
+    }
+    const reason = classifyAuthRefusal(status, body);
+    if (!reason) return void 0;
+    if (this.cfg.authRefusal) {
+      this.refusalCleared.delete(accountId);
+      await recordAuthRefusal({
+        accountId,
+        binding: this.cfg.authRefusal.binding,
+        reason,
+        accountName: accountId === this.cfg.accountId ? this.cfg.authRefusal.accountName ?? null : null
+      }).catch(() => {
+      });
+    }
+    return reason;
+  }
   async openResolveV2Stream(method, pathAndQuery, body, opts = {}) {
     const url2 = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
+    const refusalAccountId = this.refusalAccountId(true, opts.accountId);
+    await this.throwIfAuthRefused(method, pathAndQuery, refusalAccountId);
     const headers = await this.authHeaders(true, opts);
     if (opts.accountId) headers["Memlin-Account-Id"] = opts.accountId;
     headers.Accept = "application/x-ndjson";
     if (body !== void 0) headers["Content-Type"] = "application/json";
     if (opts.traceId) {
       const normalized = opts.traceId.replaceAll("-", "").toLowerCase();
-      const traceId = /^[0-9a-f]{32}$/.test(normalized) ? normalized : crypto.createHash("sha256").update(opts.traceId).digest("hex").slice(0, 32);
-      headers.traceparent = `00-${traceId}-${crypto.randomBytes(8).toString("hex")}-01`;
+      const traceId = /^[0-9a-f]{32}$/.test(normalized) ? normalized : crypto2.createHash("sha256").update(opts.traceId).digest("hex").slice(0, 32);
+      headers.traceparent = `00-${traceId}-${crypto2.randomBytes(8).toString("hex")}-01`;
     }
     const timeoutMs = Math.max(
       1,
@@ -24450,19 +24647,24 @@ var MemlinApiClient = class {
         await response.body?.cancel().catch(() => void 0);
         throw new Error("Memlin progressive resolver returned an unexpected response type");
       }
+      await this.noteAuthOutcome(response.status, null, refusalAccountId);
       return response;
     }
     const text = await response.text().catch(() => "");
     let serverError;
+    let parsedBody = null;
     try {
       const parsed = JSON.parse(text);
+      parsedBody = parsed;
       serverError = typeof parsed.error === "string" ? parsed.error : parsed.error?.message ?? parsed.error?.code;
     } catch {
     }
+    const refusalCode = await this.noteAuthOutcome(response.status, parsedBody, refusalAccountId);
     const detail = response.status >= 500 ? `HTTP ${response.status} (upstream response suppressed)` : serverError ? singleLine(serverError, 300) : describeOpaqueBody(response.status, text);
     throw new MemlinApiError(
       `${method} ${pathAndQuery} \u2192 ${response.status}: ${detail}`,
-      response.status
+      response.status,
+      refusalCode
     );
   }
   async *readResolveV2Response(response) {
@@ -25274,20 +25476,21 @@ function resolveApiUrl() {
 
 // packages/plugin-core/src/client.ts
 init_workspace_binding();
+init_auth_refusal();
 function globalConfigFilePath() {
-  return process.env.MEMLIN_CONFIG_FILE || path5.join(os4.homedir(), ".config", "memlin", "config.json");
+  return process.env.MEMLIN_CONFIG_FILE || path6.join(os5.homedir(), ".config", "memlin", "config.json");
 }
-var CONFIG_DIR = path5.join(os4.homedir(), ".config", "memlin");
-var TOKEN_FILE = path5.join(CONFIG_DIR, "token.json");
+var CONFIG_DIR = path6.join(os5.homedir(), ".config", "memlin");
+var TOKEN_FILE = path6.join(CONFIG_DIR, "token.json");
 async function writeGlobalConfig(config2) {
   const file2 = globalConfigFilePath();
-  await fs4.mkdir(path5.dirname(file2), { recursive: true });
-  const tmp = path5.join(
-    path5.dirname(file2),
-    `${path5.basename(file2)}.tmp-${process.pid}-${randomUUID3()}`
+  await fs5.mkdir(path6.dirname(file2), { recursive: true });
+  const tmp = path6.join(
+    path6.dirname(file2),
+    `${path6.basename(file2)}.tmp-${process.pid}-${randomUUID3()}`
   );
-  await fs4.writeFile(tmp, JSON.stringify(config2, null, 2), { mode: 384 });
-  await fs4.chmod(tmp, 384).catch(() => {
+  await fs5.writeFile(tmp, JSON.stringify(config2, null, 2), { mode: 384 });
+  await fs5.chmod(tmp, 384).catch(() => {
   });
   await atomicRename(tmp, file2);
 }
@@ -25301,10 +25504,10 @@ function accessTokenSubject(accessToken) {
 }
 
 // packages/plugin-core/src/plugin-install.ts
-import { promises as fs5 } from "node:fs";
+import { promises as fs6 } from "node:fs";
 import { existsSync } from "node:fs";
-import path6 from "node:path";
-import os5 from "node:os";
+import path7 from "node:path";
+import os6 from "node:os";
 var MEMLIN_PLUGIN_KEY = "memlin@memlin-ai";
 var MEMLIN_MARKETPLACE_KEY = "memlin-ai";
 var MEMLIN_MARKETPLACE_SOURCE = {
@@ -25312,15 +25515,15 @@ var MEMLIN_MARKETPLACE_SOURCE = {
   repo: "memlin-ai/memlin-claude-plugin"
 };
 function defaultUserSettingsPaths() {
-  const claudeDir = path6.join(os5.homedir(), ".claude");
-  return { claudeDir, settingsFile: path6.join(claudeDir, "settings.json") };
+  const claudeDir = path7.join(os6.homedir(), ".claude");
+  return { claudeDir, settingsFile: path7.join(claudeDir, "settings.json") };
 }
 async function readClaudeUserSettings(paths) {
   const p = paths ?? defaultUserSettingsPaths();
   if (!existsSync(p.settingsFile)) return null;
   let raw;
   try {
-    raw = await fs5.readFile(p.settingsFile, "utf8");
+    raw = await fs6.readFile(p.settingsFile, "utf8");
   } catch {
     return null;
   }
@@ -25334,10 +25537,10 @@ async function readClaudeUserSettings(paths) {
 async function ensureUserScopePluginEnabled(paths) {
   const p = paths ?? defaultUserSettingsPaths();
   try {
-    await fs5.mkdir(p.claudeDir, { recursive: true });
+    await fs6.mkdir(p.claudeDir, { recursive: true });
     let current = {};
     if (existsSync(p.settingsFile)) {
-      const raw = await fs5.readFile(p.settingsFile, "utf8");
+      const raw = await fs6.readFile(p.settingsFile, "utf8");
       try {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === "object") current = parsed;
@@ -25373,7 +25576,7 @@ async function ensureUserScopePluginEnabled(paths) {
       };
       touchedMarketplace = true;
     }
-    await fs5.writeFile(p.settingsFile, JSON.stringify(next, null, 2) + "\n", "utf8");
+    await fs6.writeFile(p.settingsFile, JSON.stringify(next, null, 2) + "\n", "utf8");
     return {
       status: touchedMarketplace ? "enabled-with-marketplace" : "enabled",
       settingsFile: p.settingsFile,
@@ -25414,7 +25617,7 @@ var DEFAULT_PUBLICATION_DEPENDENCIES = {
 };
 async function readSnapshot(file2) {
   try {
-    return await fs6.readFile(file2);
+    return await fs7.readFile(file2);
   } catch (error40) {
     if (error40.code === "ENOENT") return null;
     throw error40;
@@ -25422,16 +25625,16 @@ async function readSnapshot(file2) {
 }
 async function restoreSnapshot(file2, snapshot) {
   if (snapshot === null) {
-    await fs6.rm(file2, { force: true });
+    await fs7.rm(file2, { force: true });
     return;
   }
-  await fs6.mkdir(path7.dirname(file2), { recursive: true });
-  const tmp = path7.join(
-    path7.dirname(file2),
-    `${path7.basename(file2)}.rollback-${process.pid}-${randomUUID4()}`
+  await fs7.mkdir(path8.dirname(file2), { recursive: true });
+  const tmp = path8.join(
+    path8.dirname(file2),
+    `${path8.basename(file2)}.rollback-${process.pid}-${randomUUID4()}`
   );
-  await fs6.writeFile(tmp, snapshot, { mode: 384 });
-  await fs6.chmod(tmp, 384).catch(() => {
+  await fs7.writeFile(tmp, snapshot, { mode: 384 });
+  await fs7.chmod(tmp, 384).catch(() => {
   });
   await atomicRename(tmp, file2);
 }
@@ -25452,6 +25655,7 @@ async function publishMemlinLoginPair(config2, token, dependencies = {}) {
       try {
         await writers.writeConfig(config2);
         await writers.writeToken(token);
+        await clearAllAuthRefusals();
       } catch (error40) {
         const rollback = await Promise.allSettled([
           restoreSnapshot(configFile, previousConfig),
@@ -25555,11 +25759,11 @@ async function bootstrapMemlinLogin(token, options2 = {}) {
 
 // packages/plugin-core/src/resolver-skill.ts
 import { createHash } from "node:crypto";
-import { promises as fs7 } from "node:fs";
-import os6 from "node:os";
-import path8 from "node:path";
-var RESOLVER_SKILL_DIR = path8.join(os6.homedir(), ".claude", "skills", "memlin");
-var RESOLVER_SKILL_FILE = path8.join(RESOLVER_SKILL_DIR, "SKILL.md");
+import { promises as fs8 } from "node:fs";
+import os7 from "node:os";
+import path9 from "node:path";
+var RESOLVER_SKILL_DIR = path9.join(os7.homedir(), ".claude", "skills", "memlin");
+var RESOLVER_SKILL_FILE = path9.join(RESOLVER_SKILL_DIR, "SKILL.md");
 var LEGACY_RESOLVER_SKILL_HASHES = [
   // v1: 2026-06-09 → 2026-06-17. Before the "Writing your own memories"
   // section was added.
@@ -25569,7 +25773,7 @@ async function ensureResolverSkill() {
   try {
     let existing = null;
     try {
-      existing = await fs7.readFile(RESOLVER_SKILL_FILE, "utf8");
+      existing = await fs8.readFile(RESOLVER_SKILL_FILE, "utf8");
     } catch (e) {
       if (e.code !== "ENOENT") throw e;
     }
@@ -25581,11 +25785,11 @@ async function ensureResolverSkill() {
       if (!LEGACY_RESOLVER_SKILL_HASHES.includes(hash)) {
         return { status: "kept", path: RESOLVER_SKILL_FILE };
       }
-      await fs7.writeFile(RESOLVER_SKILL_FILE, RESOLVER_SKILL_MD, "utf8");
+      await fs8.writeFile(RESOLVER_SKILL_FILE, RESOLVER_SKILL_MD, "utf8");
       return { status: "upgraded", path: RESOLVER_SKILL_FILE };
     }
-    await fs7.mkdir(RESOLVER_SKILL_DIR, { recursive: true });
-    await fs7.writeFile(RESOLVER_SKILL_FILE, RESOLVER_SKILL_MD, "utf8");
+    await fs8.mkdir(RESOLVER_SKILL_DIR, { recursive: true });
+    await fs8.writeFile(RESOLVER_SKILL_FILE, RESOLVER_SKILL_MD, "utf8");
     return { status: "installed", path: RESOLVER_SKILL_FILE };
   } catch (e) {
     return {
@@ -25665,7 +25869,7 @@ focused on the reader side.
 // packages/plugin-core/src/project-resolver.ts
 import { execSync } from "node:child_process";
 import { existsSync as existsSync2, readdirSync } from "node:fs";
-import path9 from "node:path";
+import path10 from "node:path";
 init_workspace_binding();
 var WORKSPACE_ENV_VARS = [
   // Claude Code exposes the original project dir to hooks/plugin commands.
@@ -25680,24 +25884,24 @@ var WORKSPACE_ENV_VARS = [
 function runtimeCwd(fallback = process.cwd()) {
   for (const name of WORKSPACE_ENV_VARS) {
     const raw = process.env[name]?.trim();
-    if (raw && path9.isAbsolute(raw)) return path9.resolve(raw);
+    if (raw && path10.isAbsolute(raw)) return path10.resolve(raw);
   }
-  return path9.resolve(fallback);
+  return path10.resolve(fallback);
 }
 
 // packages/plugin-core/src/native-memory.ts
-import { promises as fs9 } from "node:fs";
+import { promises as fs10 } from "node:fs";
 import { existsSync as existsSync4, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-import os8 from "node:os";
-import path11 from "node:path";
+import os9 from "node:os";
+import path12 from "node:path";
 
 // packages/plugin-core/src/native-memory-backup.ts
-import { promises as fs8 } from "node:fs";
+import { promises as fs9 } from "node:fs";
 import { existsSync as existsSync3 } from "node:fs";
 import { createHash as createHash2 } from "node:crypto";
-import os7 from "node:os";
-import path10 from "node:path";
+import os8 from "node:os";
+import path11 from "node:path";
 
 // packages/plugin-core/src/native-memory.ts
 function gitMainRoot(cwd) {
@@ -25707,7 +25911,7 @@ function gitMainRoot(cwd) {
       ["rev-parse", "--path-format=absolute", "--git-common-dir"],
       { windowsHide: true, cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }
     ).trim();
-    return common2 ? path11.dirname(common2) : null;
+    return common2 ? path12.dirname(common2) : null;
   } catch {
     return null;
   }
@@ -25720,13 +25924,13 @@ function encodings(p) {
   ];
 }
 function nativeMemoryDirCandidates(cwd) {
-  const projects = path11.join(os8.homedir(), ".claude", "projects");
+  const projects = path12.join(os9.homedir(), ".claude", "projects");
   const roots = [gitMainRoot(cwd), cwd].filter((x) => !!x);
   const seen = /* @__PURE__ */ new Set();
   const out = [];
   for (const r of roots) {
     for (const enc of encodings(r)) {
-      const dir = path11.join(projects, enc, "memory");
+      const dir = path12.join(projects, enc, "memory");
       if (!seen.has(dir)) {
         seen.add(dir);
         out.push(dir);
@@ -25736,9 +25940,9 @@ function nativeMemoryDirCandidates(cwd) {
   return out;
 }
 function isMemoryDir(dir, forRestore) {
-  if (existsSync4(path11.join(dir, "MEMORY.md"))) return true;
+  if (existsSync4(path12.join(dir, "MEMORY.md"))) return true;
   if (!forRestore) return false;
-  const archived = path11.join(dir, ".archived");
+  const archived = path12.join(dir, ".archived");
   try {
     return statSync(archived).isDirectory();
   } catch {
@@ -25746,7 +25950,7 @@ function isMemoryDir(dir, forRestore) {
   }
 }
 function findNativeMemoryDir(cwd, opts = {}) {
-  const candidates = opts.explicitDir ? [path11.resolve(cwd, opts.explicitDir)] : nativeMemoryDirCandidates(cwd);
+  const candidates = opts.explicitDir ? [path12.resolve(cwd, opts.explicitDir)] : nativeMemoryDirCandidates(cwd);
   return candidates.find((d) => isMemoryDir(d, opts.forRestore ?? false)) ?? null;
 }
 var NATIVE_MEMORY_SESSION_READ_CAP_BYTES = 25e3;
@@ -25756,11 +25960,11 @@ async function summarizeNativeMemory(cwd, opts = {}) {
   let indexBytes = 0;
   let totalBytes = 0;
   let fileCount = 0;
-  for (const name of await fs9.readdir(memoryDir)) {
+  for (const name of await fs10.readdir(memoryDir)) {
     if (!name.endsWith(".md") || name.startsWith(".")) continue;
     let bytes;
     try {
-      const st = await fs9.stat(path11.join(memoryDir, name));
+      const st = await fs10.stat(path12.join(memoryDir, name));
       if (!st.isFile()) continue;
       bytes = st.size;
     } catch {
