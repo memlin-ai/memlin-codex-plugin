@@ -12609,8 +12609,15 @@ function labelDecisionOptionIds(kind, text) {
   return out;
 }
 var DECISION_CAPS = {
-  /** Decisions a single capture may raise. */
+  /** Decisions a single capture (one scribe run) may raise. */
   perCapture: 3,
+  /** Open questions of a session-grouped kind (runbook, sensitive) one agent
+   *  session may hold. Later captures of that kind from the same session are
+   *  attached to the open question instead of raising another. */
+  openPerSession: 1,
+  /** Captures one session-grouped question may cover. Past it the raise is
+   *  capped, like perCapture. */
+  capturesPerDecision: 100,
   /** Questions injected into one user turn. */
   perTurn: 1,
   /** Questions asked in one session before the rest wait for the web list. */
@@ -25038,7 +25045,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.58";
+  cachedAgentVersion = "0.2.59";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -26123,7 +26130,12 @@ var MemlinApiClient = class {
       accountId: opts.accountId
     });
   }
-  /** GET /decisions — open memory decisions (most consequential first) + the one open count. */
+  /**
+   * GET /decisions — open memory decisions (most consequential first), the raw
+   * open `count`, and the grouped `needs_you_count` + `groups` the web app
+   * shows. The grouped fields are absent on older servers: read them through
+   * decisionCountsOf (@memlin/shared), which falls back to `count`.
+   */
   async listDecisions(opts = {}) {
     const qs = opts.limit ? `?limit=${encodeURIComponent(String(opts.limit))}` : "";
     return this.request("GET", `/decisions${qs}`, void 0, {

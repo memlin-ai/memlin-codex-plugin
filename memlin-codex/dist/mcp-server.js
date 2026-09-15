@@ -64172,8 +64172,15 @@ function decisionDeadline(kind2, raisedAtMs) {
 }
 var DECISION_CHANNELS = ["session", "web", "cli", "mcp"];
 var DECISION_CAPS = {
-  /** Decisions a single capture may raise. */
+  /** Decisions a single capture (one scribe run) may raise. */
   perCapture: 3,
+  /** Open questions of a session-grouped kind (runbook, sensitive) one agent
+   *  session may hold. Later captures of that kind from the same session are
+   *  attached to the open question instead of raising another. */
+  openPerSession: 1,
+  /** Captures one session-grouped question may cover. Past it the raise is
+   *  capped, like perCapture. */
+  capturesPerDecision: 100,
   /** Questions injected into one user turn. */
   perTurn: 1,
   /** Questions asked in one session before the rest wait for the web list. */
@@ -64181,6 +64188,14 @@ var DECISION_CAPS = {
   /** Urgent end-of-turn interruptions in one session. */
   urgentPerSession: 1
 };
+function decisionCaptureDocumentIds(d2) {
+  return [
+    .../* @__PURE__ */ new Set([
+      ...d2.subjectDocumentId ? [d2.subjectDocumentId] : [],
+      ...d2.relatedDocumentIds ?? []
+    ])
+  ];
+}
 function toSessionDecision(d2) {
   return {
     id: d2.id,
@@ -65587,6 +65602,78 @@ var FlowPackManifestSchema = FlowPackManifestBaseSchema.superRefine((value, ctx)
     });
   }
 });
+
+// packages/shared/dist/needs-you-groups.js
+function captureIdsOf(d2) {
+  return [
+    .../* @__PURE__ */ new Set([...d2.subjectDocumentId ? [d2.subjectDocumentId] : [], ...d2.relatedDocumentIds ?? []])
+  ];
+}
+function capturesOf(d2) {
+  const n2 = Number(d2.captureCount);
+  return Number.isFinite(n2) && n2 >= 1 ? Math.floor(n2) : 1;
+}
+var CLOSED_SUBJECT_LIFECYCLE = /* @__PURE__ */ new Set([
+  "rejected",
+  "superseded",
+  "expired",
+  "archived"
+]);
+var HELD_SUBJECT_KINDS = /* @__PURE__ */ new Set(["runbook", "sensitive"]);
+function captureStillOpen(kind2, doc) {
+  if (!doc) return false;
+  if (doc.status === "archived") return false;
+  if (doc.lifecycle && CLOSED_SUBJECT_LIFECYCLE.has(doc.lifecycle)) return false;
+  if (HELD_SUBJECT_KINDS.has(kind2) && (doc.lifecycle === "active" || doc.lifecycle === "background")) {
+    return false;
+  }
+  return true;
+}
+function decisionStillNeedsPerson(d2, nowMs, subjects) {
+  const deadline = Date.parse(d2.deadlineAt);
+  if (Number.isFinite(deadline) && deadline <= nowMs) return false;
+  const ids = captureIdsOf(d2);
+  if (!subjects || ids.length === 0) return true;
+  return ids.some((id3) => captureStillOpen(d2.kind, subjects.get(id3)));
+}
+function decisionGroupKey(d2) {
+  const session = d2.origin?.sessionId;
+  if (d2.kind === "runbook" && session) return `runbook:session:${session}`;
+  if (d2.subjectDocumentId) return `${d2.kind}:doc:${d2.subjectDocumentId}`;
+  return `${d2.kind}:id:${d2.id}`;
+}
+function groupOpenDecisions(decisions) {
+  const byKey = /* @__PURE__ */ new Map();
+  for (const d2 of decisions) {
+    const key2 = decisionGroupKey(d2);
+    const g2 = byKey.get(key2);
+    if (g2) {
+      g2.count += 1;
+      g2.captures += capturesOf(d2);
+      g2.ids.push(d2.id);
+    } else {
+      byKey.set(key2, { key: key2, lead: d2, count: 1, captures: capturesOf(d2), ids: [d2.id] });
+    }
+  }
+  return [...byKey.values()];
+}
+function openDecisionGroups(decisions, nowMs, subjects) {
+  return groupOpenDecisions(decisions.filter((d2) => decisionStillNeedsPerson(d2, nowMs, subjects)));
+}
+var DECISION_GROUP_READ_LIMIT = 200;
+function needsYouDecisionCount(input) {
+  const unlisted = input.openCount !== null && input.listed >= DECISION_GROUP_READ_LIMIT ? Math.max(0, input.openCount - input.listed) : 0;
+  return input.groups + unlisted;
+}
+function toNeedsYouGroupWire(group) {
+  return {
+    key: group.key,
+    lead: group.lead,
+    group_size: group.count,
+    capture_count: group.captures,
+    decision_ids: group.ids
+  };
+}
 
 // node_modules/.pnpm/openai@4.104.0_ws@8.20.1_zod@3.25.76/node_modules/openai/internal/qs/formats.mjs
 var default_format = "RFC3986";
@@ -73122,7 +73209,7 @@ var TOOLS = [
   },
   {
     name: "memlin_list_decisions",
-    description: "List the open memory decisions waiting on a person \u2014 the only questions Memlin ever asks (replace live memory, two live docs disagree, sensitive content, incident runbook, goal approval). Most consequential first. Returns { decisions, count }; count is the one open-decision number every surface shows. Each decision carries its question, why a person is needed, options with consequences, the default applied if nobody answers, and the deadline. Pair with memlin_explain_decision and memlin_decide.",
+    description: `List the open memory decisions waiting on a person \u2014 the only questions Memlin ever asks (replace live memory, two live docs disagree, sensitive content, incident runbook, goal approval). Most consequential first. Returns { decisions, count, needs_you_count, groups }. needs_you_count is the number to tell the user ("3 decisions need you") \u2014 the same number the Memlin web app shows: open decisions grouped into person-sized tasks (one incident session's runbooks are one task) with stale ones dropped. count is the raw number of open questions; mention it only alongside ("3 decisions need you (30 open questions)"), never as what needs the user. groups has one entry per task: lead (the decision to ask about), group_size and decision_ids. decisions is the raw list. Each decision carries its question, why a person is needed, options with consequences, the default applied if nobody answers, and the deadline. Pair with memlin_explain_decision and memlin_decide.`,
     annotations: { readOnlyHint: true, destructiveHint: false },
     inputSchema: {
       type: "object",
@@ -80932,7 +81019,8 @@ function planDecisionOutcome(decision, option) {
   const subject = decision.subjectDocumentId;
   const targets = decision.targetDocumentIds;
   const tag = `decision:${decision.kind}:${option}`;
-  const subjectTo = (to, reason, extra = {}) => subject ? [{ documentId: subject, role: "subject", to, reason, ...extra }] : [];
+  const captures = decisionCaptureDocumentIds(decision);
+  const subjectTo = (to, reason, extra = {}) => captures.map((documentId) => ({ documentId, role: "subject", to, reason, ...extra }));
   const none = { ops: [], moves: [] };
   switch (decision.kind) {
     case "replace":
@@ -81270,6 +81358,7 @@ function decisionFromRow(row) {
     };
   });
   const origin = row.origin && typeof row.origin === "object" ? row.origin : {};
+  const relatedDocumentIds = Array.isArray(row.related_document_ids) ? row.related_document_ids.filter((x2) => typeof x2 === "string") : [];
   return {
     id: String(row.id),
     accountId: String(row.account_id),
@@ -81278,6 +81367,8 @@ function decisionFromRow(row) {
     state: row.state,
     subjectDocumentId: str3(row.subject_document_id),
     targetDocumentIds: Array.isArray(row.target_document_ids) ? row.target_document_ids.filter((x2) => typeof x2 === "string") : [],
+    relatedDocumentIds,
+    captureCount: typeof row.capture_count === "number" && row.capture_count >= 1 ? row.capture_count : 1 + relatedDocumentIds.length,
     origin,
     question: String(row.question ?? ""),
     whyHuman: String(row.why_human ?? spec?.whyHuman ?? ""),
@@ -81378,7 +81469,9 @@ async function raiseDecision(ctx, input, deps = {}) {
   if (out.capped === true) return { status: "capped", decision: null, explained: false };
   if (!out.id) throw new DecisionError("failed", "raise_decision: no row returned");
   const decision = decisionFromRow(out);
-  if (out.created !== true) return { status: "existing", decision, explained: false };
+  if (out.created !== true) {
+    return { status: "existing", decision, explained: false, attached: out.attached === true };
+  }
   let explained = false;
   if (deps.explain && spec.aiExplanation) {
     try {
@@ -81421,10 +81514,7 @@ async function visibleToCaller(ctx, decisions) {
   const candidates = decisions.filter((d2) => d2.kind !== "sensitive");
   const ids = [
     ...new Set(
-      candidates.flatMap((d2) => [
-        ...d2.subjectDocumentId ? [d2.subjectDocumentId] : [],
-        ...d2.targetDocumentIds
-      ])
+      candidates.flatMap((d2) => [...decisionCaptureDocumentIds(d2), ...d2.targetDocumentIds])
     )
   ];
   if (ids.length === 0) return candidates;
@@ -81434,7 +81524,7 @@ async function visibleToCaller(ctx, decisions) {
     (data ?? []).filter((d2) => d2.scope === "personal" && d2.created_by !== ctx.userId).map((d2) => d2.id)
   );
   return candidates.filter(
-    (d2) => !(d2.subjectDocumentId && hidden.has(d2.subjectDocumentId)) && !d2.targetDocumentIds.some((id3) => hidden.has(id3))
+    (d2) => !decisionCaptureDocumentIds(d2).some((id3) => hidden.has(id3)) && !d2.targetDocumentIds.some((id3) => hidden.has(id3))
   );
 }
 async function getDecision(ctx, decisionId) {
@@ -81469,6 +81559,43 @@ async function countOpenDecisions(ctx) {
   });
   if (error40) throw rpcFailure("count_decisions", error40);
   return typeof data === "number" ? data : Number(data ?? 0) || 0;
+}
+async function loadDecisionSubjectStates(ctx, decisions) {
+  const ids = [...new Set(decisions.flatMap((d2) => decisionCaptureDocumentIds(d2)))];
+  if (ids.length === 0) return /* @__PURE__ */ new Map();
+  try {
+    const { data, error: error40 } = await actorClient(ctx).from("documents").select("id, status, lifecycle:metadata->>status").eq("account_id", ctx.accountId).in("id", ids);
+    if (error40) return null;
+    const out = /* @__PURE__ */ new Map();
+    for (const row of data ?? []) {
+      out.set(row.id, { status: row.status ?? null, lifecycle: row.lifecycle ?? null });
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+async function readOpenDecisionGroups(ctx, nowMs = Date.now()) {
+  const decisions = await listOpenDecisions(ctx, { limit: DECISION_GROUP_READ_LIMIT });
+  const subjects = await loadDecisionSubjectStates(ctx, decisions);
+  return { groups: openDecisionGroups(decisions, nowMs, subjects), listed: decisions.length };
+}
+async function listDecisionsWithNeedsYou(ctx, args = {}) {
+  const [decisions, count, grouped] = await Promise.all([
+    listOpenDecisions(ctx, { limit: args.limit }),
+    countOpenDecisions(ctx),
+    readOpenDecisionGroups(ctx)
+  ]);
+  return {
+    decisions,
+    count,
+    needs_you_count: needsYouDecisionCount({
+      groups: grouped.groups.length,
+      listed: grouped.listed,
+      openCount: count
+    }),
+    groups: grouped.groups.map(toNeedsYouGroupWire)
+  };
 }
 async function markDecisionAsked(ctx, decisionId, via) {
   const { data, error: error40 } = await actorClient(ctx).rpc("memory_decision_mark_asked", {
@@ -81669,11 +81796,7 @@ var DecideArgs = external_exports.object({
 });
 async function listDecisionsTool(ctx, rawArgs) {
   const args = ListDecisionsArgs.parse(rawArgs ?? {});
-  const [decisions, count] = await Promise.all([
-    listOpenDecisions(ctx, { limit: args.limit }),
-    countOpenDecisions(ctx)
-  ]);
-  return { decisions, count };
+  return listDecisionsWithNeedsYou(ctx, { limit: args.limit });
 }
 async function explainDecisionTool(ctx, rawArgs) {
   const args = ExplainDecisionArgs.parse(rawArgs);
@@ -87003,7 +87126,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.58";
+  cachedAgentVersion = "0.2.59";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -88088,7 +88211,12 @@ var MemlinApiClient = class {
       accountId: opts.accountId
     });
   }
-  /** GET /decisions — open memory decisions (most consequential first) + the one open count. */
+  /**
+   * GET /decisions — open memory decisions (most consequential first), the raw
+   * open `count`, and the grouped `needs_you_count` + `groups` the web app
+   * shows. The grouped fields are absent on older servers: read them through
+   * decisionCountsOf (@memlin/shared), which falls back to `count`.
+   */
   async listDecisions(opts = {}) {
     const qs = opts.limit ? `?limit=${encodeURIComponent(String(opts.limit))}` : "";
     return this.request("GET", `/decisions${qs}`, void 0, {
@@ -90170,7 +90298,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION2 = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS2 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version5 = "0.2.58";
+  const version5 = "0.2.59";
   return typeof version5 === "string" && VERSION2.test(version5) ? version5 : null;
 }
 async function reportPluginRuntime(report) {
@@ -90733,7 +90861,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.58"?.trim();
+  const env = "0.2.59"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }

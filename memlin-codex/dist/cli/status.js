@@ -24606,6 +24606,24 @@ var FlowPackManifestSchema = FlowPackManifestBaseSchema.superRefine((value, ctx)
   }
 });
 
+// packages/shared/dist/needs-you-groups.js
+function whole(n) {
+  const v = typeof n === "number" ? n : typeof n === "string" && n.trim() ? Number(n) : NaN;
+  return Number.isFinite(v) ? Math.max(0, Math.floor(v)) : null;
+}
+function decisionCountsOf(res) {
+  return { open: whole(res?.count) ?? 0, needsYou: whole(res?.needs_you_count) };
+}
+function needsYouDecisionsPhrase(counts) {
+  const { open, needsYou } = counts;
+  if (needsYou === null) {
+    return open > 0 ? `${open} open decision${open === 1 ? "" : "s"}` : "";
+  }
+  if (needsYou === 0 && open === 0) return "";
+  const head = `${needsYou} decision${needsYou === 1 ? "" : "s"} need${needsYou === 1 ? "s" : ""} you`;
+  return open !== needsYou ? `${head} (${open} open question${open === 1 ? "" : "s"})` : head;
+}
+
 // packages/plugin-core/src/memlin-api-client.ts
 init_auth_refusal();
 import { readFileSync } from "node:fs";
@@ -24620,7 +24638,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.58";
+  cachedAgentVersion = "0.2.59";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -25705,7 +25723,12 @@ var MemlinApiClient = class {
       accountId: opts.accountId
     });
   }
-  /** GET /decisions — open memory decisions (most consequential first) + the one open count. */
+  /**
+   * GET /decisions — open memory decisions (most consequential first), the raw
+   * open `count`, and the grouped `needs_you_count` + `groups` the web app
+   * shows. The grouped fields are absent on older servers: read them through
+   * decisionCountsOf (@memlin/shared), which falls back to `count`.
+   */
   async listDecisions(opts = {}) {
     const qs = opts.limit ? `?limit=${encodeURIComponent(String(opts.limit))}` : "";
     return this.request("GET", `/decisions${qs}`, void 0, {
@@ -25899,6 +25922,14 @@ function parsePlanFile(raw) {
 
 // packages/plugin-core/src/cli/status.ts
 init_companion_client();
+
+// packages/plugin-core/src/cli/decisions-view.ts
+function formatDecisionStatusLine(counts) {
+  const phrase = needsYouDecisionsPhrase(counts);
+  return phrase ? `${phrase} \u2014 memlin decisions` : "none";
+}
+
+// packages/plugin-core/src/cli/status.ts
 async function main() {
   console.log("memlin status");
   console.log("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
@@ -25930,9 +25961,20 @@ async function main() {
     console.log("");
     console.log(hazardWarning);
   }
+  await printDecisions(ctx.api);
   printRouting(ctx.config.api_url);
   printCompanion(await companionStatus().catch(() => null));
   await printLocalState();
+}
+async function printDecisions(api) {
+  console.log("");
+  console.log("Decisions");
+  try {
+    const res = await api.listDecisions({ limit: 1, maxRetries: 0, requestTimeoutMs: 3e3 });
+    console.log(`  open:        ${formatDecisionStatusLine(decisionCountsOf(res))}`);
+  } catch (err) {
+    console.log(`  (could not fetch decisions: ${err instanceof Error ? err.message : err})`);
+  }
 }
 function printCompanion(status) {
   console.log("");

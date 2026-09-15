@@ -24485,7 +24485,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.58";
+  cachedAgentVersion = "0.2.59";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -25570,7 +25570,12 @@ var MemlinApiClient = class {
       accountId: opts.accountId
     });
   }
-  /** GET /decisions — open memory decisions (most consequential first) + the one open count. */
+  /**
+   * GET /decisions — open memory decisions (most consequential first), the raw
+   * open `count`, and the grouped `needs_you_count` + `groups` the web app
+   * shows. The grouped fields are absent on older servers: read them through
+   * decisionCountsOf (@memlin/shared), which falls back to `count`.
+   */
   async listDecisions(opts = {}) {
     const qs = opts.limit ? `?limit=${encodeURIComponent(String(opts.limit))}` : "";
     return this.request("GET", `/decisions${qs}`, void 0, {

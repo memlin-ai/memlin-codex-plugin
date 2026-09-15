@@ -23334,6 +23334,17 @@ var FlowPackManifestSchema = FlowPackManifestBaseSchema.superRefine((value, ctx)
   }
 });
 
+// packages/shared/dist/needs-you-groups.js
+function needsYouDecisionsPhrase(counts) {
+  const { open, needsYou } = counts;
+  if (needsYou === null) {
+    return open > 0 ? `${open} open decision${open === 1 ? "" : "s"}` : "";
+  }
+  if (needsYou === 0 && open === 0) return "";
+  const head = `${needsYou} decision${needsYou === 1 ? "" : "s"} need${needsYou === 1 ? "s" : ""} you`;
+  return open !== needsYou ? `${head} (${open} open question${open === 1 ? "" : "s"})` : head;
+}
+
 // packages/plugin-core/src/cli/decisions-view.ts
 var NO_OPEN_DECISIONS = "No open decisions \u2014 Memlin has nothing it needs you to decide.\n";
 function label(d, id) {
@@ -23346,12 +23357,19 @@ function labelWithId(d, id) {
 function prose(d, text) {
   return labelDecisionOptionIds(d.kind, text);
 }
+function formatDecisionStatusLine(counts) {
+  const phrase = needsYouDecisionsPhrase(counts);
+  return phrase ? `${phrase} \u2014 memlin decisions` : "none";
+}
 function formatDecisionList(decisions, count, nowMs = Date.now()) {
   if (decisions.length === 0) return NO_OPEN_DECISIONS;
+  const counts = typeof count === "number" ? { open: count, needsYou: null } : count;
+  const n = counts.needsYou ?? counts.open;
+  const head = needsYouDecisionsPhrase(counts) || needsYouDecisionsPhrase({ open: decisions.length, needsYou: null });
+  const grouped = counts.needsYou !== null && counts.needsYou !== counts.open;
   const out = [
-    `${count} open decision${count === 1 ? "" : "s"}. Memlin could not settle ${count === 1 ? "this" : "these"} itself; ignoring one is safe \u2014 its default applies at the deadline.
-
-`
+    `${head}. Memlin could not settle ${n === 1 ? "this" : "these"} itself; ignoring one is safe \u2014 its default applies at the deadline.
+` + (grouped ? "Related questions (one incident session's runbooks, one doc) count as one decision; every open question is listed below.\n" : "") + "\n"
   ];
   for (const d of decisions) {
     out.push(`  ${d.id.slice(0, 8)}  ${d.kind.padEnd(9)} ${d.question}
@@ -23419,6 +23437,7 @@ export {
   NO_OPEN_DECISIONS,
   formatDecisionDetail,
   formatDecisionList,
+  formatDecisionStatusLine,
   labelWithId
 };
 /*! Bundled license information:

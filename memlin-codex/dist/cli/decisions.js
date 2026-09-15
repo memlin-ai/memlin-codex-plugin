@@ -41,401 +41,6 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// packages/plugin-core/src/atomic-rename.ts
-import { promises as fs } from "node:fs";
-import path from "node:path";
-async function renameWithRetry(from, to, rename) {
-  for (let attempt = 1; ; attempt++) {
-    try {
-      await rename(from, to);
-      return;
-    } catch (error40) {
-      const code = error40.code;
-      if (attempt >= MAX_ATTEMPTS || !code || !RETRYABLE_CODES.has(code)) throw error40;
-      const cap = Math.min(BASE_DELAY_MS * 2 ** (attempt - 1), MAX_DELAY_MS);
-      const delay2 = cap / 2 + Math.random() * (cap / 2);
-      await new Promise((resolve) => setTimeout(resolve, delay2));
-    }
-  }
-}
-async function atomicRename(from, to, dependencies = {}) {
-  const rename = dependencies.rename ?? fs.rename;
-  const queueKey = path.resolve(to);
-  const previous = renameQueues.get(queueKey) ?? Promise.resolve();
-  const run = previous.catch(() => void 0).then(() => renameWithRetry(from, to, rename));
-  renameQueues.set(queueKey, run);
-  try {
-    await run;
-  } finally {
-    if (renameQueues.get(queueKey) === run) renameQueues.delete(queueKey);
-  }
-}
-var RETRYABLE_CODES, MAX_ATTEMPTS, BASE_DELAY_MS, MAX_DELAY_MS, renameQueues;
-var init_atomic_rename = __esm({
-  "packages/plugin-core/src/atomic-rename.ts"() {
-    "use strict";
-    RETRYABLE_CODES = /* @__PURE__ */ new Set(["EPERM", "EACCES", "EBUSY"]);
-    MAX_ATTEMPTS = 10;
-    BASE_DELAY_MS = 10;
-    MAX_DELAY_MS = 100;
-    renameQueues = /* @__PURE__ */ new Map();
-  }
-});
-
-// packages/plugin-core/src/auth-refusal.ts
-import crypto from "node:crypto";
-import { promises as fs2 } from "node:fs";
-import os from "node:os";
-import path2 from "node:path";
-function isReason(value) {
-  return value === "not_member" || value === "no_profile";
-}
-function classifyAuthRefusal(status, body) {
-  if (status !== 403 || typeof body !== "object" || body === null) return null;
-  const record2 = body;
-  if (isReason(record2.code)) return record2.code;
-  let message = record2.error;
-  if (typeof record2.error === "object" && record2.error !== null) {
-    const nested = record2.error;
-    if (isReason(nested.code)) return nested.code;
-    message = nested.message;
-  }
-  if (typeof message !== "string") return null;
-  for (const reason of Object.keys(AUTH_REFUSAL_MESSAGES)) {
-    if (message === AUTH_REFUSAL_MESSAGES[reason]) return reason;
-  }
-  return null;
-}
-function authRefusalDir() {
-  return process.env.MEMLIN_AUTH_REFUSAL_DIR ?? path2.join(os.homedir(), ".config", "memlin", "auth-refusal");
-}
-function sha(value) {
-  return crypto.createHash("sha256").update(value).digest("hex").slice(0, 32);
-}
-function normalizeBinding(binding) {
-  return binding ? path2.resolve(binding) : null;
-}
-function accountDir(accountId) {
-  return path2.join(authRefusalDir(), sha(accountId));
-}
-function entryPath(accountId, binding) {
-  return path2.join(accountDir(accountId), `${sha(binding ?? "(global)")}.json`);
-}
-function isEntry(value) {
-  if (typeof value !== "object" || value === null) return false;
-  const e = value;
-  return typeof e.account_id === "string" && (e.binding === null || typeof e.binding === "string") && isReason(e.reason) && typeof e.expires_at === "number" && Array.isArray(e.notified_sessions);
-}
-async function readRaw(file2) {
-  try {
-    const parsed = JSON.parse(await fs2.readFile(file2, "utf8"));
-    return isEntry(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-async function writeEntry(entry) {
-  const file2 = entryPath(entry.account_id, entry.binding);
-  await fs2.mkdir(path2.dirname(file2), { recursive: true });
-  const tmp = `${file2}.${process.pid}.${crypto.randomUUID()}.tmp`;
-  await fs2.writeFile(tmp, JSON.stringify(entry), { mode: 384 });
-  await atomicRename(tmp, file2);
-}
-async function recordAuthRefusal(input) {
-  const now = input.now ?? Date.now();
-  const binding = normalizeBinding(input.binding);
-  const previous = await readRaw(entryPath(input.accountId, binding));
-  const entry = {
-    account_id: input.accountId,
-    binding,
-    reason: input.reason,
-    account_name: input.accountName ?? previous?.account_name ?? null,
-    refused_at: now,
-    expires_at: now + AUTH_REFUSAL_TTL_MS,
-    notified_sessions: previous?.notified_sessions ?? []
-  };
-  await writeEntry(entry);
-  return entry;
-}
-async function readAuthRefusal(accountId, binding, now = Date.now()) {
-  const file2 = entryPath(accountId, normalizeBinding(binding));
-  const entry = await readRaw(file2);
-  if (!entry) return null;
-  if (now >= entry.expires_at) {
-    await fs2.rm(file2, { force: true }).catch(() => {
-    });
-    return null;
-  }
-  return entry;
-}
-async function clearAuthRefusalsForAccount(accountId) {
-  await fs2.rm(accountDir(accountId), { recursive: true, force: true }).catch(() => {
-  });
-}
-async function clearAllAuthRefusals() {
-  await fs2.rm(authRefusalDir(), { recursive: true, force: true }).catch(() => {
-  });
-}
-function accountIdsChanged(before, after) {
-  const normalize = (value) => Array.isArray(value) ? value.filter((v) => typeof v === "string").sort().join(",") : "";
-  return normalize(before) !== normalize(after);
-}
-var AUTH_REFUSAL_MESSAGES, AUTH_REFUSAL_TTL_MS;
-var init_auth_refusal = __esm({
-  "packages/plugin-core/src/auth-refusal.ts"() {
-    "use strict";
-    init_atomic_rename();
-    AUTH_REFUSAL_MESSAGES = {
-      not_member: "not a member of this account",
-      no_profile: "no Memlin profile for this user \u2014 sign in to the web app first"
-    };
-    AUTH_REFUSAL_TTL_MS = 15 * 60 * 1e3;
-  }
-});
-
-// packages/plugin-core/src/companion-client.ts
-var companion_client_exports = {};
-__export(companion_client_exports, {
-  CODEX_ADDITIONAL_CONTEXT_MAX_BYTES: () => CODEX_ADDITIONAL_CONTEXT_MAX_BYTES,
-  CODEX_HOOK_RESOLVE_PROFILE: () => CODEX_HOOK_RESOLVE_PROFILE,
-  COMPANION_PROTOCOL: () => COMPANION_PROTOCOL,
-  COMPANION_SOCKET_ENV: () => COMPANION_SOCKET_ENV,
-  IS_COMPANION_ENV: () => IS_COMPANION_ENV,
-  MAX_COMPANION_PROTOCOL: () => MAX_COMPANION_PROTOCOL,
-  MIN_COMPANION_PROTOCOL: () => MIN_COMPANION_PROTOCOL,
-  NO_COMPANION_ENV: () => NO_COMPANION_ENV,
-  USE_COMPANION_ENV: () => USE_COMPANION_ENV,
-  companionCommitResolveDelivery: () => companionCommitResolveDelivery,
-  companionDelegationEnabled: () => companionDelegationEnabled,
-  companionForDelegation: () => companionForDelegation,
-  companionGetToken: () => companionGetToken,
-  companionReadLocal: () => companionReadLocal,
-  companionReleaseResolveDelivery: () => companionReleaseResolveDelivery,
-  companionReportResolveDelivery: () => companionReportResolveDelivery,
-  companionReportSession: () => companionReportSession,
-  companionRequest: () => companionRequest,
-  companionReserveLateResolveDelivery: () => companionReserveLateResolveDelivery,
-  companionReserveResolveDelivery: () => companionReserveResolveDelivery,
-  companionResolveJoin: () => companionResolveJoin,
-  companionResolveReuse: () => companionResolveReuse,
-  companionResolveStart: () => companionResolveStart,
-  companionResolveTake: () => companionResolveTake,
-  companionResolveWorkspace: () => companionResolveWorkspace,
-  companionRunDir: () => companionRunDir,
-  companionSearchLocal: () => companionSearchLocal,
-  companionSocketPath: () => companionSocketPath,
-  companionStatus: () => companionStatus,
-  companionSyncNow: () => companionSyncNow,
-  deriveResolveId: () => deriveResolveId,
-  isCompanionHealthyForDelegation: () => isCompanionHealthyForDelegation,
-  resetCompanionClientCache: () => resetCompanionClientCache
-});
-import http from "node:http";
-import crypto2 from "node:crypto";
-import os2 from "node:os";
-import path3 from "node:path";
-function companionSocketPath(env = process.env) {
-  const override = env[COMPANION_SOCKET_ENV];
-  if (override) return override;
-  if (process.platform === "win32") {
-    return `\\\\.\\pipe\\memlin-companion-${os2.userInfo().username}`;
-  }
-  return path3.join(os2.homedir(), ".config", "memlin", "run", "companion.sock");
-}
-function companionRunDir() {
-  return path3.join(os2.homedir(), ".config", "memlin", "run");
-}
-function deriveResolveId(input) {
-  const digest = crypto2.createHash("sha256").update("memlin.resolve.v2\0").update(JSON.stringify([input.accountId, input.host, input.sessionId ?? null, input.turnId])).digest().subarray(0, 16);
-  digest[6] = digest[6] & 15 | 80;
-  digest[8] = digest[8] & 63 | 128;
-  const hex = digest.toString("hex");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
-function companionDisabled(env = process.env) {
-  const off = env[NO_COMPANION_ENV];
-  if (off === "1" || off === "true" || off === "yes") return true;
-  return env[IS_COMPANION_ENV] === "1";
-}
-async function companionRequest(method, body, opts = {}) {
-  const env = opts.env ?? process.env;
-  if (companionDisabled(env)) return null;
-  if (Date.now() < socketDeadUntil) return null;
-  const timeoutMs = opts.timeoutMs ?? CALL_TIMEOUTS[method] ?? DEFAULT_CALL_TIMEOUT_MS;
-  const payload = JSON.stringify(body ?? {});
-  return new Promise((resolve) => {
-    let settled = false;
-    const fail = (markDead) => {
-      if (settled) return;
-      settled = true;
-      if (markDead) socketDeadUntil = Date.now() + SOCKET_DEAD_TTL_MS;
-      resolve(null);
-    };
-    const req = http.request(
-      {
-        socketPath: companionSocketPath(env),
-        path: `/v1/${method}`,
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "content-length": Buffer.byteLength(payload),
-          "memlin-client-protocol": String(COMPANION_PROTOCOL)
-        },
-        // Overall call budget; the connect phase gets its own tighter cap
-        // below via the socket timeout before the connection exists.
-        timeout: timeoutMs
-      },
-      (res) => {
-        const chunks = [];
-        res.on("data", (c) => chunks.push(c));
-        res.on("end", () => {
-          if (settled) return;
-          settled = true;
-          if (res.statusCode !== 200) return resolve(null);
-          try {
-            resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
-          } catch {
-            resolve(null);
-          }
-        });
-        res.on("error", () => fail(false));
-      }
-    );
-    const connectTimer = setTimeout(() => {
-      req.destroy();
-      fail(true);
-    }, CONNECT_TIMEOUT_MS);
-    connectTimer.unref?.();
-    req.on("socket", (socket) => {
-      if (!socket.connecting) clearTimeout(connectTimer);
-      else socket.once("connect", () => clearTimeout(connectTimer));
-    });
-    req.once("close", () => clearTimeout(connectTimer));
-    req.on("timeout", () => {
-      req.destroy();
-      fail(false);
-    });
-    req.on("error", () => fail(true));
-    req.end(payload);
-  });
-}
-async function companionStatus(opts = {}) {
-  const status = await companionRequest("status.get", {}, opts);
-  if (!status) return null;
-  if (status.protocol < MIN_COMPANION_PROTOCOL || status.protocol > MAX_COMPANION_PROTOCOL) {
-    return null;
-  }
-  return status;
-}
-async function companionGetToken() {
-  const token = await companionRequest("token.get", {});
-  if (!token || token.expires_at <= Date.now() + 6e4) return null;
-  return token;
-}
-async function companionResolveWorkspace(cwd) {
-  return companionRequest("workspace.resolve", { cwd });
-}
-async function companionSyncNow(req) {
-  return companionRequest("sync.now", req);
-}
-async function companionSearchLocal(req) {
-  return companionRequest("memory.search", req);
-}
-async function companionReadLocal(req) {
-  return companionRequest("memory.read", req);
-}
-async function companionResolveStart(req, opts = {}) {
-  return companionRequest("resolve.start", req, opts);
-}
-async function companionResolveTake(req) {
-  return companionRequest("resolve.take", req, {
-    timeoutMs: Math.max(250, req.wait_ms + 250)
-  });
-}
-async function companionResolveJoin(req) {
-  return companionRequest("resolve.join", req, {
-    timeoutMs: Math.max(250, req.wait_ms + 250)
-  });
-}
-async function companionResolveReuse(req) {
-  return companionRequest("resolve.reuse", req, {
-    timeoutMs: Math.max(250, Math.min(4500, req.wait_ms + 500))
-  });
-}
-async function companionReserveResolveDelivery(req, opts = {}) {
-  return companionRequest("resolve.reserve", req, opts);
-}
-async function companionReserveLateResolveDelivery(req, opts = {}) {
-  return companionRequest("resolve.reserve-late", req, opts);
-}
-async function companionCommitResolveDelivery(req, opts = {}) {
-  return (await companionRequest("resolve.commit", req, opts))?.accepted ?? null;
-}
-async function companionReleaseResolveDelivery(req, opts = {}) {
-  return (await companionRequest("resolve.release", req, opts))?.released ?? null;
-}
-async function companionReportResolveDelivery(req, opts = {}) {
-  return (await companionRequest("resolve.report", req, opts))?.accepted ?? null;
-}
-async function companionReportSession(req) {
-  return (await companionRequest("session.report", req))?.registered ?? false;
-}
-function isCompanionHealthyForDelegation(status) {
-  if (!status) return false;
-  if (status.auth.state !== "ok") return false;
-  if (status.sync.mode === "realtime") return true;
-  if (status.sync.mode !== "polling") return false;
-  if (!status.sync.last_delta_at) return false;
-  const age = Date.now() - Date.parse(status.sync.last_delta_at);
-  return Number.isFinite(age) && age < 5 * 6e4;
-}
-function companionDelegationEnabled(env = process.env) {
-  const v = env[USE_COMPANION_ENV];
-  return v === "1" || v === "true" || v === "yes";
-}
-async function companionForDelegation() {
-  if (!companionDelegationEnabled()) return null;
-  const status = await companionStatus();
-  return isCompanionHealthyForDelegation(status) ? status : null;
-}
-function resetCompanionClientCache() {
-  socketDeadUntil = 0;
-}
-var COMPANION_PROTOCOL, MIN_COMPANION_PROTOCOL, MAX_COMPANION_PROTOCOL, NO_COMPANION_ENV, IS_COMPANION_ENV, COMPANION_SOCKET_ENV, CODEX_HOOK_RESOLVE_PROFILE, CODEX_ADDITIONAL_CONTEXT_MAX_BYTES, CONNECT_TIMEOUT_MS, DEFAULT_CALL_TIMEOUT_MS, CALL_TIMEOUTS, socketDeadUntil, SOCKET_DEAD_TTL_MS, USE_COMPANION_ENV;
-var init_companion_client = __esm({
-  "packages/plugin-core/src/companion-client.ts"() {
-    "use strict";
-    COMPANION_PROTOCOL = 1;
-    MIN_COMPANION_PROTOCOL = 1;
-    MAX_COMPANION_PROTOCOL = 1;
-    NO_COMPANION_ENV = "MEMLIN_NO_DAEMON";
-    IS_COMPANION_ENV = "MEMLIN_DAEMON";
-    COMPANION_SOCKET_ENV = "MEMLIN_COMPANION_SOCKET";
-    CODEX_HOOK_RESOLVE_PROFILE = "codex-hook-v1:tokens=2200";
-    CODEX_ADDITIONAL_CONTEXT_MAX_BYTES = 2200;
-    CONNECT_TIMEOUT_MS = 150;
-    DEFAULT_CALL_TIMEOUT_MS = 1e3;
-    CALL_TIMEOUTS = {
-      "workspace.resolve": 2e3,
-      "resolve.start": 750,
-      "resolve.reuse": 4500,
-      "resolve.reserve": 750,
-      "resolve.reserve-late": 750,
-      "resolve.commit": 750,
-      "resolve.release": 500,
-      "resolve.report": 500,
-      "sync.now": 5e3,
-      "login.start": 1e4,
-      // Local-store reads walk the materialized doc tree on disk.
-      "memory.search": 2e3,
-      "memory.read": 2e3
-    };
-    socketDeadUntil = 0;
-    SOCKET_DEAD_TTL_MS = 5e3;
-    USE_COMPANION_ENV = "MEMLIN_USE_DAEMON";
-  }
-});
-
 // node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js
 var require_kind_of = __commonJS({
   "node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js"(exports2, module2) {
@@ -3919,6 +3524,401 @@ var require_gray_matter = __commonJS({
   }
 });
 
+// packages/plugin-core/src/atomic-rename.ts
+import { promises as fs } from "node:fs";
+import path from "node:path";
+async function renameWithRetry(from, to, rename) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await rename(from, to);
+      return;
+    } catch (error40) {
+      const code = error40.code;
+      if (attempt >= MAX_ATTEMPTS || !code || !RETRYABLE_CODES.has(code)) throw error40;
+      const cap = Math.min(BASE_DELAY_MS * 2 ** (attempt - 1), MAX_DELAY_MS);
+      const delay2 = cap / 2 + Math.random() * (cap / 2);
+      await new Promise((resolve) => setTimeout(resolve, delay2));
+    }
+  }
+}
+async function atomicRename(from, to, dependencies = {}) {
+  const rename = dependencies.rename ?? fs.rename;
+  const queueKey = path.resolve(to);
+  const previous = renameQueues.get(queueKey) ?? Promise.resolve();
+  const run = previous.catch(() => void 0).then(() => renameWithRetry(from, to, rename));
+  renameQueues.set(queueKey, run);
+  try {
+    await run;
+  } finally {
+    if (renameQueues.get(queueKey) === run) renameQueues.delete(queueKey);
+  }
+}
+var RETRYABLE_CODES, MAX_ATTEMPTS, BASE_DELAY_MS, MAX_DELAY_MS, renameQueues;
+var init_atomic_rename = __esm({
+  "packages/plugin-core/src/atomic-rename.ts"() {
+    "use strict";
+    RETRYABLE_CODES = /* @__PURE__ */ new Set(["EPERM", "EACCES", "EBUSY"]);
+    MAX_ATTEMPTS = 10;
+    BASE_DELAY_MS = 10;
+    MAX_DELAY_MS = 100;
+    renameQueues = /* @__PURE__ */ new Map();
+  }
+});
+
+// packages/plugin-core/src/auth-refusal.ts
+import crypto from "node:crypto";
+import { promises as fs2 } from "node:fs";
+import os from "node:os";
+import path2 from "node:path";
+function isReason(value) {
+  return value === "not_member" || value === "no_profile";
+}
+function classifyAuthRefusal(status, body) {
+  if (status !== 403 || typeof body !== "object" || body === null) return null;
+  const record2 = body;
+  if (isReason(record2.code)) return record2.code;
+  let message = record2.error;
+  if (typeof record2.error === "object" && record2.error !== null) {
+    const nested = record2.error;
+    if (isReason(nested.code)) return nested.code;
+    message = nested.message;
+  }
+  if (typeof message !== "string") return null;
+  for (const reason of Object.keys(AUTH_REFUSAL_MESSAGES)) {
+    if (message === AUTH_REFUSAL_MESSAGES[reason]) return reason;
+  }
+  return null;
+}
+function authRefusalDir() {
+  return process.env.MEMLIN_AUTH_REFUSAL_DIR ?? path2.join(os.homedir(), ".config", "memlin", "auth-refusal");
+}
+function sha(value) {
+  return crypto.createHash("sha256").update(value).digest("hex").slice(0, 32);
+}
+function normalizeBinding(binding) {
+  return binding ? path2.resolve(binding) : null;
+}
+function accountDir(accountId) {
+  return path2.join(authRefusalDir(), sha(accountId));
+}
+function entryPath(accountId, binding) {
+  return path2.join(accountDir(accountId), `${sha(binding ?? "(global)")}.json`);
+}
+function isEntry(value) {
+  if (typeof value !== "object" || value === null) return false;
+  const e = value;
+  return typeof e.account_id === "string" && (e.binding === null || typeof e.binding === "string") && isReason(e.reason) && typeof e.expires_at === "number" && Array.isArray(e.notified_sessions);
+}
+async function readRaw(file2) {
+  try {
+    const parsed = JSON.parse(await fs2.readFile(file2, "utf8"));
+    return isEntry(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+async function writeEntry(entry) {
+  const file2 = entryPath(entry.account_id, entry.binding);
+  await fs2.mkdir(path2.dirname(file2), { recursive: true });
+  const tmp = `${file2}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  await fs2.writeFile(tmp, JSON.stringify(entry), { mode: 384 });
+  await atomicRename(tmp, file2);
+}
+async function recordAuthRefusal(input) {
+  const now = input.now ?? Date.now();
+  const binding = normalizeBinding(input.binding);
+  const previous = await readRaw(entryPath(input.accountId, binding));
+  const entry = {
+    account_id: input.accountId,
+    binding,
+    reason: input.reason,
+    account_name: input.accountName ?? previous?.account_name ?? null,
+    refused_at: now,
+    expires_at: now + AUTH_REFUSAL_TTL_MS,
+    notified_sessions: previous?.notified_sessions ?? []
+  };
+  await writeEntry(entry);
+  return entry;
+}
+async function readAuthRefusal(accountId, binding, now = Date.now()) {
+  const file2 = entryPath(accountId, normalizeBinding(binding));
+  const entry = await readRaw(file2);
+  if (!entry) return null;
+  if (now >= entry.expires_at) {
+    await fs2.rm(file2, { force: true }).catch(() => {
+    });
+    return null;
+  }
+  return entry;
+}
+async function clearAuthRefusalsForAccount(accountId) {
+  await fs2.rm(accountDir(accountId), { recursive: true, force: true }).catch(() => {
+  });
+}
+async function clearAllAuthRefusals() {
+  await fs2.rm(authRefusalDir(), { recursive: true, force: true }).catch(() => {
+  });
+}
+function accountIdsChanged(before, after) {
+  const normalize = (value) => Array.isArray(value) ? value.filter((v) => typeof v === "string").sort().join(",") : "";
+  return normalize(before) !== normalize(after);
+}
+var AUTH_REFUSAL_MESSAGES, AUTH_REFUSAL_TTL_MS;
+var init_auth_refusal = __esm({
+  "packages/plugin-core/src/auth-refusal.ts"() {
+    "use strict";
+    init_atomic_rename();
+    AUTH_REFUSAL_MESSAGES = {
+      not_member: "not a member of this account",
+      no_profile: "no Memlin profile for this user \u2014 sign in to the web app first"
+    };
+    AUTH_REFUSAL_TTL_MS = 15 * 60 * 1e3;
+  }
+});
+
+// packages/plugin-core/src/companion-client.ts
+var companion_client_exports = {};
+__export(companion_client_exports, {
+  CODEX_ADDITIONAL_CONTEXT_MAX_BYTES: () => CODEX_ADDITIONAL_CONTEXT_MAX_BYTES,
+  CODEX_HOOK_RESOLVE_PROFILE: () => CODEX_HOOK_RESOLVE_PROFILE,
+  COMPANION_PROTOCOL: () => COMPANION_PROTOCOL,
+  COMPANION_SOCKET_ENV: () => COMPANION_SOCKET_ENV,
+  IS_COMPANION_ENV: () => IS_COMPANION_ENV,
+  MAX_COMPANION_PROTOCOL: () => MAX_COMPANION_PROTOCOL,
+  MIN_COMPANION_PROTOCOL: () => MIN_COMPANION_PROTOCOL,
+  NO_COMPANION_ENV: () => NO_COMPANION_ENV,
+  USE_COMPANION_ENV: () => USE_COMPANION_ENV,
+  companionCommitResolveDelivery: () => companionCommitResolveDelivery,
+  companionDelegationEnabled: () => companionDelegationEnabled,
+  companionForDelegation: () => companionForDelegation,
+  companionGetToken: () => companionGetToken,
+  companionReadLocal: () => companionReadLocal,
+  companionReleaseResolveDelivery: () => companionReleaseResolveDelivery,
+  companionReportResolveDelivery: () => companionReportResolveDelivery,
+  companionReportSession: () => companionReportSession,
+  companionRequest: () => companionRequest,
+  companionReserveLateResolveDelivery: () => companionReserveLateResolveDelivery,
+  companionReserveResolveDelivery: () => companionReserveResolveDelivery,
+  companionResolveJoin: () => companionResolveJoin,
+  companionResolveReuse: () => companionResolveReuse,
+  companionResolveStart: () => companionResolveStart,
+  companionResolveTake: () => companionResolveTake,
+  companionResolveWorkspace: () => companionResolveWorkspace,
+  companionRunDir: () => companionRunDir,
+  companionSearchLocal: () => companionSearchLocal,
+  companionSocketPath: () => companionSocketPath,
+  companionStatus: () => companionStatus,
+  companionSyncNow: () => companionSyncNow,
+  deriveResolveId: () => deriveResolveId,
+  isCompanionHealthyForDelegation: () => isCompanionHealthyForDelegation,
+  resetCompanionClientCache: () => resetCompanionClientCache
+});
+import http from "node:http";
+import crypto2 from "node:crypto";
+import os2 from "node:os";
+import path3 from "node:path";
+function companionSocketPath(env = process.env) {
+  const override = env[COMPANION_SOCKET_ENV];
+  if (override) return override;
+  if (process.platform === "win32") {
+    return `\\\\.\\pipe\\memlin-companion-${os2.userInfo().username}`;
+  }
+  return path3.join(os2.homedir(), ".config", "memlin", "run", "companion.sock");
+}
+function companionRunDir() {
+  return path3.join(os2.homedir(), ".config", "memlin", "run");
+}
+function deriveResolveId(input) {
+  const digest = crypto2.createHash("sha256").update("memlin.resolve.v2\0").update(JSON.stringify([input.accountId, input.host, input.sessionId ?? null, input.turnId])).digest().subarray(0, 16);
+  digest[6] = digest[6] & 15 | 80;
+  digest[8] = digest[8] & 63 | 128;
+  const hex = digest.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+function companionDisabled(env = process.env) {
+  const off = env[NO_COMPANION_ENV];
+  if (off === "1" || off === "true" || off === "yes") return true;
+  return env[IS_COMPANION_ENV] === "1";
+}
+async function companionRequest(method, body, opts = {}) {
+  const env = opts.env ?? process.env;
+  if (companionDisabled(env)) return null;
+  if (Date.now() < socketDeadUntil) return null;
+  const timeoutMs = opts.timeoutMs ?? CALL_TIMEOUTS[method] ?? DEFAULT_CALL_TIMEOUT_MS;
+  const payload = JSON.stringify(body ?? {});
+  return new Promise((resolve) => {
+    let settled = false;
+    const fail = (markDead) => {
+      if (settled) return;
+      settled = true;
+      if (markDead) socketDeadUntil = Date.now() + SOCKET_DEAD_TTL_MS;
+      resolve(null);
+    };
+    const req = http.request(
+      {
+        socketPath: companionSocketPath(env),
+        path: `/v1/${method}`,
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "content-length": Buffer.byteLength(payload),
+          "memlin-client-protocol": String(COMPANION_PROTOCOL)
+        },
+        // Overall call budget; the connect phase gets its own tighter cap
+        // below via the socket timeout before the connection exists.
+        timeout: timeoutMs
+      },
+      (res) => {
+        const chunks = [];
+        res.on("data", (c) => chunks.push(c));
+        res.on("end", () => {
+          if (settled) return;
+          settled = true;
+          if (res.statusCode !== 200) return resolve(null);
+          try {
+            resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+          } catch {
+            resolve(null);
+          }
+        });
+        res.on("error", () => fail(false));
+      }
+    );
+    const connectTimer = setTimeout(() => {
+      req.destroy();
+      fail(true);
+    }, CONNECT_TIMEOUT_MS);
+    connectTimer.unref?.();
+    req.on("socket", (socket) => {
+      if (!socket.connecting) clearTimeout(connectTimer);
+      else socket.once("connect", () => clearTimeout(connectTimer));
+    });
+    req.once("close", () => clearTimeout(connectTimer));
+    req.on("timeout", () => {
+      req.destroy();
+      fail(false);
+    });
+    req.on("error", () => fail(true));
+    req.end(payload);
+  });
+}
+async function companionStatus(opts = {}) {
+  const status = await companionRequest("status.get", {}, opts);
+  if (!status) return null;
+  if (status.protocol < MIN_COMPANION_PROTOCOL || status.protocol > MAX_COMPANION_PROTOCOL) {
+    return null;
+  }
+  return status;
+}
+async function companionGetToken() {
+  const token = await companionRequest("token.get", {});
+  if (!token || token.expires_at <= Date.now() + 6e4) return null;
+  return token;
+}
+async function companionResolveWorkspace(cwd) {
+  return companionRequest("workspace.resolve", { cwd });
+}
+async function companionSyncNow(req) {
+  return companionRequest("sync.now", req);
+}
+async function companionSearchLocal(req) {
+  return companionRequest("memory.search", req);
+}
+async function companionReadLocal(req) {
+  return companionRequest("memory.read", req);
+}
+async function companionResolveStart(req, opts = {}) {
+  return companionRequest("resolve.start", req, opts);
+}
+async function companionResolveTake(req) {
+  return companionRequest("resolve.take", req, {
+    timeoutMs: Math.max(250, req.wait_ms + 250)
+  });
+}
+async function companionResolveJoin(req) {
+  return companionRequest("resolve.join", req, {
+    timeoutMs: Math.max(250, req.wait_ms + 250)
+  });
+}
+async function companionResolveReuse(req) {
+  return companionRequest("resolve.reuse", req, {
+    timeoutMs: Math.max(250, Math.min(4500, req.wait_ms + 500))
+  });
+}
+async function companionReserveResolveDelivery(req, opts = {}) {
+  return companionRequest("resolve.reserve", req, opts);
+}
+async function companionReserveLateResolveDelivery(req, opts = {}) {
+  return companionRequest("resolve.reserve-late", req, opts);
+}
+async function companionCommitResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.commit", req, opts))?.accepted ?? null;
+}
+async function companionReleaseResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.release", req, opts))?.released ?? null;
+}
+async function companionReportResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.report", req, opts))?.accepted ?? null;
+}
+async function companionReportSession(req) {
+  return (await companionRequest("session.report", req))?.registered ?? false;
+}
+function isCompanionHealthyForDelegation(status) {
+  if (!status) return false;
+  if (status.auth.state !== "ok") return false;
+  if (status.sync.mode === "realtime") return true;
+  if (status.sync.mode !== "polling") return false;
+  if (!status.sync.last_delta_at) return false;
+  const age = Date.now() - Date.parse(status.sync.last_delta_at);
+  return Number.isFinite(age) && age < 5 * 6e4;
+}
+function companionDelegationEnabled(env = process.env) {
+  const v = env[USE_COMPANION_ENV];
+  return v === "1" || v === "true" || v === "yes";
+}
+async function companionForDelegation() {
+  if (!companionDelegationEnabled()) return null;
+  const status = await companionStatus();
+  return isCompanionHealthyForDelegation(status) ? status : null;
+}
+function resetCompanionClientCache() {
+  socketDeadUntil = 0;
+}
+var COMPANION_PROTOCOL, MIN_COMPANION_PROTOCOL, MAX_COMPANION_PROTOCOL, NO_COMPANION_ENV, IS_COMPANION_ENV, COMPANION_SOCKET_ENV, CODEX_HOOK_RESOLVE_PROFILE, CODEX_ADDITIONAL_CONTEXT_MAX_BYTES, CONNECT_TIMEOUT_MS, DEFAULT_CALL_TIMEOUT_MS, CALL_TIMEOUTS, socketDeadUntil, SOCKET_DEAD_TTL_MS, USE_COMPANION_ENV;
+var init_companion_client = __esm({
+  "packages/plugin-core/src/companion-client.ts"() {
+    "use strict";
+    COMPANION_PROTOCOL = 1;
+    MIN_COMPANION_PROTOCOL = 1;
+    MAX_COMPANION_PROTOCOL = 1;
+    NO_COMPANION_ENV = "MEMLIN_NO_DAEMON";
+    IS_COMPANION_ENV = "MEMLIN_DAEMON";
+    COMPANION_SOCKET_ENV = "MEMLIN_COMPANION_SOCKET";
+    CODEX_HOOK_RESOLVE_PROFILE = "codex-hook-v1:tokens=2200";
+    CODEX_ADDITIONAL_CONTEXT_MAX_BYTES = 2200;
+    CONNECT_TIMEOUT_MS = 150;
+    DEFAULT_CALL_TIMEOUT_MS = 1e3;
+    CALL_TIMEOUTS = {
+      "workspace.resolve": 2e3,
+      "resolve.start": 750,
+      "resolve.reuse": 4500,
+      "resolve.reserve": 750,
+      "resolve.reserve-late": 750,
+      "resolve.commit": 750,
+      "resolve.release": 500,
+      "resolve.report": 500,
+      "sync.now": 5e3,
+      "login.start": 1e4,
+      // Local-store reads walk the materialized doc tree on disk.
+      "memory.search": 2e3,
+      "memory.read": 2e3
+    };
+    socketDeadUntil = 0;
+    SOCKET_DEAD_TTL_MS = 5e3;
+    USE_COMPANION_ENV = "MEMLIN_USE_DAEMON";
+  }
+});
+
 // packages/plugin-core/src/workspace-binding.ts
 var workspace_binding_exports = {};
 __export(workspace_binding_exports, {
@@ -4221,253 +4221,6 @@ var init_workspace_binding = __esm({
     GIT_POINTER_MAX_BYTES = 8 * 1024;
   }
 });
-
-// packages/plugin-core/src/client.ts
-import { promises as fs5 } from "node:fs";
-import path7 from "node:path";
-import os6 from "node:os";
-import { randomUUID as randomUUID3 } from "node:crypto";
-
-// packages/plugin-core/src/auth.ts
-init_atomic_rename();
-import { promises as fs3 } from "node:fs";
-import path4 from "node:path";
-import os3 from "node:os";
-import { randomUUID } from "node:crypto";
-
-// packages/plugin-core/src/backend-error.ts
-var MemlinApiError = class extends Error {
-  constructor(message, status, code) {
-    super(message);
-    this.status = status;
-    this.code = code;
-    this.name = "MemlinApiError";
-  }
-  status;
-  code;
-};
-function looksLikeHtml(text) {
-  const head = text.slice(0, 512).trimStart().toLowerCase();
-  return head.startsWith("<!doctype html") || head.startsWith("<html") || head.includes("<html") || head.startsWith("<") && /<\/(head|body|title|div|p)>/i.test(text);
-}
-function singleLine(text, max = 200) {
-  const collapsed = text.replace(/\s+/g, " ").trim();
-  return collapsed.length <= max ? collapsed : `${collapsed.slice(0, max - 1)}\u2026`;
-}
-function describeOpaqueBody(status, text) {
-  const trimmed = text.trim();
-  if (!trimmed) return `HTTP ${status}`;
-  if (looksLikeHtml(trimmed)) {
-    const via = /cloudflare/i.test(trimmed) ? "Cloudflare " : "";
-    return `HTTP ${status} (${via}HTML error page suppressed, ${trimmed.length} chars)`;
-  }
-  return `HTTP ${status}: ${singleLine(trimmed)}`;
-}
-
-// packages/plugin-core/src/auth.ts
-init_auth_refusal();
-var MEMLIN_PROD_AUTH0_DOMAIN = "memlin.us.auth0.com";
-var MEMLIN_PROD_AUTH0_CLIENT_ID = "fyYMQ4Cxc6Nu5juVwL8Ihqq4fgAFecG9";
-var AUTH0_DOMAIN = process.env.MEMLIN_AUTH0_DOMAIN || MEMLIN_PROD_AUTH0_DOMAIN;
-var AUTH0_CLIENT_ID = process.env.MEMLIN_AUTH0_CLIENT_ID || MEMLIN_PROD_AUTH0_CLIENT_ID;
-var AUTH0_AUDIENCE = process.env.MEMLIN_AUTH0_AUDIENCE ?? "https://api.memlin.ai";
-function persistedTokenFilePath() {
-  return process.env.MEMLIN_TOKEN_FILE || path4.join(os3.homedir(), ".config", "memlin", "token.json");
-}
-var AUTH_FILE_LOCK_TIMEOUT_MS = 15e3;
-var AUTH_FILE_LOCK_STALE_MS = 2 * 6e4;
-var AUTH_FILE_LOCK_RETRY_MS = 50;
-function authFileLockPath() {
-  return `${persistedTokenFilePath()}.auth.lock`;
-}
-async function acquireAuthFileLock() {
-  const file2 = authFileLockPath();
-  const owner = `${process.pid}:${randomUUID()}`;
-  await fs3.mkdir(path4.dirname(file2), { recursive: true });
-  const deadline = Date.now() + AUTH_FILE_LOCK_TIMEOUT_MS;
-  while (true) {
-    try {
-      const handle = await fs3.open(file2, "wx", 384);
-      try {
-        await handle.writeFile(owner, "utf8");
-        await handle.sync();
-      } catch (error40) {
-        await handle.close().catch(() => {
-        });
-        await fs3.rm(file2, { force: true }).catch(() => {
-        });
-        throw error40;
-      }
-      let released = false;
-      return async () => {
-        if (released) return;
-        released = true;
-        await handle.close().catch(() => {
-        });
-        const currentOwner = await fs3.readFile(file2, "utf8").catch(() => null);
-        if (currentOwner === owner) await fs3.rm(file2, { force: true }).catch(() => {
-        });
-      };
-    } catch (error40) {
-      if (error40.code !== "EEXIST") throw error40;
-      try {
-        const stat = await fs3.stat(file2);
-        if (Date.now() - stat.mtimeMs > AUTH_FILE_LOCK_STALE_MS) {
-          await fs3.rm(file2, { force: true });
-          continue;
-        }
-      } catch (statError) {
-        if (statError.code === "ENOENT") continue;
-        throw statError;
-      }
-      if (Date.now() >= deadline) {
-        throw new Error("another Memlin sign-in or token refresh is still being saved");
-      }
-      await new Promise((resolve) => setTimeout(resolve, AUTH_FILE_LOCK_RETRY_MS));
-    }
-  }
-}
-async function withAuthFileLock(operation) {
-  const release = await acquireAuthFileLock();
-  try {
-    return await operation();
-  } finally {
-    await release();
-  }
-}
-async function readPersistedToken() {
-  try {
-    const raw = await fs3.readFile(persistedTokenFilePath(), "utf8");
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-async function writePersistedToken(t) {
-  const file2 = persistedTokenFilePath();
-  await fs3.mkdir(path4.dirname(file2), { recursive: true });
-  const tmp = path4.join(
-    path4.dirname(file2),
-    `${path4.basename(file2)}.tmp-${process.pid}-${randomUUID()}`
-  );
-  const previous = await readPersistedToken().catch(() => null);
-  await fs3.writeFile(tmp, JSON.stringify(t, null, 2), { mode: 384 });
-  await fs3.chmod(tmp, 384).catch(() => {
-  });
-  await atomicRename(tmp, file2);
-  await clearRefusalsIfAccountsChanged(previous?.access_token ?? null, t.access_token);
-}
-async function clearRefusalsIfAccountsChanged(before, after) {
-  try {
-    const claimIds = (jwt2) => {
-      if (!jwt2) return void 0;
-      try {
-        return decodeJwtPayload(jwt2).memlin_account_ids;
-      } catch {
-        return void 0;
-      }
-    };
-    if (accountIdsChanged(claimIds(before), claimIds(after))) {
-      await clearAllAuthRefusals();
-    }
-  } catch {
-  }
-}
-async function refreshAccessToken(refreshToken, options2 = {}) {
-  requireClientId();
-  const body = new URLSearchParams({
-    grant_type: "refresh_token",
-    refresh_token: refreshToken,
-    client_id: AUTH0_CLIENT_ID
-  });
-  const res = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-    signal: AbortSignal.timeout(Math.max(1, options2.timeoutMs ?? 15e3))
-  });
-  if (!res.ok) {
-    throw new Error(`refresh: ${describeOpaqueBody(res.status, await res.text())}`);
-  }
-  const json2 = await res.json();
-  return toPersisted(json2, refreshToken);
-}
-var refreshInFlight = null;
-var DEFAULT_FRESHNESS_MARGIN_MS = 6e4;
-async function getValidAccessToken() {
-  return ensureFreshToken(DEFAULT_FRESHNESS_MARGIN_MS);
-}
-async function ensureFreshToken(marginMs = DEFAULT_FRESHNESS_MARGIN_MS, options2 = {}) {
-  const persisted = await readPersistedToken();
-  if (!persisted) throw new Error("not signed in \u2014 run `memlin login`");
-  if (Date.now() < persisted.expires_at - marginMs) return persisted.access_token;
-  if (refreshInFlight) return refreshInFlight;
-  refreshInFlight = doRefresh(persisted, marginMs, options2).finally(() => {
-    refreshInFlight = null;
-  });
-  return refreshInFlight;
-}
-async function doRefresh(stale, marginMs, options2) {
-  const latest = await readPersistedToken();
-  if (latest && Date.now() < latest.expires_at - marginMs) return latest.access_token;
-  try {
-    const { companionGetToken: companionGetToken2 } = await Promise.resolve().then(() => (init_companion_client(), companion_client_exports));
-    const fromDaemon = await companionGetToken2();
-    if (fromDaemon && Date.now() < fromDaemon.expires_at - marginMs) {
-      return fromDaemon.access_token;
-    }
-  } catch {
-  }
-  const refreshSource = latest ?? stale;
-  const refreshToken = refreshSource.refresh_token;
-  if (!refreshToken) {
-    throw new Error("access token expired and no refresh token saved \u2014 run `memlin login`");
-  }
-  try {
-    const fresh = await refreshAccessToken(refreshToken, options2);
-    return await withAuthFileLock(async () => {
-      const beforeWrite = await readPersistedToken();
-      if (!beforeWrite || beforeWrite.access_token !== refreshSource.access_token) {
-        if (beforeWrite && Date.now() < beforeWrite.expires_at - marginMs) {
-          return beforeWrite.access_token;
-        }
-        throw new Error("saved Memlin credentials changed while the token was refreshing");
-      }
-      await writePersistedToken(fresh);
-      return fresh.access_token;
-    });
-  } catch (err) {
-    const after = await readPersistedToken();
-    if (after && after.access_token !== refreshSource.access_token && Date.now() < after.expires_at - 6e4) {
-      return after.access_token;
-    }
-    throw new Error(
-      `access token refresh failed (${err instanceof Error ? err.message : String(err)}) \u2014 run \`memlin login\``
-    );
-  }
-}
-function toPersisted(json2, fallbackRefresh) {
-  return {
-    access_token: json2.access_token,
-    refresh_token: json2.refresh_token ?? fallbackRefresh,
-    expires_at: Date.now() + json2.expires_in * 1e3
-  };
-}
-function requireClientId() {
-  if (!AUTH0_CLIENT_ID) {
-    throw new Error(
-      "Auth0 client id not configured. Set MEMLIN_AUTH0_CLIENT_ID env var (and optionally MEMLIN_AUTH0_DOMAIN / MEMLIN_AUTH0_AUDIENCE for self-hosted setups)."
-    );
-  }
-}
-function decodeJwtPayload(jwt2) {
-  const parts = jwt2.split(".");
-  if (parts.length !== 3) throw new Error("not a JWT");
-  return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
-}
-
-// packages/plugin-core/src/client.ts
-init_atomic_rename();
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -24305,6 +24058,271 @@ var FlowPackManifestSchema = FlowPackManifestBaseSchema.superRefine((value, ctx)
   }
 });
 
+// packages/shared/dist/needs-you-groups.js
+function whole(n) {
+  const v = typeof n === "number" ? n : typeof n === "string" && n.trim() ? Number(n) : NaN;
+  return Number.isFinite(v) ? Math.max(0, Math.floor(v)) : null;
+}
+function decisionCountsOf(res) {
+  return { open: whole(res?.count) ?? 0, needsYou: whole(res?.needs_you_count) };
+}
+function needsYouDecisionsPhrase(counts) {
+  const { open, needsYou } = counts;
+  if (needsYou === null) {
+    return open > 0 ? `${open} open decision${open === 1 ? "" : "s"}` : "";
+  }
+  if (needsYou === 0 && open === 0) return "";
+  const head = `${needsYou} decision${needsYou === 1 ? "" : "s"} need${needsYou === 1 ? "s" : ""} you`;
+  return open !== needsYou ? `${head} (${open} open question${open === 1 ? "" : "s"})` : head;
+}
+
+// packages/plugin-core/src/client.ts
+import { promises as fs5 } from "node:fs";
+import path7 from "node:path";
+import os6 from "node:os";
+import { randomUUID as randomUUID3 } from "node:crypto";
+
+// packages/plugin-core/src/auth.ts
+init_atomic_rename();
+import { promises as fs3 } from "node:fs";
+import path4 from "node:path";
+import os3 from "node:os";
+import { randomUUID } from "node:crypto";
+
+// packages/plugin-core/src/backend-error.ts
+var MemlinApiError = class extends Error {
+  constructor(message, status, code) {
+    super(message);
+    this.status = status;
+    this.code = code;
+    this.name = "MemlinApiError";
+  }
+  status;
+  code;
+};
+function looksLikeHtml(text) {
+  const head = text.slice(0, 512).trimStart().toLowerCase();
+  return head.startsWith("<!doctype html") || head.startsWith("<html") || head.includes("<html") || head.startsWith("<") && /<\/(head|body|title|div|p)>/i.test(text);
+}
+function singleLine(text, max = 200) {
+  const collapsed = text.replace(/\s+/g, " ").trim();
+  return collapsed.length <= max ? collapsed : `${collapsed.slice(0, max - 1)}\u2026`;
+}
+function describeOpaqueBody(status, text) {
+  const trimmed = text.trim();
+  if (!trimmed) return `HTTP ${status}`;
+  if (looksLikeHtml(trimmed)) {
+    const via = /cloudflare/i.test(trimmed) ? "Cloudflare " : "";
+    return `HTTP ${status} (${via}HTML error page suppressed, ${trimmed.length} chars)`;
+  }
+  return `HTTP ${status}: ${singleLine(trimmed)}`;
+}
+
+// packages/plugin-core/src/auth.ts
+init_auth_refusal();
+var MEMLIN_PROD_AUTH0_DOMAIN = "memlin.us.auth0.com";
+var MEMLIN_PROD_AUTH0_CLIENT_ID = "fyYMQ4Cxc6Nu5juVwL8Ihqq4fgAFecG9";
+var AUTH0_DOMAIN = process.env.MEMLIN_AUTH0_DOMAIN || MEMLIN_PROD_AUTH0_DOMAIN;
+var AUTH0_CLIENT_ID = process.env.MEMLIN_AUTH0_CLIENT_ID || MEMLIN_PROD_AUTH0_CLIENT_ID;
+var AUTH0_AUDIENCE = process.env.MEMLIN_AUTH0_AUDIENCE ?? "https://api.memlin.ai";
+function persistedTokenFilePath() {
+  return process.env.MEMLIN_TOKEN_FILE || path4.join(os3.homedir(), ".config", "memlin", "token.json");
+}
+var AUTH_FILE_LOCK_TIMEOUT_MS = 15e3;
+var AUTH_FILE_LOCK_STALE_MS = 2 * 6e4;
+var AUTH_FILE_LOCK_RETRY_MS = 50;
+function authFileLockPath() {
+  return `${persistedTokenFilePath()}.auth.lock`;
+}
+async function acquireAuthFileLock() {
+  const file2 = authFileLockPath();
+  const owner = `${process.pid}:${randomUUID()}`;
+  await fs3.mkdir(path4.dirname(file2), { recursive: true });
+  const deadline = Date.now() + AUTH_FILE_LOCK_TIMEOUT_MS;
+  while (true) {
+    try {
+      const handle = await fs3.open(file2, "wx", 384);
+      try {
+        await handle.writeFile(owner, "utf8");
+        await handle.sync();
+      } catch (error40) {
+        await handle.close().catch(() => {
+        });
+        await fs3.rm(file2, { force: true }).catch(() => {
+        });
+        throw error40;
+      }
+      let released = false;
+      return async () => {
+        if (released) return;
+        released = true;
+        await handle.close().catch(() => {
+        });
+        const currentOwner = await fs3.readFile(file2, "utf8").catch(() => null);
+        if (currentOwner === owner) await fs3.rm(file2, { force: true }).catch(() => {
+        });
+      };
+    } catch (error40) {
+      if (error40.code !== "EEXIST") throw error40;
+      try {
+        const stat = await fs3.stat(file2);
+        if (Date.now() - stat.mtimeMs > AUTH_FILE_LOCK_STALE_MS) {
+          await fs3.rm(file2, { force: true });
+          continue;
+        }
+      } catch (statError) {
+        if (statError.code === "ENOENT") continue;
+        throw statError;
+      }
+      if (Date.now() >= deadline) {
+        throw new Error("another Memlin sign-in or token refresh is still being saved");
+      }
+      await new Promise((resolve) => setTimeout(resolve, AUTH_FILE_LOCK_RETRY_MS));
+    }
+  }
+}
+async function withAuthFileLock(operation) {
+  const release = await acquireAuthFileLock();
+  try {
+    return await operation();
+  } finally {
+    await release();
+  }
+}
+async function readPersistedToken() {
+  try {
+    const raw = await fs3.readFile(persistedTokenFilePath(), "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+async function writePersistedToken(t) {
+  const file2 = persistedTokenFilePath();
+  await fs3.mkdir(path4.dirname(file2), { recursive: true });
+  const tmp = path4.join(
+    path4.dirname(file2),
+    `${path4.basename(file2)}.tmp-${process.pid}-${randomUUID()}`
+  );
+  const previous = await readPersistedToken().catch(() => null);
+  await fs3.writeFile(tmp, JSON.stringify(t, null, 2), { mode: 384 });
+  await fs3.chmod(tmp, 384).catch(() => {
+  });
+  await atomicRename(tmp, file2);
+  await clearRefusalsIfAccountsChanged(previous?.access_token ?? null, t.access_token);
+}
+async function clearRefusalsIfAccountsChanged(before, after) {
+  try {
+    const claimIds = (jwt2) => {
+      if (!jwt2) return void 0;
+      try {
+        return decodeJwtPayload(jwt2).memlin_account_ids;
+      } catch {
+        return void 0;
+      }
+    };
+    if (accountIdsChanged(claimIds(before), claimIds(after))) {
+      await clearAllAuthRefusals();
+    }
+  } catch {
+  }
+}
+async function refreshAccessToken(refreshToken, options2 = {}) {
+  requireClientId();
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: refreshToken,
+    client_id: AUTH0_CLIENT_ID
+  });
+  const res = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+    signal: AbortSignal.timeout(Math.max(1, options2.timeoutMs ?? 15e3))
+  });
+  if (!res.ok) {
+    throw new Error(`refresh: ${describeOpaqueBody(res.status, await res.text())}`);
+  }
+  const json2 = await res.json();
+  return toPersisted(json2, refreshToken);
+}
+var refreshInFlight = null;
+var DEFAULT_FRESHNESS_MARGIN_MS = 6e4;
+async function getValidAccessToken() {
+  return ensureFreshToken(DEFAULT_FRESHNESS_MARGIN_MS);
+}
+async function ensureFreshToken(marginMs = DEFAULT_FRESHNESS_MARGIN_MS, options2 = {}) {
+  const persisted = await readPersistedToken();
+  if (!persisted) throw new Error("not signed in \u2014 run `memlin login`");
+  if (Date.now() < persisted.expires_at - marginMs) return persisted.access_token;
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = doRefresh(persisted, marginMs, options2).finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}
+async function doRefresh(stale, marginMs, options2) {
+  const latest = await readPersistedToken();
+  if (latest && Date.now() < latest.expires_at - marginMs) return latest.access_token;
+  try {
+    const { companionGetToken: companionGetToken2 } = await Promise.resolve().then(() => (init_companion_client(), companion_client_exports));
+    const fromDaemon = await companionGetToken2();
+    if (fromDaemon && Date.now() < fromDaemon.expires_at - marginMs) {
+      return fromDaemon.access_token;
+    }
+  } catch {
+  }
+  const refreshSource = latest ?? stale;
+  const refreshToken = refreshSource.refresh_token;
+  if (!refreshToken) {
+    throw new Error("access token expired and no refresh token saved \u2014 run `memlin login`");
+  }
+  try {
+    const fresh = await refreshAccessToken(refreshToken, options2);
+    return await withAuthFileLock(async () => {
+      const beforeWrite = await readPersistedToken();
+      if (!beforeWrite || beforeWrite.access_token !== refreshSource.access_token) {
+        if (beforeWrite && Date.now() < beforeWrite.expires_at - marginMs) {
+          return beforeWrite.access_token;
+        }
+        throw new Error("saved Memlin credentials changed while the token was refreshing");
+      }
+      await writePersistedToken(fresh);
+      return fresh.access_token;
+    });
+  } catch (err) {
+    const after = await readPersistedToken();
+    if (after && after.access_token !== refreshSource.access_token && Date.now() < after.expires_at - 6e4) {
+      return after.access_token;
+    }
+    throw new Error(
+      `access token refresh failed (${err instanceof Error ? err.message : String(err)}) \u2014 run \`memlin login\``
+    );
+  }
+}
+function toPersisted(json2, fallbackRefresh) {
+  return {
+    access_token: json2.access_token,
+    refresh_token: json2.refresh_token ?? fallbackRefresh,
+    expires_at: Date.now() + json2.expires_in * 1e3
+  };
+}
+function requireClientId() {
+  if (!AUTH0_CLIENT_ID) {
+    throw new Error(
+      "Auth0 client id not configured. Set MEMLIN_AUTH0_CLIENT_ID env var (and optionally MEMLIN_AUTH0_DOMAIN / MEMLIN_AUTH0_AUDIENCE for self-hosted setups)."
+    );
+  }
+}
+function decodeJwtPayload(jwt2) {
+  const parts = jwt2.split(".");
+  if (parts.length !== 3) throw new Error("not a JWT");
+  return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+}
+
+// packages/plugin-core/src/client.ts
+init_atomic_rename();
+
 // packages/plugin-core/src/memlin-api-client.ts
 init_auth_refusal();
 import { readFileSync } from "node:fs";
@@ -24434,7 +24452,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.58";
+  cachedAgentVersion = "0.2.59";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -25519,7 +25537,12 @@ var MemlinApiClient = class {
       accountId: opts.accountId
     });
   }
-  /** GET /decisions — open memory decisions (most consequential first) + the one open count. */
+  /**
+   * GET /decisions — open memory decisions (most consequential first), the raw
+   * open `count`, and the grouped `needs_you_count` + `groups` the web app
+   * shows. The grouped fields are absent on older servers: read them through
+   * decisionCountsOf (@memlin/shared), which falls back to `count`.
+   */
   async listDecisions(opts = {}) {
     const qs = opts.limit ? `?limit=${encodeURIComponent(String(opts.limit))}` : "";
     return this.request("GET", `/decisions${qs}`, void 0, {
@@ -25805,10 +25828,13 @@ function prose(d, text) {
 }
 function formatDecisionList(decisions, count, nowMs = Date.now()) {
   if (decisions.length === 0) return NO_OPEN_DECISIONS;
+  const counts = typeof count === "number" ? { open: count, needsYou: null } : count;
+  const n = counts.needsYou ?? counts.open;
+  const head = needsYouDecisionsPhrase(counts) || needsYouDecisionsPhrase({ open: decisions.length, needsYou: null });
+  const grouped = counts.needsYou !== null && counts.needsYou !== counts.open;
   const out = [
-    `${count} open decision${count === 1 ? "" : "s"}. Memlin could not settle ${count === 1 ? "this" : "these"} itself; ignoring one is safe \u2014 its default applies at the deadline.
-
-`
+    `${head}. Memlin could not settle ${n === 1 ? "this" : "these"} itself; ignoring one is safe \u2014 its default applies at the deadline.
+` + (grouped ? "Related questions (one incident session's runbooks, one doc) count as one decision; every open question is listed below.\n" : "") + "\n"
   ];
   for (const d of decisions) {
     out.push(`  ${d.id.slice(0, 8)}  ${d.kind.padEnd(9)} ${d.question}
@@ -25875,8 +25901,8 @@ function formatDecisionDetail(d, evidence, nowMs = Date.now()) {
 
 // packages/plugin-core/src/cli/decisions.ts
 async function listDecisions(api) {
-  const { decisions, count } = await api.listDecisions({ limit: 50 });
-  process.stdout.write(formatDecisionList(decisions, count));
+  const res = await api.listDecisions({ limit: 50 });
+  process.stdout.write(formatDecisionList(res.decisions, decisionCountsOf(res)));
 }
 async function showDecision(api, needle) {
   let id = needle;
