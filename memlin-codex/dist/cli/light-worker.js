@@ -10326,8 +10326,8 @@ function mergeGroup(group) {
     )
   };
 }
-function stableKey(group, previous, make) {
-  const prior = group.map((i) => previous[i.item_key]).filter((k) => !!k).sort()[0];
+function stableKey(group, previous, make, prefer = /* @__PURE__ */ new Set()) {
+  const prior = group.map((i) => previous[i.item_key]).filter((k) => !!k).sort((a, b) => Number(prefer.has(b)) - Number(prefer.has(a)) || a.localeCompare(b))[0];
   if (prior) return { key: prior, stored: true };
   const anchor = [...group].sort((a, b) => a.item_key.localeCompare(b.item_key))[0];
   return { key: make(anchor), stored: false };
@@ -10351,10 +10351,19 @@ function consolidateLightMemory(items, options2 = {}) {
   const byHash = /* @__PURE__ */ new Map();
   const titles = kept.map((i) => lightTokens(i.title));
   const bodies = kept.map((i) => lightTokens(i.body));
+  const byWords = /* @__PURE__ */ new Map();
   kept.forEach((item, i) => {
     const first = byHash.get(item.content_hash);
     if (first === void 0) byHash.set(item.content_hash, i);
     else uf.union(first, i);
+    const factWords = new Set(
+      item.body.split("\n").filter((line) => !/^\s*#{1,6}\s/.test(line)).join("\n").toLowerCase().normalize("NFKD").match(/[\p{L}\p{N}]+/gu) ?? []
+    );
+    if (factWords.size < 3) return;
+    const words = [...factWords].sort().join(" ");
+    const same = byWords.get(words);
+    if (same === void 0) byWords.set(words, i);
+    else uf.union(same, i);
   });
   for (let i = 0; i < kept.length; i++) {
     if (titles[i].size < 2) continue;
@@ -10367,18 +10376,19 @@ function consolidateLightMemory(items, options2 = {}) {
   }
   const groups = groupsOf(kept, uf);
   const merged = kept.length - groups.length;
+  const included = new Set(options2.includedItemKeys ?? []);
+  const frozen = new Set(options2.frozenKeys ?? []);
   const drafts = uniqueKeys(
     groups.map((group) => {
       const { key, stored } = stableKey(
         group,
         previous,
-        (a) => `${lightSlug(a.title, 40)}-${lightKeyHash(a.item_key)}`
+        (a) => `${lightSlug(a.title, 40)}-${lightKeyHash(a.item_key)}`,
+        frozen
       );
       return { key, stored, base: mergeGroup(group) };
     })
   );
-  const included = new Set(options2.includedItemKeys ?? []);
-  const frozen = new Set(options2.frozenKeys ?? []);
   const tier = (d) => d.base.item_keys.some((k) => included.has(k)) ? 0 : frozen.has(d.key) ? 1 : d.base.agents_disagree ? 2 : 3;
   const tiers = new Map(drafts.map((d) => [d, tier(d)]));
   drafts.sort(
@@ -26002,7 +26012,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.61";
+  cachedAgentVersion = "0.2.62";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -30388,6 +30398,7 @@ async function runLightSync(opts) {
       includedItemKeys,
       frozenKeys
     });
+    const priorMemoryKeys = { ...state.keys.memory };
     for (const n of [...mem.notes, ...mem.overflow])
       for (const k of n.item_keys) state.keys.memory[k] = n.note_key;
     report.overCap = mem.overCap;
@@ -30708,6 +30719,37 @@ async function runLightSync(opts) {
         };
         report.notes.push(row);
         memArchives.push({ key, document_id: doc.id, why: "left_out", row });
+      }
+      const priorItemsByKey = /* @__PURE__ */ new Map();
+      for (const [itemKey, key] of Object.entries(priorMemoryKeys))
+        priorItemsByKey.set(key, [...priorItemsByKey.get(key) ?? [], itemKey]);
+      for (const [key, itemKeys] of [...priorItemsByKey].sort(([a], [b]) => a.localeCompare(b))) {
+        if (consolidated.has(key) || leftOut.has(key)) continue;
+        const moved = itemKeys.every((k) => {
+          const now2 = state.keys.memory[k];
+          return !!now2 && now2 !== key && consolidated.has(now2);
+        });
+        if (!moved) continue;
+        const doc = docForKey(key);
+        if (!archivable(doc)) continue;
+        claimed.add(doc.id);
+        const row = {
+          kind: "memory",
+          key,
+          title: doc.title,
+          path: doc.path ?? `memory/${key}.md`,
+          document_id: doc.id,
+          hosts: serverHosts(asStrings(custom3(doc).memlin_hosts)),
+          sources_total: asSources(custom3(doc).memlin_sources).length,
+          agents_disagree: false,
+          frozen: false,
+          state: "archived",
+          reason: "merged",
+          item_keys: [...itemKeys].sort(),
+          checklist: null
+        };
+        report.notes.push(row);
+        memArchives.push({ key, document_id: doc.id, why: "merged", row });
       }
     }
     for (const note of [...mem.overflow].reverse()) {
@@ -31042,11 +31084,11 @@ async function runLightSync(opts) {
     const kindOrder = { memory: 0, plan: 1, skill: 2 };
     ops.sort((a, b) => order[a.type] - order[b.type] || kindOrder[a.kind] - kindOrder[b.kind]);
     const memCreates = ops.filter((o) => o.kind === "memory" && o.type === "create").length;
-    const leftOutCount = memArchives.filter((a) => a.why === "left_out").length;
+    const leftOutCount = memArchives.filter((a) => a.why !== "over_cap").length;
     const swapAllowed = mode === "light" && budget > 0 && (trigger === "manual" || gapOk && autoGate !== "none");
     let slotsNeeded = swapAllowed ? counts.memory - leftOutCount + memCreates - caps.memory : 0;
     const memArchiveOps = memArchives.filter((a) => {
-      if (a.why === "left_out") return true;
+      if (a.why !== "over_cap") return true;
       if (slotsNeeded <= 0) return false;
       slotsNeeded -= 1;
       return true;

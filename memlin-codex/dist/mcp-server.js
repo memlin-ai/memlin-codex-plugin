@@ -77415,6 +77415,26 @@ async function searchScoped(ctx, args, light) {
   const filter = args.metadata_filter;
   return overFetched.filter((h2) => matchesCustomFilter(customById.get(h2.id) ?? null, filter)).slice(0, requestedLimit);
 }
+async function recallEligibleIds(ctx, hits) {
+  if (hits.length === 0) return /* @__PURE__ */ new Set();
+  const { data, error: error40 } = await ctx.supabase.from("documents").select("id, status, kind, metadata").eq("account_id", ctx.accountId).in(
+    "id",
+    hits.map((h2) => h2.id)
+  );
+  if (error40 || !data) return null;
+  return new Set(
+    data.filter(
+      (r2) => isEligibleForRecall({
+        status: r2.status ?? null,
+        metadataStatus: (r2.metadata ?? {}).status ?? null,
+        metadataSupersededBy: (r2.metadata ?? {}).superseded_by ?? null,
+        id: r2.id ?? null,
+        // Not approval-gated here: drafts stay searchable.
+        kind: "memory"
+      })
+    ).map((r2) => r2.id)
+  );
+}
 async function searchRanked(ctx, args, limit2) {
   const projectId = await resolveProjectFilter(ctx, args.project_id);
   const mode = args.mode ?? "semantic";
@@ -77463,7 +77483,7 @@ async function searchRanked(ctx, args, limit2) {
         p_limit: limit2
       });
       if (!error40 && data2) {
-        return data2.map((r2) => ({
+        const hits = data2.map((r2) => ({
           id: r2.id,
           title: r2.title,
           kind: r2.kind,
@@ -77477,6 +77497,8 @@ async function searchRanked(ctx, args, limit2) {
           author_id: r2.author_id ?? null,
           source_url: null
         }));
+        const eligible = await recallEligibleIds(ctx, hits);
+        if (eligible) return hits.filter((h2) => eligible.has(h2.id));
       }
     } catch {
     }
@@ -87642,7 +87664,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.61";
+  cachedAgentVersion = "0.2.62";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -90905,7 +90927,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION2 = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version5 = "0.2.61";
+  const version5 = "0.2.62";
   return typeof version5 === "string" && VERSION2.test(version5) ? version5 : null;
 }
 async function reportPluginRuntime(report) {
@@ -91470,7 +91492,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.61"?.trim();
+  const env = "0.2.62"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }
