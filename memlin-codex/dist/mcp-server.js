@@ -29675,7 +29675,7 @@ var require_node_domexception = __commonJS({
 });
 
 // node_modules/.pnpm/formdata-node@4.4.1/node_modules/formdata-node/lib/esm/isPlainObject.js
-function isPlainObject5(value) {
+function isPlainObject6(value) {
   if (getType2(value) !== "object") {
     return false;
   }
@@ -29690,7 +29690,7 @@ var getType2, isPlainObject_default2;
 var init_isPlainObject = __esm({
   "node_modules/.pnpm/formdata-node@4.4.1/node_modules/formdata-node/lib/esm/isPlainObject.js"() {
     getType2 = (value) => Object.prototype.toString.call(value).slice(8, -1).toLowerCase();
-    isPlainObject_default2 = isPlainObject5;
+    isPlainObject_default2 = isPlainObject6;
   }
 });
 
@@ -37237,20 +37237,20 @@ var $ZodCheckMultipleOf = /* @__PURE__ */ $constructor("$ZodCheckMultipleOf", (i
 var $ZodCheckNumberFormat = /* @__PURE__ */ $constructor("$ZodCheckNumberFormat", (inst, def) => {
   $ZodCheck.init(inst, def);
   def.format = def.format || "float64";
-  const isInt = def.format?.includes("int");
-  const origin = isInt ? "int" : "number";
+  const isInt2 = def.format?.includes("int");
+  const origin = isInt2 ? "int" : "number";
   const [minimum, maximum] = NUMBER_FORMAT_RANGES[def.format];
   inst._zod.onattach.push((inst2) => {
     const bag = inst2._zod.bag;
     bag.format = def.format;
     bag.minimum = minimum;
     bag.maximum = maximum;
-    if (isInt)
+    if (isInt2)
       bag.pattern = integer;
   });
   inst._zod.check = (payload) => {
     const input = payload.value;
-    if (isInt) {
+    if (isInt2) {
       if (!Number.isInteger(input)) {
         payload.issues.push({
           expected: origin,
@@ -59572,8 +59572,23 @@ var BrandGuidelinesFrontmatterSchema = external_exports.object({
 });
 var EMPTY_BRAND_GUIDELINES = { name: "" };
 
-// packages/shared/dist/brand-guidelines-frontmatter.js
+// packages/shared/dist/safe-frontmatter.js
 var import_gray_matter = __toESM(require_gray_matter(), 1);
+function refuseJavaScriptFrontmatter() {
+  throw new Error("JavaScript frontmatter is not supported");
+}
+var REFUSE = {
+  parse: refuseJavaScriptFrontmatter,
+  stringify: refuseJavaScriptFrontmatter
+};
+var SAFE_MATTER_OPTIONS = {
+  engines: { js: REFUSE, javascript: REFUSE }
+};
+function parseFrontmatter(content) {
+  return (0, import_gray_matter.default)(content, SAFE_MATTER_OPTIONS);
+}
+
+// packages/shared/dist/brand-guidelines-frontmatter.js
 function splitSections(body) {
   const lines = body.split("\n");
   const sections = {};
@@ -59608,7 +59623,7 @@ function parseBrandGuidelines(content) {
     return { frontmatter: { ...EMPTY_BRAND_GUIDELINES }, sections: {}, prefix: "" };
   }
   try {
-    const parsed = (0, import_gray_matter.default)(content);
+    const parsed = parseFrontmatter(content);
     const fmRaw = parsed.data;
     const fm = BrandGuidelinesFrontmatterSchema.safeParse(fmRaw);
     const frontmatter = fm.success ? fm.data : { ...EMPTY_BRAND_GUIDELINES, ...sanitizeLoose(fmRaw) };
@@ -60913,9 +60928,6 @@ function accumulateWeightedOutcomeCounts(meta, credits, resolveCategory, posCoun
   return true;
 }
 
-// packages/shared/dist/skill-frontmatter.js
-var import_gray_matter2 = __toESM(require_gray_matter(), 1);
-
 // packages/shared/dist/model-prices.js
 var MODEL_PRICES = {
   // Anthropic. Opus was absent until 2026-07-23, which meant every Opus turn —
@@ -60961,12 +60973,16 @@ var MODEL_PRICES = {
   "text-embedding-3-small": { inputUsdPerMTok: 0.02, outputUsdPerMTok: 0 },
   "gpt-4.1-mini": { inputUsdPerMTok: 0.4, outputUsdPerMTok: 1.6 }
 };
+var SAVINGS_BASELINE_MODEL_ID = "claude-sonnet-4-6";
 
 // packages/shared/dist/usage-stats.js
-var SONNET_INPUT_USD_PER_MTOK = MODEL_PRICES["claude-sonnet-4-6"].inputUsdPerMTok;
-var SONNET_OUTPUT_USD_PER_MTOK = MODEL_PRICES["claude-sonnet-4-6"].outputUsdPerMTok;
+var SONNET_INPUT_USD_PER_MTOK = MODEL_PRICES[SAVINGS_BASELINE_MODEL_ID].inputUsdPerMTok;
+var SONNET_OUTPUT_USD_PER_MTOK = MODEL_PRICES[SAVINGS_BASELINE_MODEL_ID].outputUsdPerMTok;
 var OUTPUT_MULTIPLIER = 0.3;
-function estCostUsd(inputTokens) {
+function estCostUsd(inputTokens, usdPerMTok) {
+  if (usdPerMTok !== void 0 && Number.isFinite(usdPerMTok) && usdPerMTok >= 0) {
+    return (Number(inputTokens) || 0) / 1e6 * usdPerMTok;
+  }
   const inputCostUsd = inputTokens / 1e6 * SONNET_INPUT_USD_PER_MTOK;
   const outputCostUsd = inputTokens * OUTPUT_MULTIPLIER / 1e6 * SONNET_OUTPUT_USD_PER_MTOK;
   return inputCostUsd + outputCostUsd;
@@ -61000,6 +61016,185 @@ var FEATURE_DISCOVERY_SYSTEM = [
   '{ "features": [ { "name": string, "summary": string, "members": string[] } ] }',
   "where each members entry is an id from the inventory. No prose outside the JSON."
 ].join("\n");
+
+// packages/shared/dist/light-native.js
+var LIGHT_READER_LIMITS = Object.freeze({
+  maxDepth: 3,
+  filesPerHost: 200,
+  memoryFileBytes: 128 * 1024,
+  planFileBytes: 64 * 1024,
+  skillFileBytes: 64 * 1024,
+  hostBytes: 2 * 1024 * 1024,
+  skillFoldersPerHost: 200,
+  resourcesPerSkill: 200,
+  /** Resource files larger than this are listed without a hash. */
+  resourceHashBytes: 16 * 1024 * 1024
+});
+
+// packages/shared/dist/native-memory-parse.js
+var import_gray_matter2 = __toESM(require_gray_matter(), 1);
+var yamlEngine = import_gray_matter2.default.engines.yaml;
+
+// packages/shared/dist/light.js
+var LIGHT_LIMITS = Object.freeze({
+  users: 1,
+  projects: 1,
+  files: 50,
+  fileBytes: 16 * 1024,
+  /** Active (non-archived) native plans synced as kind='plan'. */
+  plans: 20,
+  planBytes: 64 * 1024,
+  /** Inventoried skills: a read-only SKILL.md backup, kind='skill', always draft. */
+  skills: 50,
+  skillBytes: 64 * 1024,
+  historyVersions: 10,
+  writes: 1e3,
+  captures: 50,
+  accountCostMicros: 1e6,
+  globalCostMicros: 1e8,
+  enrollment: 100,
+  // Recall is budgeted in UTF-8 bytes, which is what it actually bounds; a
+  // byte is never less conservative than a token.
+  recallBytes: 2400,
+  recallExcerptBytes: 360,
+  recallNotes: 3,
+  captureInputTokens: 8e3,
+  captureOutputTokens: 1e3,
+  captureReservationMicros: 2e4
+});
+var LIGHT_HOSTS = [
+  "claude",
+  "codex",
+  "cursor",
+  "antigravity",
+  "windsurf",
+  "devin"
+];
+function boundLightText(text, byteLimit) {
+  const encoder2 = new TextEncoder();
+  const bytes = encoder2.encode(text);
+  return bytes.length <= byteLimit ? text : new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, byteLimit)).replace(/\uFFFD$/, "");
+}
+function redactLightTranscript(text) {
+  return text.replace(
+    /-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----/g,
+    "[private key removed]"
+  ).replace(
+    /\b(?:sk-[\w-]{12,}|gh[pousr]_[\w]{16,}|github_pat_[\w]{16,}|AKIA[A-Z0-9]{16})\b/g,
+    "[credential removed]"
+  ).replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[token removed]").replace(/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/gi, "$1[removed]").replace(
+    /((?:password|secret|api[_-]?key|access[_-]?token)["']?\s*[=:]\s*)[^\s,;]+/gi,
+    "$1[removed]"
+  );
+}
+async function loadLightStatus(db, accountId) {
+  const { data, error: error40 } = await db.rpc("light_status", { p_account_id: accountId });
+  if (error40?.code === "PGRST202" || error40?.code === "42883") return null;
+  if (error40) throw new Error(`Light status unavailable: ${error40.message}`);
+  return data?.enrolled ? data : null;
+}
+function lightCaptureExcluded(text, paths = []) {
+  return /(?:^|[\s/\\"'`])(?:\.env(?:\.[\w-]+)?|id_rsa|id_ed25519|credentials\.json)(?=$|[\s/\\"'`:])/m.test(
+    text
+  ) || paths.some((p2) => p2.length > 0 && text.includes(p2));
+}
+
+// packages/shared/dist/skill-inventory.js
+var AGENTS_HOSTS = ["codex", "cursor", "windsurf", "copilot", "gemini_cli"];
+var CLAUDE_HOSTS = ["claude", "cursor", "windsurf", "copilot"];
+var SKILL_LOCATIONS = [
+  {
+    id: "agents-project",
+    scope: "project",
+    path: ".agents/skills",
+    hosts: [...AGENTS_HOSTS, "antigravity"],
+    owner: "agents",
+    nested: false
+  },
+  {
+    id: "agents-user",
+    scope: "user",
+    path: "~/.agents/skills",
+    hosts: AGENTS_HOSTS,
+    owner: "agents",
+    nested: false
+  },
+  {
+    id: "claude-project",
+    scope: "project",
+    path: ".claude/skills",
+    hosts: CLAUDE_HOSTS,
+    owner: "claude",
+    nested: true
+  },
+  {
+    id: "claude-user",
+    scope: "user",
+    path: "~/.claude/skills",
+    hosts: CLAUDE_HOSTS,
+    owner: "claude",
+    nested: true
+  },
+  {
+    id: "cursor-project",
+    scope: "project",
+    path: ".cursor/skills",
+    hosts: ["cursor"],
+    owner: "cursor",
+    nested: false
+  },
+  {
+    id: "cursor-user",
+    scope: "user",
+    path: "~/.cursor/skills",
+    hosts: ["cursor"],
+    owner: "cursor",
+    nested: false
+  },
+  {
+    id: "windsurf-project",
+    scope: "project",
+    path: ".windsurf/skills",
+    hosts: ["windsurf"],
+    owner: "windsurf",
+    nested: false
+  },
+  {
+    id: "windsurf-user",
+    scope: "user",
+    path: "~/.codeium/windsurf/skills",
+    hosts: ["windsurf"],
+    owner: "windsurf",
+    nested: false
+  },
+  {
+    id: "antigravity-user",
+    scope: "user",
+    path: "~/.gemini/antigravity/skills",
+    hosts: ["antigravity"],
+    owner: "antigravity",
+    nested: false,
+    unverified: true
+  },
+  {
+    id: "antigravity-config-user",
+    scope: "user",
+    path: "~/.gemini/config/skills",
+    hosts: ["antigravity"],
+    owner: "antigravity",
+    nested: false,
+    unverified: true
+  },
+  {
+    id: "codex-legacy-user",
+    scope: "user",
+    path: "~/.codex/skills",
+    hosts: ["codex"],
+    owner: "codex",
+    nested: false,
+    unverified: true
+  }
+];
 
 // packages/shared/dist/memory-taxonomy.js
 var MEMORY_TAXONOMY = [
@@ -63918,79 +64113,104 @@ var ExperienceHarnessRunControlV2Schema = external_exports.discriminatedUnion("a
   }).strict()
 ]);
 
-// packages/shared/dist/light.js
-var LIGHT_LIMITS = Object.freeze({
-  users: 1,
-  projects: 1,
-  files: 50,
-  fileBytes: 16 * 1024,
-  historyVersions: 10,
-  writes: 1e3,
-  captures: 50,
-  accountCostMicros: 1e6,
-  globalCostMicros: 1e8,
-  enrollment: 100,
-  contextTokens: 4e3,
-  captureInputTokens: 8e3,
-  captureOutputTokens: 1e3,
-  captureReservationMicros: 2e4
-});
-function boundLightText(text, byteLimit) {
-  const encoder2 = new TextEncoder();
-  const bytes = encoder2.encode(text);
-  return bytes.length <= byteLimit ? text : new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, byteLimit)).replace(/\uFFFD$/, "");
+// packages/shared/dist/light-provenance.js
+var MEMLIN_ORIGINS = ["native", "note", "import", "capture"];
+var MEMLIN_SOURCES_MAX = 12;
+var MEMLIN_SKILL_RESOURCES_MAX = 64;
+var SHA256_HEX = /^[0-9a-f]{64}$/;
+var NOTE_KEY = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/;
+var HOSTS = new Set(LIGHT_HOSTS);
+var KNOWN = /* @__PURE__ */ new Set([
+  "memlin_light",
+  "memlin_origin",
+  "memlin_note_key",
+  "memlin_content_hash",
+  "memlin_hosts",
+  "memlin_sources",
+  "memlin_plan_status",
+  "memlin_skill_inventory",
+  "memlin_skill_resources",
+  "memlin_frozen"
+]);
+function hasMemlinProvenance(custom3) {
+  return Object.keys(custom3).some((k2) => k2.startsWith("memlin_"));
 }
-function redactLightTranscript(text) {
-  return text.replace(
-    /-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----/g,
-    "[private key removed]"
-  ).replace(
-    /\b(?:sk-[\w-]{12,}|gh[pousr]_[\w]{16,}|github_pat_[\w]{16,}|AKIA[A-Z0-9]{16})\b/g,
-    "[credential removed]"
-  ).replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[token removed]").replace(/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/gi, "$1[removed]").replace(
-    /((?:password|secret|api[_-]?key|access[_-]?token)["']?\s*[=:]\s*)[^\s,;]+/gi,
-    "$1[removed]"
-  );
+function isHomeRelativeDisplayPath(p2) {
+  if (typeof p2 !== "string" || p2.length < 1 || p2.length > 256) return false;
+  if (/[\u0000-\u001f\\]/.test(p2)) return false;
+  if (p2.startsWith("/") || /^[A-Za-z]:/.test(p2)) return false;
+  if (p2.startsWith("~") && !p2.startsWith("~/")) return false;
+  return !p2.split("/").some((segment) => segment === "..");
 }
-async function loadLightStatus(db, accountId) {
-  const { data, error: error40 } = await db.rpc("light_status", { p_account_id: accountId });
-  if (error40?.code === "PGRST202" || error40?.code === "42883") return null;
-  if (error40) throw new Error(`Light status unavailable: ${error40.message}`);
-  return data?.enrolled ? data : null;
+function isInt(value, max) {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= max;
 }
-function lightCaptureExcluded(text, paths = []) {
-  return /(?:^|[\s/\\"'`])(?:\.env(?:\.[\w-]+)?|id_rsa|id_ed25519|credentials\.json)(?=$|[\s/\\"'`:])/m.test(
-    text
-  ) || paths.some((p2) => p2.length > 0 && text.includes(p2));
+function isPlainObject4(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
-
-// packages/shared/dist/thought-handoff-v2.js
-var ThoughtHandoffRequestV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  idempotency_key: external_exports.string().min(1).max(160),
-  task: external_exports.string().trim().min(1).max(8192),
-  target_agent_installation_id: external_exports.string().uuid(),
-  focus_thought_id: external_exports.string().uuid().optional(),
-  context_revision_token: external_exports.string().regex(/^[0-9a-f]{64}$/)
-}).strict();
-var ThoughtHandoffReceiptV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  kind: external_exports.literal("thought_handoff_v2"),
-  id: external_exports.string().uuid(),
-  root_thought_id: external_exports.string().uuid(),
-  project_id: external_exports.string().uuid().nullable(),
-  target_agent_installation_id: external_exports.string().uuid(),
-  target_agent_kind: external_exports.enum(AGENT_KINDS),
-  task: external_exports.string(),
-  status: external_exports.enum(["preparing", "pending", "accepted", "completed", "cancelled"]),
-  context_bundle_id: external_exports.string().regex(/^[0-9a-f]{64}$/).nullable(),
-  context_revision_token: external_exports.string(),
-  packet_markdown: external_exports.string().nullable(),
-  target_session_id: external_exports.string().nullable(),
-  created_at: external_exports.string(),
-  stale: external_exports.boolean(),
-  replayed: external_exports.boolean().optional()
-}).passthrough();
+function onlyKeys(value, keys) {
+  return Object.keys(value).every((k2) => keys.includes(k2));
+}
+function memlinProvenanceIssues(custom3) {
+  if (!hasMemlinProvenance(custom3)) return [];
+  const issues = [];
+  for (const [key2, value] of Object.entries(custom3)) {
+    if (!key2.startsWith("memlin_")) continue;
+    const bad = (why) => issues.push(`key "${key2}": ${why}`);
+    switch (key2) {
+      case "memlin_light":
+      case "memlin_skill_inventory":
+      // The user's own edit or restore wins over source drift until they choose
+      // "Resume automatic updates" (Trust → Unfreeze).
+      case "memlin_frozen":
+        if (typeof value !== "boolean") bad("must be a boolean");
+        break;
+      case "memlin_origin":
+        if (!MEMLIN_ORIGINS.includes(value))
+          bad(`must be one of ${MEMLIN_ORIGINS.join(", ")}`);
+        break;
+      case "memlin_note_key":
+        if (typeof value !== "string" || !NOTE_KEY.test(value) || value.includes(".."))
+          bad(`must match ${NOTE_KEY} without ..`);
+        break;
+      case "memlin_content_hash":
+        if (typeof value !== "string" || !SHA256_HEX.test(value))
+          bad("must be a sha256 hex digest");
+        break;
+      case "memlin_hosts":
+        if (!Array.isArray(value) || value.length > LIGHT_HOSTS.length || !value.every((h2) => typeof h2 === "string" && HOSTS.has(h2)) || new Set(value).size !== value.length)
+          bad(`must be distinct hosts from ${LIGHT_HOSTS.join(", ")}`);
+        break;
+      case "memlin_sources":
+        if (!Array.isArray(value) || value.length > MEMLIN_SOURCES_MAX) {
+          bad(`must be an array of at most ${MEMLIN_SOURCES_MAX} sources`);
+          break;
+        }
+        value.forEach((s2, i2) => {
+          if (!isPlainObject4(s2) || !onlyKeys(s2, ["h", "p", "c"]) || typeof s2.h !== "string" || !HOSTS.has(s2.h) || !isHomeRelativeDisplayPath(s2.p) || s2.c !== void 0 && (typeof s2.c !== "string" || !SHA256_HEX.test(s2.c)))
+            bad(`source ${i2} must be {h: host, p: home-relative path, c?: sha256}`);
+        });
+        break;
+      case "memlin_plan_status":
+        if (!isPlainObject4(value) || !onlyKeys(value, ["done", "total"]) || !isInt(value.done, 1e4) || !isInt(value.total, 1e4) || value.done > value.total)
+          bad("must be {done, total} with 0 <= done <= total");
+        break;
+      case "memlin_skill_resources":
+        if (!Array.isArray(value) || value.length > MEMLIN_SKILL_RESOURCES_MAX) {
+          bad(`must be an array of at most ${MEMLIN_SKILL_RESOURCES_MAX} resources`);
+          break;
+        }
+        value.forEach((r2, i2) => {
+          if (!isPlainObject4(r2) || !onlyKeys(r2, ["name", "size", "sha256"]) || typeof r2.name !== "string" || r2.name.startsWith("~") || !isHomeRelativeDisplayPath(r2.name) || !isInt(r2.size, 2 ** 31) || typeof r2.sha256 !== "string" || !SHA256_HEX.test(r2.sha256))
+            bad(`resource ${i2} must be {name: relative path, size, sha256}`);
+        });
+        break;
+      default:
+        if (!KNOWN.has(key2)) bad("memlin_* keys are reserved for Memlin sync provenance");
+    }
+  }
+  return issues;
+}
 
 // packages/shared/dist/memory-decisions.js
 var DECISION_KIND_IDS = ["replace", "conflict", "sensitive", "runbook", "goal"];
@@ -64261,73 +64481,6 @@ function actorMayRetire(actor, doc) {
   return actor.type === "human";
 }
 
-// packages/shared/dist/memory-transitions.js
-var MEMORY_TRANSITION_APPLY_RPC = "memory_transition_apply";
-var TRANSITION_REFUSALS = ["illegal", "needs_human", "stale"];
-function isTransitionRefusal(o2) {
-  return typeof o2 === "object" && o2 !== null && typeof o2.refused === "string" && TRANSITION_REFUSALS.includes(o2.refused);
-}
-function isLifecycleStatus(value) {
-  return typeof value === "string" && DOCUMENT_LIFECYCLE_STATUSES.includes(value);
-}
-function lifecycleStatusOf(metadata) {
-  const s2 = (metadata ?? {}).status;
-  return typeof s2 === "string" && s2.length > 0 ? s2 : "active";
-}
-function isRetirementMove(from, to) {
-  return (from === "active" || from === "background") && RETIRED_STATUSES.includes(to);
-}
-function requiredGovernanceOf(meta) {
-  const r2 = meta.required_for_projects;
-  if (r2 === true || r2 === "true") return true;
-  return Array.isArray(r2) && r2.length > 0;
-}
-function retirementSubjectOf(row) {
-  const meta = row.metadata ?? {};
-  const provenance = CAPTURE_PROVENANCE.includes(String(meta.provenance)) ? meta.provenance : null;
-  const metaType = typeof meta.memory_type === "string" ? meta.memory_type : null;
-  return {
-    kind: row.kind,
-    sqlStatus: row.status ?? null,
-    provenance,
-    memoryType: row.memory_type ?? metaType,
-    requiredGovernance: requiredGovernanceOf(meta)
-  };
-}
-function checkTransition(input) {
-  const { current, expectedFrom, to, actor } = input;
-  if (expectedFrom && expectedFrom !== current) {
-    return {
-      refused: "stale",
-      from: current,
-      to,
-      message: `expected ${expectedFrom}, found ${current}`
-    };
-  }
-  if (!isLifecycleStatus(current) || !isLegalTransition(current, to)) {
-    return { refused: "illegal", from: current, to, message: `${current} -> ${to} is not legal` };
-  }
-  if (isRetirementMove(current, to) && !actorMayRetire(actor, retirementSubjectOf(input.subject))) {
-    return {
-      refused: "needs_human",
-      from: current,
-      to,
-      message: `only a person may retire this ${input.subject.kind}`
-    };
-  }
-  return null;
-}
-function refusalFromRpcError(message) {
-  if (message.includes("memory_transition_stale")) return "stale";
-  if (message.includes("memory_transition_needs_human")) return "needs_human";
-  if (message.includes("memory_transition_illegal")) return "illegal";
-  return null;
-}
-
-// packages/shared/dist/memory-drift-consumer.js
-var HUMAN_EDITED_AT_KEY = "human_edited_at";
-var HUMAN_EDITED_BY_KEY = "human_edited_by";
-
 // packages/shared/dist/decision-prompt.js
 var encoder = new TextEncoder();
 function utf8Bytes(value) {
@@ -64422,6 +64575,202 @@ function renderDecisionBlock(decision, opts) {
   }
   return "";
 }
+
+// packages/shared/dist/lexical.js
+var TASK_STOPWORDS = /* @__PURE__ */ new Set([
+  "this",
+  "that",
+  "with",
+  "from",
+  "have",
+  "want",
+  "need",
+  "make",
+  "sure",
+  "just",
+  "into",
+  "your",
+  "their",
+  "about",
+  "which",
+  "when",
+  "will",
+  "should",
+  "would",
+  "could",
+  "there",
+  "here",
+  "then",
+  "them",
+  "they",
+  "what",
+  "were",
+  "also",
+  "some",
+  "more",
+  "than",
+  "only",
+  "going",
+  "still",
+  "like",
+  "really",
+  "right",
+  "cause"
+]);
+var SHORT_STOPWORDS = /* @__PURE__ */ new Set([
+  "the",
+  "and",
+  "for",
+  "are",
+  "was",
+  "you",
+  "not",
+  "but",
+  "can",
+  "how",
+  "why",
+  "did",
+  "our",
+  "its",
+  "has",
+  "had",
+  "any",
+  "all"
+]);
+var LEXICAL_MAX_TERMS = 16;
+function lexicalTerms(text) {
+  const out = [];
+  for (const token of text.toLowerCase().split(/[^\p{L}\p{N}]+/u)) {
+    if (token.length < 3 || TASK_STOPWORDS.has(token) || SHORT_STOPWORDS.has(token)) continue;
+    if (out.includes(token)) continue;
+    out.push(token);
+    if (out.length >= LEXICAL_MAX_TERMS) break;
+  }
+  return out;
+}
+var ELLIPSIS = "\u2026";
+var ELLIPSIS_BYTES = 3;
+function excerptAround(body, terms, byteLimit) {
+  const text = body.replace(/\s+/g, " ").trim();
+  if (!text || byteLimit <= 0) return "";
+  if (utf8Bytes(text) <= byteLimit) return text;
+  const lower = text.toLowerCase();
+  let hit = -1;
+  for (const term of terms) {
+    const at2 = lower.indexOf(term);
+    if (at2 >= 0 && (hit < 0 || at2 < hit)) hit = at2;
+  }
+  let start = hit <= 0 ? 0 : Math.max(0, hit - Math.floor(byteLimit / 4));
+  if (start > 0) {
+    const space = text.indexOf(" ", start);
+    if (space >= 0 && space < hit) start = space + 1;
+  }
+  const prefix = start > 0 ? ELLIPSIS : "";
+  const rest = text.slice(start);
+  const prefixBytes = prefix ? ELLIPSIS_BYTES : 0;
+  if (utf8Bytes(rest) + prefixBytes <= byteLimit) return `${prefix}${rest}`;
+  const room = byteLimit - prefixBytes - ELLIPSIS_BYTES;
+  if (room <= 0) return boundLightText(text, byteLimit);
+  const window2 = boundLightText(rest, room);
+  const cut = window2.lastIndexOf(" ");
+  const trimmed = cut > window2.length / 2 ? window2.slice(0, cut) : window2;
+  return `${prefix}${trimmed}${ELLIPSIS}`;
+}
+
+// packages/shared/dist/thought-handoff-v2.js
+var ThoughtHandoffRequestV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  idempotency_key: external_exports.string().min(1).max(160),
+  task: external_exports.string().trim().min(1).max(8192),
+  target_agent_installation_id: external_exports.string().uuid(),
+  focus_thought_id: external_exports.string().uuid().optional(),
+  context_revision_token: external_exports.string().regex(/^[0-9a-f]{64}$/)
+}).strict();
+var ThoughtHandoffReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  kind: external_exports.literal("thought_handoff_v2"),
+  id: external_exports.string().uuid(),
+  root_thought_id: external_exports.string().uuid(),
+  project_id: external_exports.string().uuid().nullable(),
+  target_agent_installation_id: external_exports.string().uuid(),
+  target_agent_kind: external_exports.enum(AGENT_KINDS),
+  task: external_exports.string(),
+  status: external_exports.enum(["preparing", "pending", "accepted", "completed", "cancelled"]),
+  context_bundle_id: external_exports.string().regex(/^[0-9a-f]{64}$/).nullable(),
+  context_revision_token: external_exports.string(),
+  packet_markdown: external_exports.string().nullable(),
+  target_session_id: external_exports.string().nullable(),
+  created_at: external_exports.string(),
+  stale: external_exports.boolean(),
+  replayed: external_exports.boolean().optional()
+}).passthrough();
+
+// packages/shared/dist/memory-transitions.js
+var MEMORY_TRANSITION_APPLY_RPC = "memory_transition_apply";
+var TRANSITION_REFUSALS = ["illegal", "needs_human", "stale"];
+function isTransitionRefusal(o2) {
+  return typeof o2 === "object" && o2 !== null && typeof o2.refused === "string" && TRANSITION_REFUSALS.includes(o2.refused);
+}
+function isLifecycleStatus(value) {
+  return typeof value === "string" && DOCUMENT_LIFECYCLE_STATUSES.includes(value);
+}
+function lifecycleStatusOf(metadata) {
+  const s2 = (metadata ?? {}).status;
+  return typeof s2 === "string" && s2.length > 0 ? s2 : "active";
+}
+function isRetirementMove(from, to) {
+  return (from === "active" || from === "background") && RETIRED_STATUSES.includes(to);
+}
+function requiredGovernanceOf(meta) {
+  const r2 = meta.required_for_projects;
+  if (r2 === true || r2 === "true") return true;
+  return Array.isArray(r2) && r2.length > 0;
+}
+function retirementSubjectOf(row) {
+  const meta = row.metadata ?? {};
+  const provenance = CAPTURE_PROVENANCE.includes(String(meta.provenance)) ? meta.provenance : null;
+  const metaType = typeof meta.memory_type === "string" ? meta.memory_type : null;
+  return {
+    kind: row.kind,
+    sqlStatus: row.status ?? null,
+    provenance,
+    memoryType: row.memory_type ?? metaType,
+    requiredGovernance: requiredGovernanceOf(meta)
+  };
+}
+function checkTransition(input) {
+  const { current, expectedFrom, to, actor } = input;
+  if (expectedFrom && expectedFrom !== current) {
+    return {
+      refused: "stale",
+      from: current,
+      to,
+      message: `expected ${expectedFrom}, found ${current}`
+    };
+  }
+  if (!isLifecycleStatus(current) || !isLegalTransition(current, to)) {
+    return { refused: "illegal", from: current, to, message: `${current} -> ${to} is not legal` };
+  }
+  if (isRetirementMove(current, to) && !actorMayRetire(actor, retirementSubjectOf(input.subject))) {
+    return {
+      refused: "needs_human",
+      from: current,
+      to,
+      message: `only a person may retire this ${input.subject.kind}`
+    };
+  }
+  return null;
+}
+function refusalFromRpcError(message) {
+  if (message.includes("memory_transition_stale")) return "stale";
+  if (message.includes("memory_transition_needs_human")) return "needs_human";
+  if (message.includes("memory_transition_illegal")) return "illegal";
+  return null;
+}
+
+// packages/shared/dist/memory-drift-consumer.js
+var HUMAN_EDITED_AT_KEY = "human_edited_at";
+var HUMAN_EDITED_BY_KEY = "human_edited_by";
 
 // packages/shared/dist/admission.js
 var ADMISSION_VERSION = "admission@2026-09-13";
@@ -65675,6 +66024,11 @@ function toNeedsYouGroupWire(group) {
   };
 }
 
+// packages/shared/dist/needs-you-engine.js
+var NEEDS_YOU_HORIZON_DAYS = 14;
+var HORIZON_MS = NEEDS_YOU_HORIZON_DAYS * 24 * 60 * 60 * 1e3;
+var STALLED_GOAL_AGE_MS = 30 * 24 * 60 * 60 * 1e3;
+
 // node_modules/.pnpm/openai@4.104.0_ws@8.20.1_zod@3.25.76/node_modules/openai/internal/qs/formats.mjs
 var default_format = "RFC3986";
 var formatters = {
@@ -66249,7 +66603,7 @@ var createBoundary_default = createBoundary;
 
 // node_modules/.pnpm/form-data-encoder@1.7.2/node_modules/form-data-encoder/lib/esm/util/isPlainObject.js
 var getType = (value) => Object.prototype.toString.call(value).slice(8, -1).toLowerCase();
-function isPlainObject4(value) {
+function isPlainObject5(value) {
   if (getType(value) !== "object") {
     return false;
   }
@@ -66260,7 +66614,7 @@ function isPlainObject4(value) {
   const Ctor = pp.constructor && pp.constructor.toString();
   return Ctor === Object.toString();
 }
-var isPlainObject_default = isPlainObject4;
+var isPlainObject_default = isPlainObject5;
 
 // node_modules/.pnpm/form-data-encoder@1.7.2/node_modules/form-data-encoder/lib/esm/util/normalizeValue.js
 var normalizeValue = (value) => String(value).replace(/\r|\n/g, (match, i2, str5) => {
@@ -73082,6 +73436,25 @@ var TOOLS = [
     }
   },
   {
+    name: "memlin_search_memory",
+    description: "Search saved memory. Runs memlin_search in hybrid mode (semantic cosine + BM25) and returns the same hits. On Pro, equivalent to memlin_search. On Memlin Light, results are scoped to the Light project's memory and plans; skills are never returned. Read a full note with memlin_get_document.",
+    annotations: { readOnlyHint: true, destructiveHint: false },
+    inputSchema: {
+      type: "object",
+      required: ["query"],
+      properties: {
+        query: { type: "string" },
+        kinds: {
+          type: "array",
+          items: { type: "string", enum: TOOL_SEARCHABLE_KINDS },
+          description: "Optional kind filter. On Light only memory and plans are searched."
+        },
+        limit: { type: "number", minimum: 1, maximum: 100 },
+        project_id: { type: "string" }
+      }
+    }
+  },
+  {
     name: "memlin_get_document",
     description: "Fetch a single document by id with its current version content. Use after memlin_search to read full content.",
     annotations: { readOnlyHint: true, destructiveHint: false },
@@ -74188,178 +74561,1447 @@ var TOOLS = [
   }
 ];
 
-// packages/mcp-tools/src/light.ts
-async function lightResolve(ctx, task) {
-  const status = await loadLightStatus(ctx.supabase, ctx.accountId);
-  if (!status?.active) return null;
-  if (ctx.projectId && ctx.projectId !== status.project_id)
-    throw new Error("light_project_read_only");
-  const { data, error: error40 } = await ctx.supabase.from("documents").select(
-    "id,kind,title,path,metadata,status,updated_at,document_versions!documents_current_version_fk(content,version_number,author_id)"
-  ).eq("account_id", ctx.accountId).eq("project_id", status.project_id).eq("kind", "memory").neq("status", "archived").order("updated_at", { ascending: false }).limit(50);
-  if (error40) throw new Error("Light memory temporarily unavailable");
-  const terms = new Set(task.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []);
-  const rows = (data ?? []).filter(
-    (r2) => isEligibleForRecall({
-      id: r2.id,
-      kind: "memory",
-      status: r2.status,
-      metadataStatus: r2.metadata?.status,
-      metadataSupersededBy: r2.metadata?.superseded_by
-    })
-  );
-  rows.sort((a2, b2) => {
-    const score = (r2) => [...terms].filter((t2) => r2.title.toLowerCase().includes(t2)).length;
-    return score(b2) - score(a2);
-  });
-  const memory = [];
-  let remaining = 2600;
-  for (const r2 of rows.slice(0, 5)) {
-    const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
-    const title = boundLightText(r2.title, 100);
-    const body = boundLightText(v2?.content ?? "", Math.max(0, remaining - 150));
-    if (!body) break;
-    remaining -= new TextEncoder().encode(body + title).length + 150;
-    memory.push({
-      id: r2.id,
-      kind: "memory",
-      title,
-      body,
-      similarity: 0,
-      component_id: null,
-      component_name: null,
-      citation: {
-        path: r2.path,
-        version_number: v2?.version_number ?? 1,
-        updated_at: r2.updated_at,
-        author_id: v2?.author_id ?? null
-      }
-    });
+// packages/mcp-tools/src/context.ts
+async function resolveProjectFilter(ctx, requested) {
+  if (!requested) return ctx.projectId ?? null;
+  if (requested === ctx.projectId) return requested;
+  const { data, error: error40 } = await ctx.supabase.from("projects").select("id").eq("id", requested).eq("account_id", ctx.accountId).maybeSingle();
+  if (error40 || !data) {
+    throw new Error(
+      `project_id ${requested} does not belong to the connected account (${ctx.accountId}). Point this connection at that project's account first \u2014 e.g. \`memlin link --account <account>\` \u2014 rather than passing a project id from another workspace.`
+    );
   }
-  if (memory.length) {
-    try {
-      await ctx.supabase.rpc("light_record_delivery", { p_account_id: ctx.accountId });
-    } catch {
-    }
+  return requested;
+}
+
+// packages/mcp-tools/src/transitions.ts
+async function callRpc(ctx, name, args) {
+  let res = await ctx.supabase.rpc(name, args);
+  if (res.error && /permission denied/i.test(res.error.message) && ctx.privilegedSupabase && ctx.privilegedSupabase !== ctx.supabase) {
+    res = await ctx.privilegedSupabase.rpc(name, args);
+  }
+  return res;
+}
+function firstRow(data) {
+  const row = Array.isArray(data) ? data[0] : data;
+  return row && typeof row === "object" ? row : null;
+}
+async function transitionDocument(ctx, args) {
+  let subject = args.subject;
+  if (!subject) {
+    const { data: data2, error: error41 } = await ctx.supabase.from("documents").select("id, kind, status, memory_type, metadata").eq("id", args.documentId).eq("account_id", ctx.accountId).maybeSingle();
+    if (error41) throw new Error(`transition: document read failed: ${error41.message}`);
+    if (!data2) throw new Error("transition: document not found");
+    subject = data2;
+  }
+  const current = lifecycleStatusOf(subject.metadata);
+  const refusal = checkTransition({
+    current,
+    expectedFrom: args.from ?? null,
+    to: args.to,
+    actor: args.actor,
+    subject
+  });
+  if (refusal) return refusal;
+  const { data, error: error40 } = await callRpc(ctx, MEMORY_TRANSITION_APPLY_RPC, {
+    p_account_id: ctx.accountId,
+    p_document_id: args.documentId,
+    p_from_status: current,
+    p_to_status: args.to,
+    p_actor_type: args.actor.type,
+    p_actor_id: args.actor.id,
+    p_actor_version: args.actor.version ?? null,
+    p_reason: args.reason,
+    p_evidence: args.evidence ?? {},
+    p_decision_id: args.decisionId ?? null,
+    p_metadata_patch: args.metadataPatch ?? {},
+    p_sql_status: args.sqlStatus ?? null,
+    p_touch_updated_at: args.touchUpdatedAt ?? false
+  });
+  if (error40) {
+    const reason = refusalFromRpcError(error40.message);
+    if (reason) return { refused: reason, from: current, to: args.to, message: error40.message };
+    throw new Error(`transition: ${error40.message}`);
+  }
+  const row = firstRow(data);
+  if (!row || typeof row.transition_id !== "string") {
+    throw new Error("transition: apply returned no ledger row");
   }
   return {
-    context_policy: "reference_only",
-    bundle: {
-      primary_skill: null,
-      supporting_skills: [],
-      memory,
-      goals: [],
-      schemas: [],
-      decisions: [],
-      brand_guidelines: null,
-      claim_guardrails: null,
-      required_core: [],
-      required_core_status: {
-        complete: true,
-        expected_ids: [],
-        delivered_ids: [],
-        missing_ids: [],
-        errors: []
-      },
-      pinned: [],
-      architecture: null,
-      concurrent_work: [],
-      collision_warnings: [],
-      deploy_in_progress: [],
-      recent_file_edits: [],
-      work_in_flight: [],
-      open_threads: [],
-      session_working: [],
-      pack_context: [],
-      recent_feedback: []
-    },
-    token_budget: {
-      limit: LIGHT_LIMITS.contextTokens,
-      used: 2600 - remaining,
-      truncated: rows.length > memory.length
-    },
-    audit_id: "",
-    resolved_at: (/* @__PURE__ */ new Date()).toISOString(),
-    active_component: null,
-    retrieval_coverage: { policy: "complete", lexical: "complete", semantic: "disabled" }
+    transitionId: row.transition_id,
+    from: current,
+    to: args.to
   };
 }
 
-// packages/mcp-tools/src/resolver.ts
-import { createHash as createHash2 } from "node:crypto";
-
-// packages/mcp-tools/src/rerank.ts
-var SYSTEM_PROMPT = `You are a code-context relevance ranker.
-
-A developer's AI agent is about to work on a task. Below are candidate items
-the resolver pulled from the workspace's memory + skills + goals + schemas + decisions.
-Score each one on how directly useful it would be to the agent doing THIS
-task. Higher score = more directly applicable. Skills that exactly match
-the problem domain score highest; broad-context items score lower; items
-that are tangentially related score lowest.
-
-Output JSON ONLY, no prose:
-{ "scores": [ { "n": 1, "score": 0.0-1.0 }, { "n": 2, "score": ... } ] }
-
-Rules:
-- Score every candidate. Missing entries are treated as score=0.
-- Be decisive \u2014 a long flat list of 0.5s is useless. Use the full range.
-- 0.85+ means "essential for this task"
-- 0.60-0.85 "highly relevant"
-- 0.30-0.60 "context-only, not load-bearing"
-- below 0.30 "off-topic for this task, drop it"
-- The agent shouldn't see surplus context; aggressively penalize off-topic items.`;
-function buildUserMessage(task, candidates) {
-  const numbered = candidates.map(
-    // No .slice() here — the caller already sized the excerpt
-    // (RERANK_EXCERPT_CHARS). A second hard-coded 500-char slice made bumping
-    // that constant a silent no-op.
-    (c2, i2) => `${i2 + 1}. [${c2.kind}] "${c2.title}"
-   ${c2.excerpt.replace(/\s+/g, " ")}`
-  ).join("\n\n");
-  return [
-    "<task>",
-    task,
-    "</task>",
-    "",
-    "<candidates>",
-    numbered,
-    "</candidates>",
-    "",
-    "Return JSON only."
-  ].join("\n");
-}
-function parseScores(raw, candidates) {
-  const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) return {};
-  let parsed = {};
-  try {
-    parsed = JSON.parse(match[0]);
-  } catch {
-    return {};
+// packages/mcp-tools/src/decision-outcomes.ts
+var DECISION_OUTCOME_VERSION = "decision_outcomes.v1";
+var RECORD_OUTCOME_RPC = "memory_decision_record_outcome";
+var MAKE_PRIVATE_RPC = "memory_decision_make_private";
+var MARK_COMPATIBLE_RPC = "memory_decision_mark_compatible";
+function planDecisionOutcome(decision, option) {
+  const subject = decision.subjectDocumentId;
+  const targets = decision.targetDocumentIds;
+  const tag = `decision:${decision.kind}:${option}`;
+  const captures = decisionCaptureDocumentIds(decision);
+  const subjectTo = (to, reason, extra = {}) => captures.map((documentId) => ({ documentId, role: "subject", to, reason, ...extra }));
+  const none = { ops: [], moves: [] };
+  switch (decision.kind) {
+    case "replace":
+      if (option === "replace") {
+        return {
+          ops: [],
+          moves: [
+            ...subjectTo("active", "A person chose to replace the live doc with this capture"),
+            ...targets.map(
+              (id3) => ({
+                documentId: id3,
+                role: "target",
+                to: "superseded",
+                reason: "A person chose the new capture over this doc",
+                metadataPatch: {
+                  superseded_by: subject,
+                  superseded_reason: tag
+                },
+                afterSubject: true
+              })
+            )
+          ]
+        };
+      }
+      if (option === "keep_both") {
+        return { ops: [], moves: subjectTo("active", "A person kept both docs live") };
+      }
+      if (option === "keep_existing") {
+        return {
+          ops: [],
+          moves: subjectTo("background", "The existing doc stays; the capture is searchable only")
+        };
+      }
+      return none;
+    case "conflict": {
+      const second = targets[0] ?? null;
+      if (option === "a_wins" && second) {
+        return {
+          ops: [],
+          moves: [
+            {
+              documentId: second,
+              role: "target",
+              to: "superseded",
+              reason: "A person chose the other doc as current",
+              metadataPatch: { superseded_by: subject, superseded_reason: tag }
+            }
+          ]
+        };
+      }
+      if (option === "b_wins" && subject && second) {
+        return {
+          ops: [],
+          moves: [
+            {
+              documentId: subject,
+              role: "target",
+              to: "superseded",
+              reason: "A person chose the other doc as current",
+              metadataPatch: { superseded_by: second, superseded_reason: tag }
+            }
+          ]
+        };
+      }
+      if (option === "both_valid") return { ops: ["mark_compatible"], moves: [] };
+      return none;
+    }
+    case "sensitive":
+      if (option === "keep") {
+        return {
+          ops: [],
+          moves: subjectTo("active", "A person kept this for the team", {
+            metadataPatch: { sensitive_hold: false, sensitive_resolution: "keep" }
+          })
+        };
+      }
+      if (option === "private") {
+        return {
+          ops: ["make_private"],
+          moves: subjectTo("active", "A person kept this private to its author", {
+            metadataPatch: { sensitive_hold: false, sensitive_resolution: "private" }
+          })
+        };
+      }
+      if (option === "discard") {
+        return {
+          ops: [],
+          moves: subjectTo("rejected", "Sensitive capture discarded", {
+            metadataPatch: { sensitive_resolution: "discard", rejected_reason: tag }
+          })
+        };
+      }
+      return none;
+    case "runbook":
+      if (option === "keep_live") {
+        return {
+          ops: [],
+          moves: subjectTo("active", "A person kept this runbook live", {
+            metadataPatch: { fast_track: false }
+          })
+        };
+      }
+      if (option === "searchable_only") {
+        return {
+          ops: [],
+          moves: subjectTo("background", "Runbook kept searchable only", {
+            metadataPatch: { fast_track: false }
+          })
+        };
+      }
+      if (option === "discard") {
+        return {
+          ops: [],
+          moves: subjectTo("rejected", "Runbook discarded", {
+            metadataPatch: { rejected_reason: tag }
+          })
+        };
+      }
+      return none;
+    case "goal":
+      if (option === "approve") {
+        return {
+          ops: [],
+          moves: subjectTo("active", "A person approved this goal", { sqlStatus: "approved" })
+        };
+      }
+      if (option === "reject") {
+        return {
+          ops: [],
+          moves: subjectTo("rejected", "A person rejected this goal", {
+            metadataPatch: { rejected_reason: tag }
+          })
+        };
+      }
+      return none;
   }
-  const out = {};
-  for (const entry of parsed.scores ?? []) {
-    if (typeof entry.n !== "number" || typeof entry.score !== "number") continue;
-    const idx = entry.n - 1;
-    const candidate = candidates[idx];
-    if (!candidate) continue;
-    const score = entry.score > 1 ? entry.score / 100 : entry.score;
-    out[candidate.id] = Math.max(0, Math.min(1, score));
+}
+async function loadRows(ctx, ids) {
+  const out = /* @__PURE__ */ new Map();
+  if (ids.length === 0) return out;
+  const read = (client2) => client2.from("documents").select("id, kind, status, memory_type, metadata").eq("account_id", ctx.accountId).in("id", ids);
+  let { data, error: error40 } = await read(ctx.supabase);
+  if (error40 && ctx.privilegedSupabase && ctx.privilegedSupabase !== ctx.supabase) {
+    ({ data, error: error40 } = await read(ctx.privilegedSupabase));
+  }
+  if (error40) throw new Error(`decision outcome: document read failed: ${error40.message}`);
+  for (const r2 of data ?? []) out.set(r2.id, r2);
+  return out;
+}
+async function rpcWithFallback(ctx, name, args) {
+  let res = await ctx.supabase.rpc(name, args);
+  if (res.error && /permission denied/i.test(res.error.message) && ctx.privilegedSupabase && ctx.privilegedSupabase !== ctx.supabase) {
+    res = await ctx.privilegedSupabase.rpc(name, args);
+  }
+  return res;
+}
+async function applyDecisionOutcome(ctx, decision, option, actor) {
+  const plan = planDecisionOutcome(decision, option);
+  const result = {
+    applied: true,
+    transitions: [],
+    unchanged: [],
+    refusals: [],
+    recorded: false
+  };
+  const isDefault = actor.type === "decision_default";
+  let opFailed = false;
+  for (const op of plan.ops) {
+    const name = op === "make_private" ? MAKE_PRIVATE_RPC : MARK_COMPATIBLE_RPC;
+    const { error: error41 } = await rpcWithFallback(ctx, name, {
+      p_account_id: ctx.accountId,
+      p_decision_id: decision.id
+    });
+    if (error41) {
+      opFailed = true;
+      result.refusals.push({
+        documentId: decision.subjectDocumentId,
+        refused: "failed",
+        from: null,
+        to: null,
+        message: `${op}: ${error41.message}`
+      });
+    }
+  }
+  const rows = await loadRows(ctx, [...new Set(plan.moves.map((m2) => m2.documentId))]);
+  let subjectRefused = opFailed;
+  for (const move of plan.moves) {
+    if (move.role === "subject" && opFailed || move.afterSubject && subjectRefused) {
+      result.refusals.push({
+        documentId: move.documentId,
+        refused: "stale",
+        from: null,
+        to: move.to,
+        message: move.role === "subject" ? "skipped: a prerequisite step failed" : "skipped: the replacement did not go live"
+      });
+      continue;
+    }
+    const row = rows.get(move.documentId);
+    if (!row) {
+      if (move.role === "subject") subjectRefused = true;
+      result.refusals.push({
+        documentId: move.documentId,
+        refused: "missing",
+        from: null,
+        to: move.to,
+        message: "document not found"
+      });
+      continue;
+    }
+    const current = lifecycleStatusOf(row.metadata);
+    if (current === move.to) {
+      result.unchanged.push(move.documentId);
+      continue;
+    }
+    if (isDefault && isRetirementMove(current, move.to)) {
+      if (move.role === "subject") subjectRefused = true;
+      result.refusals.push({
+        documentId: move.documentId,
+        refused: "needs_human",
+        from: current,
+        to: move.to,
+        message: "a default never retires a doc agents are given"
+      });
+      continue;
+    }
+    try {
+      const out = await transitionDocument(ctx, {
+        documentId: move.documentId,
+        to: move.to,
+        actor,
+        reason: move.reason,
+        decisionId: decision.id,
+        evidence: {
+          decision_kind: decision.kind,
+          option,
+          outcome_version: DECISION_OUTCOME_VERSION
+        },
+        ...move.sqlStatus ? { sqlStatus: move.sqlStatus } : {},
+        ...move.metadataPatch ? { metadataPatch: move.metadataPatch } : {},
+        subject: row,
+        touchUpdatedAt: true
+      });
+      if (isTransitionRefusal(out)) {
+        if (move.role === "subject") subjectRefused = true;
+        result.refusals.push({
+          documentId: move.documentId,
+          refused: out.refused,
+          from: out.from,
+          to: out.to,
+          message: out.message
+        });
+      } else {
+        result.transitions.push({
+          documentId: move.documentId,
+          transitionId: out.transitionId,
+          from: out.from,
+          to: out.to
+        });
+      }
+    } catch (e2) {
+      if (move.role === "subject") subjectRefused = true;
+      result.refusals.push({
+        documentId: move.documentId,
+        refused: "failed",
+        from: current,
+        to: move.to,
+        message: e2 instanceof Error ? e2.message : String(e2)
+      });
+    }
+  }
+  result.applied = result.refusals.length === 0;
+  const { error: error40 } = await rpcWithFallback(ctx, RECORD_OUTCOME_RPC, {
+    p_account_id: ctx.accountId,
+    p_decision_id: decision.id,
+    p_result: {
+      applied: result.applied,
+      transitions: result.transitions,
+      unchanged: result.unchanged,
+      refusals: result.refusals,
+      version: DECISION_OUTCOME_VERSION
+    }
+  });
+  result.recorded = !error40;
+  if (error40) {
+    console.warn(`[decision-outcomes] recording outcome for ${decision.id} failed: ${error40.message}`);
+  }
+  return result;
+}
+function createDecisionOutcomeApplier(ctx) {
+  return {
+    apply: (decision, option, actor) => applyDecisionOutcome(ctx, decision, option, actor)
+  };
+}
+
+// packages/mcp-tools/src/decisions.ts
+var DECISION_EXPLANATION_VERSION = 2;
+var MAX_DIFF_SOURCE_CHARS = 2e4;
+var MAX_DIFF_SOURCE_LINES = 400;
+var DEFAULT_DIFF_LINES = 24;
+var noopDecisionOutcomeApplier = {
+  async apply() {
+  }
+};
+var DecisionError = class extends Error {
+  constructor(code, message) {
+    super(message);
+    this.code = code;
+    this.name = "DecisionError";
+  }
+  code;
+};
+function str3(v2) {
+  return typeof v2 === "string" && v2.length > 0 ? v2 : null;
+}
+function stringList(v2, max = 5) {
+  if (!Array.isArray(v2)) return [];
+  return v2.filter((s2) => typeof s2 === "string" && s2.trim().length > 0).map((s2) => s2.trim().slice(0, 400)).slice(0, max);
+}
+function channel(v2) {
+  return typeof v2 === "string" && DECISION_CHANNELS.includes(v2) ? v2 : null;
+}
+function decisionFromRow(row) {
+  const kind2 = row.kind;
+  const spec = DECISION_KINDS[kind2];
+  const explanation = spec?.aiExplanation ? validateExplanation(kind2, row.explanation) : null;
+  const stored = Array.isArray(row.options) ? row.options : [];
+  const specOptions = spec ? spec.options : [];
+  const options2 = specOptions.map((o2) => {
+    const fromRow = stored.find((s2) => s2.id === o2.id);
+    const fromAi = explanation?.options.find((s2) => s2.id === o2.id);
+    return {
+      ...o2,
+      pros: fromAi?.pros ?? stringList(fromRow?.pros),
+      cons: fromAi?.cons ?? stringList(fromRow?.cons)
+    };
+  });
+  const origin = row.origin && typeof row.origin === "object" ? row.origin : {};
+  const relatedDocumentIds = Array.isArray(row.related_document_ids) ? row.related_document_ids.filter((x2) => typeof x2 === "string") : [];
+  return {
+    id: String(row.id),
+    accountId: String(row.account_id),
+    projectId: str3(row.project_id),
+    kind: kind2,
+    state: row.state,
+    subjectDocumentId: str3(row.subject_document_id),
+    targetDocumentIds: Array.isArray(row.target_document_ids) ? row.target_document_ids.filter((x2) => typeof x2 === "string") : [],
+    relatedDocumentIds,
+    captureCount: typeof row.capture_count === "number" && row.capture_count >= 1 ? row.capture_count : 1 + relatedDocumentIds.length,
+    origin,
+    question: String(row.question ?? ""),
+    whyHuman: String(row.why_human ?? spec?.whyHuman ?? ""),
+    evidence: row.evidence && typeof row.evidence === "object" ? row.evidence : {},
+    options: options2,
+    recommendation: spec?.aiExplanation ? explanation?.recommendation ?? validateRecommendation(kind2, row.recommendation) : null,
+    defaultOption: String(row.default_option ?? spec?.defaultOption ?? ""),
+    deadlineAt: String(row.deadline_at),
+    consequenceScore: typeof row.consequence_score === "number" ? row.consequence_score : 0,
+    askedAt: str3(row.asked_at),
+    askedVia: channel(row.asked_via),
+    answeredAt: str3(row.answered_at),
+    answeredBy: str3(row.answered_by),
+    answeredVia: channel(row.answered_via),
+    answerOption: str3(row.answer_option),
+    answerNote: str3(row.answer_note),
+    answerQuote: str3(row.answer_quote),
+    explanationVersion: typeof row.explanation_version === "number" ? row.explanation_version : 0,
+    createdAt: String(row.created_at)
+  };
+}
+function validateRecommendation(kind2, raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const r2 = raw;
+  const option = str3(r2.option);
+  if (!option || !isValidAnswer(kind2, option)) return null;
+  const confidence = typeof r2.confidence === "number" ? r2.confidence : Number.NaN;
+  if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) return null;
+  const rationale = str3(typeof r2.rationale === "string" ? r2.rationale.trim() : null);
+  if (!rationale) return null;
+  return { option, confidence, rationale: rationale.slice(0, 1200) };
+}
+function validateExplanation(kind2, raw) {
+  if (!isDecisionKind(kind2) || !raw || typeof raw !== "object") return null;
+  const r2 = raw;
+  const recommendation = validateRecommendation(kind2, r2.recommendation);
+  if (!recommendation) return null;
+  const rawOptions = Array.isArray(r2.options) ? r2.options : [];
+  const options2 = DECISION_KINDS[kind2].options.map((o2) => {
+    const found = rawOptions.find((x2) => x2 && x2.id === o2.id);
+    return { id: o2.id, pros: stringList(found?.pros), cons: stringList(found?.cons) };
+  });
+  return { recommendation, options: options2 };
+}
+function actorClient(ctx) {
+  return ctx.actorSupabase ?? ctx.supabase;
+}
+function serviceClient(ctx) {
+  return ctx.privilegedSupabase ?? ctx.supabase;
+}
+function rpcFailure(prefix, error40) {
+  const message = `${prefix}: ${error40.message ?? "request failed"}`;
+  switch (error40.code) {
+    case "42501":
+      return new DecisionError("forbidden", message);
+    case "P0002":
+      return new DecisionError("not_found", message);
+    case "22023":
+      return new DecisionError("invalid", message);
+    case "PT409":
+      return new DecisionError("conflict", message);
+    default:
+      return new DecisionError("failed", message);
+  }
+}
+function questionFor(kind2, subjectTitle) {
+  const label = DECISION_KINDS[kind2].label;
+  const title = subjectTitle?.trim();
+  return (title ? `${label}: "${title.slice(0, 200)}"` : label).slice(0, 2e3);
+}
+async function raiseDecision(ctx, input, deps = {}) {
+  if (!isDecisionKind(input.kind)) {
+    throw new DecisionError(
+      "invalid",
+      `raise_decision: unknown decision kind "${String(input.kind)}"`
+    );
+  }
+  const spec = DECISION_KINDS[input.kind];
+  const raisedAtMs = input.raisedAtMs ?? (deps.now ?? Date.now)();
+  const { data, error: error40 } = await serviceClient(ctx).rpc("memory_decision_raise", {
+    p_account_id: ctx.accountId,
+    p_project_id: input.projectId ?? null,
+    p_kind: input.kind,
+    p_subject_document_id: input.subjectDocumentId ?? null,
+    p_target_document_ids: input.targetDocumentIds ?? [],
+    p_origin: input.origin ?? {},
+    p_question: questionFor(input.kind, input.subjectTitle),
+    p_why_human: spec.whyHuman,
+    p_evidence: input.evidence ?? {},
+    p_options: spec.options.map((o2) => ({ ...o2, pros: [], cons: [] })),
+    p_default_option: spec.defaultOption,
+    p_deadline_at: decisionDeadline(input.kind, raisedAtMs),
+    p_consequence_score: Math.max(0, Math.round(input.consequenceScore ?? 0)),
+    p_capture_cap: DECISION_CAPS.perCapture
+  });
+  if (error40) throw rpcFailure("raise_decision", error40);
+  const out = data ?? {};
+  if (out.capped === true) return { status: "capped", decision: null, explained: false };
+  if (!out.id) throw new DecisionError("failed", "raise_decision: no row returned");
+  const decision = decisionFromRow(out);
+  if (out.created !== true) {
+    return { status: "existing", decision, explained: false, attached: out.attached === true };
+  }
+  let explained = false;
+  if (deps.explain && spec.aiExplanation) {
+    try {
+      explained = await cacheExplanation(ctx, decision, deps.explain);
+    } catch {
+    }
+  }
+  return { status: "raised", decision, explained };
+}
+async function raiseDecisions(ctx, inputs, deps = {}) {
+  const results = [];
+  let raised = 0;
+  for (const input of inputs) {
+    if (raised >= DECISION_CAPS.perCapture) {
+      results.push({ status: "capped", decision: null, explained: false });
+      continue;
+    }
+    const r2 = await raiseDecision(ctx, input, deps);
+    if (r2.status === "raised") raised++;
+    results.push(r2);
+  }
+  return results;
+}
+async function cacheExplanation(ctx, decision, generate) {
+  if (!DECISION_KINDS[decision.kind].aiExplanation) return false;
+  const evidence = await buildDecisionEvidence(ctx, decision);
+  const explanation = validateExplanation(decision.kind, await generate({ decision, evidence }));
+  if (!explanation) return false;
+  const { data, error: error40 } = await serviceClient(ctx).rpc("memory_decision_set_explanation", {
+    p_account_id: ctx.accountId,
+    p_decision_id: decision.id,
+    p_explanation: explanation,
+    p_version: DECISION_EXPLANATION_VERSION
+  });
+  if (error40) throw rpcFailure("explain_decision", error40);
+  return data === true;
+}
+async function visibleToCaller(ctx, decisions) {
+  if (!ctx.serviceTokenId) return decisions;
+  const candidates = decisions.filter((d2) => d2.kind !== "sensitive");
+  const ids = [
+    ...new Set(
+      candidates.flatMap((d2) => [...decisionCaptureDocumentIds(d2), ...d2.targetDocumentIds])
+    )
+  ];
+  if (ids.length === 0) return candidates;
+  const { data, error: error40 } = await actorClient(ctx).from("documents").select("id, scope, created_by").eq("account_id", ctx.accountId).in("id", ids);
+  if (error40) throw rpcFailure("decision_visibility", error40);
+  const hidden = new Set(
+    (data ?? []).filter((d2) => d2.scope === "personal" && d2.created_by !== ctx.userId).map((d2) => d2.id)
+  );
+  return candidates.filter(
+    (d2) => !decisionCaptureDocumentIds(d2).some((id3) => hidden.has(id3)) && !d2.targetDocumentIds.some((id3) => hidden.has(id3))
+  );
+}
+async function getDecision(ctx, decisionId) {
+  const { data, error: error40 } = await actorClient(ctx).rpc("memory_decision_get", {
+    p_account_id: ctx.accountId,
+    p_decision_id: decisionId
+  });
+  if (error40) throw rpcFailure("get_decision", error40);
+  if (!data || typeof data !== "object") return null;
+  const row = data;
+  if (row.account_id !== ctx.accountId) return null;
+  const [visible] = await visibleToCaller(ctx, [decisionFromRow(row)]);
+  return visible ?? null;
+}
+async function listOpenDecisions(ctx, args = {}) {
+  const limit2 = Math.min(Math.max(Math.trunc(args.limit ?? 50), 1), 200);
+  const { data, error: error40 } = await actorClient(ctx).rpc("memory_decisions_list_open", {
+    p_account_id: ctx.accountId,
+    p_limit: limit2
+  });
+  if (error40) throw rpcFailure("list_decisions", error40);
+  const rows = Array.isArray(data) ? data : [];
+  const decisions = rows.filter((r2) => r2.account_id === ctx.accountId).map(decisionFromRow).sort(
+    (a2, b2) => b2.consequenceScore - a2.consequenceScore || Date.parse(a2.deadlineAt) - Date.parse(b2.deadlineAt)
+  ).slice(0, limit2);
+  return visibleToCaller(ctx, decisions);
+}
+async function countOpenDecisions(ctx) {
+  if (ctx.serviceTokenId) return (await listOpenDecisions(ctx, { limit: 200 })).length;
+  const { data, error: error40 } = await actorClient(ctx).rpc("memory_decisions_open_count", {
+    p_account_id: ctx.accountId
+  });
+  if (error40) throw rpcFailure("count_decisions", error40);
+  return typeof data === "number" ? data : Number(data ?? 0) || 0;
+}
+async function loadDecisionSubjectStates(ctx, decisions) {
+  const ids = [...new Set(decisions.flatMap((d2) => decisionCaptureDocumentIds(d2)))];
+  if (ids.length === 0) return /* @__PURE__ */ new Map();
+  try {
+    const { data, error: error40 } = await actorClient(ctx).from("documents").select("id, status, lifecycle:metadata->>status").eq("account_id", ctx.accountId).in("id", ids);
+    if (error40) return null;
+    const out = /* @__PURE__ */ new Map();
+    for (const row of data ?? []) {
+      out.set(row.id, { status: row.status ?? null, lifecycle: row.lifecycle ?? null });
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+async function readOpenDecisionGroups(ctx, nowMs = Date.now()) {
+  const decisions = await listOpenDecisions(ctx, { limit: DECISION_GROUP_READ_LIMIT });
+  const subjects = await loadDecisionSubjectStates(ctx, decisions);
+  return { groups: openDecisionGroups(decisions, nowMs, subjects), listed: decisions.length };
+}
+async function listDecisionsWithNeedsYou(ctx, args = {}) {
+  const [decisions, count, grouped] = await Promise.all([
+    listOpenDecisions(ctx, { limit: args.limit }),
+    countOpenDecisions(ctx),
+    readOpenDecisionGroups(ctx)
+  ]);
+  return {
+    decisions,
+    count,
+    needs_you_count: needsYouDecisionCount({
+      groups: grouped.groups.length,
+      listed: grouped.listed,
+      openCount: count
+    }),
+    groups: grouped.groups.map(toNeedsYouGroupWire)
+  };
+}
+async function markDecisionAsked(ctx, decisionId, via) {
+  const { data, error: error40 } = await actorClient(ctx).rpc("memory_decision_mark_asked", {
+    p_account_id: ctx.accountId,
+    p_decision_id: decisionId,
+    p_via: via
+  });
+  if (error40) throw rpcFailure("mark_asked", error40);
+  return decisionFromRow(data);
+}
+var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+async function answerDecision(ctx, input, deps = {}) {
+  if (ctx.callerRole === "viewer") {
+    throw new DecisionError("forbidden", "decide: answering a decision requires a writer");
+  }
+  if (!DECISION_CHANNELS.includes(input.via)) {
+    throw new DecisionError("invalid", `decide: unknown channel "${String(input.via)}"`);
+  }
+  const current = await getDecision(ctx, input.decisionId);
+  if (!current) throw new DecisionError("not_found", "decide: decision not found");
+  const spec = DECISION_KINDS[current.kind];
+  if (!isValidAnswer(current.kind, input.option)) {
+    throw new DecisionError(
+      "invalid",
+      `decide: "${input.option}" is not an option for a ${current.kind} decision (choose one of: ${spec.options.map((o2) => o2.id).join(", ")})`
+    );
+  }
+  const { data, error: error40 } = await actorClient(ctx).rpc("memory_decision_answer", {
+    p_account_id: ctx.accountId,
+    p_decision_id: input.decisionId,
+    p_option: input.option,
+    p_via: input.via,
+    p_note: input.note?.trim() || null,
+    p_quote: input.userQuote?.trim() || null,
+    // Honoured only for the service role; a user's own JWT identity wins.
+    p_answered_by: ctx.userId && UUID_RE.test(ctx.userId) ? ctx.userId : null
+  });
+  if (error40) throw rpcFailure("decide", error40);
+  const row = data;
+  const decision = decisionFromRow(row);
+  const option = spec.options.find((o2) => o2.id === input.option);
+  const replayed = row.replayed === true;
+  let applied = false;
+  let applyError = null;
+  let outcome = null;
+  if (!replayed) {
+    try {
+      outcome = await (deps.applier ?? noopDecisionOutcomeApplier).apply(decision, option.id, {
+        type: "human",
+        id: decision.answeredBy ?? ctx.userId ?? "unknown"
+      }) ?? null;
+      applied = outcome ? outcome.applied : true;
+    } catch (e2) {
+      applyError = e2 instanceof Error ? e2.message : String(e2);
+    }
+  }
+  return {
+    decision,
+    option,
+    consequence: option.consequence,
+    reversible: option.reversible,
+    replayed,
+    applied,
+    applyError,
+    outcome
+  };
+}
+function originSummary(origin) {
+  const parts = [];
+  if (origin.agent) parts.push(`${origin.agent} session`);
+  else if (origin.sessionId) parts.push("agent session");
+  if (origin.sessionId) parts.push(origin.sessionId.slice(0, 12));
+  if (origin.commitSha) parts.push(`commit ${origin.commitSha.slice(0, 7)}`);
+  if (origin.userId) parts.push("work by a workspace member");
+  return parts.length ? parts.join(" \xB7 ") : "unknown origin";
+}
+function shortTextDiff(before, after, maxLines = DEFAULT_DIFF_LINES) {
+  const clip = (s2) => {
+    const lines = s2.slice(0, MAX_DIFF_SOURCE_CHARS).split("\n");
+    return {
+      lines: lines.slice(0, MAX_DIFF_SOURCE_LINES),
+      clipped: s2.length > MAX_DIFF_SOURCE_CHARS || lines.length > MAX_DIFF_SOURCE_LINES
+    };
+  };
+  const a2 = clip(before);
+  const b2 = clip(after);
+  const n2 = a2.lines.length;
+  const m2 = b2.lines.length;
+  const lcs = Array.from({ length: n2 + 1 }, () => new Uint16Array(m2 + 1));
+  for (let i3 = n2 - 1; i3 >= 0; i3--) {
+    for (let j3 = m2 - 1; j3 >= 0; j3--) {
+      lcs[i3][j3] = a2.lines[i3] === b2.lines[j3] ? lcs[i3 + 1][j3 + 1] + 1 : Math.max(lcs[i3 + 1][j3], lcs[i3][j3 + 1]);
+    }
+  }
+  const out = [];
+  let added = 0;
+  let removed = 0;
+  let i2 = 0;
+  let j2 = 0;
+  while (i2 < n2 || j2 < m2) {
+    if (i2 < n2 && j2 < m2 && a2.lines[i2] === b2.lines[j2]) {
+      i2++;
+      j2++;
+    } else if (j2 < m2 && (i2 >= n2 || lcs[i2][j2 + 1] >= lcs[i2 + 1][j2])) {
+      added++;
+      out.push(`+ ${b2.lines[j2]}`);
+      j2++;
+    } else {
+      removed++;
+      out.push(`- ${a2.lines[i2]}`);
+      i2++;
+    }
+  }
+  return {
+    text: out.slice(0, maxLines).join("\n"),
+    added,
+    removed,
+    truncated: out.length > maxLines || a2.clipped || b2.clipped
+  };
+}
+async function readDocs(ctx, ids) {
+  const out = /* @__PURE__ */ new Map();
+  if (ids.length === 0) return out;
+  const { data, error: error40 } = await actorClient(ctx).from("documents").select("id, title, document_versions!documents_current_version_fk ( content )").eq("account_id", ctx.accountId).in("id", ids);
+  if (error40 || !Array.isArray(data)) return out;
+  for (const row of data) {
+    const v2 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+    out.set(String(row.id), {
+      id: String(row.id),
+      title: str3(row.title),
+      content: typeof v2?.content === "string" ? v2.content : ""
+    });
   }
   return out;
 }
-async function rerankCandidates(task, candidates, chat) {
-  const startedAt = Date.now();
-  if (candidates.length === 0) {
-    return { scores: {}, latency_ms: 0 };
+async function buildDecisionEvidence(ctx, decision) {
+  const spec = DECISION_KINDS[decision.kind];
+  const ev = decision.evidence;
+  const targetId = decision.targetDocumentIds[0] ?? null;
+  const subjectId = decision.subjectDocumentId;
+  const docs = await readDocs(
+    ctx,
+    [subjectId, targetId].filter((x2) => typeof x2 === "string")
+  );
+  const [beforeId, afterId] = decision.kind === "conflict" ? [subjectId, targetId] : [targetId, subjectId];
+  const before = beforeId ? docs.get(beforeId) : void 0;
+  const after = afterId ? docs.get(afterId) : void 0;
+  let diff = null;
+  if (before || after) {
+    diff = {
+      before: before ? { id: before.id, title: before.title } : null,
+      after: after ? { id: after.id, title: after.title } : null,
+      ...shortTextDiff(before?.content ?? "", after?.content ?? "")
+    };
   }
-  const user = buildUserMessage(task, candidates);
-  const maxTokens = Math.min(2048, 128 + candidates.length * 32);
-  const raw = await chat(SYSTEM_PROMPT, user, { max_tokens: maxTokens });
-  const scores = parseScores(raw, candidates);
-  return { scores, latency_ms: Date.now() - startedAt };
+  const def = spec.options.find((o2) => o2.id === spec.defaultOption);
+  return {
+    reason: {
+      kind: decision.kind,
+      label: spec.label,
+      raisedWhen: spec.raisedWhen,
+      whyHuman: spec.whyHuman,
+      detail: str3(ev.reason)
+    },
+    origin: { ...decision.origin, summary: originSummary(decision.origin) },
+    automation: stringList(ev.automation, 20),
+    diff,
+    deadline: {
+      at: decision.deadlineAt,
+      defaultOption: def.id,
+      defaultLabel: def.label,
+      consequence: def.consequence
+    },
+    options: spec.options.map((o2) => ({ ...o2 })),
+    reversible: spec.options.every((o2) => o2.reversible)
+  };
 }
+async function explainDecision(ctx, decisionId) {
+  const decision = await getDecision(ctx, decisionId);
+  if (!decision) throw new DecisionError("not_found", "explain_decision: decision not found");
+  const aiAllowed = DECISION_KINDS[decision.kind].aiExplanation;
+  const evidence = await buildDecisionEvidence(ctx, decision);
+  const ai = aiAllowed && decision.recommendation ? {
+    recommendation: decision.recommendation,
+    options: decision.options.map((o2) => ({ id: o2.id, pros: o2.pros, cons: o2.cons }))
+  } : null;
+  return { decision, evidence, ai, aiAllowed };
+}
+var ListDecisionsArgs = external_exports.object({
+  limit: external_exports.number().int().min(1).max(200).optional()
+});
+var ExplainDecisionArgs = external_exports.object({ decision_id: external_exports.string().uuid() });
+var DecideArgs = external_exports.object({
+  decision_id: external_exports.string().uuid(),
+  option: external_exports.string().min(1).max(64),
+  note: external_exports.string().max(4e3).optional(),
+  user_quote: external_exports.string().max(4e3).optional()
+});
+async function listDecisionsTool(ctx, rawArgs) {
+  const args = ListDecisionsArgs.parse(rawArgs ?? {});
+  return listDecisionsWithNeedsYou(ctx, { limit: args.limit });
+}
+async function explainDecisionTool(ctx, rawArgs) {
+  const args = ExplainDecisionArgs.parse(rawArgs);
+  return explainDecision(ctx, args.decision_id);
+}
+async function decideTool(ctx, rawArgs, deps = {}) {
+  const args = DecideArgs.parse(rawArgs);
+  return answerDecision(
+    ctx,
+    {
+      decisionId: args.decision_id,
+      option: args.option,
+      note: args.note,
+      userQuote: args.user_quote,
+      via: "mcp"
+    },
+    {
+      ...deps,
+      // The answer is carried out on the answering person's own client, so the
+      // ledger's caller check sees them; the privileged client is the fallback
+      // the transition path already uses for Auth0 sessions.
+      applier: deps.applier ?? createDecisionOutcomeApplier({
+        supabase: actorClient(ctx),
+        privilegedSupabase: ctx.privilegedSupabase,
+        accountId: ctx.accountId
+      })
+    }
+  );
+}
+
+// packages/mcp-tools/src/curation.ts
+var CurationError = class extends Error {
+  code;
+  constructor(code, message) {
+    super(message);
+    this.name = "CurationError";
+    this.code = code;
+  }
+};
+var ACTION_TARGET = {
+  approve: "approved",
+  archive: "archived",
+  // Unarchive restores to draft (the only legal move out of archived) —
+  // the doc re-enters the curation funnel rather than jumping straight
+  // back to approved.
+  unarchive: "draft"
+};
+function decideStatusChange(args) {
+  const { action, currentStatus, role } = args;
+  if (role === "viewer") {
+    throw new CurationError("forbidden", "viewer role cannot curate documents");
+  }
+  if (action === "approve" && role !== "owner" && role !== "admin") {
+    throw new CurationError("forbidden", "approving a document is owner/admin-only");
+  }
+  if (action === "unarchive" && currentStatus !== "archived") {
+    throw new CurationError("invalid_transition", "document is not archived");
+  }
+  const to = ACTION_TARGET[action];
+  if (currentStatus === to) {
+    throw new CurationError(
+      "invalid_transition",
+      `document is already ${currentStatus}`
+    );
+  }
+  const allowed = DOCUMENT_STATUS_TRANSITIONS[currentStatus] ?? [];
+  if (!allowed.includes(to)) {
+    throw new CurationError(
+      "invalid_transition",
+      `invalid transition: ${currentStatus} \u2192 ${to}`
+    );
+  }
+  return { to };
+}
+var SetStatusArgs = external_exports.object({
+  document_id: external_exports.string().uuid(),
+  action: external_exports.enum(["approve", "archive", "unarchive"])
+});
+async function setDocumentStatus(ctx, rawArgs) {
+  let args;
+  try {
+    args = SetStatusArgs.parse(rawArgs);
+  } catch (e2) {
+    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
+  }
+  const role = ctx.callerRole ?? "viewer";
+  const { data: doc, error: readErr } = await ctx.supabase.from("documents").select("id, account_id, scope, created_by, kind, title, status, metadata").eq("id", args.document_id).maybeSingle();
+  if (readErr) throw new CurationError("not_found", `document lookup failed: ${readErr.message}`);
+  if (!doc || doc.account_id !== ctx.accountId) {
+    throw new CurationError("not_found", "document not found in this account");
+  }
+  const row = doc;
+  if (row.scope === "personal" && row.created_by && ctx.userId !== row.created_by) {
+    throw new CurationError("forbidden", "personal-scope documents can only be curated by their creator");
+  }
+  const { to } = decideStatusChange({ action: args.action, currentStatus: row.status, role });
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const actor = ctx.userId ?? "api";
+  const meta = { ...row.metadata ?? {} };
+  let metadataStatusActivated = false;
+  if (args.action === "approve") {
+    meta.approved_at = nowIso;
+    meta.approved_by = actor;
+    if (meta.status === "proposed" || meta.status === "background") {
+      meta.status = "active";
+      meta.accepted_at = nowIso;
+      meta.accepted_by_user_sub = actor;
+      metadataStatusActivated = true;
+    }
+  } else if (args.action === "archive") {
+    meta.lifecycle_action = "archived";
+    meta.lifecycle_archived_at = nowIso;
+    meta.lifecycle_archived_by_user_sub = actor;
+  } else {
+    meta.lifecycle_action = "unarchived";
+    meta.lifecycle_unarchived_at = nowIso;
+    meta.lifecycle_unarchived_by_user_sub = actor;
+    if (meta.status === "superseded" || meta.status === "archived") {
+      meta.status = "active";
+      metadataStatusActivated = true;
+    }
+  }
+  const { error: updateErr } = await ctx.supabase.from("documents").update({ status: to, metadata: meta }).eq("id", row.id).eq("account_id", ctx.accountId);
+  if (updateErr) {
+    throw new CurationError("forbidden", `status update failed: ${updateErr.message}`);
+  }
+  return {
+    id: row.id,
+    kind: row.kind,
+    title: row.title,
+    from: row.status,
+    to,
+    metadata_status_activated: metadataStatusActivated
+  };
+}
+async function applyCanonicalMerge(ctx, args) {
+  const count = (m2) => m2 && typeof m2.corroboration_count === "number" ? m2.corroboration_count : 0;
+  const canonicalMeta = args.canonical.metadata ?? {};
+  const summedCorroboration = Math.max(count(canonicalMeta), 1) + args.twins.reduce((s2, t2) => s2 + Math.max(count(t2.metadata), 1), 0);
+  let newVersionNumber = null;
+  const builtMetadata = args.buildCanonicalMetadata(summedCorroboration);
+  if (args.content !== null) {
+    const { data, error: writeErr } = await ctx.supabase.rpc("write_document", {
+      p_document_id: args.canonical.id,
+      p_account_id: ctx.accountId,
+      p_project_id: args.canonical.project_id ?? null,
+      p_scope: args.canonical.scope,
+      p_kind: args.canonical.kind,
+      p_title: args.canonical.title,
+      p_path: args.canonical.path ?? null,
+      p_content: args.content,
+      p_embedding: null,
+      p_metadata: builtMetadata,
+      p_commit_message: args.commitMessage,
+      p_yjs_state_b64: null,
+      // buildCanonicalMetadata returns the FULL object — replace semantics
+      // (no merge flag). Attribution rides only on the service-token path.
+      ...ctx.serviceTokenId ? { p_author_id: ctx.userId ?? null, p_service_token_id: ctx.serviceTokenId } : {}
+    });
+    if (writeErr) {
+      throw new CurationError("forbidden", `merge apply failed: ${writeErr.message}`);
+    }
+    const rows = data;
+    newVersionNumber = rows?.[0]?.version_number ?? null;
+  } else {
+    const { error: metaErr } = await ctx.supabase.from("documents").update({ metadata: builtMetadata }).eq("id", args.canonical.id).eq("account_id", ctx.accountId);
+    if (metaErr) {
+      throw new CurationError("forbidden", `merge metadata update failed: ${metaErr.message}`);
+    }
+  }
+  for (const twin of args.twins) {
+    const twinMeta = twin.metadata ?? {};
+    const { error: archiveErr } = await ctx.supabase.from("documents").update({
+      status: "archived",
+      metadata: {
+        ...twinMeta,
+        status: "superseded",
+        superseded_by: args.canonical.id,
+        superseded_at: args.nowIso,
+        superseded_reason: args.supersededReason
+      }
+    }).eq("id", twin.id).eq("account_id", ctx.accountId);
+    if (archiveErr) {
+      throw new CurationError("forbidden", `twin archive failed: ${archiveErr.message}`);
+    }
+  }
+  return { newVersionNumber, summedCorroboration };
+}
+var MergeArgs = external_exports.object({
+  canonical_id: external_exports.string().uuid(),
+  duplicate_ids: external_exports.array(external_exports.string().uuid()).min(1).max(50),
+  /** Optional canonical body replacing the keeper's content (new version).
+   *  Omit when the keeper's existing body already is the merged truth —
+   *  the merge is then metadata-only and creates no version. */
+  merged_content: external_exports.string().min(1).optional(),
+  commit_message: external_exports.string().max(500).optional()
+});
+async function mergeDocuments(ctx, rawArgs) {
+  let args;
+  try {
+    args = MergeArgs.parse(rawArgs);
+  } catch (e2) {
+    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
+  }
+  const role = ctx.callerRole ?? "viewer";
+  if (role === "viewer") {
+    throw new CurationError("forbidden", "viewer role cannot merge documents");
+  }
+  const { data: canonicalRow, error: canonicalErr } = await ctx.supabase.from("documents").select("id, account_id, project_id, scope, kind, title, path, status, metadata").eq("id", args.canonical_id).maybeSingle();
+  if (canonicalErr) {
+    throw new CurationError("not_found", `canonical lookup failed: ${canonicalErr.message}`);
+  }
+  if (!canonicalRow || canonicalRow.account_id !== ctx.accountId) {
+    throw new CurationError("not_found", "canonical document not found in this account");
+  }
+  const canonical2 = canonicalRow;
+  if (canonical2.scope === "personal") {
+    throw new CurationError("forbidden", "personal-scope documents cannot be merge targets");
+  }
+  if (canonical2.status === "archived") {
+    throw new CurationError("invalid_transition", "canonical document is archived \u2014 unarchive it first");
+  }
+  const requestedIds = args.duplicate_ids.filter((id3) => id3 !== args.canonical_id);
+  const skipped = args.duplicate_ids.filter((id3) => id3 === args.canonical_id).map((id3) => ({ id: id3, reason: "is_canonical" }));
+  const { data: dupRows, error: dupErr } = await ctx.supabase.from("documents").select("id, kind, scope, status, metadata").eq("account_id", ctx.accountId).in("id", requestedIds);
+  if (dupErr) throw new CurationError("not_found", `duplicate lookup failed: ${dupErr.message}`);
+  const found = new Map(
+    (dupRows ?? []).map(
+      (r2) => [r2.id, r2]
+    )
+  );
+  const twins = [];
+  for (const id3 of requestedIds) {
+    const row = found.get(id3);
+    if (!row) {
+      skipped.push({ id: id3, reason: "not_found" });
+      continue;
+    }
+    if (row.kind !== canonical2.kind) {
+      skipped.push({ id: id3, reason: "kind_mismatch" });
+      continue;
+    }
+    if (row.scope === "personal") {
+      skipped.push({ id: id3, reason: "personal_scope" });
+      continue;
+    }
+    const meta = row.metadata ?? {};
+    if (meta.superseded_by === args.canonical_id) {
+      skipped.push({ id: id3, reason: "already_merged" });
+      continue;
+    }
+    twins.push({ id: row.id, metadata: row.metadata });
+  }
+  if (twins.length === 0) {
+    return {
+      canonical_id: canonical2.id,
+      archived_ids: [],
+      skipped,
+      new_version_number: null,
+      corroboration_count: canonical2.metadata && typeof canonical2.metadata.corroboration_count === "number" ? canonical2.metadata.corroboration_count : 1
+    };
+  }
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const canonicalMeta = canonical2.metadata ?? {};
+  const priorMergedFrom = Array.isArray(canonicalMeta.merged_from) ? canonicalMeta.merged_from.filter((v2) => typeof v2 === "string") : [];
+  const { newVersionNumber, summedCorroboration } = await applyCanonicalMerge(ctx, {
+    canonical: canonical2,
+    twins,
+    content: args.merged_content ?? null,
+    buildCanonicalMetadata: (sum) => ({
+      ...canonicalMeta,
+      // metadata.status stays as-is — making a doc live (or approved) is a
+      // deliberate separate action (setDocumentStatus), not a merge side
+      // effect.
+      merged_from: [...priorMergedFrom, ...twins.map((t2) => t2.id)],
+      merged_at: nowIso,
+      merged_via: "api",
+      corroboration_count: sum,
+      ...args.merged_content ? { embedding_stale: true } : {}
+    }),
+    commitMessage: args.commit_message ?? `merge ${twins.length} duplicate ${canonical2.kind} doc(s)`,
+    supersededReason: "merged",
+    nowIso
+  });
+  return {
+    canonical_id: canonical2.id,
+    archived_ids: twins.map((t2) => t2.id),
+    skipped,
+    new_version_number: newVersionNumber,
+    corroboration_count: summedCorroboration
+  };
+}
+var AUTO_MERGE_SAFE_THRESHOLD = 0.92;
+var SWEEP_DEFAULT_THRESHOLD = 0.85;
+var SWEEP_DOC_CAP = 800;
+var SWEEP_KINDS = ["decision", "memory", "skill"];
+function canonicalRank(a2, b2) {
+  const aApproved = a2.status === "approved" ? 1 : 0;
+  const bApproved = b2.status === "approved" ? 1 : 0;
+  if (aApproved !== bApproved) return bApproved - aApproved;
+  if (a2.corroboration_count !== b2.corroboration_count) {
+    return b2.corroboration_count - a2.corroboration_count;
+  }
+  return a2.updated_at < b2.updated_at ? 1 : a2.updated_at > b2.updated_at ? -1 : 0;
+}
+function clusterPairs(kind2, pairs, docs) {
+  const neighbours = /* @__PURE__ */ new Map();
+  for (const p2 of pairs) {
+    if (!docs.has(p2.id_a) || !docs.has(p2.id_b)) continue;
+    if (!neighbours.has(p2.id_a)) neighbours.set(p2.id_a, /* @__PURE__ */ new Map());
+    if (!neighbours.has(p2.id_b)) neighbours.set(p2.id_b, /* @__PURE__ */ new Map());
+    neighbours.get(p2.id_a).set(p2.id_b, p2.similarity);
+    neighbours.get(p2.id_b).set(p2.id_a, p2.similarity);
+  }
+  const ranked = [...neighbours.keys()].map((id3) => docs.get(id3)).sort(canonicalRank);
+  const claimed = /* @__PURE__ */ new Set();
+  const clusters = [];
+  for (const leader of ranked) {
+    if (claimed.has(leader.id)) continue;
+    claimed.add(leader.id);
+    const members = [];
+    for (const [otherId, similarity] of neighbours.get(leader.id) ?? []) {
+      if (claimed.has(otherId)) continue;
+      claimed.add(otherId);
+      members.push({ ...docs.get(otherId), similarity_to_canonical: similarity });
+    }
+    if (members.length === 0) continue;
+    members.sort((a2, b2) => b2.similarity_to_canonical - a2.similarity_to_canonical);
+    const avg = members.reduce((s2, m2) => s2 + m2.similarity_to_canonical, 0) / members.length;
+    clusters.push({
+      kind: kind2,
+      suggested_canonical_id: leader.id,
+      canonical: leader,
+      members,
+      avg_similarity: Math.round(avg * 1e3) / 1e3,
+      auto_merge_safe: members.every(
+        (m2) => m2.similarity_to_canonical >= AUTO_MERGE_SAFE_THRESHOLD
+      )
+    });
+  }
+  clusters.sort((a2, b2) => b2.members.length - a2.members.length);
+  return clusters;
+}
+var SweepArgs = external_exports.object({
+  project_id: external_exports.string().uuid().optional(),
+  kinds: external_exports.array(external_exports.enum(SWEEP_KINDS)).min(1).optional(),
+  threshold: external_exports.number().min(0.8).max(0.99).optional()
+});
+async function sweepDuplicates(ctx, rawArgs) {
+  let args;
+  try {
+    args = SweepArgs.parse(rawArgs ?? {});
+  } catch (e2) {
+    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
+  }
+  const kinds = args.kinds ?? [...SWEEP_KINDS];
+  const threshold = args.threshold ?? SWEEP_DEFAULT_THRESHOLD;
+  const clusters = [];
+  const scanned = {};
+  let truncated = false;
+  let vectorlessCount = 0;
+  for (const kind2 of kinds) {
+    let query = ctx.supabase.from("documents").select("id, title, status, updated_at, metadata").eq("account_id", ctx.accountId).eq("kind", kind2).neq("status", "archived").not("embedding", "is", null).or("metadata->>status.is.null,metadata->>status.eq.active");
+    if (args.project_id) query = query.eq("project_id", args.project_id);
+    const { data, error: error40 } = await query.order("updated_at", { ascending: false }).limit(SWEEP_DOC_CAP);
+    if (error40) throw new CurationError("invalid_args", `sweep candidate read failed: ${error40.message}`);
+    try {
+      let vectorlessQuery = ctx.supabase.from("documents").select("id", { count: "exact", head: true }).eq("account_id", ctx.accountId).eq("kind", kind2).neq("status", "archived").is("embedding", null).or("metadata->>status.is.null,metadata->>status.eq.active");
+      if (args.project_id) vectorlessQuery = vectorlessQuery.eq("project_id", args.project_id);
+      const { count } = await vectorlessQuery;
+      vectorlessCount += count ?? 0;
+    } catch {
+    }
+    const rows = data ?? [];
+    if (rows.length === SWEEP_DOC_CAP) truncated = true;
+    const docs = /* @__PURE__ */ new Map();
+    for (const r2 of rows) {
+      const meta = r2.metadata ?? {};
+      docs.set(r2.id, {
+        id: r2.id,
+        title: r2.title,
+        status: r2.status,
+        metadata_status: typeof meta.status === "string" ? meta.status : null,
+        updated_at: r2.updated_at,
+        corroboration_count: typeof meta.corroboration_count === "number" ? meta.corroboration_count : 1
+      });
+    }
+    scanned[kind2] = docs.size;
+    if (docs.size < 2) continue;
+    const rpcArgs = {
+      p_account_id: ctx.accountId,
+      p_ids: [...docs.keys()],
+      p_threshold: threshold
+    };
+    let { data: pairData, error: pairErr } = await ctx.supabase.rpc(
+      "document_similarity_pairs",
+      rpcArgs
+    );
+    if (pairErr && /permission denied/i.test(pairErr.message) && ctx.privilegedSupabase) {
+      ({ data: pairData, error: pairErr } = await ctx.privilegedSupabase.rpc(
+        "document_similarity_pairs",
+        rpcArgs
+      ));
+    }
+    if (pairErr) {
+      throw new CurationError("invalid_args", `similarity sweep failed: ${pairErr.message}`);
+    }
+    clusters.push(...clusterPairs(kind2, pairData ?? [], docs));
+  }
+  clusters.sort((a2, b2) => b2.members.length - a2.members.length);
+  return { clusters, scanned, truncated, vectorless_count: vectorlessCount, threshold };
+}
+
+// packages/mcp-tools/src/origin.ts
+function deriveDocOrigin(metadata) {
+  const meta = metadata ?? {};
+  const proposedBy = typeof meta.proposed_by === "string" ? meta.proposed_by : "";
+  if (meta.source === "repo:function" || proposedBy === "scribe:repo") return "scanner";
+  if (proposedBy.startsWith("scribe:") || proposedBy === "correction" || meta.scribe_run_id != null) {
+    return "scribe";
+  }
+  if (meta.imported_from != null || meta.installed_via != null || meta.library_source != null) {
+    return "import";
+  }
+  return "human";
+}
+var NoiseSweepArgs = external_exports.object({
+  project_id: external_exports.string().uuid().optional(),
+  dry_run: external_exports.boolean().default(true),
+  /** Docs a human explicitly accepted (inbox accept stamps accepted_at)
+   *  are presumed wanted — skipped unless this is set. */
+  include_accepted: external_exports.boolean().default(false)
+});
+
+// packages/mcp-tools/src/custom-metadata.ts
+var CUSTOM_KEY_RE = /^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,63}$/;
+var CUSTOM_MAX_BYTES = 8 * 1024;
+var CUSTOM_MAX_DEPTH = 3;
+var CUSTOM_MAX_KEYS = 64;
+var MetadataValidationError = class extends Error {
+  code = "custom_metadata_invalid";
+  issues;
+  // `field` names the metadata key that failed — 'custom' historically, and
+  // 'trigger' since trigger-bound memories landed. The code stays
+  // 'custom_metadata_invalid' so existing wire-level consumers keep matching.
+  constructor(issues, field = "custom") {
+    super(`invalid metadata.${field}: ${issues[0] ?? "validation failed"}`);
+    this.name = "MetadataValidationError";
+    this.issues = issues;
+  }
+};
+var ISO_DATEISH = /^\d{4}-\d{2}-\d{2}([T ].*)?$/;
+var ArtifactSchema = external_exports.object({
+  path: external_exports.string().min(1).max(512).optional(),
+  url: external_exports.string().url().max(2048).optional(),
+  kind: external_exports.string().min(1).max(64).optional(),
+  sha: external_exports.string().max(128).optional()
+}).refine((a2) => a2.path || a2.url, { message: "artifact needs a path or a url" });
+var TYPED_KEYS = {
+  expected_outcome: external_exports.union([
+    external_exports.string().min(1).max(2e3),
+    external_exports.object({
+      text: external_exports.string().max(2e3).optional(),
+      metric: external_exports.string().max(128).optional(),
+      direction: external_exports.string().max(16).optional(),
+      magnitude: external_exports.number().optional(),
+      window: external_exports.string().max(128).optional()
+    }).passthrough()
+  ]),
+  review_by: external_exports.string().regex(ISO_DATEISH, "review_by must be an ISO date (YYYY-MM-DD\u2026)"),
+  artifacts: external_exports.array(ArtifactSchema).max(20),
+  occurred_at: external_exports.string().regex(ISO_DATEISH, "occurred_at must be an ISO date (YYYY-MM-DD\u2026)"),
+  entities: external_exports.array(external_exports.string().min(1).max(64)).max(32),
+  thread_status: external_exports.enum(["open", "resolved", "n/a"]),
+  resolves: external_exports.string().uuid()
+};
+function depthOf(value, depth = 0) {
+  if (depth > CUSTOM_MAX_DEPTH) return depth;
+  if (Array.isArray(value)) {
+    let max = depth + 1;
+    for (const v2 of value) max = Math.max(max, depthOf(v2, depth + 1));
+    return max;
+  }
+  if (value && typeof value === "object") {
+    let max = depth + 1;
+    for (const v2 of Object.values(value)) {
+      max = Math.max(max, depthOf(v2, depth + 1));
+    }
+    return max;
+  }
+  return depth;
+}
+function jsonSafe(value) {
+  if (value === null) return true;
+  const t2 = typeof value;
+  if (t2 === "string" || t2 === "boolean") return true;
+  if (t2 === "number") return Number.isFinite(value);
+  if (Array.isArray(value)) return value.every(jsonSafe);
+  if (t2 === "object") {
+    return Object.values(value).every(
+      (v2) => v2 !== void 0 && jsonSafe(v2)
+    );
+  }
+  return false;
+}
+function validateCustomMetadata(custom3) {
+  const issues = [];
+  if (custom3 === null || typeof custom3 !== "object" || Array.isArray(custom3)) {
+    throw new MetadataValidationError(["custom must be an object of named values"]);
+  }
+  const obj = custom3;
+  const keys = Object.keys(obj);
+  if (keys.length === 0) return {};
+  if (keys.length > CUSTOM_MAX_KEYS) {
+    issues.push(`too many keys (${keys.length} > ${CUSTOM_MAX_KEYS})`);
+  }
+  for (const key2 of keys) {
+    if (!CUSTOM_KEY_RE.test(key2)) {
+      issues.push(`key "${key2}" must match ${CUSTOM_KEY_RE}`);
+      continue;
+    }
+    const value = obj[key2];
+    if (!jsonSafe(value)) {
+      issues.push(`key "${key2}" holds a non-JSON-serializable value`);
+      continue;
+    }
+    const typed = TYPED_KEYS[key2];
+    if (typed) {
+      const parsed = typed.safeParse(value);
+      if (!parsed.success) {
+        issues.push(`key "${key2}": ${parsed.error.issues[0]?.message ?? "invalid shape"}`);
+      }
+    }
+  }
+  issues.push(...memlinProvenanceIssues(obj));
+  const size = JSON.stringify(obj).length;
+  if (size > CUSTOM_MAX_BYTES) {
+    issues.push(
+      `custom exceeds ${CUSTOM_MAX_BYTES} bytes (got ${size}) \u2014 store large payloads externally and reference them`
+    );
+  }
+  if (depthOf(obj) > CUSTOM_MAX_DEPTH) {
+    issues.push(`custom nests deeper than ${CUSTOM_MAX_DEPTH} levels`);
+  }
+  if (issues.length > 0) throw new MetadataValidationError(issues);
+  return obj;
+}
+var ScalarSchema = external_exports.union([external_exports.string(), external_exports.number(), external_exports.boolean()]);
+var MetadataFilterSchema = external_exports.record(
+  external_exports.string().regex(CUSTOM_KEY_RE),
+  external_exports.union([ScalarSchema, external_exports.object({ in: external_exports.array(ScalarSchema).min(1).max(32) }).strict()])
+).refine((f2) => Object.keys(f2).length >= 1 && Object.keys(f2).length <= 8, {
+  message: "metadata_filter takes 1-8 keys"
+});
+function matchesCustomFilter(custom3, filter) {
+  if (custom3 === null || typeof custom3 !== "object" || Array.isArray(custom3)) return false;
+  const obj = custom3;
+  for (const [key2, condition] of Object.entries(filter)) {
+    const value = obj[key2];
+    const candidates = typeof condition === "object" && condition !== null && "in" in condition ? condition.in : [condition];
+    const hit = candidates.some(
+      (c2) => Array.isArray(value) ? value.includes(c2) : value === c2
+    );
+    if (!hit) return false;
+  }
+  return true;
+}
+
+// packages/mcp-tools/src/light-surface.ts
+var LIGHT_READABLE_KINDS = ["memory", "plan"];
+function lightReadableKind(kind2) {
+  return LIGHT_READABLE_KINDS.includes(kind2);
+}
+var LIGHT_MCP_TOOLS = /* @__PURE__ */ new Set([
+  "memlin_search",
+  "memlin_search_memory",
+  "memlin_get_document",
+  "memlin_read_memory",
+  "memlin_list_versions",
+  "memlin_resolve_task"
+]);
 
 // packages/actions-engine/src/execute.ts
 import process4 from "node:process";
@@ -74715,7 +76357,8 @@ var ACTION_MODEL_SELECT = [
   "price_input_1k",
   "price_output_1k",
   "pricing_source",
-  "pricing_checked_at"
+  "pricing_checked_at",
+  "provider_metadata"
 ].join(", ");
 async function executeAction(args) {
   const { client: client2, accountId, actionId, input, userId } = args;
@@ -74898,9 +76541,32 @@ async function loadSavedCatalogModel(args) {
   }
   return byAlias.data ?? null;
 }
+var MAX_LIFECYCLE_HOPS = 5;
+function routableActionModel(model) {
+  return model.is_active === true && ["active", "deprecated"].includes(model.lifecycle_status ?? "");
+}
+async function followLifecycleReplacement(client2, provider, model) {
+  let current = model;
+  const seen = /* @__PURE__ */ new Set();
+  for (let hop = 0; current && !routableActionModel(current) && hop < MAX_LIFECYCLE_HOPS; hop += 1) {
+    const lifecycle = current.provider_metadata?.lifecycle;
+    const next = lifecycle && typeof lifecycle === "object" ? lifecycle.replacement_model_id : null;
+    if (typeof next !== "string" || !next || seen.has(next)) break;
+    seen.add(current.id);
+    const { data, error: error40 } = await client2.from("frontier_models").select(ACTION_MODEL_SELECT).eq("provider", provider).eq("id", next).maybeSingle();
+    if (error40) {
+      throw new ActionExecuteError("central model catalog is unavailable", "model_unavailable");
+    }
+    if (!data) break;
+    current = data;
+  }
+  return current;
+}
 async function resolveSavedActionModel(args) {
   const [model, accountResult] = await Promise.all([
-    loadSavedCatalogModel(args),
+    loadSavedCatalogModel(args).then(
+      (saved) => followLifecycleReplacement(args.client, args.provider, saved)
+    ),
     args.client.from("accounts").select("allowed_models").eq("id", args.accountId).maybeSingle()
   ]);
   if (accountResult.error || !accountResult.data) {
@@ -75155,6 +76821,12 @@ var PLAN_TTL_MS = 15 * 60 * 1e3;
 // packages/actions-engine/src/connectors/jira-action-runtime.ts
 var MAX_RESPONSE_BYTES = 64 * 1024;
 
+// packages/actions-engine/src/rerank/defaults.ts
+var HOSTED_RERANK_DEFAULT_MODELS = {
+  cohere: "rerank-english-v3.0",
+  jina: "jina-reranker-v2-base-multilingual"
+};
+
 // packages/actions-engine/src/rerank/hosted-reranker.ts
 var HostedRerankResponseError = class extends Error {
   constructor(message, fallbackReason) {
@@ -75169,11 +76841,11 @@ var TEI_MAX_CLIENT_BATCH = 32;
 var PROVIDERS = {
   cohere: {
     endpoint: "https://api.cohere.com/v1/rerank",
-    model: "rerank-english-v3.0"
+    model: HOSTED_RERANK_DEFAULT_MODELS.cohere
   },
   jina: {
     endpoint: "https://api.jina.ai/v1/rerank",
-    model: "jina-reranker-v2-base-multilingual"
+    model: HOSTED_RERANK_DEFAULT_MODELS.jina
   }
 };
 function formatCandidateText(c2) {
@@ -75351,6 +77023,862 @@ async function rerankHosted(task, candidates, config2) {
     }
     throw cause;
   }
+}
+
+// packages/mcp-tools/src/handlers.ts
+var ReadArgs = external_exports.object({
+  kinds: external_exports.array(DocumentKindSchema).optional(),
+  scopes: external_exports.array(DocumentScopeSchema).optional(),
+  statuses: external_exports.array(DocumentStatusSchema).optional(),
+  exclude_locked: external_exports.boolean().optional(),
+  project_id: external_exports.string().uuid().nullable().optional(),
+  /** Filter on metadata.custom keys — equality, array-containment, or
+   *  {in:[…]} per key, AND across keys. Evaluated in-process against the
+   *  already-fetched metadata (exact semantics, no query-syntax games). */
+  metadata_filter: MetadataFilterSchema.optional(),
+  /** Only docs carrying `metadata.trigger` — the cheap query host plugins
+   *  use to compile trigger-bound memories at session start without pulling
+   *  the whole memory corpus. */
+  has_trigger: external_exports.boolean().optional(),
+  /** Exact `documents.path` match. Callers doing an upsert-by-path (session
+   *  working memory) must filter server-side: this query has no limit and
+   *  PostgREST truncates at max_rows (1000), so a client-side
+   *  `docs.find(d => d.path === …)` silently misses in any account with more
+   *  than 1000 memory docs and the caller creates a duplicate at the same
+   *  path — `(account_id, path)` is intentionally non-unique. */
+  path: external_exports.string().min(1).optional()
+});
+async function readMemory(ctx, rawArgs) {
+  const args = ReadArgs.parse(rawArgs ?? {});
+  const projectId = await resolveProjectFilter(ctx, args.project_id);
+  let q2 = ctx.supabase.from("documents").select(
+    `id, kind, scope, status, title, path, project_id, current_version_id,
+       metadata, updated_at, created_at,
+       document_versions!documents_current_version_fk ( content, version_number, author_id )`
+  ).eq("account_id", ctx.accountId);
+  const light = await loadLightStatus(ctx.supabase, ctx.accountId);
+  if (light?.active)
+    q2 = q2.in("kind", [...LIGHT_READABLE_KINDS]).eq("project_id", light.project_id).neq("status", "archived").limit(50);
+  if (args.kinds?.length) q2 = q2.in("kind", args.kinds);
+  if (args.scopes?.length) q2 = q2.in("scope", args.scopes);
+  if (args.statuses?.length) q2 = q2.in("status", args.statuses);
+  if (args.exclude_locked) q2 = q2.eq("locked_to_owners", false);
+  if (args.has_trigger) q2 = q2.not("metadata->trigger", "is", null);
+  if (args.path) q2 = q2.eq("path", args.path);
+  if (projectId === null) {
+    q2 = q2.is("project_id", null);
+  } else if (projectId) {
+    q2 = q2.or(`project_id.eq.${projectId},project_id.is.null`);
+  }
+  const { data, error: error40 } = await q2;
+  if (error40) throw new Error(`read_memory: ${error40.message}`);
+  const rows = light?.active ? (data ?? []).filter(
+    (r2) => lightReadableKind(r2.kind) && isEligibleForRecall({
+      id: r2.id,
+      kind: r2.kind,
+      status: r2.status,
+      metadataStatus: r2.metadata?.status,
+      metadataSupersededBy: r2.metadata?.superseded_by
+    })
+  ) : data ?? [];
+  const docs = rows.map((r2) => {
+    const row = r2;
+    const v2 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+    const content = v2?.content ?? "";
+    const meta = row.metadata ?? null;
+    const customRaw = meta?.custom;
+    const base = {
+      id: row.id,
+      kind: row.kind,
+      scope: row.scope,
+      status: row.status ?? null,
+      title: row.title,
+      path: row.path ?? null,
+      content,
+      project_id: row.project_id ?? null,
+      origin: deriveDocOrigin(meta),
+      custom: customRaw && typeof customRaw === "object" && !Array.isArray(customRaw) ? customRaw : null,
+      trigger: normalizeStoredTrigger(row.kind, meta),
+      version_number: v2?.version_number ?? 1,
+      updated_at: row.updated_at,
+      created_at: row.created_at,
+      author_id: v2?.author_id ?? null,
+      source_url: null
+    };
+    return attachGoalProgress(base);
+  });
+  if (args.metadata_filter) {
+    const filter = args.metadata_filter;
+    return docs.filter((d2) => matchesCustomFilter(d2.custom, filter));
+  }
+  return docs;
+}
+function normalizeStoredTrigger(kind2, meta) {
+  if (kind2 !== "memory") return null;
+  const raw = meta?.trigger;
+  if (raw === null || raw === void 0) return null;
+  const parsed = parseMemoryTrigger(raw);
+  return parsed.ok ? parsed.trigger : null;
+}
+function attachGoalProgress(doc) {
+  if (doc.kind !== "goal") return doc;
+  const criteria = parseGoalCriteria(doc.content);
+  if (criteria.length === 0) return doc;
+  const checked = criteria.filter((c2) => c2.checked).length;
+  return {
+    ...doc,
+    criteria,
+    criteria_progress: { checked, total: criteria.length }
+  };
+}
+var WriteArgs = external_exports.object({
+  expected_version: external_exports.number().int().nonnegative().optional(),
+  document_id: external_exports.string().uuid().nullable().optional(),
+  scope: DocumentScopeSchema,
+  kind: external_exports.enum(GENERIC_AGENT_WRITABLE_KINDS),
+  title: external_exports.string().min(1).max(256),
+  path: external_exports.string().max(512).optional(),
+  content: external_exports.string(),
+  commit_message: external_exports.string().max(512).optional(),
+  project_id: external_exports.string().uuid().nullable().optional(),
+  // Client-writable metadata. Whitelist enforced below — server-managed
+  // fields (status, auto_promoted, proposed_by, embedding state, etc.)
+  // can never be set from the wire even if they appear in this object.
+  // New keys go through review before they land here.
+  metadata: external_exports.record(external_exports.string(), external_exports.unknown()).optional()
+});
+var CLIENT_WRITABLE_METADATA_KEYS = /* @__PURE__ */ new Set([
+  "allowed-tools",
+  "model",
+  "target-agents",
+  "component-links",
+  "examples",
+  "anti-examples",
+  "custom",
+  // Tier-0 session working memory — session_id scopes force-include.
+  "session_id"
+]);
+function filterClientMetadata(raw, kind2) {
+  if (!raw) return {};
+  const out = {};
+  for (const k2 of Object.keys(raw)) {
+    if (k2 === "trigger") {
+      if (kind2 !== "memory") continue;
+      if (raw[k2] === null) {
+        out[k2] = null;
+        continue;
+      }
+      const parsed = parseMemoryTrigger(raw[k2]);
+      if (!parsed.ok) throw new MetadataValidationError(parsed.errors, "trigger");
+      out[k2] = parsed.trigger;
+      continue;
+    }
+    if (k2 === "memory_type") {
+      if (kind2 === "memory" && typeof raw[k2] === "string" && MEMORY_TYPES.includes(raw[k2])) {
+        out[k2] = raw[k2];
+      }
+      continue;
+    }
+    if (!CLIENT_WRITABLE_METADATA_KEYS.has(k2)) continue;
+    if (k2 === "custom") {
+      out[k2] = validateCustomMetadata(raw[k2]);
+    } else {
+      out[k2] = raw[k2];
+    }
+  }
+  return out;
+}
+var DecisionWriteArgs = WriteArgs.extend({ kind: external_exports.literal("decision") });
+async function writeMemory(ctx, rawArgs) {
+  return executeDocumentWrite(ctx, WriteArgs.parse(rawArgs));
+}
+async function executeDocumentWrite(ctx, args) {
+  args = {
+    ...args,
+    title: redactSecretShapes(args.title).redacted,
+    content: redactSecretShapes(args.content).redacted
+  };
+  const projectId = await resolveProjectFilter(ctx, args.project_id);
+  if (args.document_id) {
+    const { data: existing, error: ownErr } = await ctx.supabase.from("documents").select("account_id, kind").eq("id", args.document_id).maybeSingle();
+    if (ownErr) throw new Error(`write_memory: ${ownErr.message}`);
+    if (!existing || existing.account_id !== ctx.accountId) {
+      throw new Error("write_memory: document not found in this account");
+    }
+    if (existing.kind !== args.kind) {
+      throw new Error("write_memory: document kind mismatch");
+    }
+  }
+  const admission = args.document_id ? null : admitCapture({
+    writer: "mcp_write",
+    humanSession: ctx.captureProvenance === "human_typed",
+    kind: args.kind,
+    labels: {},
+    autoPromoteThreshold: 1,
+    sensitive: detectSensitiveTopics(`${args.title}
+${args.content}`)
+  });
+  const admissionMeta = admission ? {
+    status: admission.status,
+    ...admission.stamps,
+    ...admission.decision ? { decision_pending: admission.decision.kind } : {},
+    ...admission.decision?.kind === "sensitive" ? {
+      sensitive_hold: true,
+      sensitive_topics: detectSensitiveTopics(`${args.title}
+${args.content}`).topics
+    } : {}
+  } : {};
+  const humanEditMeta = args.document_id && ctx.captureProvenance === "human_typed" ? {
+    [HUMAN_EDITED_AT_KEY]: (/* @__PURE__ */ new Date()).toISOString(),
+    ...ctx.userId ? { [HUMAN_EDITED_BY_KEY]: ctx.userId } : {}
+  } : {};
+  const light = await loadLightStatus(ctx.supabase, ctx.accountId);
+  let embedding = null;
+  if (ctx.embed && args.content.length > 0) {
+    try {
+      embedding = await ctx.embed(args.content);
+    } catch {
+      embedding = null;
+    }
+  }
+  const { data, error: error40 } = await ctx.supabase.rpc(
+    args.expected_version !== void 0 || light?.active ? "write_document_checked" : "write_document",
+    {
+      ...args.expected_version !== void 0 || light?.active ? { p_expected_version: args.expected_version ?? null } : {},
+      p_document_id: args.document_id ?? null,
+      p_account_id: ctx.accountId,
+      p_project_id: projectId,
+      p_scope: args.scope,
+      p_kind: args.kind,
+      p_title: args.title,
+      p_path: args.path ?? null,
+      p_content: args.content,
+      p_embedding: embedding,
+      p_metadata: {
+        ...filterClientMetadata(args.metadata, args.kind),
+        ...admissionMeta,
+        ...humanEditMeta
+      },
+      p_commit_message: args.commit_message ?? null,
+      p_yjs_state_b64: null,
+      // Client writes MERGE metadata: a re-version that omits keys must not
+      // wipe server-managed state (status, pinned, provenance, custom).
+      // Server-side writers that construct full metadata objects keep the
+      // replace default — this flag is the client-path fix.
+      p_metadata_merge: true,
+      // Service-token attribution — only sent on that auth path so the
+      // named-arg call stays compatible with pre-attribution databases.
+      ...ctx.serviceTokenId ? { p_author_id: ctx.userId ?? null, p_service_token_id: ctx.serviceTokenId } : {}
+    }
+  );
+  if (error40) throw new Error(`write_memory: ${error40.message}`);
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error("write_memory: RPC returned no row");
+  if (admission?.decision && ctx.privilegedSupabase) {
+    try {
+      await raiseDecisions(ctx, [
+        {
+          kind: admission.decision.kind,
+          projectId,
+          subjectDocumentId: row.document_id,
+          targetDocumentIds: admission.decision.targetIds,
+          origin: { scribeRunId: `write:${row.document_id}`, userId: ctx.userId ?? null },
+          subjectTitle: args.title,
+          evidence: {
+            reason: admission.decision.kind === "sensitive" ? "A written document matched a sensitive topic." : "A goal was written.",
+            admission: { reason: admission.reason, provenance: admission.stamps.provenance },
+            automation: ["Held out of recall until a person decides."]
+          }
+        }
+      ]);
+    } catch {
+    }
+  }
+  return {
+    document_id: row.document_id,
+    version_id: row.version_id,
+    version_number: row.version_number
+  };
+}
+var ListVersionsArgs = external_exports.object({ document_id: external_exports.string().uuid() });
+async function listVersions(ctx, rawArgs) {
+  const args = ListVersionsArgs.parse(rawArgs);
+  const { data: doc, error: docErr } = await ctx.supabase.from("documents").select("id, account_id, kind").eq("id", args.document_id).maybeSingle();
+  if (docErr) throw new Error(`list_versions: ${docErr.message}`);
+  if (!doc || doc.account_id !== ctx.accountId) {
+    throw new Error("list_versions: document not found in this account");
+  }
+  const light = await loadLightStatus(ctx.supabase, ctx.accountId);
+  if (light?.active && !lightReadableKind(doc.kind))
+    throw new Error("light_upgrade_required");
+  const { data, error: error40 } = await ctx.supabase.from("document_versions").select("id, version_number, content, author_id, commit_message, created_at, parent_version_id").eq("document_id", args.document_id).order("version_number", { ascending: false });
+  if (error40) throw new Error(`list_versions: ${error40.message}`);
+  const versions = data ?? [];
+  return light?.active ? versions.slice(0, 10) : versions;
+}
+var RevertArgs = external_exports.object({
+  expected_version: external_exports.number().int().nonnegative().optional(),
+  document_id: external_exports.string().uuid(),
+  target_version_id: external_exports.string().uuid(),
+  commit_message: external_exports.string().optional()
+});
+async function revertDocument(ctx, rawArgs) {
+  const args = RevertArgs.parse(rawArgs);
+  const light = await loadLightStatus(ctx.supabase, ctx.accountId);
+  if (light?.active && args.expected_version === void 0)
+    throw new Error("Read the current version before restoring a Light memory.");
+  const { data, error: error40 } = light?.active ? await ctx.supabase.rpc("light_restore", {
+    p_account_id: ctx.accountId,
+    p_document_id: args.document_id,
+    p_version_id: args.target_version_id,
+    p_expected_version: args.expected_version
+  }) : await ctx.supabase.rpc("revert_document", {
+    p_document_id: args.document_id,
+    p_target_version_id: args.target_version_id,
+    p_commit_message: args.commit_message ?? null
+  });
+  if (error40) throw new Error(`revert: ${error40.message}`);
+  if (!data) throw new Error("revert: RPC returned no id");
+  return { new_version_id: data };
+}
+var DeleteArgs = external_exports.object({
+  document_id: external_exports.string().uuid(),
+  reason: external_exports.string().max(512).optional()
+});
+async function deleteMemory(ctx, rawArgs) {
+  const args = DeleteArgs.parse(rawArgs);
+  const { data, error: error40 } = await ctx.supabase.rpc("delete_document", {
+    p_document_id: args.document_id,
+    p_account_id: ctx.accountId,
+    p_reason: args.reason ?? null
+  });
+  if (error40) throw new Error(`delete_memory: ${error40.message}`);
+  return { document_id: args.document_id, deleted: data === true };
+}
+var SEARCH_MODES = ["semantic", "hybrid", "text"];
+var SearchArgs = external_exports.object({
+  query: external_exports.string().min(1),
+  kinds: external_exports.array(DocumentKindSchema).optional(),
+  limit: external_exports.number().int().min(1).max(100).optional(),
+  project_id: external_exports.string().uuid().nullable().optional(),
+  mode: external_exports.enum(SEARCH_MODES).optional(),
+  /** Filter on metadata.custom keys (custom-metadata.ts semantics). The
+   *  ranked search runs first with an over-fetched limit, then hits are
+   *  post-filtered by one metadata round-trip — the hot search RPCs stay
+   *  untouched. Highly selective filters can under-fill `limit`. */
+  metadata_filter: MetadataFilterSchema.optional()
+});
+async function search(ctx, rawArgs) {
+  const args = SearchArgs.parse(rawArgs);
+  const light = await loadLightStatus(ctx.supabase, ctx.accountId);
+  if (!light?.active || !light.project_id) return searchScoped(ctx, args, light);
+  const hits = await searchScoped(ctx, args, light);
+  if (hits.length === 0) return [];
+  const { data, error: error40 } = await ctx.supabase.from("documents").select("id").eq("account_id", ctx.accountId).eq("project_id", light.project_id).in(
+    "id",
+    hits.map((h2) => h2.id)
+  );
+  if (error40) throw new Error(`search: Light project scope read failed: ${error40.message}`);
+  const inProject = new Set((data ?? []).map((r2) => r2.id));
+  return hits.filter((h2) => inProject.has(h2.id));
+}
+async function searchScoped(ctx, args, light) {
+  if (light?.active) {
+    args.project_id = light.project_id;
+    args.kinds = LIGHT_READABLE_KINDS.filter((k2) => !args.kinds?.length || args.kinds.includes(k2));
+    if (!args.kinds.length) return [];
+  }
+  const requestedLimit = args.limit ?? 20;
+  if (!args.metadata_filter) {
+    return searchRanked(ctx, args, requestedLimit);
+  }
+  const overFetched = await searchRanked(ctx, args, Math.min(requestedLimit * 3, 100));
+  if (overFetched.length === 0) return [];
+  const { data: metaRows, error: metaErr } = await ctx.supabase.from("documents").select("id, metadata").eq("account_id", ctx.accountId).in(
+    "id",
+    overFetched.map((h2) => h2.id)
+  );
+  if (metaErr) throw new Error(`search: metadata filter read failed: ${metaErr.message}`);
+  const customById = /* @__PURE__ */ new Map();
+  for (const r2 of metaRows ?? []) {
+    customById.set(r2.id, r2.metadata?.custom ?? null);
+  }
+  const filter = args.metadata_filter;
+  return overFetched.filter((h2) => matchesCustomFilter(customById.get(h2.id) ?? null, filter)).slice(0, requestedLimit);
+}
+async function searchRanked(ctx, args, limit2) {
+  const projectId = await resolveProjectFilter(ctx, args.project_id);
+  const mode = args.mode ?? "semantic";
+  if (mode === "hybrid" && ctx.embed) {
+    try {
+      const vec = await ctx.embed(args.query);
+      const auditQuery = sanitizeAuditTask(args.query);
+      const { data: data2, error: error40 } = await ctx.supabase.rpc("search_documents_hybrid", {
+        p_account_id: ctx.accountId,
+        p_project_id: projectId,
+        p_query_embedding: vec,
+        p_query_text: args.query,
+        p_audit_query_preview: auditQuery.task || null,
+        p_kinds: args.kinds ?? null,
+        p_scopes: null,
+        p_limit: limit2
+      });
+      if (!error40 && data2) {
+        return data2.map((r2) => ({
+          id: r2.id,
+          title: r2.title,
+          kind: r2.kind,
+          scope: r2.scope,
+          similarity: r2.rrf_score,
+          matched_via: "hybrid",
+          path: r2.path ?? null,
+          version_number: r2.version_number,
+          updated_at: r2.updated_at,
+          created_at: r2.created_at,
+          author_id: r2.author_id ?? null,
+          source_url: null
+        }));
+      }
+    } catch {
+    }
+  }
+  if (mode !== "text" && ctx.embed) {
+    try {
+      const vec = await ctx.embed(args.query);
+      const { data: data2, error: error40 } = await ctx.supabase.rpc("search_documents", {
+        p_account_id: ctx.accountId,
+        p_project_id: projectId,
+        p_query_embedding: vec,
+        p_kinds: args.kinds ?? null,
+        p_scopes: null,
+        p_limit: limit2
+      });
+      if (!error40 && data2) {
+        return data2.map((r2) => ({
+          id: r2.id,
+          title: r2.title,
+          kind: r2.kind,
+          scope: r2.scope,
+          similarity: r2.similarity,
+          matched_via: "semantic",
+          path: r2.path ?? null,
+          version_number: r2.version_number,
+          updated_at: r2.updated_at,
+          created_at: r2.created_at,
+          author_id: r2.author_id ?? null,
+          source_url: null
+        }));
+      }
+    } catch {
+    }
+  }
+  let q2 = ctx.supabase.from("documents").select(
+    `id, status, title, kind, scope, path, updated_at, created_at, metadata,
+       document_versions!documents_current_version_fk ( version_number, author_id )`
+  ).eq("account_id", ctx.accountId).ilike("title", `%${args.query}%`).limit(Math.min(limit2 * 3, 100));
+  if (args.kinds?.length) q2 = q2.in("kind", args.kinds);
+  const { data } = await q2;
+  const eligibleRows = (data ?? []).filter(
+    (r2) => isEligibleForRecall({
+      status: r2.status ?? null,
+      metadataStatus: (r2.metadata ?? {}).status ?? null,
+      metadataSupersededBy: (r2.metadata ?? {}).superseded_by ?? null,
+      id: r2.id ?? null,
+      kind: r2.kind
+    })
+  ).slice(0, limit2);
+  return eligibleRows.map((r2) => {
+    const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
+    return {
+      id: r2.id,
+      title: r2.title,
+      kind: r2.kind,
+      scope: r2.scope,
+      similarity: 0,
+      matched_via: "text",
+      path: r2.path ?? null,
+      version_number: v2?.version_number ?? 1,
+      updated_at: r2.updated_at,
+      created_at: r2.created_at,
+      author_id: v2?.author_id ?? null,
+      source_url: null
+    };
+  });
+}
+var SearchMemoryArgs = external_exports.object({
+  query: external_exports.string().min(1),
+  kinds: external_exports.array(DocumentKindSchema).optional(),
+  limit: external_exports.number().int().min(1).max(100).optional(),
+  project_id: external_exports.string().uuid().nullable().optional()
+});
+async function searchMemory(ctx, rawArgs) {
+  return search(ctx, { ...SearchMemoryArgs.parse(rawArgs), mode: "hybrid" });
+}
+var GetDocArgs = external_exports.object({ document_id: external_exports.string().uuid() });
+async function getDocument(ctx, rawArgs) {
+  const args = GetDocArgs.parse(rawArgs);
+  const { data, error: error40 } = await ctx.supabase.from("documents").select(
+    `id, account_id, project_id, scope, kind, status, title, path, current_version_id,
+       document_versions!documents_current_version_fk ( content, version_number )`
+  ).eq("id", args.document_id).eq("account_id", ctx.accountId).maybeSingle();
+  if (error40) throw new Error(`get_document: ${error40.message}`);
+  if (!data) throw new Error("get_document: document not found");
+  if (!lightReadableKind(data.kind)) {
+    const light = await loadLightStatus(ctx.supabase, ctx.accountId);
+    if (light?.active) throw new Error("light_upgrade_required");
+  }
+  const row = data;
+  if (row.kind === "goal") {
+    const v2 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+    const content = v2?.content ?? "";
+    const criteria = parseGoalCriteria(content);
+    if (criteria.length > 0) {
+      const checked = criteria.filter((c2) => c2.checked).length;
+      return {
+        ...row,
+        criteria,
+        criteria_progress: { checked, total: criteria.length }
+      };
+    }
+  }
+  return row;
+}
+var GetSchemaArgs = external_exports.object({
+  document_id: external_exports.string().uuid().optional(),
+  name: external_exports.string().min(1).optional()
+}).refine((a2) => Boolean(a2.document_id) || Boolean(a2.name), {
+  message: "provide document_id or name"
+});
+async function getSchema(ctx, rawArgs) {
+  const args = GetSchemaArgs.parse(rawArgs);
+  let q2 = ctx.supabase.from("documents").select(
+    `id, title, scope, project_id, current_version_id,
+       document_versions!documents_current_version_fk ( content )`
+  ).eq("account_id", ctx.accountId).eq("kind", "schema");
+  if (args.document_id) q2 = q2.eq("id", args.document_id);
+  if (args.name) q2 = q2.ilike("title", args.name);
+  const { data, error: error40 } = await q2.maybeSingle();
+  if (error40) throw new Error(`get_schema: ${error40.message}`);
+  if (!data) {
+    throw new Error(
+      args.document_id ? `get_schema: no schema with document_id ${args.document_id}` : `get_schema: no schema with title "${args.name}"`
+    );
+  }
+  const row = data;
+  const version5 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
+  const rawContent = version5?.content ?? "";
+  const warnings = [];
+  let parsed = null;
+  const parseResult = parseJsonSchema(rawContent);
+  if ("error" in parseResult) {
+    warnings.push(`schema content is not valid JSON Schema: ${parseResult.error}`);
+  } else {
+    parsed = parseResult;
+  }
+  return {
+    document_id: row.id,
+    title: row.title,
+    scope: row.scope,
+    project_id: row.project_id ?? null,
+    json_schema: rawContent,
+    typescript: parsed ? generateTypeScript(parsed) : "// (schema could not be parsed \u2014 see warnings)",
+    sample: parsed ? generateSample(parsed) : "{}",
+    warnings
+  };
+}
+var ExecuteActionArgs = external_exports.object({
+  action_id: external_exports.string().uuid(),
+  input: external_exports.record(external_exports.unknown())
+});
+async function executeActionTool(ctx, rawArgs) {
+  const args = ExecuteActionArgs.parse(rawArgs);
+  if (ctx.apiBaseUrl && ctx.accessToken) {
+    const base = ctx.apiBaseUrl.replace(/\/+$/, "");
+    const res = await fetch(`${base}/actions/${args.action_id}/execute`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ctx.accessToken}`,
+        "content-type": "application/json",
+        "Memlin-Account-Id": ctx.accountId
+      },
+      body: JSON.stringify({ input: args.input })
+    });
+    const text = await res.text();
+    let payload = null;
+    try {
+      payload = JSON.parse(text);
+    } catch {
+    }
+    if (!res.ok || !payload || typeof payload.output !== "string") {
+      const message = payload?.error ?? (text.slice(0, 300) || `web API returned ${res.status}`);
+      throw new Error(`${payload?.code ? `${payload.code}: ` : ""}${message}`);
+    }
+    return payload;
+  }
+  try {
+    const r2 = await executeAction({
+      client: ctx.supabase,
+      // Test/server-action contexts may deliberately invoke in-process. A
+      // privileged client is required after the catalog RLS lockdown; falling
+      // back to the caller client is safe because catalog lookup fails closed.
+      catalogClient: ctx.privilegedSupabase ?? ctx.supabase,
+      accountId: ctx.accountId,
+      actionId: args.action_id,
+      input: args.input,
+      userId: ctx.userId ?? null,
+      // In-process contexts do not carry the canonical funding decision or
+      // credit ledger. BYOK is not wired here either, so refuse platform spend.
+      allowPlatformProviderKey: false
+    });
+    return r2;
+  } catch (e2) {
+    if (e2 instanceof ActionExecuteError) {
+      throw new Error(
+        `${e2.code}: ${e2.message}` + (e2.details ? " \u2014 " + e2.details.map((d2) => `${d2.path}: ${d2.message}`).join("; ") : "")
+      );
+    }
+    throw e2;
+  }
+}
+var ListActionsArgs = external_exports.object({
+  /** Optional substring filter against action name + description.
+   *  Case-insensitive. Useful for "find me a search action" style
+   *  discovery without dumping every action a workspace has. */
+  filter: external_exports.string().min(1).max(128).optional(),
+  /** Cap on results. Default 50; workspaces with hundreds of actions
+   *  can paginate with explicit limits. */
+  limit: external_exports.number().int().min(1).max(200).optional()
+});
+async function listActions(ctx, rawArgs) {
+  const args = ListActionsArgs.parse(rawArgs);
+  const limit2 = args.limit ?? 50;
+  let q2 = ctx.supabase.from("documents").select("id, metadata, title").eq("account_id", ctx.accountId).eq("kind", "action").eq("status", "approved").limit(limit2);
+  if (args.filter) {
+    q2 = q2.ilike("title", `%${args.filter}%`);
+  }
+  const { data, error: error40 } = await q2;
+  if (error40) {
+    throw new Error(`list_actions: ${error40.message}`);
+  }
+  const out = [];
+  for (const r2 of data ?? []) {
+    const meta = r2.metadata ?? {};
+    const impl = meta.implementation;
+    let executionMode = "blocked";
+    if (impl?.type === "provider_call") executionMode = "direct";
+    if (impl?.type === "connector" && impl.connector_id) {
+      const connector = getConnector(impl.connector_id);
+      const operation = connector ? getConnectorOperation(connector, impl.operation ?? "invoke") : null;
+      executionMode = operation?.effect === "read" ? "direct" : operation ? "prepare_required" : "blocked";
+    }
+    out.push({
+      id: r2.id,
+      name: typeof meta.name === "string" ? meta.name : r2.title,
+      description: typeof meta.description === "string" ? meta.description : "",
+      input_schema: meta.input_schema && typeof meta.input_schema === "object" ? meta.input_schema : {},
+      implementation_type: impl?.type ?? "unknown",
+      execution_mode: executionMode,
+      invoke_url: `/api/v1/actions/${r2.id}/execute`,
+      ...executionMode === "prepare_required" ? { prepare_url: `/api/v1/actions/${r2.id}/prepare` } : {},
+      ...impl?.type === "http" ? {
+        migration_message: "Raw HTTP actions are disabled. Migrate to a statically registered connector/Action Adapter."
+      } : {}
+    });
+  }
+  return out;
+}
+
+// packages/mcp-tools/src/light.ts
+var LIGHT_RECALL_MIN_SIMILARITY = 0.4;
+var RECALL_CANDIDATES = 10;
+async function lightResolve(ctx, task) {
+  const status = await loadLightStatus(ctx.supabase, ctx.accountId);
+  if (!status?.active) return null;
+  if (ctx.projectId && ctx.projectId !== status.project_id)
+    throw new Error("light_project_read_only");
+  const hits = task.trim() ? (await search(ctx, { query: task, kinds: ["memory"], limit: RECALL_CANDIDATES })).filter(
+    (h2) => h2.kind === "memory" && (h2.matched_via !== "semantic" || h2.similarity >= LIGHT_RECALL_MIN_SIMILARITY)
+  ) : [];
+  const rows = /* @__PURE__ */ new Map();
+  if (hits.length) {
+    const { data, error: error40 } = await ctx.supabase.from("documents").select(
+      "id,title,path,status,metadata,updated_at,document_versions!documents_current_version_fk(content,version_number,author_id)"
+    ).eq("account_id", ctx.accountId).eq("project_id", status.project_id).eq("kind", "memory").in(
+      "id",
+      hits.map((h2) => h2.id)
+    );
+    if (error40) throw new Error("Light memory temporarily unavailable");
+    for (const r2 of data ?? []) rows.set(r2.id, r2);
+  }
+  const terms = lexicalTerms(task);
+  const memory = [];
+  let used = 0;
+  let eligible = 0;
+  for (const hit of hits) {
+    const r2 = rows.get(hit.id);
+    if (!r2 || !isEligibleForRecall({
+      id: r2.id,
+      kind: "memory",
+      status: r2.status,
+      metadataStatus: r2.metadata?.status,
+      metadataSupersededBy: r2.metadata?.superseded_by
+    }))
+      continue;
+    const v2 = (Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions) ?? null;
+    if (!v2?.content?.trim()) continue;
+    eligible++;
+    if (memory.length >= LIGHT_LIMITS.recallNotes) continue;
+    const title = boundLightText(r2.title, 100);
+    const fixed = utf8Bytes(title + (r2.path ?? ""));
+    const room = Math.min(LIGHT_LIMITS.recallExcerptBytes, LIGHT_LIMITS.recallBytes - used - fixed);
+    const body = room > 0 ? excerptAround(v2.content, terms, room) : "";
+    if (!body) continue;
+    used += fixed + utf8Bytes(body);
+    memory.push({
+      id: r2.id,
+      kind: "memory",
+      title,
+      body,
+      similarity: hit.similarity,
+      component_id: null,
+      component_name: null,
+      citation: {
+        path: r2.path,
+        version_number: v2.version_number ?? 1,
+        updated_at: r2.updated_at,
+        author_id: v2.author_id ?? null
+      }
+    });
+  }
+  if (memory.length) {
+    try {
+      await ctx.supabase.rpc("light_record_delivery", { p_account_id: ctx.accountId });
+    } catch {
+    }
+  }
+  return {
+    context_policy: "reference_only",
+    bundle: {
+      primary_skill: null,
+      supporting_skills: [],
+      memory,
+      goals: [],
+      schemas: [],
+      decisions: [],
+      brand_guidelines: null,
+      claim_guardrails: null,
+      required_core: [],
+      required_core_status: {
+        complete: true,
+        expected_ids: [],
+        delivered_ids: [],
+        missing_ids: [],
+        errors: []
+      },
+      pinned: [],
+      architecture: null,
+      concurrent_work: [],
+      collision_warnings: [],
+      deploy_in_progress: [],
+      recent_file_edits: [],
+      work_in_flight: [],
+      open_threads: [],
+      session_working: [],
+      pack_context: [],
+      recent_feedback: []
+    },
+    // Light budgets recall in UTF-8 bytes; the field name predates that.
+    token_budget: {
+      limit: LIGHT_LIMITS.recallBytes,
+      used,
+      truncated: eligible > memory.length
+    },
+    audit_id: "",
+    resolved_at: (/* @__PURE__ */ new Date()).toISOString(),
+    active_component: null,
+    retrieval_coverage: {
+      policy: "complete",
+      lexical: "complete",
+      // search() degrades to title text without an embedder, exactly as on paid.
+      semantic: ctx.embed ? "complete" : "unavailable"
+    }
+  };
+}
+
+// packages/mcp-tools/src/resolver.ts
+import { createHash as createHash2 } from "node:crypto";
+
+// packages/mcp-tools/src/rerank.ts
+var SYSTEM_PROMPT = `You are a code-context relevance ranker.
+
+A developer's AI agent is about to work on a task. Below are candidate items
+the resolver pulled from the workspace's memory + skills + goals + schemas + decisions.
+Score each one on how directly useful it would be to the agent doing THIS
+task. Higher score = more directly applicable. Skills that exactly match
+the problem domain score highest; broad-context items score lower; items
+that are tangentially related score lowest.
+
+Output JSON ONLY, no prose:
+{ "scores": [ { "n": 1, "score": 0.0-1.0 }, { "n": 2, "score": ... } ] }
+
+Rules:
+- Score every candidate. Missing entries are treated as score=0.
+- Be decisive \u2014 a long flat list of 0.5s is useless. Use the full range.
+- 0.85+ means "essential for this task"
+- 0.60-0.85 "highly relevant"
+- 0.30-0.60 "context-only, not load-bearing"
+- below 0.30 "off-topic for this task, drop it"
+- The agent shouldn't see surplus context; aggressively penalize off-topic items.`;
+function buildUserMessage(task, candidates) {
+  const numbered = candidates.map(
+    // No .slice() here — the caller already sized the excerpt
+    // (RERANK_EXCERPT_CHARS). A second hard-coded 500-char slice made bumping
+    // that constant a silent no-op.
+    (c2, i2) => `${i2 + 1}. [${c2.kind}] "${c2.title}"
+   ${c2.excerpt.replace(/\s+/g, " ")}`
+  ).join("\n\n");
+  return [
+    "<task>",
+    task,
+    "</task>",
+    "",
+    "<candidates>",
+    numbered,
+    "</candidates>",
+    "",
+    "Return JSON only."
+  ].join("\n");
+}
+function parseScores(raw, candidates) {
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) return {};
+  let parsed = {};
+  try {
+    parsed = JSON.parse(match[0]);
+  } catch {
+    return {};
+  }
+  const out = {};
+  for (const entry of parsed.scores ?? []) {
+    if (typeof entry.n !== "number" || typeof entry.score !== "number") continue;
+    const idx = entry.n - 1;
+    const candidate = candidates[idx];
+    if (!candidate) continue;
+    const score = entry.score > 1 ? entry.score / 100 : entry.score;
+    out[candidate.id] = Math.max(0, Math.min(1, score));
+  }
+  return out;
+}
+async function rerankCandidates(task, candidates, chat) {
+  const startedAt = Date.now();
+  if (candidates.length === 0) {
+    return { scores: {}, latency_ms: 0 };
+  }
+  const user = buildUserMessage(task, candidates);
+  const maxTokens = Math.min(2048, 128 + candidates.length * 32);
+  const raw = await chat(SYSTEM_PROMPT, user, { max_tokens: maxTokens });
+  const scores = parseScores(raw, candidates);
+  return { scores, latency_ms: Date.now() - startedAt };
 }
 
 // packages/mcp-tools/src/feedback-overlay.ts
@@ -75632,46 +78160,6 @@ function cosineSim(a2, b2) {
 }
 var TASK_OVERLAP_PROMOTE = 0.34;
 var TASK_OVERLAP_MIN_SHARED = 2;
-var TASK_STOPWORDS = /* @__PURE__ */ new Set([
-  "this",
-  "that",
-  "with",
-  "from",
-  "have",
-  "want",
-  "need",
-  "make",
-  "sure",
-  "just",
-  "into",
-  "your",
-  "their",
-  "about",
-  "which",
-  "when",
-  "will",
-  "should",
-  "would",
-  "could",
-  "there",
-  "here",
-  "then",
-  "them",
-  "they",
-  "what",
-  "were",
-  "also",
-  "some",
-  "more",
-  "than",
-  "only",
-  "going",
-  "still",
-  "like",
-  "really",
-  "right",
-  "cause"
-]);
 function taskTokens(task) {
   return new Set(
     task.toLowerCase().split(/[^a-z0-9]+/).filter((t2) => t2.length >= 4 && !TASK_STOPWORDS.has(t2))
@@ -80937,2066 +83425,6 @@ ${content.trim()}`);
   };
 }
 
-// packages/mcp-tools/src/context.ts
-async function resolveProjectFilter(ctx, requested) {
-  if (!requested) return ctx.projectId ?? null;
-  if (requested === ctx.projectId) return requested;
-  const { data, error: error40 } = await ctx.supabase.from("projects").select("id").eq("id", requested).eq("account_id", ctx.accountId).maybeSingle();
-  if (error40 || !data) {
-    throw new Error(
-      `project_id ${requested} does not belong to the connected account (${ctx.accountId}). Point this connection at that project's account first \u2014 e.g. \`memlin link --account <account>\` \u2014 rather than passing a project id from another workspace.`
-    );
-  }
-  return requested;
-}
-
-// packages/mcp-tools/src/transitions.ts
-async function callRpc(ctx, name, args) {
-  let res = await ctx.supabase.rpc(name, args);
-  if (res.error && /permission denied/i.test(res.error.message) && ctx.privilegedSupabase && ctx.privilegedSupabase !== ctx.supabase) {
-    res = await ctx.privilegedSupabase.rpc(name, args);
-  }
-  return res;
-}
-function firstRow(data) {
-  const row = Array.isArray(data) ? data[0] : data;
-  return row && typeof row === "object" ? row : null;
-}
-async function transitionDocument(ctx, args) {
-  let subject = args.subject;
-  if (!subject) {
-    const { data: data2, error: error41 } = await ctx.supabase.from("documents").select("id, kind, status, memory_type, metadata").eq("id", args.documentId).eq("account_id", ctx.accountId).maybeSingle();
-    if (error41) throw new Error(`transition: document read failed: ${error41.message}`);
-    if (!data2) throw new Error("transition: document not found");
-    subject = data2;
-  }
-  const current = lifecycleStatusOf(subject.metadata);
-  const refusal = checkTransition({
-    current,
-    expectedFrom: args.from ?? null,
-    to: args.to,
-    actor: args.actor,
-    subject
-  });
-  if (refusal) return refusal;
-  const { data, error: error40 } = await callRpc(ctx, MEMORY_TRANSITION_APPLY_RPC, {
-    p_account_id: ctx.accountId,
-    p_document_id: args.documentId,
-    p_from_status: current,
-    p_to_status: args.to,
-    p_actor_type: args.actor.type,
-    p_actor_id: args.actor.id,
-    p_actor_version: args.actor.version ?? null,
-    p_reason: args.reason,
-    p_evidence: args.evidence ?? {},
-    p_decision_id: args.decisionId ?? null,
-    p_metadata_patch: args.metadataPatch ?? {},
-    p_sql_status: args.sqlStatus ?? null,
-    p_touch_updated_at: args.touchUpdatedAt ?? false
-  });
-  if (error40) {
-    const reason = refusalFromRpcError(error40.message);
-    if (reason) return { refused: reason, from: current, to: args.to, message: error40.message };
-    throw new Error(`transition: ${error40.message}`);
-  }
-  const row = firstRow(data);
-  if (!row || typeof row.transition_id !== "string") {
-    throw new Error("transition: apply returned no ledger row");
-  }
-  return {
-    transitionId: row.transition_id,
-    from: current,
-    to: args.to
-  };
-}
-
-// packages/mcp-tools/src/decision-outcomes.ts
-var DECISION_OUTCOME_VERSION = "decision_outcomes.v1";
-var RECORD_OUTCOME_RPC = "memory_decision_record_outcome";
-var MAKE_PRIVATE_RPC = "memory_decision_make_private";
-var MARK_COMPATIBLE_RPC = "memory_decision_mark_compatible";
-function planDecisionOutcome(decision, option) {
-  const subject = decision.subjectDocumentId;
-  const targets = decision.targetDocumentIds;
-  const tag = `decision:${decision.kind}:${option}`;
-  const captures = decisionCaptureDocumentIds(decision);
-  const subjectTo = (to, reason, extra = {}) => captures.map((documentId) => ({ documentId, role: "subject", to, reason, ...extra }));
-  const none = { ops: [], moves: [] };
-  switch (decision.kind) {
-    case "replace":
-      if (option === "replace") {
-        return {
-          ops: [],
-          moves: [
-            ...subjectTo("active", "A person chose to replace the live doc with this capture"),
-            ...targets.map(
-              (id3) => ({
-                documentId: id3,
-                role: "target",
-                to: "superseded",
-                reason: "A person chose the new capture over this doc",
-                metadataPatch: {
-                  superseded_by: subject,
-                  superseded_reason: tag
-                },
-                afterSubject: true
-              })
-            )
-          ]
-        };
-      }
-      if (option === "keep_both") {
-        return { ops: [], moves: subjectTo("active", "A person kept both docs live") };
-      }
-      if (option === "keep_existing") {
-        return {
-          ops: [],
-          moves: subjectTo("background", "The existing doc stays; the capture is searchable only")
-        };
-      }
-      return none;
-    case "conflict": {
-      const second = targets[0] ?? null;
-      if (option === "a_wins" && second) {
-        return {
-          ops: [],
-          moves: [
-            {
-              documentId: second,
-              role: "target",
-              to: "superseded",
-              reason: "A person chose the other doc as current",
-              metadataPatch: { superseded_by: subject, superseded_reason: tag }
-            }
-          ]
-        };
-      }
-      if (option === "b_wins" && subject && second) {
-        return {
-          ops: [],
-          moves: [
-            {
-              documentId: subject,
-              role: "target",
-              to: "superseded",
-              reason: "A person chose the other doc as current",
-              metadataPatch: { superseded_by: second, superseded_reason: tag }
-            }
-          ]
-        };
-      }
-      if (option === "both_valid") return { ops: ["mark_compatible"], moves: [] };
-      return none;
-    }
-    case "sensitive":
-      if (option === "keep") {
-        return {
-          ops: [],
-          moves: subjectTo("active", "A person kept this for the team", {
-            metadataPatch: { sensitive_hold: false, sensitive_resolution: "keep" }
-          })
-        };
-      }
-      if (option === "private") {
-        return {
-          ops: ["make_private"],
-          moves: subjectTo("active", "A person kept this private to its author", {
-            metadataPatch: { sensitive_hold: false, sensitive_resolution: "private" }
-          })
-        };
-      }
-      if (option === "discard") {
-        return {
-          ops: [],
-          moves: subjectTo("rejected", "Sensitive capture discarded", {
-            metadataPatch: { sensitive_resolution: "discard", rejected_reason: tag }
-          })
-        };
-      }
-      return none;
-    case "runbook":
-      if (option === "keep_live") {
-        return {
-          ops: [],
-          moves: subjectTo("active", "A person kept this runbook live", {
-            metadataPatch: { fast_track: false }
-          })
-        };
-      }
-      if (option === "searchable_only") {
-        return {
-          ops: [],
-          moves: subjectTo("background", "Runbook kept searchable only", {
-            metadataPatch: { fast_track: false }
-          })
-        };
-      }
-      if (option === "discard") {
-        return {
-          ops: [],
-          moves: subjectTo("rejected", "Runbook discarded", {
-            metadataPatch: { rejected_reason: tag }
-          })
-        };
-      }
-      return none;
-    case "goal":
-      if (option === "approve") {
-        return {
-          ops: [],
-          moves: subjectTo("active", "A person approved this goal", { sqlStatus: "approved" })
-        };
-      }
-      if (option === "reject") {
-        return {
-          ops: [],
-          moves: subjectTo("rejected", "A person rejected this goal", {
-            metadataPatch: { rejected_reason: tag }
-          })
-        };
-      }
-      return none;
-  }
-}
-async function loadRows(ctx, ids) {
-  const out = /* @__PURE__ */ new Map();
-  if (ids.length === 0) return out;
-  const read = (client2) => client2.from("documents").select("id, kind, status, memory_type, metadata").eq("account_id", ctx.accountId).in("id", ids);
-  let { data, error: error40 } = await read(ctx.supabase);
-  if (error40 && ctx.privilegedSupabase && ctx.privilegedSupabase !== ctx.supabase) {
-    ({ data, error: error40 } = await read(ctx.privilegedSupabase));
-  }
-  if (error40) throw new Error(`decision outcome: document read failed: ${error40.message}`);
-  for (const r2 of data ?? []) out.set(r2.id, r2);
-  return out;
-}
-async function rpcWithFallback(ctx, name, args) {
-  let res = await ctx.supabase.rpc(name, args);
-  if (res.error && /permission denied/i.test(res.error.message) && ctx.privilegedSupabase && ctx.privilegedSupabase !== ctx.supabase) {
-    res = await ctx.privilegedSupabase.rpc(name, args);
-  }
-  return res;
-}
-async function applyDecisionOutcome(ctx, decision, option, actor) {
-  const plan = planDecisionOutcome(decision, option);
-  const result = {
-    applied: true,
-    transitions: [],
-    unchanged: [],
-    refusals: [],
-    recorded: false
-  };
-  const isDefault = actor.type === "decision_default";
-  let opFailed = false;
-  for (const op of plan.ops) {
-    const name = op === "make_private" ? MAKE_PRIVATE_RPC : MARK_COMPATIBLE_RPC;
-    const { error: error41 } = await rpcWithFallback(ctx, name, {
-      p_account_id: ctx.accountId,
-      p_decision_id: decision.id
-    });
-    if (error41) {
-      opFailed = true;
-      result.refusals.push({
-        documentId: decision.subjectDocumentId,
-        refused: "failed",
-        from: null,
-        to: null,
-        message: `${op}: ${error41.message}`
-      });
-    }
-  }
-  const rows = await loadRows(ctx, [...new Set(plan.moves.map((m2) => m2.documentId))]);
-  let subjectRefused = opFailed;
-  for (const move of plan.moves) {
-    if (move.role === "subject" && opFailed || move.afterSubject && subjectRefused) {
-      result.refusals.push({
-        documentId: move.documentId,
-        refused: "stale",
-        from: null,
-        to: move.to,
-        message: move.role === "subject" ? "skipped: a prerequisite step failed" : "skipped: the replacement did not go live"
-      });
-      continue;
-    }
-    const row = rows.get(move.documentId);
-    if (!row) {
-      if (move.role === "subject") subjectRefused = true;
-      result.refusals.push({
-        documentId: move.documentId,
-        refused: "missing",
-        from: null,
-        to: move.to,
-        message: "document not found"
-      });
-      continue;
-    }
-    const current = lifecycleStatusOf(row.metadata);
-    if (current === move.to) {
-      result.unchanged.push(move.documentId);
-      continue;
-    }
-    if (isDefault && isRetirementMove(current, move.to)) {
-      if (move.role === "subject") subjectRefused = true;
-      result.refusals.push({
-        documentId: move.documentId,
-        refused: "needs_human",
-        from: current,
-        to: move.to,
-        message: "a default never retires a doc agents are given"
-      });
-      continue;
-    }
-    try {
-      const out = await transitionDocument(ctx, {
-        documentId: move.documentId,
-        to: move.to,
-        actor,
-        reason: move.reason,
-        decisionId: decision.id,
-        evidence: {
-          decision_kind: decision.kind,
-          option,
-          outcome_version: DECISION_OUTCOME_VERSION
-        },
-        ...move.sqlStatus ? { sqlStatus: move.sqlStatus } : {},
-        ...move.metadataPatch ? { metadataPatch: move.metadataPatch } : {},
-        subject: row,
-        touchUpdatedAt: true
-      });
-      if (isTransitionRefusal(out)) {
-        if (move.role === "subject") subjectRefused = true;
-        result.refusals.push({
-          documentId: move.documentId,
-          refused: out.refused,
-          from: out.from,
-          to: out.to,
-          message: out.message
-        });
-      } else {
-        result.transitions.push({
-          documentId: move.documentId,
-          transitionId: out.transitionId,
-          from: out.from,
-          to: out.to
-        });
-      }
-    } catch (e2) {
-      if (move.role === "subject") subjectRefused = true;
-      result.refusals.push({
-        documentId: move.documentId,
-        refused: "failed",
-        from: current,
-        to: move.to,
-        message: e2 instanceof Error ? e2.message : String(e2)
-      });
-    }
-  }
-  result.applied = result.refusals.length === 0;
-  const { error: error40 } = await rpcWithFallback(ctx, RECORD_OUTCOME_RPC, {
-    p_account_id: ctx.accountId,
-    p_decision_id: decision.id,
-    p_result: {
-      applied: result.applied,
-      transitions: result.transitions,
-      unchanged: result.unchanged,
-      refusals: result.refusals,
-      version: DECISION_OUTCOME_VERSION
-    }
-  });
-  result.recorded = !error40;
-  if (error40) {
-    console.warn(`[decision-outcomes] recording outcome for ${decision.id} failed: ${error40.message}`);
-  }
-  return result;
-}
-function createDecisionOutcomeApplier(ctx) {
-  return {
-    apply: (decision, option, actor) => applyDecisionOutcome(ctx, decision, option, actor)
-  };
-}
-
-// packages/mcp-tools/src/decisions.ts
-var DECISION_EXPLANATION_VERSION = 2;
-var MAX_DIFF_SOURCE_CHARS = 2e4;
-var MAX_DIFF_SOURCE_LINES = 400;
-var DEFAULT_DIFF_LINES = 24;
-var noopDecisionOutcomeApplier = {
-  async apply() {
-  }
-};
-var DecisionError = class extends Error {
-  constructor(code, message) {
-    super(message);
-    this.code = code;
-    this.name = "DecisionError";
-  }
-  code;
-};
-function str3(v2) {
-  return typeof v2 === "string" && v2.length > 0 ? v2 : null;
-}
-function stringList(v2, max = 5) {
-  if (!Array.isArray(v2)) return [];
-  return v2.filter((s2) => typeof s2 === "string" && s2.trim().length > 0).map((s2) => s2.trim().slice(0, 400)).slice(0, max);
-}
-function channel(v2) {
-  return typeof v2 === "string" && DECISION_CHANNELS.includes(v2) ? v2 : null;
-}
-function decisionFromRow(row) {
-  const kind2 = row.kind;
-  const spec = DECISION_KINDS[kind2];
-  const explanation = spec?.aiExplanation ? validateExplanation(kind2, row.explanation) : null;
-  const stored = Array.isArray(row.options) ? row.options : [];
-  const specOptions = spec ? spec.options : [];
-  const options2 = specOptions.map((o2) => {
-    const fromRow = stored.find((s2) => s2.id === o2.id);
-    const fromAi = explanation?.options.find((s2) => s2.id === o2.id);
-    return {
-      ...o2,
-      pros: fromAi?.pros ?? stringList(fromRow?.pros),
-      cons: fromAi?.cons ?? stringList(fromRow?.cons)
-    };
-  });
-  const origin = row.origin && typeof row.origin === "object" ? row.origin : {};
-  const relatedDocumentIds = Array.isArray(row.related_document_ids) ? row.related_document_ids.filter((x2) => typeof x2 === "string") : [];
-  return {
-    id: String(row.id),
-    accountId: String(row.account_id),
-    projectId: str3(row.project_id),
-    kind: kind2,
-    state: row.state,
-    subjectDocumentId: str3(row.subject_document_id),
-    targetDocumentIds: Array.isArray(row.target_document_ids) ? row.target_document_ids.filter((x2) => typeof x2 === "string") : [],
-    relatedDocumentIds,
-    captureCount: typeof row.capture_count === "number" && row.capture_count >= 1 ? row.capture_count : 1 + relatedDocumentIds.length,
-    origin,
-    question: String(row.question ?? ""),
-    whyHuman: String(row.why_human ?? spec?.whyHuman ?? ""),
-    evidence: row.evidence && typeof row.evidence === "object" ? row.evidence : {},
-    options: options2,
-    recommendation: spec?.aiExplanation ? explanation?.recommendation ?? validateRecommendation(kind2, row.recommendation) : null,
-    defaultOption: String(row.default_option ?? spec?.defaultOption ?? ""),
-    deadlineAt: String(row.deadline_at),
-    consequenceScore: typeof row.consequence_score === "number" ? row.consequence_score : 0,
-    askedAt: str3(row.asked_at),
-    askedVia: channel(row.asked_via),
-    answeredAt: str3(row.answered_at),
-    answeredBy: str3(row.answered_by),
-    answeredVia: channel(row.answered_via),
-    answerOption: str3(row.answer_option),
-    answerNote: str3(row.answer_note),
-    answerQuote: str3(row.answer_quote),
-    explanationVersion: typeof row.explanation_version === "number" ? row.explanation_version : 0,
-    createdAt: String(row.created_at)
-  };
-}
-function validateRecommendation(kind2, raw) {
-  if (!raw || typeof raw !== "object") return null;
-  const r2 = raw;
-  const option = str3(r2.option);
-  if (!option || !isValidAnswer(kind2, option)) return null;
-  const confidence = typeof r2.confidence === "number" ? r2.confidence : Number.NaN;
-  if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) return null;
-  const rationale = str3(typeof r2.rationale === "string" ? r2.rationale.trim() : null);
-  if (!rationale) return null;
-  return { option, confidence, rationale: rationale.slice(0, 1200) };
-}
-function validateExplanation(kind2, raw) {
-  if (!isDecisionKind(kind2) || !raw || typeof raw !== "object") return null;
-  const r2 = raw;
-  const recommendation = validateRecommendation(kind2, r2.recommendation);
-  if (!recommendation) return null;
-  const rawOptions = Array.isArray(r2.options) ? r2.options : [];
-  const options2 = DECISION_KINDS[kind2].options.map((o2) => {
-    const found = rawOptions.find((x2) => x2 && x2.id === o2.id);
-    return { id: o2.id, pros: stringList(found?.pros), cons: stringList(found?.cons) };
-  });
-  return { recommendation, options: options2 };
-}
-function actorClient(ctx) {
-  return ctx.actorSupabase ?? ctx.supabase;
-}
-function serviceClient(ctx) {
-  return ctx.privilegedSupabase ?? ctx.supabase;
-}
-function rpcFailure(prefix, error40) {
-  const message = `${prefix}: ${error40.message ?? "request failed"}`;
-  switch (error40.code) {
-    case "42501":
-      return new DecisionError("forbidden", message);
-    case "P0002":
-      return new DecisionError("not_found", message);
-    case "22023":
-      return new DecisionError("invalid", message);
-    case "PT409":
-      return new DecisionError("conflict", message);
-    default:
-      return new DecisionError("failed", message);
-  }
-}
-function questionFor(kind2, subjectTitle) {
-  const label = DECISION_KINDS[kind2].label;
-  const title = subjectTitle?.trim();
-  return (title ? `${label}: "${title.slice(0, 200)}"` : label).slice(0, 2e3);
-}
-async function raiseDecision(ctx, input, deps = {}) {
-  if (!isDecisionKind(input.kind)) {
-    throw new DecisionError(
-      "invalid",
-      `raise_decision: unknown decision kind "${String(input.kind)}"`
-    );
-  }
-  const spec = DECISION_KINDS[input.kind];
-  const raisedAtMs = input.raisedAtMs ?? (deps.now ?? Date.now)();
-  const { data, error: error40 } = await serviceClient(ctx).rpc("memory_decision_raise", {
-    p_account_id: ctx.accountId,
-    p_project_id: input.projectId ?? null,
-    p_kind: input.kind,
-    p_subject_document_id: input.subjectDocumentId ?? null,
-    p_target_document_ids: input.targetDocumentIds ?? [],
-    p_origin: input.origin ?? {},
-    p_question: questionFor(input.kind, input.subjectTitle),
-    p_why_human: spec.whyHuman,
-    p_evidence: input.evidence ?? {},
-    p_options: spec.options.map((o2) => ({ ...o2, pros: [], cons: [] })),
-    p_default_option: spec.defaultOption,
-    p_deadline_at: decisionDeadline(input.kind, raisedAtMs),
-    p_consequence_score: Math.max(0, Math.round(input.consequenceScore ?? 0)),
-    p_capture_cap: DECISION_CAPS.perCapture
-  });
-  if (error40) throw rpcFailure("raise_decision", error40);
-  const out = data ?? {};
-  if (out.capped === true) return { status: "capped", decision: null, explained: false };
-  if (!out.id) throw new DecisionError("failed", "raise_decision: no row returned");
-  const decision = decisionFromRow(out);
-  if (out.created !== true) {
-    return { status: "existing", decision, explained: false, attached: out.attached === true };
-  }
-  let explained = false;
-  if (deps.explain && spec.aiExplanation) {
-    try {
-      explained = await cacheExplanation(ctx, decision, deps.explain);
-    } catch {
-    }
-  }
-  return { status: "raised", decision, explained };
-}
-async function raiseDecisions(ctx, inputs, deps = {}) {
-  const results = [];
-  let raised = 0;
-  for (const input of inputs) {
-    if (raised >= DECISION_CAPS.perCapture) {
-      results.push({ status: "capped", decision: null, explained: false });
-      continue;
-    }
-    const r2 = await raiseDecision(ctx, input, deps);
-    if (r2.status === "raised") raised++;
-    results.push(r2);
-  }
-  return results;
-}
-async function cacheExplanation(ctx, decision, generate) {
-  if (!DECISION_KINDS[decision.kind].aiExplanation) return false;
-  const evidence = await buildDecisionEvidence(ctx, decision);
-  const explanation = validateExplanation(decision.kind, await generate({ decision, evidence }));
-  if (!explanation) return false;
-  const { data, error: error40 } = await serviceClient(ctx).rpc("memory_decision_set_explanation", {
-    p_account_id: ctx.accountId,
-    p_decision_id: decision.id,
-    p_explanation: explanation,
-    p_version: DECISION_EXPLANATION_VERSION
-  });
-  if (error40) throw rpcFailure("explain_decision", error40);
-  return data === true;
-}
-async function visibleToCaller(ctx, decisions) {
-  if (!ctx.serviceTokenId) return decisions;
-  const candidates = decisions.filter((d2) => d2.kind !== "sensitive");
-  const ids = [
-    ...new Set(
-      candidates.flatMap((d2) => [...decisionCaptureDocumentIds(d2), ...d2.targetDocumentIds])
-    )
-  ];
-  if (ids.length === 0) return candidates;
-  const { data, error: error40 } = await actorClient(ctx).from("documents").select("id, scope, created_by").eq("account_id", ctx.accountId).in("id", ids);
-  if (error40) throw rpcFailure("decision_visibility", error40);
-  const hidden = new Set(
-    (data ?? []).filter((d2) => d2.scope === "personal" && d2.created_by !== ctx.userId).map((d2) => d2.id)
-  );
-  return candidates.filter(
-    (d2) => !decisionCaptureDocumentIds(d2).some((id3) => hidden.has(id3)) && !d2.targetDocumentIds.some((id3) => hidden.has(id3))
-  );
-}
-async function getDecision(ctx, decisionId) {
-  const { data, error: error40 } = await actorClient(ctx).rpc("memory_decision_get", {
-    p_account_id: ctx.accountId,
-    p_decision_id: decisionId
-  });
-  if (error40) throw rpcFailure("get_decision", error40);
-  if (!data || typeof data !== "object") return null;
-  const row = data;
-  if (row.account_id !== ctx.accountId) return null;
-  const [visible] = await visibleToCaller(ctx, [decisionFromRow(row)]);
-  return visible ?? null;
-}
-async function listOpenDecisions(ctx, args = {}) {
-  const limit2 = Math.min(Math.max(Math.trunc(args.limit ?? 50), 1), 200);
-  const { data, error: error40 } = await actorClient(ctx).rpc("memory_decisions_list_open", {
-    p_account_id: ctx.accountId,
-    p_limit: limit2
-  });
-  if (error40) throw rpcFailure("list_decisions", error40);
-  const rows = Array.isArray(data) ? data : [];
-  const decisions = rows.filter((r2) => r2.account_id === ctx.accountId).map(decisionFromRow).sort(
-    (a2, b2) => b2.consequenceScore - a2.consequenceScore || Date.parse(a2.deadlineAt) - Date.parse(b2.deadlineAt)
-  ).slice(0, limit2);
-  return visibleToCaller(ctx, decisions);
-}
-async function countOpenDecisions(ctx) {
-  if (ctx.serviceTokenId) return (await listOpenDecisions(ctx, { limit: 200 })).length;
-  const { data, error: error40 } = await actorClient(ctx).rpc("memory_decisions_open_count", {
-    p_account_id: ctx.accountId
-  });
-  if (error40) throw rpcFailure("count_decisions", error40);
-  return typeof data === "number" ? data : Number(data ?? 0) || 0;
-}
-async function loadDecisionSubjectStates(ctx, decisions) {
-  const ids = [...new Set(decisions.flatMap((d2) => decisionCaptureDocumentIds(d2)))];
-  if (ids.length === 0) return /* @__PURE__ */ new Map();
-  try {
-    const { data, error: error40 } = await actorClient(ctx).from("documents").select("id, status, lifecycle:metadata->>status").eq("account_id", ctx.accountId).in("id", ids);
-    if (error40) return null;
-    const out = /* @__PURE__ */ new Map();
-    for (const row of data ?? []) {
-      out.set(row.id, { status: row.status ?? null, lifecycle: row.lifecycle ?? null });
-    }
-    return out;
-  } catch {
-    return null;
-  }
-}
-async function readOpenDecisionGroups(ctx, nowMs = Date.now()) {
-  const decisions = await listOpenDecisions(ctx, { limit: DECISION_GROUP_READ_LIMIT });
-  const subjects = await loadDecisionSubjectStates(ctx, decisions);
-  return { groups: openDecisionGroups(decisions, nowMs, subjects), listed: decisions.length };
-}
-async function listDecisionsWithNeedsYou(ctx, args = {}) {
-  const [decisions, count, grouped] = await Promise.all([
-    listOpenDecisions(ctx, { limit: args.limit }),
-    countOpenDecisions(ctx),
-    readOpenDecisionGroups(ctx)
-  ]);
-  return {
-    decisions,
-    count,
-    needs_you_count: needsYouDecisionCount({
-      groups: grouped.groups.length,
-      listed: grouped.listed,
-      openCount: count
-    }),
-    groups: grouped.groups.map(toNeedsYouGroupWire)
-  };
-}
-async function markDecisionAsked(ctx, decisionId, via) {
-  const { data, error: error40 } = await actorClient(ctx).rpc("memory_decision_mark_asked", {
-    p_account_id: ctx.accountId,
-    p_decision_id: decisionId,
-    p_via: via
-  });
-  if (error40) throw rpcFailure("mark_asked", error40);
-  return decisionFromRow(data);
-}
-var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-async function answerDecision(ctx, input, deps = {}) {
-  if (ctx.callerRole === "viewer") {
-    throw new DecisionError("forbidden", "decide: answering a decision requires a writer");
-  }
-  if (!DECISION_CHANNELS.includes(input.via)) {
-    throw new DecisionError("invalid", `decide: unknown channel "${String(input.via)}"`);
-  }
-  const current = await getDecision(ctx, input.decisionId);
-  if (!current) throw new DecisionError("not_found", "decide: decision not found");
-  const spec = DECISION_KINDS[current.kind];
-  if (!isValidAnswer(current.kind, input.option)) {
-    throw new DecisionError(
-      "invalid",
-      `decide: "${input.option}" is not an option for a ${current.kind} decision (choose one of: ${spec.options.map((o2) => o2.id).join(", ")})`
-    );
-  }
-  const { data, error: error40 } = await actorClient(ctx).rpc("memory_decision_answer", {
-    p_account_id: ctx.accountId,
-    p_decision_id: input.decisionId,
-    p_option: input.option,
-    p_via: input.via,
-    p_note: input.note?.trim() || null,
-    p_quote: input.userQuote?.trim() || null,
-    // Honoured only for the service role; a user's own JWT identity wins.
-    p_answered_by: ctx.userId && UUID_RE.test(ctx.userId) ? ctx.userId : null
-  });
-  if (error40) throw rpcFailure("decide", error40);
-  const row = data;
-  const decision = decisionFromRow(row);
-  const option = spec.options.find((o2) => o2.id === input.option);
-  const replayed = row.replayed === true;
-  let applied = false;
-  let applyError = null;
-  let outcome = null;
-  if (!replayed) {
-    try {
-      outcome = await (deps.applier ?? noopDecisionOutcomeApplier).apply(decision, option.id, {
-        type: "human",
-        id: decision.answeredBy ?? ctx.userId ?? "unknown"
-      }) ?? null;
-      applied = outcome ? outcome.applied : true;
-    } catch (e2) {
-      applyError = e2 instanceof Error ? e2.message : String(e2);
-    }
-  }
-  return {
-    decision,
-    option,
-    consequence: option.consequence,
-    reversible: option.reversible,
-    replayed,
-    applied,
-    applyError,
-    outcome
-  };
-}
-function originSummary(origin) {
-  const parts = [];
-  if (origin.agent) parts.push(`${origin.agent} session`);
-  else if (origin.sessionId) parts.push("agent session");
-  if (origin.sessionId) parts.push(origin.sessionId.slice(0, 12));
-  if (origin.commitSha) parts.push(`commit ${origin.commitSha.slice(0, 7)}`);
-  if (origin.userId) parts.push("work by a workspace member");
-  return parts.length ? parts.join(" \xB7 ") : "unknown origin";
-}
-function shortTextDiff(before, after, maxLines = DEFAULT_DIFF_LINES) {
-  const clip = (s2) => {
-    const lines = s2.slice(0, MAX_DIFF_SOURCE_CHARS).split("\n");
-    return {
-      lines: lines.slice(0, MAX_DIFF_SOURCE_LINES),
-      clipped: s2.length > MAX_DIFF_SOURCE_CHARS || lines.length > MAX_DIFF_SOURCE_LINES
-    };
-  };
-  const a2 = clip(before);
-  const b2 = clip(after);
-  const n2 = a2.lines.length;
-  const m2 = b2.lines.length;
-  const lcs = Array.from({ length: n2 + 1 }, () => new Uint16Array(m2 + 1));
-  for (let i3 = n2 - 1; i3 >= 0; i3--) {
-    for (let j3 = m2 - 1; j3 >= 0; j3--) {
-      lcs[i3][j3] = a2.lines[i3] === b2.lines[j3] ? lcs[i3 + 1][j3 + 1] + 1 : Math.max(lcs[i3 + 1][j3], lcs[i3][j3 + 1]);
-    }
-  }
-  const out = [];
-  let added = 0;
-  let removed = 0;
-  let i2 = 0;
-  let j2 = 0;
-  while (i2 < n2 || j2 < m2) {
-    if (i2 < n2 && j2 < m2 && a2.lines[i2] === b2.lines[j2]) {
-      i2++;
-      j2++;
-    } else if (j2 < m2 && (i2 >= n2 || lcs[i2][j2 + 1] >= lcs[i2 + 1][j2])) {
-      added++;
-      out.push(`+ ${b2.lines[j2]}`);
-      j2++;
-    } else {
-      removed++;
-      out.push(`- ${a2.lines[i2]}`);
-      i2++;
-    }
-  }
-  return {
-    text: out.slice(0, maxLines).join("\n"),
-    added,
-    removed,
-    truncated: out.length > maxLines || a2.clipped || b2.clipped
-  };
-}
-async function readDocs(ctx, ids) {
-  const out = /* @__PURE__ */ new Map();
-  if (ids.length === 0) return out;
-  const { data, error: error40 } = await actorClient(ctx).from("documents").select("id, title, document_versions!documents_current_version_fk ( content )").eq("account_id", ctx.accountId).in("id", ids);
-  if (error40 || !Array.isArray(data)) return out;
-  for (const row of data) {
-    const v2 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
-    out.set(String(row.id), {
-      id: String(row.id),
-      title: str3(row.title),
-      content: typeof v2?.content === "string" ? v2.content : ""
-    });
-  }
-  return out;
-}
-async function buildDecisionEvidence(ctx, decision) {
-  const spec = DECISION_KINDS[decision.kind];
-  const ev = decision.evidence;
-  const targetId = decision.targetDocumentIds[0] ?? null;
-  const subjectId = decision.subjectDocumentId;
-  const docs = await readDocs(
-    ctx,
-    [subjectId, targetId].filter((x2) => typeof x2 === "string")
-  );
-  const [beforeId, afterId] = decision.kind === "conflict" ? [subjectId, targetId] : [targetId, subjectId];
-  const before = beforeId ? docs.get(beforeId) : void 0;
-  const after = afterId ? docs.get(afterId) : void 0;
-  let diff = null;
-  if (before || after) {
-    diff = {
-      before: before ? { id: before.id, title: before.title } : null,
-      after: after ? { id: after.id, title: after.title } : null,
-      ...shortTextDiff(before?.content ?? "", after?.content ?? "")
-    };
-  }
-  const def = spec.options.find((o2) => o2.id === spec.defaultOption);
-  return {
-    reason: {
-      kind: decision.kind,
-      label: spec.label,
-      raisedWhen: spec.raisedWhen,
-      whyHuman: spec.whyHuman,
-      detail: str3(ev.reason)
-    },
-    origin: { ...decision.origin, summary: originSummary(decision.origin) },
-    automation: stringList(ev.automation, 20),
-    diff,
-    deadline: {
-      at: decision.deadlineAt,
-      defaultOption: def.id,
-      defaultLabel: def.label,
-      consequence: def.consequence
-    },
-    options: spec.options.map((o2) => ({ ...o2 })),
-    reversible: spec.options.every((o2) => o2.reversible)
-  };
-}
-async function explainDecision(ctx, decisionId) {
-  const decision = await getDecision(ctx, decisionId);
-  if (!decision) throw new DecisionError("not_found", "explain_decision: decision not found");
-  const aiAllowed = DECISION_KINDS[decision.kind].aiExplanation;
-  const evidence = await buildDecisionEvidence(ctx, decision);
-  const ai = aiAllowed && decision.recommendation ? {
-    recommendation: decision.recommendation,
-    options: decision.options.map((o2) => ({ id: o2.id, pros: o2.pros, cons: o2.cons }))
-  } : null;
-  return { decision, evidence, ai, aiAllowed };
-}
-var ListDecisionsArgs = external_exports.object({
-  limit: external_exports.number().int().min(1).max(200).optional()
-});
-var ExplainDecisionArgs = external_exports.object({ decision_id: external_exports.string().uuid() });
-var DecideArgs = external_exports.object({
-  decision_id: external_exports.string().uuid(),
-  option: external_exports.string().min(1).max(64),
-  note: external_exports.string().max(4e3).optional(),
-  user_quote: external_exports.string().max(4e3).optional()
-});
-async function listDecisionsTool(ctx, rawArgs) {
-  const args = ListDecisionsArgs.parse(rawArgs ?? {});
-  return listDecisionsWithNeedsYou(ctx, { limit: args.limit });
-}
-async function explainDecisionTool(ctx, rawArgs) {
-  const args = ExplainDecisionArgs.parse(rawArgs);
-  return explainDecision(ctx, args.decision_id);
-}
-async function decideTool(ctx, rawArgs, deps = {}) {
-  const args = DecideArgs.parse(rawArgs);
-  return answerDecision(
-    ctx,
-    {
-      decisionId: args.decision_id,
-      option: args.option,
-      note: args.note,
-      userQuote: args.user_quote,
-      via: "mcp"
-    },
-    {
-      ...deps,
-      // The answer is carried out on the answering person's own client, so the
-      // ledger's caller check sees them; the privileged client is the fallback
-      // the transition path already uses for Auth0 sessions.
-      applier: deps.applier ?? createDecisionOutcomeApplier({
-        supabase: actorClient(ctx),
-        privilegedSupabase: ctx.privilegedSupabase,
-        accountId: ctx.accountId
-      })
-    }
-  );
-}
-
-// packages/mcp-tools/src/curation.ts
-var CurationError = class extends Error {
-  code;
-  constructor(code, message) {
-    super(message);
-    this.name = "CurationError";
-    this.code = code;
-  }
-};
-var ACTION_TARGET = {
-  approve: "approved",
-  archive: "archived",
-  // Unarchive restores to draft (the only legal move out of archived) —
-  // the doc re-enters the curation funnel rather than jumping straight
-  // back to approved.
-  unarchive: "draft"
-};
-function decideStatusChange(args) {
-  const { action, currentStatus, role } = args;
-  if (role === "viewer") {
-    throw new CurationError("forbidden", "viewer role cannot curate documents");
-  }
-  if (action === "approve" && role !== "owner" && role !== "admin") {
-    throw new CurationError("forbidden", "approving a document is owner/admin-only");
-  }
-  if (action === "unarchive" && currentStatus !== "archived") {
-    throw new CurationError("invalid_transition", "document is not archived");
-  }
-  const to = ACTION_TARGET[action];
-  if (currentStatus === to) {
-    throw new CurationError(
-      "invalid_transition",
-      `document is already ${currentStatus}`
-    );
-  }
-  const allowed = DOCUMENT_STATUS_TRANSITIONS[currentStatus] ?? [];
-  if (!allowed.includes(to)) {
-    throw new CurationError(
-      "invalid_transition",
-      `invalid transition: ${currentStatus} \u2192 ${to}`
-    );
-  }
-  return { to };
-}
-var SetStatusArgs = external_exports.object({
-  document_id: external_exports.string().uuid(),
-  action: external_exports.enum(["approve", "archive", "unarchive"])
-});
-async function setDocumentStatus(ctx, rawArgs) {
-  let args;
-  try {
-    args = SetStatusArgs.parse(rawArgs);
-  } catch (e2) {
-    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
-  }
-  const role = ctx.callerRole ?? "viewer";
-  const { data: doc, error: readErr } = await ctx.supabase.from("documents").select("id, account_id, scope, created_by, kind, title, status, metadata").eq("id", args.document_id).maybeSingle();
-  if (readErr) throw new CurationError("not_found", `document lookup failed: ${readErr.message}`);
-  if (!doc || doc.account_id !== ctx.accountId) {
-    throw new CurationError("not_found", "document not found in this account");
-  }
-  const row = doc;
-  if (row.scope === "personal" && row.created_by && ctx.userId !== row.created_by) {
-    throw new CurationError("forbidden", "personal-scope documents can only be curated by their creator");
-  }
-  const { to } = decideStatusChange({ action: args.action, currentStatus: row.status, role });
-  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
-  const actor = ctx.userId ?? "api";
-  const meta = { ...row.metadata ?? {} };
-  let metadataStatusActivated = false;
-  if (args.action === "approve") {
-    meta.approved_at = nowIso;
-    meta.approved_by = actor;
-    if (meta.status === "proposed" || meta.status === "background") {
-      meta.status = "active";
-      meta.accepted_at = nowIso;
-      meta.accepted_by_user_sub = actor;
-      metadataStatusActivated = true;
-    }
-  } else if (args.action === "archive") {
-    meta.lifecycle_action = "archived";
-    meta.lifecycle_archived_at = nowIso;
-    meta.lifecycle_archived_by_user_sub = actor;
-  } else {
-    meta.lifecycle_action = "unarchived";
-    meta.lifecycle_unarchived_at = nowIso;
-    meta.lifecycle_unarchived_by_user_sub = actor;
-    if (meta.status === "superseded" || meta.status === "archived") {
-      meta.status = "active";
-      metadataStatusActivated = true;
-    }
-  }
-  const { error: updateErr } = await ctx.supabase.from("documents").update({ status: to, metadata: meta }).eq("id", row.id).eq("account_id", ctx.accountId);
-  if (updateErr) {
-    throw new CurationError("forbidden", `status update failed: ${updateErr.message}`);
-  }
-  return {
-    id: row.id,
-    kind: row.kind,
-    title: row.title,
-    from: row.status,
-    to,
-    metadata_status_activated: metadataStatusActivated
-  };
-}
-async function applyCanonicalMerge(ctx, args) {
-  const count = (m2) => m2 && typeof m2.corroboration_count === "number" ? m2.corroboration_count : 0;
-  const canonicalMeta = args.canonical.metadata ?? {};
-  const summedCorroboration = Math.max(count(canonicalMeta), 1) + args.twins.reduce((s2, t2) => s2 + Math.max(count(t2.metadata), 1), 0);
-  let newVersionNumber = null;
-  const builtMetadata = args.buildCanonicalMetadata(summedCorroboration);
-  if (args.content !== null) {
-    const { data, error: writeErr } = await ctx.supabase.rpc("write_document", {
-      p_document_id: args.canonical.id,
-      p_account_id: ctx.accountId,
-      p_project_id: args.canonical.project_id ?? null,
-      p_scope: args.canonical.scope,
-      p_kind: args.canonical.kind,
-      p_title: args.canonical.title,
-      p_path: args.canonical.path ?? null,
-      p_content: args.content,
-      p_embedding: null,
-      p_metadata: builtMetadata,
-      p_commit_message: args.commitMessage,
-      p_yjs_state_b64: null,
-      // buildCanonicalMetadata returns the FULL object — replace semantics
-      // (no merge flag). Attribution rides only on the service-token path.
-      ...ctx.serviceTokenId ? { p_author_id: ctx.userId ?? null, p_service_token_id: ctx.serviceTokenId } : {}
-    });
-    if (writeErr) {
-      throw new CurationError("forbidden", `merge apply failed: ${writeErr.message}`);
-    }
-    const rows = data;
-    newVersionNumber = rows?.[0]?.version_number ?? null;
-  } else {
-    const { error: metaErr } = await ctx.supabase.from("documents").update({ metadata: builtMetadata }).eq("id", args.canonical.id).eq("account_id", ctx.accountId);
-    if (metaErr) {
-      throw new CurationError("forbidden", `merge metadata update failed: ${metaErr.message}`);
-    }
-  }
-  for (const twin of args.twins) {
-    const twinMeta = twin.metadata ?? {};
-    const { error: archiveErr } = await ctx.supabase.from("documents").update({
-      status: "archived",
-      metadata: {
-        ...twinMeta,
-        status: "superseded",
-        superseded_by: args.canonical.id,
-        superseded_at: args.nowIso,
-        superseded_reason: args.supersededReason
-      }
-    }).eq("id", twin.id).eq("account_id", ctx.accountId);
-    if (archiveErr) {
-      throw new CurationError("forbidden", `twin archive failed: ${archiveErr.message}`);
-    }
-  }
-  return { newVersionNumber, summedCorroboration };
-}
-var MergeArgs = external_exports.object({
-  canonical_id: external_exports.string().uuid(),
-  duplicate_ids: external_exports.array(external_exports.string().uuid()).min(1).max(50),
-  /** Optional canonical body replacing the keeper's content (new version).
-   *  Omit when the keeper's existing body already is the merged truth —
-   *  the merge is then metadata-only and creates no version. */
-  merged_content: external_exports.string().min(1).optional(),
-  commit_message: external_exports.string().max(500).optional()
-});
-async function mergeDocuments(ctx, rawArgs) {
-  let args;
-  try {
-    args = MergeArgs.parse(rawArgs);
-  } catch (e2) {
-    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
-  }
-  const role = ctx.callerRole ?? "viewer";
-  if (role === "viewer") {
-    throw new CurationError("forbidden", "viewer role cannot merge documents");
-  }
-  const { data: canonicalRow, error: canonicalErr } = await ctx.supabase.from("documents").select("id, account_id, project_id, scope, kind, title, path, status, metadata").eq("id", args.canonical_id).maybeSingle();
-  if (canonicalErr) {
-    throw new CurationError("not_found", `canonical lookup failed: ${canonicalErr.message}`);
-  }
-  if (!canonicalRow || canonicalRow.account_id !== ctx.accountId) {
-    throw new CurationError("not_found", "canonical document not found in this account");
-  }
-  const canonical2 = canonicalRow;
-  if (canonical2.scope === "personal") {
-    throw new CurationError("forbidden", "personal-scope documents cannot be merge targets");
-  }
-  if (canonical2.status === "archived") {
-    throw new CurationError("invalid_transition", "canonical document is archived \u2014 unarchive it first");
-  }
-  const requestedIds = args.duplicate_ids.filter((id3) => id3 !== args.canonical_id);
-  const skipped = args.duplicate_ids.filter((id3) => id3 === args.canonical_id).map((id3) => ({ id: id3, reason: "is_canonical" }));
-  const { data: dupRows, error: dupErr } = await ctx.supabase.from("documents").select("id, kind, scope, status, metadata").eq("account_id", ctx.accountId).in("id", requestedIds);
-  if (dupErr) throw new CurationError("not_found", `duplicate lookup failed: ${dupErr.message}`);
-  const found = new Map(
-    (dupRows ?? []).map(
-      (r2) => [r2.id, r2]
-    )
-  );
-  const twins = [];
-  for (const id3 of requestedIds) {
-    const row = found.get(id3);
-    if (!row) {
-      skipped.push({ id: id3, reason: "not_found" });
-      continue;
-    }
-    if (row.kind !== canonical2.kind) {
-      skipped.push({ id: id3, reason: "kind_mismatch" });
-      continue;
-    }
-    if (row.scope === "personal") {
-      skipped.push({ id: id3, reason: "personal_scope" });
-      continue;
-    }
-    const meta = row.metadata ?? {};
-    if (meta.superseded_by === args.canonical_id) {
-      skipped.push({ id: id3, reason: "already_merged" });
-      continue;
-    }
-    twins.push({ id: row.id, metadata: row.metadata });
-  }
-  if (twins.length === 0) {
-    return {
-      canonical_id: canonical2.id,
-      archived_ids: [],
-      skipped,
-      new_version_number: null,
-      corroboration_count: canonical2.metadata && typeof canonical2.metadata.corroboration_count === "number" ? canonical2.metadata.corroboration_count : 1
-    };
-  }
-  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
-  const canonicalMeta = canonical2.metadata ?? {};
-  const priorMergedFrom = Array.isArray(canonicalMeta.merged_from) ? canonicalMeta.merged_from.filter((v2) => typeof v2 === "string") : [];
-  const { newVersionNumber, summedCorroboration } = await applyCanonicalMerge(ctx, {
-    canonical: canonical2,
-    twins,
-    content: args.merged_content ?? null,
-    buildCanonicalMetadata: (sum) => ({
-      ...canonicalMeta,
-      // metadata.status stays as-is — making a doc live (or approved) is a
-      // deliberate separate action (setDocumentStatus), not a merge side
-      // effect.
-      merged_from: [...priorMergedFrom, ...twins.map((t2) => t2.id)],
-      merged_at: nowIso,
-      merged_via: "api",
-      corroboration_count: sum,
-      ...args.merged_content ? { embedding_stale: true } : {}
-    }),
-    commitMessage: args.commit_message ?? `merge ${twins.length} duplicate ${canonical2.kind} doc(s)`,
-    supersededReason: "merged",
-    nowIso
-  });
-  return {
-    canonical_id: canonical2.id,
-    archived_ids: twins.map((t2) => t2.id),
-    skipped,
-    new_version_number: newVersionNumber,
-    corroboration_count: summedCorroboration
-  };
-}
-var AUTO_MERGE_SAFE_THRESHOLD = 0.92;
-var SWEEP_DEFAULT_THRESHOLD = 0.85;
-var SWEEP_DOC_CAP = 800;
-var SWEEP_KINDS = ["decision", "memory", "skill"];
-function canonicalRank(a2, b2) {
-  const aApproved = a2.status === "approved" ? 1 : 0;
-  const bApproved = b2.status === "approved" ? 1 : 0;
-  if (aApproved !== bApproved) return bApproved - aApproved;
-  if (a2.corroboration_count !== b2.corroboration_count) {
-    return b2.corroboration_count - a2.corroboration_count;
-  }
-  return a2.updated_at < b2.updated_at ? 1 : a2.updated_at > b2.updated_at ? -1 : 0;
-}
-function clusterPairs(kind2, pairs, docs) {
-  const neighbours = /* @__PURE__ */ new Map();
-  for (const p2 of pairs) {
-    if (!docs.has(p2.id_a) || !docs.has(p2.id_b)) continue;
-    if (!neighbours.has(p2.id_a)) neighbours.set(p2.id_a, /* @__PURE__ */ new Map());
-    if (!neighbours.has(p2.id_b)) neighbours.set(p2.id_b, /* @__PURE__ */ new Map());
-    neighbours.get(p2.id_a).set(p2.id_b, p2.similarity);
-    neighbours.get(p2.id_b).set(p2.id_a, p2.similarity);
-  }
-  const ranked = [...neighbours.keys()].map((id3) => docs.get(id3)).sort(canonicalRank);
-  const claimed = /* @__PURE__ */ new Set();
-  const clusters = [];
-  for (const leader of ranked) {
-    if (claimed.has(leader.id)) continue;
-    claimed.add(leader.id);
-    const members = [];
-    for (const [otherId, similarity] of neighbours.get(leader.id) ?? []) {
-      if (claimed.has(otherId)) continue;
-      claimed.add(otherId);
-      members.push({ ...docs.get(otherId), similarity_to_canonical: similarity });
-    }
-    if (members.length === 0) continue;
-    members.sort((a2, b2) => b2.similarity_to_canonical - a2.similarity_to_canonical);
-    const avg = members.reduce((s2, m2) => s2 + m2.similarity_to_canonical, 0) / members.length;
-    clusters.push({
-      kind: kind2,
-      suggested_canonical_id: leader.id,
-      canonical: leader,
-      members,
-      avg_similarity: Math.round(avg * 1e3) / 1e3,
-      auto_merge_safe: members.every(
-        (m2) => m2.similarity_to_canonical >= AUTO_MERGE_SAFE_THRESHOLD
-      )
-    });
-  }
-  clusters.sort((a2, b2) => b2.members.length - a2.members.length);
-  return clusters;
-}
-var SweepArgs = external_exports.object({
-  project_id: external_exports.string().uuid().optional(),
-  kinds: external_exports.array(external_exports.enum(SWEEP_KINDS)).min(1).optional(),
-  threshold: external_exports.number().min(0.8).max(0.99).optional()
-});
-async function sweepDuplicates(ctx, rawArgs) {
-  let args;
-  try {
-    args = SweepArgs.parse(rawArgs ?? {});
-  } catch (e2) {
-    throw new CurationError("invalid_args", e2 instanceof Error ? e2.message : "invalid arguments");
-  }
-  const kinds = args.kinds ?? [...SWEEP_KINDS];
-  const threshold = args.threshold ?? SWEEP_DEFAULT_THRESHOLD;
-  const clusters = [];
-  const scanned = {};
-  let truncated = false;
-  let vectorlessCount = 0;
-  for (const kind2 of kinds) {
-    let query = ctx.supabase.from("documents").select("id, title, status, updated_at, metadata").eq("account_id", ctx.accountId).eq("kind", kind2).neq("status", "archived").not("embedding", "is", null).or("metadata->>status.is.null,metadata->>status.eq.active");
-    if (args.project_id) query = query.eq("project_id", args.project_id);
-    const { data, error: error40 } = await query.order("updated_at", { ascending: false }).limit(SWEEP_DOC_CAP);
-    if (error40) throw new CurationError("invalid_args", `sweep candidate read failed: ${error40.message}`);
-    try {
-      let vectorlessQuery = ctx.supabase.from("documents").select("id", { count: "exact", head: true }).eq("account_id", ctx.accountId).eq("kind", kind2).neq("status", "archived").is("embedding", null).or("metadata->>status.is.null,metadata->>status.eq.active");
-      if (args.project_id) vectorlessQuery = vectorlessQuery.eq("project_id", args.project_id);
-      const { count } = await vectorlessQuery;
-      vectorlessCount += count ?? 0;
-    } catch {
-    }
-    const rows = data ?? [];
-    if (rows.length === SWEEP_DOC_CAP) truncated = true;
-    const docs = /* @__PURE__ */ new Map();
-    for (const r2 of rows) {
-      const meta = r2.metadata ?? {};
-      docs.set(r2.id, {
-        id: r2.id,
-        title: r2.title,
-        status: r2.status,
-        metadata_status: typeof meta.status === "string" ? meta.status : null,
-        updated_at: r2.updated_at,
-        corroboration_count: typeof meta.corroboration_count === "number" ? meta.corroboration_count : 1
-      });
-    }
-    scanned[kind2] = docs.size;
-    if (docs.size < 2) continue;
-    const rpcArgs = {
-      p_account_id: ctx.accountId,
-      p_ids: [...docs.keys()],
-      p_threshold: threshold
-    };
-    let { data: pairData, error: pairErr } = await ctx.supabase.rpc(
-      "document_similarity_pairs",
-      rpcArgs
-    );
-    if (pairErr && /permission denied/i.test(pairErr.message) && ctx.privilegedSupabase) {
-      ({ data: pairData, error: pairErr } = await ctx.privilegedSupabase.rpc(
-        "document_similarity_pairs",
-        rpcArgs
-      ));
-    }
-    if (pairErr) {
-      throw new CurationError("invalid_args", `similarity sweep failed: ${pairErr.message}`);
-    }
-    clusters.push(...clusterPairs(kind2, pairData ?? [], docs));
-  }
-  clusters.sort((a2, b2) => b2.members.length - a2.members.length);
-  return { clusters, scanned, truncated, vectorless_count: vectorlessCount, threshold };
-}
-
-// packages/mcp-tools/src/origin.ts
-function deriveDocOrigin(metadata) {
-  const meta = metadata ?? {};
-  const proposedBy = typeof meta.proposed_by === "string" ? meta.proposed_by : "";
-  if (meta.source === "repo:function" || proposedBy === "scribe:repo") return "scanner";
-  if (proposedBy.startsWith("scribe:") || proposedBy === "correction" || meta.scribe_run_id != null) {
-    return "scribe";
-  }
-  if (meta.imported_from != null || meta.installed_via != null || meta.library_source != null) {
-    return "import";
-  }
-  return "human";
-}
-var NoiseSweepArgs = external_exports.object({
-  project_id: external_exports.string().uuid().optional(),
-  dry_run: external_exports.boolean().default(true),
-  /** Docs a human explicitly accepted (inbox accept stamps accepted_at)
-   *  are presumed wanted — skipped unless this is set. */
-  include_accepted: external_exports.boolean().default(false)
-});
-
-// packages/mcp-tools/src/custom-metadata.ts
-var CUSTOM_KEY_RE = /^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,63}$/;
-var CUSTOM_MAX_BYTES = 8 * 1024;
-var CUSTOM_MAX_DEPTH = 3;
-var CUSTOM_MAX_KEYS = 64;
-var MetadataValidationError = class extends Error {
-  code = "custom_metadata_invalid";
-  issues;
-  // `field` names the metadata key that failed — 'custom' historically, and
-  // 'trigger' since trigger-bound memories landed. The code stays
-  // 'custom_metadata_invalid' so existing wire-level consumers keep matching.
-  constructor(issues, field = "custom") {
-    super(`invalid metadata.${field}: ${issues[0] ?? "validation failed"}`);
-    this.name = "MetadataValidationError";
-    this.issues = issues;
-  }
-};
-var ISO_DATEISH = /^\d{4}-\d{2}-\d{2}([T ].*)?$/;
-var ArtifactSchema = external_exports.object({
-  path: external_exports.string().min(1).max(512).optional(),
-  url: external_exports.string().url().max(2048).optional(),
-  kind: external_exports.string().min(1).max(64).optional(),
-  sha: external_exports.string().max(128).optional()
-}).refine((a2) => a2.path || a2.url, { message: "artifact needs a path or a url" });
-var TYPED_KEYS = {
-  expected_outcome: external_exports.union([
-    external_exports.string().min(1).max(2e3),
-    external_exports.object({
-      text: external_exports.string().max(2e3).optional(),
-      metric: external_exports.string().max(128).optional(),
-      direction: external_exports.string().max(16).optional(),
-      magnitude: external_exports.number().optional(),
-      window: external_exports.string().max(128).optional()
-    }).passthrough()
-  ]),
-  review_by: external_exports.string().regex(ISO_DATEISH, "review_by must be an ISO date (YYYY-MM-DD\u2026)"),
-  artifacts: external_exports.array(ArtifactSchema).max(20),
-  occurred_at: external_exports.string().regex(ISO_DATEISH, "occurred_at must be an ISO date (YYYY-MM-DD\u2026)"),
-  entities: external_exports.array(external_exports.string().min(1).max(64)).max(32),
-  thread_status: external_exports.enum(["open", "resolved", "n/a"]),
-  resolves: external_exports.string().uuid()
-};
-function depthOf(value, depth = 0) {
-  if (depth > CUSTOM_MAX_DEPTH) return depth;
-  if (Array.isArray(value)) {
-    let max = depth + 1;
-    for (const v2 of value) max = Math.max(max, depthOf(v2, depth + 1));
-    return max;
-  }
-  if (value && typeof value === "object") {
-    let max = depth + 1;
-    for (const v2 of Object.values(value)) {
-      max = Math.max(max, depthOf(v2, depth + 1));
-    }
-    return max;
-  }
-  return depth;
-}
-function jsonSafe(value) {
-  if (value === null) return true;
-  const t2 = typeof value;
-  if (t2 === "string" || t2 === "boolean") return true;
-  if (t2 === "number") return Number.isFinite(value);
-  if (Array.isArray(value)) return value.every(jsonSafe);
-  if (t2 === "object") {
-    return Object.values(value).every(
-      (v2) => v2 !== void 0 && jsonSafe(v2)
-    );
-  }
-  return false;
-}
-function validateCustomMetadata(custom3) {
-  const issues = [];
-  if (custom3 === null || typeof custom3 !== "object" || Array.isArray(custom3)) {
-    throw new MetadataValidationError(["custom must be an object of named values"]);
-  }
-  const obj = custom3;
-  const keys = Object.keys(obj);
-  if (keys.length === 0) return {};
-  if (keys.length > CUSTOM_MAX_KEYS) {
-    issues.push(`too many keys (${keys.length} > ${CUSTOM_MAX_KEYS})`);
-  }
-  for (const key2 of keys) {
-    if (!CUSTOM_KEY_RE.test(key2)) {
-      issues.push(`key "${key2}" must match ${CUSTOM_KEY_RE}`);
-      continue;
-    }
-    const value = obj[key2];
-    if (!jsonSafe(value)) {
-      issues.push(`key "${key2}" holds a non-JSON-serializable value`);
-      continue;
-    }
-    const typed = TYPED_KEYS[key2];
-    if (typed) {
-      const parsed = typed.safeParse(value);
-      if (!parsed.success) {
-        issues.push(`key "${key2}": ${parsed.error.issues[0]?.message ?? "invalid shape"}`);
-      }
-    }
-  }
-  const size = JSON.stringify(obj).length;
-  if (size > CUSTOM_MAX_BYTES) {
-    issues.push(
-      `custom exceeds ${CUSTOM_MAX_BYTES} bytes (got ${size}) \u2014 store large payloads externally and reference them`
-    );
-  }
-  if (depthOf(obj) > CUSTOM_MAX_DEPTH) {
-    issues.push(`custom nests deeper than ${CUSTOM_MAX_DEPTH} levels`);
-  }
-  if (issues.length > 0) throw new MetadataValidationError(issues);
-  return obj;
-}
-var ScalarSchema = external_exports.union([external_exports.string(), external_exports.number(), external_exports.boolean()]);
-var MetadataFilterSchema = external_exports.record(
-  external_exports.string().regex(CUSTOM_KEY_RE),
-  external_exports.union([ScalarSchema, external_exports.object({ in: external_exports.array(ScalarSchema).min(1).max(32) }).strict()])
-).refine((f2) => Object.keys(f2).length >= 1 && Object.keys(f2).length <= 8, {
-  message: "metadata_filter takes 1-8 keys"
-});
-function matchesCustomFilter(custom3, filter) {
-  if (custom3 === null || typeof custom3 !== "object" || Array.isArray(custom3)) return false;
-  const obj = custom3;
-  for (const [key2, condition] of Object.entries(filter)) {
-    const value = obj[key2];
-    const candidates = typeof condition === "object" && condition !== null && "in" in condition ? condition.in : [condition];
-    const hit = candidates.some(
-      (c2) => Array.isArray(value) ? value.includes(c2) : value === c2
-    );
-    if (!hit) return false;
-  }
-  return true;
-}
-
-// packages/mcp-tools/src/handlers.ts
-var ReadArgs = external_exports.object({
-  kinds: external_exports.array(DocumentKindSchema).optional(),
-  scopes: external_exports.array(DocumentScopeSchema).optional(),
-  statuses: external_exports.array(DocumentStatusSchema).optional(),
-  exclude_locked: external_exports.boolean().optional(),
-  project_id: external_exports.string().uuid().nullable().optional(),
-  /** Filter on metadata.custom keys — equality, array-containment, or
-   *  {in:[…]} per key, AND across keys. Evaluated in-process against the
-   *  already-fetched metadata (exact semantics, no query-syntax games). */
-  metadata_filter: MetadataFilterSchema.optional(),
-  /** Only docs carrying `metadata.trigger` — the cheap query host plugins
-   *  use to compile trigger-bound memories at session start without pulling
-   *  the whole memory corpus. */
-  has_trigger: external_exports.boolean().optional(),
-  /** Exact `documents.path` match. Callers doing an upsert-by-path (session
-   *  working memory) must filter server-side: this query has no limit and
-   *  PostgREST truncates at max_rows (1000), so a client-side
-   *  `docs.find(d => d.path === …)` silently misses in any account with more
-   *  than 1000 memory docs and the caller creates a duplicate at the same
-   *  path — `(account_id, path)` is intentionally non-unique. */
-  path: external_exports.string().min(1).optional()
-});
-async function readMemory(ctx, rawArgs) {
-  const args = ReadArgs.parse(rawArgs ?? {});
-  const projectId = await resolveProjectFilter(ctx, args.project_id);
-  let q2 = ctx.supabase.from("documents").select(
-    `id, kind, scope, status, title, path, project_id, current_version_id,
-       metadata, updated_at, created_at,
-       document_versions!documents_current_version_fk ( content, version_number, author_id )`
-  ).eq("account_id", ctx.accountId);
-  const light = await loadLightStatus(ctx.supabase, ctx.accountId);
-  if (light?.active)
-    q2 = q2.eq("kind", "memory").eq("project_id", light.project_id).neq("status", "archived").limit(50);
-  if (args.kinds?.length) q2 = q2.in("kind", args.kinds);
-  if (args.scopes?.length) q2 = q2.in("scope", args.scopes);
-  if (args.statuses?.length) q2 = q2.in("status", args.statuses);
-  if (args.exclude_locked) q2 = q2.eq("locked_to_owners", false);
-  if (args.has_trigger) q2 = q2.not("metadata->trigger", "is", null);
-  if (args.path) q2 = q2.eq("path", args.path);
-  if (projectId === null) {
-    q2 = q2.is("project_id", null);
-  } else if (projectId) {
-    q2 = q2.or(`project_id.eq.${projectId},project_id.is.null`);
-  }
-  const { data, error: error40 } = await q2;
-  if (error40) throw new Error(`read_memory: ${error40.message}`);
-  const rows = light?.active ? (data ?? []).filter(
-    (r2) => isEligibleForRecall({
-      id: r2.id,
-      kind: r2.kind,
-      status: r2.status,
-      metadataStatus: r2.metadata?.status,
-      metadataSupersededBy: r2.metadata?.superseded_by
-    })
-  ) : data ?? [];
-  const docs = rows.map((r2) => {
-    const row = r2;
-    const v2 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
-    const content = v2?.content ?? "";
-    const meta = row.metadata ?? null;
-    const customRaw = meta?.custom;
-    const base = {
-      id: row.id,
-      kind: row.kind,
-      scope: row.scope,
-      status: row.status ?? null,
-      title: row.title,
-      path: row.path ?? null,
-      content,
-      project_id: row.project_id ?? null,
-      origin: deriveDocOrigin(meta),
-      custom: customRaw && typeof customRaw === "object" && !Array.isArray(customRaw) ? customRaw : null,
-      trigger: normalizeStoredTrigger(row.kind, meta),
-      version_number: v2?.version_number ?? 1,
-      updated_at: row.updated_at,
-      created_at: row.created_at,
-      author_id: v2?.author_id ?? null,
-      source_url: null
-    };
-    return attachGoalProgress(base);
-  });
-  if (args.metadata_filter) {
-    const filter = args.metadata_filter;
-    return docs.filter((d2) => matchesCustomFilter(d2.custom, filter));
-  }
-  return docs;
-}
-function normalizeStoredTrigger(kind2, meta) {
-  if (kind2 !== "memory") return null;
-  const raw = meta?.trigger;
-  if (raw === null || raw === void 0) return null;
-  const parsed = parseMemoryTrigger(raw);
-  return parsed.ok ? parsed.trigger : null;
-}
-function attachGoalProgress(doc) {
-  if (doc.kind !== "goal") return doc;
-  const criteria = parseGoalCriteria(doc.content);
-  if (criteria.length === 0) return doc;
-  const checked = criteria.filter((c2) => c2.checked).length;
-  return {
-    ...doc,
-    criteria,
-    criteria_progress: { checked, total: criteria.length }
-  };
-}
-var WriteArgs = external_exports.object({
-  expected_version: external_exports.number().int().nonnegative().optional(),
-  document_id: external_exports.string().uuid().nullable().optional(),
-  scope: DocumentScopeSchema,
-  kind: external_exports.enum(GENERIC_AGENT_WRITABLE_KINDS),
-  title: external_exports.string().min(1).max(256),
-  path: external_exports.string().max(512).optional(),
-  content: external_exports.string(),
-  commit_message: external_exports.string().max(512).optional(),
-  project_id: external_exports.string().uuid().nullable().optional(),
-  // Client-writable metadata. Whitelist enforced below — server-managed
-  // fields (status, auto_promoted, proposed_by, embedding state, etc.)
-  // can never be set from the wire even if they appear in this object.
-  // New keys go through review before they land here.
-  metadata: external_exports.record(external_exports.string(), external_exports.unknown()).optional()
-});
-var CLIENT_WRITABLE_METADATA_KEYS = /* @__PURE__ */ new Set([
-  "allowed-tools",
-  "model",
-  "target-agents",
-  "component-links",
-  "examples",
-  "anti-examples",
-  "custom",
-  // Tier-0 session working memory — session_id scopes force-include.
-  "session_id"
-]);
-function filterClientMetadata(raw, kind2) {
-  if (!raw) return {};
-  const out = {};
-  for (const k2 of Object.keys(raw)) {
-    if (k2 === "trigger") {
-      if (kind2 !== "memory") continue;
-      if (raw[k2] === null) {
-        out[k2] = null;
-        continue;
-      }
-      const parsed = parseMemoryTrigger(raw[k2]);
-      if (!parsed.ok) throw new MetadataValidationError(parsed.errors, "trigger");
-      out[k2] = parsed.trigger;
-      continue;
-    }
-    if (k2 === "memory_type") {
-      if (kind2 === "memory" && typeof raw[k2] === "string" && MEMORY_TYPES.includes(raw[k2])) {
-        out[k2] = raw[k2];
-      }
-      continue;
-    }
-    if (!CLIENT_WRITABLE_METADATA_KEYS.has(k2)) continue;
-    if (k2 === "custom") {
-      out[k2] = validateCustomMetadata(raw[k2]);
-    } else {
-      out[k2] = raw[k2];
-    }
-  }
-  return out;
-}
-var DecisionWriteArgs = WriteArgs.extend({ kind: external_exports.literal("decision") });
-async function writeMemory(ctx, rawArgs) {
-  return executeDocumentWrite(ctx, WriteArgs.parse(rawArgs));
-}
-async function executeDocumentWrite(ctx, args) {
-  args = {
-    ...args,
-    title: redactSecretShapes(args.title).redacted,
-    content: redactSecretShapes(args.content).redacted
-  };
-  const projectId = await resolveProjectFilter(ctx, args.project_id);
-  if (args.document_id) {
-    const { data: existing, error: ownErr } = await ctx.supabase.from("documents").select("account_id, kind").eq("id", args.document_id).maybeSingle();
-    if (ownErr) throw new Error(`write_memory: ${ownErr.message}`);
-    if (!existing || existing.account_id !== ctx.accountId) {
-      throw new Error("write_memory: document not found in this account");
-    }
-    if (existing.kind !== args.kind) {
-      throw new Error("write_memory: document kind mismatch");
-    }
-  }
-  const admission = args.document_id ? null : admitCapture({
-    writer: "mcp_write",
-    humanSession: ctx.captureProvenance === "human_typed",
-    kind: args.kind,
-    labels: {},
-    autoPromoteThreshold: 1,
-    sensitive: detectSensitiveTopics(`${args.title}
-${args.content}`)
-  });
-  const admissionMeta = admission ? {
-    status: admission.status,
-    ...admission.stamps,
-    ...admission.decision ? { decision_pending: admission.decision.kind } : {},
-    ...admission.decision?.kind === "sensitive" ? {
-      sensitive_hold: true,
-      sensitive_topics: detectSensitiveTopics(`${args.title}
-${args.content}`).topics
-    } : {}
-  } : {};
-  const humanEditMeta = args.document_id && ctx.captureProvenance === "human_typed" ? {
-    [HUMAN_EDITED_AT_KEY]: (/* @__PURE__ */ new Date()).toISOString(),
-    ...ctx.userId ? { [HUMAN_EDITED_BY_KEY]: ctx.userId } : {}
-  } : {};
-  const light = await loadLightStatus(ctx.supabase, ctx.accountId);
-  let embedding = null;
-  if (!light?.active && ctx.embed && args.content.length > 0) {
-    try {
-      embedding = await ctx.embed(args.content);
-    } catch {
-      embedding = null;
-    }
-  }
-  const { data, error: error40 } = await ctx.supabase.rpc(
-    args.expected_version !== void 0 || light?.active ? "write_document_checked" : "write_document",
-    {
-      ...args.expected_version !== void 0 || light?.active ? { p_expected_version: args.expected_version ?? null } : {},
-      p_document_id: args.document_id ?? null,
-      p_account_id: ctx.accountId,
-      p_project_id: projectId,
-      p_scope: args.scope,
-      p_kind: args.kind,
-      p_title: args.title,
-      p_path: args.path ?? null,
-      p_content: args.content,
-      p_embedding: embedding,
-      p_metadata: { ...filterClientMetadata(args.metadata, args.kind), ...admissionMeta, ...humanEditMeta },
-      p_commit_message: args.commit_message ?? null,
-      p_yjs_state_b64: null,
-      // Client writes MERGE metadata: a re-version that omits keys must not
-      // wipe server-managed state (status, pinned, provenance, custom).
-      // Server-side writers that construct full metadata objects keep the
-      // replace default — this flag is the client-path fix.
-      p_metadata_merge: true,
-      // Service-token attribution — only sent on that auth path so the
-      // named-arg call stays compatible with pre-attribution databases.
-      ...ctx.serviceTokenId ? { p_author_id: ctx.userId ?? null, p_service_token_id: ctx.serviceTokenId } : {}
-    }
-  );
-  if (error40) throw new Error(`write_memory: ${error40.message}`);
-  const row = Array.isArray(data) ? data[0] : data;
-  if (!row) throw new Error("write_memory: RPC returned no row");
-  if (admission?.decision && ctx.privilegedSupabase) {
-    try {
-      await raiseDecisions(ctx, [
-        {
-          kind: admission.decision.kind,
-          projectId,
-          subjectDocumentId: row.document_id,
-          targetDocumentIds: admission.decision.targetIds,
-          origin: { scribeRunId: `write:${row.document_id}`, userId: ctx.userId ?? null },
-          subjectTitle: args.title,
-          evidence: {
-            reason: admission.decision.kind === "sensitive" ? "A written document matched a sensitive topic." : "A goal was written.",
-            admission: { reason: admission.reason, provenance: admission.stamps.provenance },
-            automation: ["Held out of recall until a person decides."]
-          }
-        }
-      ]);
-    } catch {
-    }
-  }
-  return {
-    document_id: row.document_id,
-    version_id: row.version_id,
-    version_number: row.version_number
-  };
-}
-var ListVersionsArgs = external_exports.object({ document_id: external_exports.string().uuid() });
-async function listVersions(ctx, rawArgs) {
-  const args = ListVersionsArgs.parse(rawArgs);
-  const { data: doc, error: docErr } = await ctx.supabase.from("documents").select("id, account_id").eq("id", args.document_id).maybeSingle();
-  if (docErr) throw new Error(`list_versions: ${docErr.message}`);
-  if (!doc || doc.account_id !== ctx.accountId) {
-    throw new Error("list_versions: document not found in this account");
-  }
-  const { data, error: error40 } = await ctx.supabase.from("document_versions").select("id, version_number, content, author_id, commit_message, created_at, parent_version_id").eq("document_id", args.document_id).order("version_number", { ascending: false });
-  if (error40) throw new Error(`list_versions: ${error40.message}`);
-  const light = await loadLightStatus(ctx.supabase, ctx.accountId);
-  const versions = data ?? [];
-  return light?.active ? versions.slice(0, 10) : versions;
-}
-var RevertArgs = external_exports.object({
-  expected_version: external_exports.number().int().nonnegative().optional(),
-  document_id: external_exports.string().uuid(),
-  target_version_id: external_exports.string().uuid(),
-  commit_message: external_exports.string().optional()
-});
-async function revertDocument(ctx, rawArgs) {
-  const args = RevertArgs.parse(rawArgs);
-  const light = await loadLightStatus(ctx.supabase, ctx.accountId);
-  if (light?.active && args.expected_version === void 0)
-    throw new Error("Read the current version before restoring a Light memory.");
-  const { data, error: error40 } = light?.active ? await ctx.supabase.rpc("light_restore", {
-    p_account_id: ctx.accountId,
-    p_document_id: args.document_id,
-    p_version_id: args.target_version_id,
-    p_expected_version: args.expected_version
-  }) : await ctx.supabase.rpc("revert_document", {
-    p_document_id: args.document_id,
-    p_target_version_id: args.target_version_id,
-    p_commit_message: args.commit_message ?? null
-  });
-  if (error40) throw new Error(`revert: ${error40.message}`);
-  if (!data) throw new Error("revert: RPC returned no id");
-  return { new_version_id: data };
-}
-var DeleteArgs = external_exports.object({
-  document_id: external_exports.string().uuid(),
-  reason: external_exports.string().max(512).optional()
-});
-async function deleteMemory(ctx, rawArgs) {
-  const args = DeleteArgs.parse(rawArgs);
-  const { data, error: error40 } = await ctx.supabase.rpc("delete_document", {
-    p_document_id: args.document_id,
-    p_account_id: ctx.accountId,
-    p_reason: args.reason ?? null
-  });
-  if (error40) throw new Error(`delete_memory: ${error40.message}`);
-  return { document_id: args.document_id, deleted: data === true };
-}
-var SEARCH_MODES = ["semantic", "hybrid", "text"];
-var SearchArgs = external_exports.object({
-  query: external_exports.string().min(1),
-  kinds: external_exports.array(DocumentKindSchema).optional(),
-  limit: external_exports.number().int().min(1).max(100).optional(),
-  project_id: external_exports.string().uuid().nullable().optional(),
-  mode: external_exports.enum(SEARCH_MODES).optional(),
-  /** Filter on metadata.custom keys (custom-metadata.ts semantics). The
-   *  ranked search runs first with an over-fetched limit, then hits are
-   *  post-filtered by one metadata round-trip — the hot search RPCs stay
-   *  untouched. Highly selective filters can under-fill `limit`. */
-  metadata_filter: MetadataFilterSchema.optional()
-});
-async function search(ctx, rawArgs) {
-  const args = SearchArgs.parse(rawArgs);
-  const light = await loadLightStatus(ctx.supabase, ctx.accountId);
-  if (light?.active) {
-    args.mode = "text";
-    args.kinds = ["memory"];
-    args.project_id = light.project_id;
-    ctx = { ...ctx, embed: void 0 };
-  }
-  const requestedLimit = args.limit ?? 20;
-  if (!args.metadata_filter) {
-    return searchRanked(ctx, args, requestedLimit);
-  }
-  const overFetched = await searchRanked(ctx, args, Math.min(requestedLimit * 3, 100));
-  if (overFetched.length === 0) return [];
-  const { data: metaRows, error: metaErr } = await ctx.supabase.from("documents").select("id, metadata").eq("account_id", ctx.accountId).in(
-    "id",
-    overFetched.map((h2) => h2.id)
-  );
-  if (metaErr) throw new Error(`search: metadata filter read failed: ${metaErr.message}`);
-  const customById = /* @__PURE__ */ new Map();
-  for (const r2 of metaRows ?? []) {
-    customById.set(r2.id, r2.metadata?.custom ?? null);
-  }
-  const filter = args.metadata_filter;
-  return overFetched.filter((h2) => matchesCustomFilter(customById.get(h2.id) ?? null, filter)).slice(0, requestedLimit);
-}
-async function searchRanked(ctx, args, limit2) {
-  const projectId = await resolveProjectFilter(ctx, args.project_id);
-  const mode = args.mode ?? "semantic";
-  if (mode === "hybrid" && ctx.embed) {
-    try {
-      const vec = await ctx.embed(args.query);
-      const auditQuery = sanitizeAuditTask(args.query);
-      const { data: data2, error: error40 } = await ctx.supabase.rpc("search_documents_hybrid", {
-        p_account_id: ctx.accountId,
-        p_project_id: projectId,
-        p_query_embedding: vec,
-        p_query_text: args.query,
-        p_audit_query_preview: auditQuery.task || null,
-        p_kinds: args.kinds ?? null,
-        p_scopes: null,
-        p_limit: limit2
-      });
-      if (!error40 && data2) {
-        return data2.map((r2) => ({
-          id: r2.id,
-          title: r2.title,
-          kind: r2.kind,
-          scope: r2.scope,
-          similarity: r2.rrf_score,
-          matched_via: "hybrid",
-          path: r2.path ?? null,
-          version_number: r2.version_number,
-          updated_at: r2.updated_at,
-          created_at: r2.created_at,
-          author_id: r2.author_id ?? null,
-          source_url: null
-        }));
-      }
-    } catch {
-    }
-  }
-  if (mode !== "text" && ctx.embed) {
-    try {
-      const vec = await ctx.embed(args.query);
-      const { data: data2, error: error40 } = await ctx.supabase.rpc("search_documents", {
-        p_account_id: ctx.accountId,
-        p_project_id: projectId,
-        p_query_embedding: vec,
-        p_kinds: args.kinds ?? null,
-        p_scopes: null,
-        p_limit: limit2
-      });
-      if (!error40 && data2) {
-        return data2.map((r2) => ({
-          id: r2.id,
-          title: r2.title,
-          kind: r2.kind,
-          scope: r2.scope,
-          similarity: r2.similarity,
-          matched_via: "semantic",
-          path: r2.path ?? null,
-          version_number: r2.version_number,
-          updated_at: r2.updated_at,
-          created_at: r2.created_at,
-          author_id: r2.author_id ?? null,
-          source_url: null
-        }));
-      }
-    } catch {
-    }
-  }
-  let q2 = ctx.supabase.from("documents").select(
-    `id, status, title, kind, scope, path, updated_at, created_at, metadata,
-       document_versions!documents_current_version_fk ( version_number, author_id )`
-  ).eq("account_id", ctx.accountId).ilike("title", `%${args.query}%`).limit(Math.min(limit2 * 3, 100));
-  if (args.kinds?.length) q2 = q2.in("kind", args.kinds);
-  const { data } = await q2;
-  const eligibleRows = (data ?? []).filter(
-    (r2) => isEligibleForRecall({
-      status: r2.status ?? null,
-      metadataStatus: (r2.metadata ?? {}).status ?? null,
-      metadataSupersededBy: (r2.metadata ?? {}).superseded_by ?? null,
-      id: r2.id ?? null,
-      kind: r2.kind
-    })
-  ).slice(0, limit2);
-  return eligibleRows.map((r2) => {
-    const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
-    return {
-      id: r2.id,
-      title: r2.title,
-      kind: r2.kind,
-      scope: r2.scope,
-      similarity: 0,
-      matched_via: "text",
-      path: r2.path ?? null,
-      version_number: v2?.version_number ?? 1,
-      updated_at: r2.updated_at,
-      created_at: r2.created_at,
-      author_id: v2?.author_id ?? null,
-      source_url: null
-    };
-  });
-}
-var GetDocArgs = external_exports.object({ document_id: external_exports.string().uuid() });
-async function getDocument(ctx, rawArgs) {
-  const args = GetDocArgs.parse(rawArgs);
-  const { data, error: error40 } = await ctx.supabase.from("documents").select(
-    `id, account_id, project_id, scope, kind, status, title, path, current_version_id,
-       document_versions!documents_current_version_fk ( content, version_number )`
-  ).eq("id", args.document_id).eq("account_id", ctx.accountId).maybeSingle();
-  if (error40) throw new Error(`get_document: ${error40.message}`);
-  if (!data) throw new Error("get_document: document not found");
-  const row = data;
-  if (row.kind === "goal") {
-    const v2 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
-    const content = v2?.content ?? "";
-    const criteria = parseGoalCriteria(content);
-    if (criteria.length > 0) {
-      const checked = criteria.filter((c2) => c2.checked).length;
-      return {
-        ...row,
-        criteria,
-        criteria_progress: { checked, total: criteria.length }
-      };
-    }
-  }
-  return row;
-}
-var GetSchemaArgs = external_exports.object({
-  document_id: external_exports.string().uuid().optional(),
-  name: external_exports.string().min(1).optional()
-}).refine((a2) => Boolean(a2.document_id) || Boolean(a2.name), {
-  message: "provide document_id or name"
-});
-async function getSchema(ctx, rawArgs) {
-  const args = GetSchemaArgs.parse(rawArgs);
-  let q2 = ctx.supabase.from("documents").select(
-    `id, title, scope, project_id, current_version_id,
-       document_versions!documents_current_version_fk ( content )`
-  ).eq("account_id", ctx.accountId).eq("kind", "schema");
-  if (args.document_id) q2 = q2.eq("id", args.document_id);
-  if (args.name) q2 = q2.ilike("title", args.name);
-  const { data, error: error40 } = await q2.maybeSingle();
-  if (error40) throw new Error(`get_schema: ${error40.message}`);
-  if (!data) {
-    throw new Error(
-      args.document_id ? `get_schema: no schema with document_id ${args.document_id}` : `get_schema: no schema with title "${args.name}"`
-    );
-  }
-  const row = data;
-  const version5 = Array.isArray(row.document_versions) ? row.document_versions[0] : row.document_versions;
-  const rawContent = version5?.content ?? "";
-  const warnings = [];
-  let parsed = null;
-  const parseResult = parseJsonSchema(rawContent);
-  if ("error" in parseResult) {
-    warnings.push(`schema content is not valid JSON Schema: ${parseResult.error}`);
-  } else {
-    parsed = parseResult;
-  }
-  return {
-    document_id: row.id,
-    title: row.title,
-    scope: row.scope,
-    project_id: row.project_id ?? null,
-    json_schema: rawContent,
-    typescript: parsed ? generateTypeScript(parsed) : "// (schema could not be parsed \u2014 see warnings)",
-    sample: parsed ? generateSample(parsed) : "{}",
-    warnings
-  };
-}
-var ExecuteActionArgs = external_exports.object({
-  action_id: external_exports.string().uuid(),
-  input: external_exports.record(external_exports.unknown())
-});
-async function executeActionTool(ctx, rawArgs) {
-  const args = ExecuteActionArgs.parse(rawArgs);
-  if (ctx.apiBaseUrl && ctx.accessToken) {
-    const base = ctx.apiBaseUrl.replace(/\/+$/, "");
-    const res = await fetch(`${base}/actions/${args.action_id}/execute`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${ctx.accessToken}`,
-        "content-type": "application/json",
-        "Memlin-Account-Id": ctx.accountId
-      },
-      body: JSON.stringify({ input: args.input })
-    });
-    const text = await res.text();
-    let payload = null;
-    try {
-      payload = JSON.parse(text);
-    } catch {
-    }
-    if (!res.ok || !payload || typeof payload.output !== "string") {
-      const message = payload?.error ?? (text.slice(0, 300) || `web API returned ${res.status}`);
-      throw new Error(`${payload?.code ? `${payload.code}: ` : ""}${message}`);
-    }
-    return payload;
-  }
-  try {
-    const r2 = await executeAction({
-      client: ctx.supabase,
-      // Test/server-action contexts may deliberately invoke in-process. A
-      // privileged client is required after the catalog RLS lockdown; falling
-      // back to the caller client is safe because catalog lookup fails closed.
-      catalogClient: ctx.privilegedSupabase ?? ctx.supabase,
-      accountId: ctx.accountId,
-      actionId: args.action_id,
-      input: args.input,
-      userId: ctx.userId ?? null,
-      // In-process contexts do not carry the canonical funding decision or
-      // credit ledger. BYOK is not wired here either, so refuse platform spend.
-      allowPlatformProviderKey: false
-    });
-    return r2;
-  } catch (e2) {
-    if (e2 instanceof ActionExecuteError) {
-      throw new Error(
-        `${e2.code}: ${e2.message}` + (e2.details ? " \u2014 " + e2.details.map((d2) => `${d2.path}: ${d2.message}`).join("; ") : "")
-      );
-    }
-    throw e2;
-  }
-}
-var ListActionsArgs = external_exports.object({
-  /** Optional substring filter against action name + description.
-   *  Case-insensitive. Useful for "find me a search action" style
-   *  discovery without dumping every action a workspace has. */
-  filter: external_exports.string().min(1).max(128).optional(),
-  /** Cap on results. Default 50; workspaces with hundreds of actions
-   *  can paginate with explicit limits. */
-  limit: external_exports.number().int().min(1).max(200).optional()
-});
-async function listActions(ctx, rawArgs) {
-  const args = ListActionsArgs.parse(rawArgs);
-  const limit2 = args.limit ?? 50;
-  let q2 = ctx.supabase.from("documents").select("id, metadata, title").eq("account_id", ctx.accountId).eq("kind", "action").eq("status", "approved").limit(limit2);
-  if (args.filter) {
-    q2 = q2.ilike("title", `%${args.filter}%`);
-  }
-  const { data, error: error40 } = await q2;
-  if (error40) {
-    throw new Error(`list_actions: ${error40.message}`);
-  }
-  const out = [];
-  for (const r2 of data ?? []) {
-    const meta = r2.metadata ?? {};
-    const impl = meta.implementation;
-    let executionMode = "blocked";
-    if (impl?.type === "provider_call") executionMode = "direct";
-    if (impl?.type === "connector" && impl.connector_id) {
-      const connector = getConnector(impl.connector_id);
-      const operation = connector ? getConnectorOperation(connector, impl.operation ?? "invoke") : null;
-      executionMode = operation?.effect === "read" ? "direct" : operation ? "prepare_required" : "blocked";
-    }
-    out.push({
-      id: r2.id,
-      name: typeof meta.name === "string" ? meta.name : r2.title,
-      description: typeof meta.description === "string" ? meta.description : "",
-      input_schema: meta.input_schema && typeof meta.input_schema === "object" ? meta.input_schema : {},
-      implementation_type: impl?.type ?? "unknown",
-      execution_mode: executionMode,
-      invoke_url: `/api/v1/actions/${r2.id}/execute`,
-      ...executionMode === "prepare_required" ? { prepare_url: `/api/v1/actions/${r2.id}/prepare` } : {},
-      ...impl?.type === "http" ? {
-        migration_message: "Raw HTTP actions are disabled. Migrate to a statically registered connector/Action Adapter."
-      } : {}
-    });
-  }
-  return out;
-}
-
 // packages/mcp-tools/src/inbox.ts
 function referencedProposalTargetIds(existing) {
   if (existing.proposal_action === "merge") {
@@ -86376,23 +86804,8 @@ async function thoughtWorkflow(ctx, raw) {
 // packages/mcp-tools/src/dispatch.ts
 async function callTool(ctx, name, args) {
   const light = await loadLightStatus(ctx.supabase, ctx.accountId);
-  if (light?.active && ![
-    "memlin_read_memory",
-    "memlin_write_memory",
-    "memlin_list_versions",
-    "memlin_revert",
-    "memlin_delete_memory",
-    "memlin_search",
-    "memlin_get_document",
-    "memlin_resolve_task",
-    "memlin_capture_session",
-    "memlin_list_proposals",
-    "memlin_resolve_proposal",
-    "memlin_list_decisions",
-    "memlin_explain_decision",
-    "memlin_decide"
-  ].includes(name))
-    throw new Error("light_upgrade_required");
+  if (light?.active && !LIGHT_MCP_TOOLS.has(name))
+    throw new Error(ctx.surface === "mcp" ? "light_read_only" : "light_upgrade_required");
   switch (name) {
     case "memlin_thought_source":
       return thoughtSource(ctx, args);
@@ -86424,6 +86837,8 @@ async function callTool(ctx, name, args) {
       return deleteMemory(ctx, args);
     case "memlin_search":
       return search(ctx, args);
+    case "memlin_search_memory":
+      return searchMemory(ctx, args);
     case "memlin_get_document":
       return getDocument(ctx, args);
     case "memlin_get_schema":
@@ -87103,7 +87518,7 @@ var CompanionHost = class extends BaseHost {
     super("companion", path5.join(os4.homedir(), ".config", "memlin"));
   }
 };
-var HOSTS = {
+var HOSTS2 = {
   "claude-code": () => new ClaudeCodeHost(),
   cursor: () => new CursorHost(),
   codex: () => new CodexHost(),
@@ -87114,8 +87529,8 @@ var HOSTS = {
 };
 function resolveHost() {
   const envHost = process.env.MEMLIN_HOST ?? (process.env.CURSOR_AGENT ? "cursor" : "claude-code");
-  const make = HOSTS[envHost];
-  return (make ?? HOSTS["claude-code"])();
+  const make = HOSTS2[envHost];
+  return (make ?? HOSTS2["claude-code"])();
 }
 
 // packages/plugin-core/dist/memlin-api-client.js
@@ -87126,7 +87541,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.59";
+  cachedAgentVersion = "0.2.60";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -87273,6 +87688,10 @@ var MemlinApiClient = class {
     this.cfg = cfg2;
   }
   cfg;
+  /** The configured account (the light-gate cache key when a call names none). */
+  get defaultAccountId() {
+    return this.cfg.accountId;
+  }
   // ---------- low-level ----------
   async authHeaders(includeAccount = true, override = {}) {
     const token = await this.cfg.getAccessToken();
@@ -87592,6 +88011,68 @@ var MemlinApiClient = class {
       { project_id: projectId, status },
       { maxRetries: 0, requestTimeoutMs: 1500 }
     );
+  }
+  // ---------- Light native sync (B2) ----------
+  // Writes are never retried by request() (only GET is), so a reset after the
+  // server committed can't duplicate a version. Error bodies carry a stable
+  // `{error: code}`; see lightErrorCode() in light/sync-api.ts.
+  /** POST /light/documents — versioned Light write; identical content is a metadata-only merge. */
+  async lightWriteDocument(input) {
+    return this.request("POST", "/light/documents", input, { requestTimeoutMs: 2e4 });
+  }
+  /** POST /light/lease — acquire or renew the per-host sync lease. */
+  async lightAcquireLease(input) {
+    return this.request("POST", "/light/lease", input, { requestTimeoutMs: 8e3 });
+  }
+  /** DELETE /light/lease — release a lease this holder owns. */
+  async lightReleaseLease(input) {
+    return this.request("DELETE", "/light/lease", input, { requestTimeoutMs: 5e3 });
+  }
+  /** POST /light/sync with per-host agent statuses. */
+  async lightReportSync(input) {
+    return this.request("POST", "/light/sync", input, { requestTimeoutMs: 8e3 });
+  }
+  /** GET /light/suppressions — forgotten items (the same hash never reimports). */
+  async listLightSuppressions() {
+    return (await this.request(
+      "GET",
+      "/light/suppressions",
+      void 0,
+      { requestTimeoutMs: 8e3 }
+    )).suppressions;
+  }
+  /** POST /light/suppressions */
+  async lightSuppress(input) {
+    return this.request("POST", "/light/suppressions", input, { requestTimeoutMs: 8e3 });
+  }
+  /** DELETE /light/suppressions */
+  async lightUnsuppress(id3) {
+    return this.request("DELETE", "/light/suppressions", { id: id3 }, { requestTimeoutMs: 8e3 });
+  }
+  /** POST /documents/<id>/status — archive / unarchive / approve (curation). */
+  async setDocumentStatus(documentId, action) {
+    return this.request(
+      "POST",
+      `/documents/${encodeURIComponent(documentId)}/status`,
+      { action },
+      { requestTimeoutMs: 8e3 }
+    );
+  }
+  /** GET /light/agents — per-host, per-device sync rows. */
+  async listLightAgents() {
+    return (await this.request(
+      "GET",
+      "/light/agents",
+      void 0,
+      { requestTimeoutMs: 8e3 }
+    )).agents;
+  }
+  /**
+   * POST /plans {document_id} — attach a `drafted` plans row to an existing
+   * plan document (a Light plan after an upgrade, D3). Creates no version.
+   */
+  async backfillPlanRow(documentId) {
+    return this.request("POST", "/plans", { document_id: documentId }, { requestTimeoutMs: 8e3 });
   }
   async lightStatus(accountId) {
     try {
@@ -90296,9 +90777,9 @@ import { createHash as createHash3, randomUUID as randomUUID5 } from "node:crypt
 var PLUGIN_RUNTIME_INTERVAL_MS = 1e4;
 var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION2 = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
-var HOSTS2 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
+var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version5 = "0.2.59";
+  const version5 = "0.2.60";
   return typeof version5 === "string" && VERSION2.test(version5) ? version5 : null;
 }
 async function reportPluginRuntime(report) {
@@ -90312,7 +90793,7 @@ async function reportPluginRuntime(report) {
 }
 function startPluginRuntimeHeartbeat(host) {
   const version5 = ownVersion();
-  if (!version5 || !HOSTS2.has(host)) return () => {
+  if (!version5 || !HOSTS3.has(host)) return () => {
   };
   const report = {
     host,
@@ -90376,6 +90857,8 @@ var LOCK_WAIT_MS = 2e3;
 var LOCK_RETRY_MS = 50;
 async function acquireStateLock() {
   const deadline = Date.now() + LOCK_WAIT_MS;
+  await fs8.mkdir(path17.dirname(LOCK_DIR), { recursive: true }).catch(() => {
+  });
   for (; ; ) {
     try {
       await fs8.mkdir(LOCK_DIR);
@@ -90861,7 +91344,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.59"?.trim();
+  const env = "0.2.60"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }
@@ -91196,7 +91679,9 @@ async function createToolContext(accessToken, requestCfg, requireInstallation = 
     // For tools that call back into the REST API (memlin_capture_session →
     // /api/v1/scribe/session) rather than going straight to Supabase.
     accessToken,
-    apiBaseUrl: requestCfg.apiUrl
+    apiBaseUrl: requestCfg.apiUrl,
+    // An active Light account is read-only over MCP (light_read_only).
+    surface: "mcp"
   };
 }
 var STATUS_TOOL = {
