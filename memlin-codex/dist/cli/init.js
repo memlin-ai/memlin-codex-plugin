@@ -8469,7 +8469,15 @@ var LIGHT_LIMITS = Object.freeze({
   recallNotes: 3,
   captureInputTokens: 8e3,
   captureOutputTokens: 1e3,
-  captureReservationMicros: 2e4
+  captureReservationMicros: 2e4,
+  // Memlin-funded QUERY embeddings (search + recall). Past either ceiling the
+  // same search runs without an embedder: title text, still project-scoped.
+  // Enforced by light_reserve_query_embedding (web routes and hosted MCP).
+  queryEmbeddingsPerDay: 2e3,
+  queryEmbeddingsPerMinute: 30,
+  /** Suggestions the Companion may keep open at once (light_upsert_suggestions). */
+  openSuggestions: 500,
+  suggestionsPerRequest: 100
 });
 var LIGHT_HOSTS = [
   "claude",

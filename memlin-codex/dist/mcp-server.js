@@ -61060,7 +61060,15 @@ var LIGHT_LIMITS = Object.freeze({
   recallNotes: 3,
   captureInputTokens: 8e3,
   captureOutputTokens: 1e3,
-  captureReservationMicros: 2e4
+  captureReservationMicros: 2e4,
+  // Memlin-funded QUERY embeddings (search + recall). Past either ceiling the
+  // same search runs without an embedder: title text, still project-scoped.
+  // Enforced by light_reserve_query_embedding (web routes and hosted MCP).
+  queryEmbeddingsPerDay: 2e3,
+  queryEmbeddingsPerMinute: 30,
+  /** Suggestions the Companion may keep open at once (light_upsert_suggestions). */
+  openSuggestions: 500,
+  suggestionsPerRequest: 100
 });
 var LIGHT_HOSTS = [
   "claude",
@@ -77372,7 +77380,8 @@ async function search(ctx, rawArgs) {
   const args = SearchArgs.parse(rawArgs);
   const light = await loadLightStatus(ctx.supabase, ctx.accountId);
   if (!light?.active || !light.project_id) return searchScoped(ctx, args, light);
-  const hits = await searchScoped(ctx, args, light);
+  const embedAllowed = !ctx.embed || args.mode === "text" || !ctx.lightQueryEmbedGuard ? true : await ctx.lightQueryEmbedGuard().catch(() => false);
+  const hits = await searchScoped(embedAllowed ? ctx : { ...ctx, embed: void 0 }, args, light);
   if (hits.length === 0) return [];
   const { data, error: error40 } = await ctx.supabase.from("documents").select("id").eq("account_id", ctx.accountId).eq("project_id", light.project_id).in(
     "id",
@@ -86388,6 +86397,93 @@ function parseUri(uri) {
   return { kind: m2[1], id: m2[2] };
 }
 
+// packages/mcp-tools/src/light-recall.ts
+var LIGHT_RECALL_MAX_IDS = 50;
+var LIGHT_RECALL_TIMEOUT_MS = 2e3;
+function lightHostForAgentKind(kind2) {
+  switch ((kind2 ?? "").trim().toLowerCase()) {
+    case "claude":
+    case "claude-code":
+    case "claude-ai":
+      return "claude";
+    case "codex":
+      return "codex";
+    case "cursor":
+      return "cursor";
+    case "antigravity":
+      return "antigravity";
+    case "windsurf":
+      return "windsurf";
+    case "devin":
+      return "devin";
+    default:
+      return null;
+  }
+}
+var UUID2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function lightRecallDocumentIds(items) {
+  const ids = /* @__PURE__ */ new Set();
+  for (const item of items ?? []) {
+    if (item?.kind !== "memory" && item?.kind !== "plan") continue;
+    if (typeof item.id === "string" && UUID2.test(item.id)) ids.add(item.id);
+    if (ids.size >= LIGHT_RECALL_MAX_IDS) break;
+  }
+  return [...ids];
+}
+async function recordLightRecall(db, args) {
+  if (!args.accountId || !args.documentIds.length) return;
+  let timer;
+  try {
+    await Promise.race([
+      Promise.resolve(
+        db.rpc("light_record_recall", {
+          p_account_id: args.accountId,
+          p_host: lightHostForAgentKind(args.agentKind),
+          p_document_ids: args.documentIds.slice(0, LIGHT_RECALL_MAX_IDS),
+          p_surface: args.surface
+        })
+      ),
+      new Promise((resolve) => {
+        timer = setTimeout(resolve, LIGHT_RECALL_TIMEOUT_MS);
+      })
+    ]);
+  } catch {
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+var RECORDED_TOOLS = {
+  memlin_search: "search",
+  memlin_search_memory: "search",
+  memlin_resolve_task: "recall"
+};
+function recordLightRecallAfterTool(ctx, name, result, light) {
+  if (ctx.surface !== "mcp" || !light) return;
+  const surface = RECORDED_TOOLS[name];
+  if (!surface) return;
+  let items = [];
+  if (surface === "search") {
+    if (Array.isArray(result)) items = result;
+  } else {
+    if (!light.active) return;
+    const memory = result?.bundle?.memory;
+    if (Array.isArray(memory)) items = memory;
+  }
+  const documentIds = lightRecallDocumentIds(items);
+  if (!documentIds.length) return;
+  try {
+    const task = recordLightRecall(ctx.supabase, {
+      accountId: ctx.accountId,
+      agentKind: ctx.agentKind,
+      documentIds,
+      surface
+    });
+    if (ctx.waitUntil) ctx.waitUntil(task);
+    else void task;
+  } catch {
+  }
+}
+
 // packages/mcp-tools/src/correct-memory.ts
 function str4(v2) {
   return typeof v2 === "string" && v2.length > 0 ? v2 : null;
@@ -86806,6 +86902,11 @@ async function callTool(ctx, name, args) {
   const light = await loadLightStatus(ctx.supabase, ctx.accountId);
   if (light?.active && !LIGHT_MCP_TOOLS.has(name))
     throw new Error(ctx.surface === "mcp" ? "light_read_only" : "light_upgrade_required");
+  const result = await dispatchTool(ctx, name, args);
+  recordLightRecallAfterTool(ctx, name, result, light);
+  return result;
+}
+async function dispatchTool(ctx, name, args) {
   switch (name) {
     case "memlin_thought_source":
       return thoughtSource(ctx, args);
@@ -87541,7 +87642,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.60";
+  cachedAgentVersion = "0.2.61";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -88048,6 +88149,31 @@ var MemlinApiClient = class {
   /** DELETE /light/suppressions */
   async lightUnsuppress(id3) {
     return this.request("DELETE", "/light/suppressions", { id: id3 }, { requestTimeoutMs: 8e3 });
+  }
+  /**
+   * POST /light/suggestions — upsert this device's suggestions (≤ 100). The
+   * server never reopens a dismissed / accepted row with the same hash. An
+   * older server answers 404/405; callers treat that as "no server store".
+   */
+  async reportLightSuggestions(input) {
+    return this.request("POST", "/light/suggestions", input, { requestTimeoutMs: 8e3 });
+  }
+  /** GET /light/suggestions?status= */
+  async listLightSuggestions(status) {
+    return (await this.request(
+      "GET",
+      `/light/suggestions?status=${encodeURIComponent(status)}`,
+      void 0,
+      { requestTimeoutMs: 8e3 }
+    )).suggestions;
+  }
+  /**
+   * PATCH /light/suggestions — accept or dismiss. Accepting `suppressed_changed`
+   * deletes the suppression server-side; accepting `source_drift` clears
+   * metadata.custom.memlin_frozen (metadata only, no version).
+   */
+  async resolveLightSuggestion(input) {
+    return this.request("PATCH", "/light/suggestions", input, { requestTimeoutMs: 8e3 });
   }
   /** POST /documents/<id>/status — archive / unarchive / approve (curation). */
   async setDocumentStatus(documentId, action) {
@@ -90779,7 +90905,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION2 = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version5 = "0.2.60";
+  const version5 = "0.2.61";
   return typeof version5 === "string" && VERSION2.test(version5) ? version5 : null;
 }
 async function reportPluginRuntime(report) {
@@ -91344,7 +91470,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.60"?.trim();
+  const env = "0.2.61"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }

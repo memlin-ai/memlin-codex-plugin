@@ -10168,7 +10168,15 @@ var LIGHT_LIMITS = Object.freeze({
   recallNotes: 3,
   captureInputTokens: 8e3,
   captureOutputTokens: 1e3,
-  captureReservationMicros: 2e4
+  captureReservationMicros: 2e4,
+  // Memlin-funded QUERY embeddings (search + recall). Past either ceiling the
+  // same search runs without an embedder: title text, still project-scoped.
+  // Enforced by light_reserve_query_embedding (web routes and hosted MCP).
+  queryEmbeddingsPerDay: 2e3,
+  queryEmbeddingsPerMinute: 30,
+  /** Suggestions the Companion may keep open at once (light_upsert_suggestions). */
+  openSuggestions: 500,
+  suggestionsPerRequest: 100
 });
 function validLightPath(value) {
   return /^memory\/[a-zA-Z0-9][a-zA-Z0-9._-]*\.md$/.test(value) && !value.includes("..") && value.length <= 256;
@@ -10369,26 +10377,40 @@ function consolidateLightMemory(items, options2 = {}) {
       return { key, stored, base: mergeGroup(group) };
     })
   );
+  const included = new Set(options2.includedItemKeys ?? []);
+  const frozen = new Set(options2.frozenKeys ?? []);
+  const tier = (d) => d.base.item_keys.some((k) => included.has(k)) ? 0 : frozen.has(d.key) ? 1 : d.base.agents_disagree ? 2 : 3;
+  const tiers = new Map(drafts.map((d) => [d, tier(d)]));
   drafts.sort(
-    (a, b) => Number(b.stored) - Number(a.stored) || b.base.memlin_hosts.length - a.base.memlin_hosts.length || newer(a.base.updated_at, b.base.updated_at) || a.base.title.localeCompare(b.base.title) || a.key.localeCompare(b.key)
+    (a, b) => tiers.get(a) - tiers.get(b) || Number(b.stored) - Number(a.stored) || b.base.memlin_hosts.length - a.base.memlin_hosts.length || newer(a.base.updated_at, b.base.updated_at) || a.base.title.localeCompare(b.base.title) || a.key.localeCompare(b.key)
   );
   const notes = drafts.map((d) => ({
     ...d.base,
     note_key: d.key,
     path: `memory/${d.key}.md`
   }));
+  const pickedKeys = new Set(drafts.filter((d) => tiers.get(d) === 0).map((d) => d.key));
   const fits = notes.slice(0, cap);
   const overflow = notes.slice(cap);
   const entry = (n) => ({
     key: n.note_key,
     title: n.title,
     memlin_hosts: n.memlin_hosts,
-    sources_total: n.sources_total
+    sources_total: n.sources_total,
+    item_keys: n.item_keys,
+    picked: pickedKeys.has(n.note_key)
   });
   return {
     notes: fits,
     overflow,
-    overCap: overflow.length ? { cap, total: notes.length, fits: fits.map(entry), overflow: overflow.map(entry) } : null,
+    overCap: overflow.length ? {
+      cap,
+      total: notes.length,
+      fits: fits.map(entry),
+      overflow: overflow.map(entry),
+      picked: pickedKeys.size,
+      overPicked: pickedKeys.size > cap
+    } : null,
     suppressed,
     suggestions,
     merged
@@ -25980,7 +26002,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.60";
+  cachedAgentVersion = "0.2.61";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -26487,6 +26509,31 @@ var MemlinApiClient = class {
   /** DELETE /light/suppressions */
   async lightUnsuppress(id) {
     return this.request("DELETE", "/light/suppressions", { id }, { requestTimeoutMs: 8e3 });
+  }
+  /**
+   * POST /light/suggestions — upsert this device's suggestions (≤ 100). The
+   * server never reopens a dismissed / accepted row with the same hash. An
+   * older server answers 404/405; callers treat that as "no server store".
+   */
+  async reportLightSuggestions(input) {
+    return this.request("POST", "/light/suggestions", input, { requestTimeoutMs: 8e3 });
+  }
+  /** GET /light/suggestions?status= */
+  async listLightSuggestions(status) {
+    return (await this.request(
+      "GET",
+      `/light/suggestions?status=${encodeURIComponent(status)}`,
+      void 0,
+      { requestTimeoutMs: 8e3 }
+    )).suggestions;
+  }
+  /**
+   * PATCH /light/suggestions — accept or dismiss. Accepting `suppressed_changed`
+   * deletes the suppression server-side; accepting `source_drift` clears
+   * metadata.custom.memlin_frozen (metadata only, no version).
+   */
+  async resolveLightSuggestion(input) {
+    return this.request("PATCH", "/light/suggestions", input, { requestTimeoutMs: 8e3 });
   }
   /** POST /documents/<id>/status — archive / unarchive / approve (curation). */
   async setDocumentStatus(documentId, action) {
@@ -29696,7 +29743,8 @@ function emptyLightSyncState() {
     cadence: { lastRunAt: null, lastUploadAt: null, day: null, dayWrites: 0 },
     cursorImports: [],
     lastReport: null,
-    suggestions: []
+    suggestions: [],
+    dismissed: []
   };
 }
 function lightStatePath(lightRoot) {
@@ -29749,7 +29797,8 @@ async function loadLightSyncState(lightRoot) {
     },
     cursorImports: Array.isArray(raw.cursorImports) ? raw.cursorImports.filter((k) => typeof k === "string") : [],
     lastReport: raw.lastReport ?? null,
-    suggestions: Array.isArray(raw.suggestions) ? raw.suggestions : []
+    suggestions: Array.isArray(raw.suggestions) ? raw.suggestions : [],
+    dismissed: Array.isArray(raw.dismissed) ? raw.dismissed.filter((k) => typeof k === "string").slice(-500) : []
   };
 }
 async function refuseSymlink(p) {
@@ -29860,6 +29909,10 @@ async function acquireLightLocalLock(lightRoot, now = Date.now) {
 }
 
 // packages/plugin-core/src/light/run-sync.ts
+function lightRouteMissing(error40) {
+  const status = error40?.status;
+  return status === 404 || status === 405;
+}
 var KNOWN_CODES = [
   "light_lease_lost",
   "light_version_conflict",
@@ -29883,6 +29936,14 @@ function lightErrorCode(error40) {
   if (typeof direct === "string") return direct;
   const message = error40 instanceof Error ? error40.message : String(error40 ?? "");
   return KNOWN_CODES.find((c) => message.includes(c)) ?? null;
+}
+function lightSuggestionIdentity(s) {
+  return [s.kind, s.reason, s.item_key ?? s.key ?? s.document_id ?? "", s.content_hash].join("|");
+}
+function lightSuggestionMatches(local, row) {
+  if (local.reason !== row.reason || local.content_hash !== row.content_hash) return false;
+  const eq = (a, b) => !!a && !!b && a === b;
+  return eq(local.item_key, row.item_key) || eq(local.key, row.note_key) || eq(local.document_id, row.document_id);
 }
 var DEAD_READER_STATUSES = /* @__PURE__ */ new Set([
   "no_memories_yet",
@@ -29969,7 +30030,7 @@ function custom3(doc) {
 }
 function expandWebSuppressions(suppressions, items, state) {
   const out = [...suppressions];
-  const seen = new Set(out.map((s) => `${s.host}\0${s.item_key}\0${s.content_hash}`));
+  const seen = new Set(out.map((s) => JSON.stringify([s.host, s.item_key, s.content_hash, s.id ?? null])));
   for (const s of suppressions) {
     const m = /^web:(memory|plan|skill):(.+)$/.exec(s.item_key);
     if (!m) continue;
@@ -29981,8 +30042,13 @@ function expandWebSuppressions(suppressions, items, state) {
       const docPath = key ? state.docs[kind][key]?.path ?? `${kind === "memory" ? "memory" : "plans"}/${key}.md` : null;
       const hit = item.host === s.host && item.displayPath === target || docPath === target;
       if (!hit) continue;
-      const row = { host: item.host, item_key: item.item_key, content_hash: s.content_hash };
-      const k = `${row.host}\0${row.item_key}\0${row.content_hash}`;
+      const row = {
+        host: item.host,
+        item_key: item.item_key,
+        content_hash: s.content_hash,
+        ...s.id ? { id: s.id } : {}
+      };
+      const k = JSON.stringify([row.host, row.item_key, row.content_hash, row.id ?? null]);
       if (seen.has(k)) continue;
       seen.add(k);
       out.push(row);
@@ -30012,6 +30078,49 @@ function echoMatches(note, doc) {
   const nt = lightTokens(note.title);
   const dt = lightTokens(doc.title);
   return nt.size >= 2 && jaccard(nt, dt) >= 0.8 && jaccard(nb, db) >= 0.5;
+}
+function lightSuggestionUpsert(sg) {
+  if (!/^[0-9a-f]{64}$/.test(sg.content_hash)) return null;
+  const clip = (v, n) => typeof v === "string" && v ? v.slice(0, n) : void 0;
+  const out = {
+    kind: sg.kind,
+    reason: sg.reason,
+    content_hash: sg.content_hash,
+    title: boundTitle(sg.title)
+  };
+  if (sg.host && SERVER_HOSTS.has(sg.host)) out.host = sg.host;
+  const itemKey = clip(sg.item_key, 512);
+  if (itemKey) out.item_key = itemKey;
+  const noteKey = clip(sg.key, 256);
+  if (noteKey) out.note_key = noteKey;
+  if (sg.document_id) out.document_id = sg.document_id;
+  if (sg.suppression_id) out.suppression_id = sg.suppression_id;
+  const displayPath = clip(sg.displayPath, 512);
+  if (displayPath && !path20.isAbsolute(displayPath)) out.display_path = displayPath;
+  if (sg.excerpt) out.excerpt = redactSecretShapes(sg.excerpt).redacted.slice(0, 280);
+  return out;
+}
+function fromServerSuggestion(row) {
+  return {
+    reason: row.reason,
+    kind: row.kind,
+    title: row.title,
+    content_hash: row.content_hash,
+    id: row.id,
+    origin: "server",
+    ...row.host ? { host: row.host } : {},
+    ...row.item_key ? { item_key: row.item_key } : {},
+    ...row.note_key ? { key: row.note_key } : {},
+    ...row.document_id ? { document_id: row.document_id } : {},
+    ...row.suppression_id ? { suppression_id: row.suppression_id, suppression_ids: [row.suppression_id] } : {},
+    ...row.display_path ? { displayPath: row.display_path } : {},
+    ...row.excerpt ? { excerpt: row.excerpt } : {}
+  };
+}
+function planChecklist(parsed, doc) {
+  const ok = (v) => !!v && typeof v === "object" && Number.isInteger(v.done) && Number.isInteger(v.total) && v.total > 0;
+  const src = ok(parsed) ? parsed : ok(custom3(doc).memlin_plan_status) ? custom3(doc).memlin_plan_status : null;
+  return src ? { done: Math.max(0, Math.min(src.done, src.total)), total: src.total } : null;
 }
 function emptyItems() {
   return { found: 0, synced: 0, skipped: 0, over_cap: 0, suppressed: 0 };
@@ -30140,6 +30249,7 @@ async function runLightSync(opts) {
       autoGate: "all",
       writesExhausted: false
     },
+    suggestionSync: "skipped",
     writes: { written: 0, noop: 0, failed: 0 },
     delivery: {
       mode: "skipped",
@@ -30209,55 +30319,14 @@ async function runLightSync(opts) {
     let uploadsBlocked = null;
     if (projectId) {
       try {
-        suppressions = (await api.listLightSuppressions()).filter((s) => !s.project_id || s.project_id === projectId).map((s) => ({ host: s.host, item_key: s.item_key, content_hash: s.content_hash }));
+        suppressions = (await api.listLightSuppressions()).filter((s) => !s.project_id || s.project_id === projectId).map((s) => ({ id: s.id, host: s.host, item_key: s.item_key, content_hash: s.content_hash }));
         suppressions = expandWebSuppressions(suppressions, [...memItems, ...planItems], state);
       } catch (e) {
         uploadsBlocked = "suppressions_unavailable";
         report.errors.push(`suppressions: ${e instanceof Error ? e.message : String(e)}`);
       }
     } else uploadsBlocked = mode === "unknown" ? "status_unavailable" : "not_light";
-    const noteCap = mode === "paid" ? opts.paidNoteCap ?? PAID_NOTE_CAP : LIGHT_LIMITS.files;
-    const mem = consolidateLightMemory(memItems, {
-      cap: noteCap,
-      suppressions,
-      previousKeys: state.keys.memory
-    });
-    for (const n of [...mem.notes, ...mem.overflow])
-      for (const k of n.item_keys) state.keys.memory[k] = n.note_key;
-    report.overCap = mem.overCap;
-    const planCap = mode === "paid" ? PAID_PLAN_CAP : LIGHT_LIMITS.plans;
-    const plans = consolidateLightPlans(planItems, {
-      cap: planCap,
-      suppressions,
-      previousKeys: state.keys.plan
-    });
-    for (const p of [...plans.plans, ...plans.archived])
-      for (const k of p.item_keys) state.keys.plan[k] = p.plan_key;
-    for (const s of [...mem.suggestions, ...plans.suggestions]) {
-      report.suggestions.push({
-        reason: "suppressed_changed",
-        kind: s.item_key.includes(":plan:") ? "plan" : "memory",
-        title: s.title,
-        content_hash: s.content_hash,
-        host: s.host,
-        item_key: s.item_key,
-        displayPath: s.displayPath,
-        suppressed_hashes: s.suppressed_hashes
-      });
-    }
-    report.planItems = planItemsAll.map((item) => {
-      const pick2 = picked(item);
-      return {
-        item_key: item.item_key,
-        host: item.host,
-        title: item.title,
-        displayPath: item.displayPath,
-        scope: item.scope,
-        pick: pick2 === "exclude" ? "excluded" : item.scope === "in_root" || pick2 === "include" ? "included" : item.scope,
-        plan_key: state.keys.plan[item.item_key] ?? null
-      };
-    });
-    let remote = [];
+    const remote = [];
     let pulled = false;
     if (projectId) {
       try {
@@ -30279,6 +30348,97 @@ async function runLightSync(opts) {
     const live = remote.filter((d) => d.status !== "archived");
     const byId = new Map(live.map((d) => [d.id, d]));
     const byPath = new Map(live.filter((d) => d.path).map((d) => [`${d.kind}:${d.path}`, d]));
+    const serverRows = {
+      accepted: [],
+      dismissed: []
+    };
+    let suggestionStore = projectId && api.listLightSuggestions ? "ok" : "skipped";
+    if (suggestionStore === "ok") {
+      try {
+        const [accepted, dismissed] = await Promise.all([
+          api.listLightSuggestions("accepted"),
+          api.listLightSuggestions("dismissed")
+        ]);
+        serverRows.accepted = Array.isArray(accepted) ? accepted : [];
+        serverRows.dismissed = Array.isArray(dismissed) ? dismissed : [];
+      } catch (e) {
+        suggestionStore = lightRouteMissing(e) ? "unsupported" : "failed";
+      }
+    }
+    const acceptedDrift = (key, documentId, sourceHash, writtenHash) => writtenHash !== sourceHash && serverRows.accepted.some(
+      (r) => r.reason === "source_drift" && r.content_hash === sourceHash && (!!r.note_key && r.note_key === key || !!documentId && r.document_id === documentId)
+    );
+    const noteCap = mode === "paid" ? opts.paidNoteCap ?? PAID_NOTE_CAP : LIGHT_LIMITS.files;
+    const frozenKeys = /* @__PURE__ */ new Set();
+    for (const d of live) {
+      if (d.kind !== "memory" || !lightDocFrozen(d)) continue;
+      const k = custom3(d).memlin_note_key;
+      if (typeof k === "string") frozenKeys.add(k);
+    }
+    for (const [key, rec] of Object.entries(state.docs.memory)) {
+      const d = rec && byId.get(rec.document_id);
+      if (d && lightDocFrozen(d)) frozenKeys.add(key);
+    }
+    for (const key of resume) frozenKeys.delete(key);
+    const includedItemKeys = Object.entries(state.items).filter(([, pick2]) => pick2 === "include").map(([k]) => k);
+    const mem = consolidateLightMemory(memItems, {
+      cap: noteCap,
+      suppressions,
+      previousKeys: state.keys.memory,
+      includedItemKeys,
+      frozenKeys
+    });
+    for (const n of [...mem.notes, ...mem.overflow])
+      for (const k of n.item_keys) state.keys.memory[k] = n.note_key;
+    report.overCap = mem.overCap;
+    const planCap = mode === "paid" ? PAID_PLAN_CAP : LIGHT_LIMITS.plans;
+    const plans = consolidateLightPlans(planItems, {
+      cap: planCap,
+      suppressions,
+      previousKeys: state.keys.plan
+    });
+    for (const p of [...plans.plans, ...plans.archived])
+      for (const k of p.item_keys) state.keys.plan[k] = p.plan_key;
+    const itemByHash = new Map(
+      [...memItems, ...planItems].map((i) => [JSON.stringify([i.item_key, i.content_hash]), i])
+    );
+    for (const s of [...mem.suggestions, ...plans.suggestions]) {
+      const kind = s.item_key.includes(":plan:") ? "plan" : "memory";
+      const ids = [
+        ...new Set(
+          suppressions.filter(
+            (r) => !!r.id && r.host === s.host && r.item_key === s.item_key && s.suppressed_hashes.includes(r.content_hash)
+          ).map((r) => r.id)
+        )
+      ];
+      const item = itemByHash.get(JSON.stringify([s.item_key, s.content_hash]));
+      const noteKey = kind === "plan" ? state.keys.plan[s.item_key] : state.keys.memory[s.item_key];
+      report.suggestions.push({
+        reason: "suppressed_changed",
+        kind,
+        title: s.title,
+        content_hash: s.content_hash,
+        host: s.host,
+        item_key: s.item_key,
+        displayPath: s.displayPath,
+        suppressed_hashes: s.suppressed_hashes,
+        ...noteKey ? { key: noteKey } : {},
+        ...ids.length ? { suppression_id: ids[0], suppression_ids: ids } : {},
+        ...item ? { excerpt: item.body.slice(0, 280) } : {}
+      });
+    }
+    report.planItems = planItemsAll.map((item) => {
+      const pick2 = picked(item);
+      return {
+        item_key: item.item_key,
+        host: item.host,
+        title: item.title,
+        displayPath: item.displayPath,
+        scope: item.scope,
+        pick: pick2 === "exclude" ? "excluded" : item.scope === "in_root" || pick2 === "include" ? "included" : item.scope,
+        plan_key: state.keys.plan[item.item_key] ?? null
+      };
+    });
     const ops = [];
     const claimed = /* @__PURE__ */ new Set();
     const noteDoc = /* @__PURE__ */ new Map();
@@ -30294,7 +30454,8 @@ async function runLightSync(opts) {
       agents_disagree: m.agents_disagree,
       frozen: false,
       state: "synced",
-      item_keys: m.item_keys
+      item_keys: m.item_keys,
+      checklist: null
     });
     const memNotes = mem.notes;
     for (const note of memNotes) {
@@ -30343,6 +30504,8 @@ async function runLightSync(opts) {
         row.document_id = doc.id;
         row.path = doc.path ?? note.path;
         const c = custom3(doc);
+        if (acceptedDrift(note.note_key, doc.id, note.content_hash, c.memlin_content_hash))
+          resume.add(note.note_key);
         const resumed = resume.has(note.note_key);
         const frozen = !resumed && lightDocFrozen(doc);
         const docHash = lightContentHash(doc.content);
@@ -30363,7 +30526,8 @@ async function runLightSync(opts) {
               document_id: doc.id,
               host: hosts[0],
               displayPath: note.memlin_sources[0]?.p,
-              item_key: note.item_keys[0]
+              item_key: note.item_keys[0],
+              excerpt: note.body.slice(0, 280)
             });
           }
           if (provDiffers) {
@@ -30508,6 +30672,51 @@ async function runLightSync(opts) {
         provenance: provenanceKey(hosts, sources)
       });
     }
+    const memArchives = [];
+    const archivable = (doc) => !!doc && doc.kind === "memory" && !claimed.has(doc.id) && custom3(doc).memlin_light === true && !lightDocFrozen(doc);
+    const docForKey = (key) => {
+      const rec = state.docs.memory[key];
+      return (rec && byId.get(rec.document_id)) ?? byPath.get(`memory:memory/${key}.md`) ?? live.find(
+        (d) => d.kind === "memory" && !claimed.has(d.id) && custom3(d).memlin_note_key === noteKeyValue(key)
+      );
+    };
+    if (pulled) {
+      const consolidated = new Set([...mem.notes, ...mem.overflow].map((n) => n.note_key));
+      const leftOut = /* @__PURE__ */ new Set();
+      for (const [itemKey, pick2] of Object.entries(state.items)) {
+        const key = pick2 === "exclude" ? state.keys.memory[itemKey] : void 0;
+        if (key && !consolidated.has(key)) leftOut.add(key);
+      }
+      for (const key of [...leftOut].sort()) {
+        const doc = docForKey(key);
+        if (!archivable(doc)) continue;
+        claimed.add(doc.id);
+        const row = {
+          kind: "memory",
+          key,
+          title: doc.title,
+          path: doc.path ?? `memory/${key}.md`,
+          document_id: doc.id,
+          hosts: serverHosts(asStrings(custom3(doc).memlin_hosts)),
+          sources_total: asSources(custom3(doc).memlin_sources).length,
+          agents_disagree: false,
+          frozen: false,
+          state: "archived",
+          reason: "left_out",
+          item_keys: Object.entries(state.keys.memory).filter(([, v]) => v === key).map(([k]) => k).sort(),
+          checklist: null
+        };
+        report.notes.push(row);
+        memArchives.push({ key, document_id: doc.id, why: "left_out", row });
+      }
+    }
+    for (const note of [...mem.overflow].reverse()) {
+      const doc = pulled ? docForKey(note.note_key) : void 0;
+      if (archivable(doc)) {
+        claimed.add(doc.id);
+        memArchives.push({ key: note.note_key, document_id: doc.id, why: "over_cap", row: null });
+      }
+    }
     for (const note of mem.overflow) {
       report.notes.push({
         ...baseRow("memory", note.note_key, note, note.path),
@@ -30563,6 +30772,7 @@ async function runLightSync(opts) {
           ...rec?.uploaded_at ? {} : { source_updated_at: remoteDoc.updated_at ?? null }
         };
       }
+      if (acceptedDrift(key, base?.document_id, item.content_hash, base?.content_hash)) resume.add(key);
       const resumed = resume.has(key);
       const frozen = !resumed && (rec?.conflict === true || (remoteDoc ? lightDocFrozen(remoteDoc) : false));
       const prov = provenanceKey(hosts, sources);
@@ -30589,7 +30799,9 @@ async function runLightSync(opts) {
             content_hash: item.content_hash,
             key,
             document_id: base.document_id,
-            host: hosts[0]
+            host: hosts[0],
+            ...sources[0]?.p ? { displayPath: sources[0].p } : {},
+            excerpt: item.body.slice(0, 280)
           });
         }
         return;
@@ -30709,6 +30921,7 @@ async function runLightSync(opts) {
         } : {},
         LIGHT_LIMITS.planBytes
       );
+      row.checklist = planChecklist(plan.checklist, row.document_id ? byId.get(row.document_id) : void 0);
     }
     const archiveOps = [];
     for (const plan of plans.archived) {
@@ -30719,7 +30932,8 @@ async function runLightSync(opts) {
       const row = {
         ...baseRow("plan", plan.plan_key, plan, plan.path),
         document_id: doc?.id ?? rec?.document_id ?? null,
-        state: "archived"
+        state: "archived",
+        checklist: planChecklist(plan.checklist, doc)
       };
       report.plans.push(row);
       if (doc) {
@@ -30795,7 +31009,8 @@ async function runLightSync(opts) {
           agents_disagree: false,
           frozen: false,
           state: "synced",
-          item_keys: copies.map((c) => c.item_key)
+          item_keys: copies.map((c) => c.item_key),
+          checklist: null
         };
         recordOnlyFlow(
           "skill",
@@ -30826,7 +31041,17 @@ async function runLightSync(opts) {
     const order = { provenance: 0, update: 1, create: 2 };
     const kindOrder = { memory: 0, plan: 1, skill: 2 };
     ops.sort((a, b) => order[a.type] - order[b.type] || kindOrder[a.kind] - kindOrder[b.kind]);
-    if (!dryRun && (ops.length || archiveOps.length) && !uploadsBlocked && projectId && deviceId) {
+    const memCreates = ops.filter((o) => o.kind === "memory" && o.type === "create").length;
+    const leftOutCount = memArchives.filter((a) => a.why === "left_out").length;
+    const swapAllowed = mode === "light" && budget > 0 && (trigger === "manual" || gapOk && autoGate !== "none");
+    let slotsNeeded = swapAllowed ? counts.memory - leftOutCount + memCreates - caps.memory : 0;
+    const memArchiveOps = memArchives.filter((a) => {
+      if (a.why === "left_out") return true;
+      if (slotsNeeded <= 0) return false;
+      slotsNeeded -= 1;
+      return true;
+    });
+    if (!dryRun && (ops.length || archiveOps.length || memArchiveOps.length) && !uploadsBlocked && projectId && deviceId) {
       const leaseHosts = [...new Set(ops.flatMap((o) => o.hosts))].sort();
       if (!leaseHosts.length) leaseHosts.push("claude");
       for (const host of leaseHosts) {
@@ -30866,6 +31091,29 @@ async function runLightSync(opts) {
         a.row.state = "error";
         a.row.reason = lightErrorCode(e) ?? (e instanceof Error ? e.message : String(e));
         report.errors.push(`plan archive: ${a.row.reason}`);
+      }
+    }
+    for (const a of memArchiveOps) {
+      if (dryRun || uploadsBlocked || !fencingToken || !api.setDocumentStatus) {
+        if (a.row && !dryRun) {
+          a.row.state = "waiting";
+          a.row.reason = "archive_pending";
+        }
+        continue;
+      }
+      try {
+        await api.setDocumentStatus(a.document_id, "archive");
+        delete state.docs.memory[a.key];
+        const at = live.findIndex((d) => d.id === a.document_id);
+        if (at >= 0) live.splice(at, 1);
+        counts.memory = Math.max(0, counts.memory - 1);
+      } catch (e) {
+        const reason = lightErrorCode(e) ?? (e instanceof Error ? e.message : String(e));
+        if (a.row) {
+          a.row.state = "error";
+          a.row.reason = reason;
+        }
+        report.errors.push(`note archive: ${reason}`);
       }
     }
     let leaseLost = false;
@@ -31161,6 +31409,45 @@ async function runLightSync(opts) {
       });
     }
     report.ok = report.errors.length === 0 && !report.hosts.some((h) => h.status === "needs_attention") && report.writes.failed === 0;
+    {
+      const seen = /* @__PURE__ */ new Set();
+      const dismissedHere = new Set(state.dismissed);
+      const resolvedOnServer = [...serverRows.accepted, ...serverRows.dismissed];
+      report.suggestions = report.suggestions.filter((sg) => {
+        const id = lightSuggestionIdentity(sg);
+        if (seen.has(id) || dismissedHere.has(id)) return false;
+        seen.add(id);
+        return !resolvedOnServer.some((r) => lightSuggestionMatches(sg, r));
+      });
+      if (suggestionStore === "ok" && projectId) {
+        try {
+          const upserts = report.suggestions.map((sg) => lightSuggestionUpsert(sg)).filter((u) => u !== null).slice(0, 100);
+          if (!dryRun && upserts.length && api.reportLightSuggestions)
+            await api.reportLightSuggestions({ project_id: projectId, suggestions: upserts });
+          const open = await api.listLightSuggestions("open");
+          const knownKeys = /* @__PURE__ */ new Set([
+            ...Object.keys(state.keys.memory),
+            ...Object.values(state.keys.memory),
+            ...Object.keys(state.keys.plan),
+            ...Object.values(state.keys.plan)
+          ]);
+          for (const row of Array.isArray(open) ? open : []) {
+            const local = report.suggestions.find((sg) => lightSuggestionMatches(sg, row));
+            if (local) {
+              local.id = row.id;
+              continue;
+            }
+            if (row.item_key && knownKeys.has(row.item_key) || row.note_key && knownKeys.has(row.note_key))
+              continue;
+            if (dismissedHere.has(lightSuggestionIdentity(fromServerSuggestion(row)))) continue;
+            report.suggestions.push(fromServerSuggestion(row));
+          }
+        } catch (e) {
+          suggestionStore = lightRouteMissing(e) ? "unsupported" : "failed";
+        }
+      }
+      report.suggestionSync = suggestionStore;
+    }
     if (dryRun) return report;
     if (projectId && deviceId) {
       const body = {
