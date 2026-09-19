@@ -4223,7 +4223,7 @@ var init_workspace_binding = __esm({
 });
 
 // packages/plugin-core/src/cli/add-project.ts
-import { execSync as execSync3 } from "node:child_process";
+import { execSync as execSync2 } from "node:child_process";
 import path11 from "node:path";
 import readline from "node:readline";
 
@@ -24448,7 +24448,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.62";
+  cachedAgentVersion = "0.2.64";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -25810,8 +25810,7 @@ function runCliMain(main2, onError) {
 }
 
 // packages/plugin-core/src/project-resolver.ts
-import { execSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
 import path8 from "node:path";
 init_workspace_binding();
 var WORKSPACE_ENV_VARS = [
@@ -25832,14 +25831,41 @@ function runtimeCwd(fallback = process.cwd()) {
   return path8.resolve(fallback);
 }
 function readGitRemote(cwd) {
+  const read = (file2) => {
+    const stat = lstatSync(file2);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 64 * 1024)
+      throw new Error("Unsupported Git metadata");
+    return readFileSync2(file2, "utf8");
+  };
   try {
-    const url2 = execSync("git remote get-url origin", {
-      windowsHide: true,
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8"
-    }).trim();
-    return normalizeGitRemote(url2);
+    let root = path8.resolve(cwd);
+    for (; ; ) {
+      const marker = path8.join(root, ".git");
+      if (existsSync(marker)) {
+        const info = lstatSync(marker);
+        if (info.isSymbolicLink()) return null;
+        let directory = marker;
+        if (info.isFile()) {
+          const match = /^gitdir:\s*(.+)$/m.exec(read(marker));
+          if (!match) return null;
+          directory = path8.resolve(root, match[1].trim());
+        }
+        const common2 = path8.join(directory, "commondir");
+        if (existsSync(common2)) directory = path8.resolve(directory, read(common2).trim());
+        let origin = false;
+        for (const line of read(path8.join(directory, "config")).split(/\r?\n/)) {
+          if (/^\s*\[/.test(line)) origin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/.test(line);
+          else if (origin) {
+            const match = /^\s*url\s*=\s*(.*?)\s*$/.exec(line);
+            if (match) return normalizeGitRemote(match[1].replace(/^"(.*)"$/, "$1"));
+          }
+        }
+        return null;
+      }
+      const parent = path8.dirname(root);
+      if (parent === root) return null;
+      root = parent;
+    }
   } catch {
     return null;
   }
@@ -25888,7 +25914,7 @@ init_workspace_binding();
 
 // packages/plugin-core/src/sibling-detect.ts
 import { readdirSync as readdirSync2, existsSync as existsSync2 } from "node:fs";
-import { execSync as execSync2 } from "node:child_process";
+import { execSync } from "node:child_process";
 import path9 from "node:path";
 var MAX_CHILD_DIRS = 32;
 var MAX_REMOTE_PROBES = 5;
@@ -25903,7 +25929,7 @@ function childGitRemotes(cwd, deps = {}) {
   const readRemote = deps.readRemote ?? ((repoPath) => {
     try {
       if (!existsSync2(path9.join(repoPath, ".git"))) return null;
-      const url2 = execSync2("git remote get-url origin", {
+      const url2 = execSync("git remote get-url origin", {
         windowsHide: true,
         cwd: repoPath,
         stdio: ["ignore", "pipe", "ignore"],
@@ -26034,7 +26060,7 @@ function printHelp() {
 }
 function readGitRemote2(cwd) {
   try {
-    const url2 = execSync3("git remote get-url origin", {
+    const url2 = execSync2("git remote get-url origin", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],

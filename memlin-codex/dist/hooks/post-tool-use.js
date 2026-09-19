@@ -24679,7 +24679,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.62";
+  cachedAgentVersion = "0.2.64";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -26024,12 +26024,11 @@ function log(msg) {
 }
 
 // packages/plugin-core/dist/pre-tool-use-handler.js
-import { execSync as execSync3 } from "node:child_process";
+import { execSync as execSync2 } from "node:child_process";
 import path16 from "node:path";
 
 // packages/plugin-core/dist/project-resolver.js
-import { execSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
 import path8 from "node:path";
 init_workspace_binding();
 async function resolveProject(api, cwd, configProjectId) {
@@ -26082,14 +26081,41 @@ async function resolveProject(api, cwd, configProjectId) {
   };
 }
 function readGitRemote(cwd) {
+  const read = (file2) => {
+    const stat = lstatSync(file2);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 64 * 1024)
+      throw new Error("Unsupported Git metadata");
+    return readFileSync2(file2, "utf8");
+  };
   try {
-    const url2 = execSync("git remote get-url origin", {
-      windowsHide: true,
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8"
-    }).trim();
-    return normalizeGitRemote(url2);
+    let root = path8.resolve(cwd);
+    for (; ; ) {
+      const marker = path8.join(root, ".git");
+      if (existsSync(marker)) {
+        const info = lstatSync(marker);
+        if (info.isSymbolicLink()) return null;
+        let directory = marker;
+        if (info.isFile()) {
+          const match = /^gitdir:\s*(.+)$/m.exec(read(marker));
+          if (!match) return null;
+          directory = path8.resolve(root, match[1].trim());
+        }
+        const common2 = path8.join(directory, "commondir");
+        if (existsSync(common2)) directory = path8.resolve(directory, read(common2).trim());
+        let origin = false;
+        for (const line of read(path8.join(directory, "config")).split(/\r?\n/)) {
+          if (/^\s*\[/.test(line)) origin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/.test(line);
+          else if (origin) {
+            const match = /^\s*url\s*=\s*(.*?)\s*$/.exec(line);
+            if (match) return normalizeGitRemote(match[1].replace(/^"(.*)"$/, "$1"));
+          }
+        }
+        return null;
+      }
+      const parent = path8.dirname(root);
+      if (parent === root) return null;
+      root = parent;
+    }
   } catch {
     return null;
   }
@@ -26124,7 +26150,7 @@ function effectiveAccountId(input) {
 }
 
 // packages/plugin-core/dist/edit-activity.js
-import { execSync as execSync2 } from "node:child_process";
+import { execSync } from "node:child_process";
 import { realpathSync as realpathSync2 } from "node:fs";
 import path10 from "node:path";
 import os8 from "node:os";
@@ -26136,7 +26162,7 @@ import {
   existsSync as existsSync2,
   mkdirSync,
   openSync,
-  readFileSync as readFileSync2,
+  readFileSync as readFileSync3,
   realpathSync,
   renameSync,
   rmSync,
@@ -26201,7 +26227,7 @@ function emptyState() {
 }
 function readState(file2) {
   try {
-    const parsed = JSON.parse(readFileSync2(file2, "utf8"));
+    const parsed = JSON.parse(readFileSync3(file2, "utf8"));
     if (parsed?.version === STATE_VERSION && parsed.worktrees && Array.isArray(parsed.leases)) {
       return parsed;
     }
@@ -26233,7 +26259,7 @@ function withState(identity, mutate) {
       break;
     } catch {
       try {
-        const lock = JSON.parse(readFileSync2(files.lock, "utf8"));
+        const lock = JSON.parse(readFileSync3(files.lock, "utf8"));
         if (typeof lock.at !== "number" || Date.now() - lock.at > LOCK_STALE_MS) {
           rmSync(files.lock, { force: true });
           continue;
@@ -26314,7 +26340,7 @@ function editedPathsFromHook(toolName, toolInput) {
 }
 function gitToplevel(cwd) {
   try {
-    const top = execSync2("git rev-parse --show-toplevel", {
+    const top = execSync("git rev-parse --show-toplevel", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
@@ -26353,7 +26379,7 @@ function repoRelativePath(absPath, cwd) {
 }
 function readGitBranch(cwd) {
   try {
-    const branch = execSync2("git rev-parse --abbrev-ref HEAD", {
+    const branch = execSync("git rev-parse --abbrev-ref HEAD", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
@@ -26404,7 +26430,7 @@ async function recordEditActivity(ctx, payload) {
 // packages/plugin-core/dist/edit-broker.js
 import {
   mkdtempSync,
-  readFileSync as readFileSync4,
+  readFileSync as readFileSync5,
   rmSync as rmSync2,
   writeFileSync as writeFileSync2
 } from "node:fs";
@@ -26414,7 +26440,7 @@ import { execFileSync as execFileSync2, spawnSync } from "node:child_process";
 
 // packages/plugin-core/dist/edit-intent.js
 import crypto5 from "node:crypto";
-import { readFileSync as readFileSync3 } from "node:fs";
+import { readFileSync as readFileSync4 } from "node:fs";
 import path11 from "node:path";
 function hashEditContent(value) {
   return crypto5.createHash("sha256").update(value).digest("hex");
@@ -26438,7 +26464,7 @@ async function completeEditBroker(ctx, payload) {
     for (const relPath of paths) {
       let content;
       try {
-        content = readFileSync4(path12.join(identity.root, relPath), "utf8");
+        content = readFileSync5(path12.join(identity.root, relPath), "utf8");
       } catch {
         continue;
       }
@@ -26471,7 +26497,7 @@ init_atomic_rename();
 init_workspace_binding();
 
 // packages/plugin-core/dist/deploy-broker.js
-import { existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync5, unlinkSync, writeFileSync as writeFileSync3 } from "node:fs";
+import { existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync6, unlinkSync, writeFileSync as writeFileSync3 } from "node:fs";
 import os11 from "node:os";
 import path15 from "node:path";
 
@@ -26495,7 +26521,7 @@ async function releaseDeployLease(ctx, args) {
 }
 
 // packages/plugin-core/dist/scribe-commit.js
-import { execSync as execSync4 } from "node:child_process";
+import { execSync as execSync3 } from "node:child_process";
 
 // packages/plugin-core/dist/state.js
 init_atomic_rename();
@@ -26681,18 +26707,18 @@ async function maybeScribeCommit(ctx, payload) {
   let diffStat = "";
   let diffBody = "";
   try {
-    commitSha = execSync4("git rev-parse HEAD", { windowsHide: true, cwd, encoding: "utf8" }).trim();
-    commitMessage = execSync4("git log -1 --format=%B HEAD", {
+    commitSha = execSync3("git rev-parse HEAD", { windowsHide: true, cwd, encoding: "utf8" }).trim();
+    commitMessage = execSync3("git log -1 --format=%B HEAD", {
       windowsHide: true,
       cwd,
       encoding: "utf8"
     }).trim();
-    diffStat = execSync4("git show --stat --format= HEAD", {
+    diffStat = execSync3("git show --stat --format= HEAD", {
       windowsHide: true,
       cwd,
       encoding: "utf8"
     }).trim();
-    const buf = execSync4("git show --format= HEAD", {
+    const buf = execSync3("git show --format= HEAD", {
       windowsHide: true,
       cwd,
       encoding: "utf8",
@@ -26716,7 +26742,7 @@ async function maybeScribeCommit(ctx, payload) {
       accountOverride = resolved.account_id;
     }
     try {
-      const remoteUrl = execSync4("git remote get-url origin", {
+      const remoteUrl = execSync3("git remote get-url origin", {
         windowsHide: true,
         cwd,
         stdio: ["ignore", "pipe", "ignore"],
@@ -26818,13 +26844,59 @@ async function recordCodexActivity(cwd, reason, opts = {}) {
   await recordInstallHeartbeat(cwd, reason, { ...opts, host: "codex" });
 }
 
+// packages/plugin-core/dist/plugin-runtime.js
+init_companion_client();
+import { createHash, randomUUID as randomUUID4 } from "node:crypto";
+var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
+var VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
+var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
+function ownVersion() {
+  const version2 = "0.2.64";
+  return typeof version2 === "string" && VERSION.test(version2) ? version2 : null;
+}
+async function reportPluginRuntime(report) {
+  try {
+    return (await companionRequest("runtime.report", report, {
+      timeoutMs: PLUGIN_RUNTIME_TIMEOUT_MS
+    }))?.accepted === true;
+  } catch {
+    return false;
+  }
+}
+function reportPluginHookActivity(host, input, cwd) {
+  const version2 = ownVersion();
+  if (!version2 || !HOSTS3.has(host) || !cwd || !input || typeof input !== "object" || Array.isArray(input))
+    return;
+  const payload = input;
+  const session = payload.session_id ?? payload.conversation_id ?? payload.conversationId;
+  if (typeof session !== "string" || session.length === 0 || session.length > 256) return;
+  const instance = createHash("sha256").update(JSON.stringify([host, cwd, session, version2])).digest("hex");
+  void reportPluginRuntime({
+    host,
+    plugin_version: version2,
+    instance_id: instance,
+    source: "hook",
+    event: payload.hook_event_name === "sessionEnd" ? "end" : "activity"
+  });
+}
+
 // apps/codex-plugin/src/hook-io.ts
 function readHookInput() {
   return new Promise((resolve) => {
     let data = "";
+    let settled = false;
     const done = () => {
+      if (settled) return;
+      settled = true;
       try {
-        resolve(data.trim() ? JSON.parse(data) : null);
+        const input = data.trim() ? JSON.parse(data) : null;
+        const cwd = input?.cwd;
+        reportPluginHookActivity(
+          "codex",
+          input,
+          typeof cwd === "string" && cwd.trim() ? cwd : process.cwd()
+        );
+        resolve(input);
       } catch {
         resolve(null);
       }

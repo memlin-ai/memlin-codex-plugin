@@ -24413,7 +24413,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.62";
+  cachedAgentVersion = "0.2.64";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -25813,8 +25813,7 @@ function flattenForScribe(content) {
 }
 
 // packages/plugin-core/src/project-resolver.ts
-import { execSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
 import path8 from "node:path";
 init_workspace_binding();
 var WORKSPACE_ENV_VARS = [

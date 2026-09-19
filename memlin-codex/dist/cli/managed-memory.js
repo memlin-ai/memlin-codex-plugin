@@ -24624,7 +24624,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.62";
+  cachedAgentVersion = "0.2.64";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -26000,8 +26000,7 @@ async function isLightAccount(api, accountId, opts = {}) {
 }
 
 // packages/plugin-core/src/project-resolver.ts
-import { execSync } from "node:child_process";
-import { existsSync as existsSync2, readdirSync } from "node:fs";
+import { existsSync as existsSync2, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
 import path9 from "node:path";
 init_workspace_binding();
 var WORKSPACE_ENV_VARS = [
@@ -26071,14 +26070,41 @@ async function resolveProject(api, cwd, configProjectId) {
   };
 }
 function readGitRemote(cwd) {
+  const read = (file2) => {
+    const stat = lstatSync(file2);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 64 * 1024)
+      throw new Error("Unsupported Git metadata");
+    return readFileSync2(file2, "utf8");
+  };
   try {
-    const url2 = execSync("git remote get-url origin", {
-      windowsHide: true,
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8"
-    }).trim();
-    return normalizeGitRemote(url2);
+    let root = path9.resolve(cwd);
+    for (; ; ) {
+      const marker = path9.join(root, ".git");
+      if (existsSync2(marker)) {
+        const info = lstatSync(marker);
+        if (info.isSymbolicLink()) return null;
+        let directory = marker;
+        if (info.isFile()) {
+          const match = /^gitdir:\s*(.+)$/m.exec(read(marker));
+          if (!match) return null;
+          directory = path9.resolve(root, match[1].trim());
+        }
+        const common2 = path9.join(directory, "commondir");
+        if (existsSync2(common2)) directory = path9.resolve(directory, read(common2).trim());
+        let origin = false;
+        for (const line of read(path9.join(directory, "config")).split(/\r?\n/)) {
+          if (/^\s*\[/.test(line)) origin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/.test(line);
+          else if (origin) {
+            const match = /^\s*url\s*=\s*(.*?)\s*$/.exec(line);
+            if (match) return normalizeGitRemote(match[1].replace(/^"(.*)"$/, "$1"));
+          }
+        }
+        return null;
+      }
+      const parent = path9.dirname(root);
+      if (parent === root) return null;
+      root = parent;
+    }
   } catch {
     return null;
   }

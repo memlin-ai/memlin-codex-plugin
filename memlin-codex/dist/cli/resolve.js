@@ -4223,7 +4223,7 @@ var init_workspace_binding = __esm({
 });
 
 // packages/plugin-core/src/cli/resolve.ts
-import { execSync as execSync2 } from "node:child_process";
+import { execSync } from "node:child_process";
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -24629,7 +24629,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.62";
+  cachedAgentVersion = "0.2.64";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -25991,8 +25991,7 @@ function runCliMain(main2, onError) {
 }
 
 // packages/plugin-core/src/project-resolver.ts
-import { execSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
 import path8 from "node:path";
 init_workspace_binding();
 var WORKSPACE_ENV_VARS = [
@@ -26062,14 +26061,41 @@ async function resolveProject(api, cwd, configProjectId) {
   };
 }
 function readGitRemote(cwd) {
+  const read = (file2) => {
+    const stat = lstatSync(file2);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 64 * 1024)
+      throw new Error("Unsupported Git metadata");
+    return readFileSync2(file2, "utf8");
+  };
   try {
-    const url2 = execSync("git remote get-url origin", {
-      windowsHide: true,
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8"
-    }).trim();
-    return normalizeGitRemote(url2);
+    let root = path8.resolve(cwd);
+    for (; ; ) {
+      const marker = path8.join(root, ".git");
+      if (existsSync(marker)) {
+        const info = lstatSync(marker);
+        if (info.isSymbolicLink()) return null;
+        let directory = marker;
+        if (info.isFile()) {
+          const match = /^gitdir:\s*(.+)$/m.exec(read(marker));
+          if (!match) return null;
+          directory = path8.resolve(root, match[1].trim());
+        }
+        const common2 = path8.join(directory, "commondir");
+        if (existsSync(common2)) directory = path8.resolve(directory, read(common2).trim());
+        let origin = false;
+        for (const line of read(path8.join(directory, "config")).split(/\r?\n/)) {
+          if (/^\s*\[/.test(line)) origin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/.test(line);
+          else if (origin) {
+            const match = /^\s*url\s*=\s*(.*?)\s*$/.exec(line);
+            if (match) return normalizeGitRemote(match[1].replace(/^"(.*)"$/, "$1"));
+          }
+        }
+        return null;
+      }
+      const parent = path8.dirname(root);
+      if (parent === root) return null;
+      root = parent;
+    }
   } catch {
     return null;
   }
@@ -26256,7 +26282,7 @@ async function writePendingBundle(bundle) {
 }
 
 // packages/plugin-core/src/deploy-broker.ts
-import { existsSync as existsSync2, mkdirSync, readFileSync as readFileSync2, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync as existsSync2, mkdirSync, readFileSync as readFileSync3, unlinkSync, writeFileSync } from "node:fs";
 import os9 from "node:os";
 import path11 from "node:path";
 
@@ -27235,7 +27261,7 @@ function printHelp() {
 }
 function readGitRemote2(cwd) {
   try {
-    const url2 = execSync2("git remote get-url origin", {
+    const url2 = execSync("git remote get-url origin", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
@@ -27248,7 +27274,7 @@ function readGitRemote2(cwd) {
 }
 function readGitBranch(cwd) {
   try {
-    const branch = execSync2("git rev-parse --abbrev-ref HEAD", {
+    const branch = execSync("git rev-parse --abbrev-ref HEAD", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],

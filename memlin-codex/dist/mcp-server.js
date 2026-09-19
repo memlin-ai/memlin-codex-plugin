@@ -31959,9 +31959,9 @@ var init_workspace_binding = __esm({
 });
 
 // apps/mcp-server/src/index.ts
-import { execSync as execSync4 } from "node:child_process";
+import { execSync as execSync3 } from "node:child_process";
 import { randomUUID as randomUUID6 } from "node:crypto";
-import { existsSync as existsSync5, readFileSync as readFileSync6 } from "node:fs";
+import { existsSync as existsSync5, readFileSync as readFileSync7 } from "node:fs";
 import path20, { dirname as dirname2, join as join2 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 import os13 from "node:os";
@@ -77507,6 +77507,7 @@ async function searchRanked(ctx, args, limit2) {
     `id, status, title, kind, scope, path, updated_at, created_at, metadata,
        document_versions!documents_current_version_fk ( version_number, author_id )`
   ).eq("account_id", ctx.accountId).ilike("title", `%${args.query}%`).limit(Math.min(limit2 * 3, 100));
+  if (projectId) q2 = q2.or(`scope.neq.project,project_id.eq.${projectId}`);
   if (args.kinds?.length) q2 = q2.in("kind", args.kinds);
   const { data } = await q2;
   const eligibleRows = (data ?? []).filter(
@@ -87213,7 +87214,7 @@ var REHOME_INSIGHT_KINDS = [
 ];
 
 // packages/plugin-core/dist/pre-tool-use-handler.js
-import { execSync as execSync3 } from "node:child_process";
+import { execSync as execSync2 } from "node:child_process";
 import path16 from "node:path";
 
 // packages/plugin-core/dist/client.js
@@ -87664,7 +87665,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.62";
+  cachedAgentVersion = "0.2.64";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -89008,8 +89009,7 @@ function log(msg) {
 }
 
 // packages/plugin-core/dist/project-resolver.js
-import { execSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
 import path8 from "node:path";
 init_workspace_binding();
 async function resolveProject(api, cwd, configProjectId) {
@@ -89062,14 +89062,41 @@ async function resolveProject(api, cwd, configProjectId) {
   };
 }
 function readGitRemote(cwd) {
+  const read = (file2) => {
+    const stat = lstatSync(file2);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 64 * 1024)
+      throw new Error("Unsupported Git metadata");
+    return readFileSync2(file2, "utf8");
+  };
   try {
-    const url2 = execSync("git remote get-url origin", {
-      windowsHide: true,
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8"
-    }).trim();
-    return normalizeGitRemote2(url2);
+    let root = path8.resolve(cwd);
+    for (; ; ) {
+      const marker = path8.join(root, ".git");
+      if (existsSync(marker)) {
+        const info = lstatSync(marker);
+        if (info.isSymbolicLink()) return null;
+        let directory = marker;
+        if (info.isFile()) {
+          const match = /^gitdir:\s*(.+)$/m.exec(read(marker));
+          if (!match) return null;
+          directory = path8.resolve(root, match[1].trim());
+        }
+        const common2 = path8.join(directory, "commondir");
+        if (existsSync(common2)) directory = path8.resolve(directory, read(common2).trim());
+        let origin = false;
+        for (const line of read(path8.join(directory, "config")).split(/\r?\n/)) {
+          if (/^\s*\[/.test(line)) origin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/.test(line);
+          else if (origin) {
+            const match = /^\s*url\s*=\s*(.*?)\s*$/.exec(line);
+            if (match) return normalizeGitRemote2(match[1].replace(/^"(.*)"$/, "$1"));
+          }
+        }
+        return null;
+      }
+      const parent = path8.dirname(root);
+      if (parent === root) return null;
+      root = parent;
+    }
   } catch {
     return null;
   }
@@ -89101,7 +89128,7 @@ function isWorkspaceActive(input) {
 }
 
 // packages/plugin-core/dist/edit-activity.js
-import { execSync as execSync2 } from "node:child_process";
+import { execSync } from "node:child_process";
 import { realpathSync as realpathSync2 } from "node:fs";
 import path10 from "node:path";
 import os8 from "node:os";
@@ -89113,7 +89140,7 @@ import {
   existsSync as existsSync2,
   mkdirSync,
   openSync,
-  readFileSync as readFileSync2,
+  readFileSync as readFileSync3,
   realpathSync,
   renameSync,
   rmSync,
@@ -89179,7 +89206,7 @@ function emptyState() {
 }
 function readState(file2) {
   try {
-    const parsed = JSON.parse(readFileSync2(file2, "utf8"));
+    const parsed = JSON.parse(readFileSync3(file2, "utf8"));
     if (parsed?.version === STATE_VERSION && parsed.worktrees && Array.isArray(parsed.leases)) {
       return parsed;
     }
@@ -89211,7 +89238,7 @@ function withState(identity, mutate) {
       break;
     } catch {
       try {
-        const lock = JSON.parse(readFileSync2(files.lock, "utf8"));
+        const lock = JSON.parse(readFileSync3(files.lock, "utf8"));
         if (typeof lock.at !== "number" || Date.now() - lock.at > LOCK_STALE_MS) {
           rmSync(files.lock, { force: true });
           continue;
@@ -89330,7 +89357,7 @@ function activeRepositoryClaims(identity, paths, selfAgent = process.env.CLAUDE_
   const conflicts = [];
   for (const name of names) {
     try {
-      const claim = JSON.parse(readFileSync2(path9.join(claimsDir, name), "utf8"));
+      const claim = JSON.parse(readFileSync3(path9.join(claimsDir, name), "utf8"));
       const agent = typeof claim.agent === "string" ? claim.agent : "";
       if (!agent || agent === selfAgent) continue;
       const started = typeof claim.started_at === "string" ? Date.parse(claim.started_at) : NaN;
@@ -89392,7 +89419,7 @@ function editedPathsFromHook(toolName, toolInput) {
 }
 function gitToplevel(cwd) {
   try {
-    const top = execSync2("git rev-parse --show-toplevel", {
+    const top = execSync("git rev-parse --show-toplevel", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
@@ -89431,7 +89458,7 @@ function repoRelativePath(absPath, cwd) {
 }
 function readGitBranch(cwd) {
   try {
-    const branch = execSync2("git rev-parse --abbrev-ref HEAD", {
+    const branch = execSync("git rev-parse --abbrev-ref HEAD", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
@@ -89447,7 +89474,7 @@ function readGitBranch(cwd) {
 // packages/plugin-core/dist/edit-broker.js
 import {
   mkdtempSync,
-  readFileSync as readFileSync4,
+  readFileSync as readFileSync5,
   rmSync as rmSync2,
   writeFileSync as writeFileSync2
 } from "node:fs";
@@ -89457,7 +89484,7 @@ import { execFileSync as execFileSync2, spawnSync } from "node:child_process";
 
 // packages/plugin-core/dist/edit-intent.js
 import crypto6 from "node:crypto";
-import { readFileSync as readFileSync3 } from "node:fs";
+import { readFileSync as readFileSync4 } from "node:fs";
 import path11 from "node:path";
 var WHOLE_FILE_END = 2147483647;
 var PATCH_TOOLS = /* @__PURE__ */ new Set(["edit", "multiedit"]);
@@ -89630,7 +89657,7 @@ function materializeMutation(mutation, cwd) {
   const absolutePath = path11.resolve(cwd, mutation.path);
   let baseContent = "";
   try {
-    baseContent = readFileSync3(absolutePath, "utf8");
+    baseContent = readFileSync4(absolutePath, "utf8");
   } catch {
     baseContent = "";
   }
@@ -89717,7 +89744,7 @@ function buildEditIntents(toolName, toolInput, cwd) {
       if (match?.[2]) {
         try {
           mutations = parseApplyPatch(
-            readFileSync3(path11.resolve(cwd, match[2]), "utf8"),
+            readFileSync4(path11.resolve(cwd, match[2]), "utf8"),
             "shell_patch"
           );
         } catch {
@@ -89801,7 +89828,7 @@ function dryMergeWorktreeIntent(intent, identity, holder, holderRoot) {
   if (intent.proposedContent === null || !identity.head || !holder.head_sha) return "unknown";
   let holderContent;
   try {
-    holderContent = readFileSync4(path12.join(holderRoot, intent.path), "utf8");
+    holderContent = readFileSync5(path12.join(holderRoot, intent.path), "utf8");
   } catch {
     return "unknown";
   }
@@ -90420,7 +90447,7 @@ async function evaluateTriggerMemories(payload, opts = {}) {
 }
 
 // packages/plugin-core/dist/deploy-broker.js
-import { existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync5, unlinkSync, writeFileSync as writeFileSync3 } from "node:fs";
+import { existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync6, unlinkSync, writeFileSync as writeFileSync3 } from "node:fs";
 import os11 from "node:os";
 import path15 from "node:path";
 function deployWaiterDir() {
@@ -90478,7 +90505,7 @@ function inferEnvFromBranch(branch) {
 }
 function getRawBranchName(cwd) {
   try {
-    return execSync3("git rev-parse --abbrev-ref HEAD", {
+    return execSync2("git rev-parse --abbrev-ref HEAD", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
@@ -90500,7 +90527,7 @@ function detectEnv(cwd) {
   if (cached2 && Date.now() - cached2.at < ENV_CACHE_TTL_MS) return cached2.env;
   let env = null;
   try {
-    const branch = execSync3("git rev-parse --abbrev-ref HEAD", {
+    const branch = execSync2("git rev-parse --abbrev-ref HEAD", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
@@ -90601,7 +90628,7 @@ function deployCommandOf(payload) {
 }
 function gitHeadSha(cwd) {
   try {
-    const sha2 = execSync3("git rev-parse HEAD", {
+    const sha2 = execSync2("git rev-parse HEAD", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
@@ -90767,7 +90794,7 @@ function summarizeFileDiff(relPath, cwd) {
   if (!cwd) return null;
   const read = (args) => {
     try {
-      return execSync3(`git ${args.join(" ")}`, {
+      return execSync2(`git ${args.join(" ")}`, {
         windowsHide: true,
         cwd,
         stdio: ["ignore", "pipe", "ignore"],
@@ -90927,7 +90954,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION2 = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version5 = "0.2.62";
+  const version5 = "0.2.64";
   return typeof version5 === "string" && VERSION2.test(version5) ? version5 : null;
 }
 async function reportPluginRuntime(report) {
@@ -91339,7 +91366,9 @@ function normalizeGitRemote3(raw) {
   }
   return s2 || null;
 }
+var clientWorkspaceRoot;
 function runtimeCwd() {
+  if (clientWorkspaceRoot) return clientWorkspaceRoot;
   for (const key2 of [
     "CLAUDE_PROJECT_DIR",
     "CURSOR_WORKSPACE_ROOT",
@@ -91359,7 +91388,7 @@ function runtimeCwd() {
     return curr;
   }
   try {
-    const raw = readFileSync6(path20.join(os13.homedir(), ".config", "memlin", "state.json"), "utf8");
+    const raw = readFileSync7(path20.join(os13.homedir(), ".config", "memlin", "state.json"), "utf8");
     const s2 = JSON.parse(raw);
     const candidate = s2?.last_resolve?.cwd;
     if (candidate && typeof candidate === "string" && path20.isAbsolute(candidate) && existsSync5(candidate)) {
@@ -91371,7 +91400,7 @@ function runtimeCwd() {
 }
 function readGitRemote2(cwd) {
   try {
-    const raw = execSync4("git remote get-url origin", {
+    const raw = execSync3("git remote get-url origin", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
@@ -91477,7 +91506,7 @@ function readNearestPackageVersion() {
     let dir = dirname2(fileURLToPath2(import.meta.url));
     for (let i2 = 0; i2 < 6; i2++) {
       try {
-        const pkg = JSON.parse(readFileSync6(join2(dir, "package.json"), "utf8"));
+        const pkg = JSON.parse(readFileSync7(join2(dir, "package.json"), "utf8"));
         if (pkg && typeof pkg.version === "string" && pkg.version) return pkg.version;
       } catch {
       }
@@ -91492,7 +91521,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.62"?.trim();
+  const env = "0.2.64"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }
@@ -92003,13 +92032,65 @@ var cfg = null;
 var cfgResolvedAt = 0;
 var cfgResolveInFlight = null;
 var CFG_TTL_MS = 3e4;
+var WorkspaceRootsError = class extends Error {
+};
+async function refreshClientWorkspace() {
+  if (!server.getClientCapabilities()?.roots) return;
+  let roots;
+  try {
+    ({ roots } = await server.listRoots(void 0, { timeout: 1500 }));
+  } catch {
+    const explicit = process.env.CURSOR_WORKSPACE_ROOT?.trim();
+    if (explicit && path20.isAbsolute(explicit) && !explicit.includes("${")) {
+      const next2 = path20.resolve(explicit);
+      if (next2 !== clientWorkspaceRoot) cfg = null;
+      clientWorkspaceRoot = next2;
+      return;
+    }
+    clientWorkspaceRoot = void 0;
+    cfg = null;
+    throw new WorkspaceRootsError(
+      "The editor did not provide its open workspace. Retry when the project folder is ready."
+    );
+  }
+  const paths = [
+    ...new Set(
+      roots.flatMap((root) => {
+        try {
+          const url2 = new URL(root.uri);
+          if (url2.protocol !== "file:") return [];
+          return [path20.resolve(fileURLToPath2(url2))];
+        } catch {
+          return [];
+        }
+      })
+    )
+  ];
+  const matching = paths.filter((root) => {
+    const relative = path20.relative(root, process.cwd());
+    return relative === "" || !relative.startsWith(".." + path20.sep) && relative !== ".." && !path20.isAbsolute(relative);
+  });
+  const next = paths.length === 1 ? paths[0] : matching.length === 1 ? matching[0] : void 0;
+  if (!next) {
+    clientWorkspaceRoot = void 0;
+    cfg = null;
+    throw new WorkspaceRootsError(
+      "Memlin cannot identify one open workspace. Open a single project folder and retry."
+    );
+  }
+  if (next !== clientWorkspaceRoot) {
+    clientWorkspaceRoot = next;
+    cfg = null;
+  }
+}
 async function refreshCfg() {
+  await refreshClientWorkspace();
   if (!cfg) {
     if (!cfgResolveInFlight) {
       cfgResolveInFlight = (async () => {
         const nextCfg = await resolveConfig();
         const finalConfig = await readConfig().catch(() => null);
-        if (authConfigRevision(finalConfig) !== nextCfg.authConfigRevision) {
+        if (authConfigRevision(finalConfig) !== nextCfg.authConfigRevision || nextCfg.cwd !== runtimeCwd()) {
           throw new Error("Memlin account changed while request configuration was resolving.");
         }
         cfg = nextCfg;
@@ -92030,7 +92111,7 @@ async function refreshCfg() {
     const nextCfg = await resolveConfig();
     const finalConfig = await readConfig().catch(() => null);
     const finalRevision = authConfigRevision(finalConfig);
-    if (finalRevision !== nextCfg.authConfigRevision) {
+    if (finalRevision !== nextCfg.authConfigRevision || nextCfg.cwd !== runtimeCwd()) {
       throw new Error("Memlin account changed while request configuration was resolving.");
     }
     const latestCfg = cfg;
@@ -92042,6 +92123,7 @@ async function refreshCfg() {
     cfgResolvedAt = Date.now();
     return nextCfg;
   } catch (error40) {
+    if (cachedCfg.cwd !== runtimeCwd()) throw error40;
     const currentConfig = await readConfig().catch(() => null);
     const currentRevision = authConfigRevision(currentConfig);
     if (identityChanged || currentRevision !== cachedCfg.authConfigRevision) {
@@ -92152,6 +92234,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
     try {
       statusCfg = await refreshCfg();
     } catch (error40) {
+      if (error40 instanceof WorkspaceRootsError) return toolErrorResponse(error40);
       configError = error40;
     }
     try {

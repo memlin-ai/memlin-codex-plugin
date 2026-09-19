@@ -24482,7 +24482,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.62";
+  cachedAgentVersion = "0.2.64";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -26113,8 +26113,7 @@ focused on the reader side.
 `;
 
 // packages/plugin-core/src/project-resolver.ts
-import { execSync } from "node:child_process";
-import { existsSync as existsSync2, readdirSync } from "node:fs";
+import { existsSync as existsSync2, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
 import path10 from "node:path";
 init_workspace_binding();
 var WORKSPACE_ENV_VARS = [

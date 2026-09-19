@@ -24639,7 +24639,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.62";
+  cachedAgentVersion = "0.2.64";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -25959,8 +25959,7 @@ function applyWorkspaceOverlay(config2, overlay) {
 }
 
 // packages/plugin-core/src/project-resolver.ts
-import { execSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
 import path8 from "node:path";
 init_workspace_binding();
 var WORKSPACE_ENV_VARS = [
@@ -26030,14 +26029,41 @@ async function resolveProject(api, cwd, configProjectId) {
   };
 }
 function readGitRemote(cwd) {
+  const read = (file2) => {
+    const stat = lstatSync(file2);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 64 * 1024)
+      throw new Error("Unsupported Git metadata");
+    return readFileSync2(file2, "utf8");
+  };
   try {
-    const url2 = execSync("git remote get-url origin", {
-      windowsHide: true,
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8"
-    }).trim();
-    return normalizeGitRemote(url2);
+    let root = path8.resolve(cwd);
+    for (; ; ) {
+      const marker = path8.join(root, ".git");
+      if (existsSync(marker)) {
+        const info = lstatSync(marker);
+        if (info.isSymbolicLink()) return null;
+        let directory = marker;
+        if (info.isFile()) {
+          const match = /^gitdir:\s*(.+)$/m.exec(read(marker));
+          if (!match) return null;
+          directory = path8.resolve(root, match[1].trim());
+        }
+        const common2 = path8.join(directory, "commondir");
+        if (existsSync(common2)) directory = path8.resolve(directory, read(common2).trim());
+        let origin = false;
+        for (const line of read(path8.join(directory, "config")).split(/\r?\n/)) {
+          if (/^\s*\[/.test(line)) origin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/.test(line);
+          else if (origin) {
+            const match = /^\s*url\s*=\s*(.*?)\s*$/.exec(line);
+            if (match) return normalizeGitRemote(match[1].replace(/^"(.*)"$/, "$1"));
+          }
+        }
+        return null;
+      }
+      const parent = path8.dirname(root);
+      if (parent === root) return null;
+      root = parent;
+    }
   } catch {
     return null;
   }
@@ -26100,8 +26126,88 @@ async function resolveWorkspaceAccount(cwd, deps = { getApi, resolveProject }) {
 // packages/plugin-core/src/cli/mcp-proxy.ts
 init_companion_client();
 
+// packages/plugin-core/src/plugin-runtime.ts
+init_companion_client();
+import { createHash, randomUUID as randomUUID4 } from "node:crypto";
+var PLUGIN_RUNTIME_INTERVAL_MS = 1e4;
+var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
+var VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
+var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
+function ownVersion() {
+  const version2 = "0.2.64";
+  return typeof version2 === "string" && VERSION.test(version2) ? version2 : null;
+}
+async function reportPluginRuntime(report) {
+  try {
+    return (await companionRequest("runtime.report", report, {
+      timeoutMs: PLUGIN_RUNTIME_TIMEOUT_MS
+    }))?.accepted === true;
+  } catch {
+    return false;
+  }
+}
+function startPluginRuntimeHeartbeat(host) {
+  const version2 = ownVersion();
+  if (!version2 || !HOSTS3.has(host)) return () => {
+  };
+  const report = {
+    host,
+    plugin_version: version2,
+    instance_id: randomUUID4(),
+    source: "mcp",
+    event: "activity",
+    pid: process.pid,
+    started_at: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  let stopped = false;
+  let inFlight = null;
+  const tick = async () => {
+    if (stopped || inFlight) return;
+    inFlight = reportPluginRuntime(report);
+    try {
+      await inFlight;
+    } finally {
+      inFlight = null;
+    }
+  };
+  void tick();
+  const timer = setInterval(() => {
+    void tick();
+  }, PLUGIN_RUNTIME_INTERVAL_MS);
+  timer.unref();
+  return () => {
+    if (stopped) return;
+    stopped = true;
+    clearInterval(timer);
+    void Promise.resolve(inFlight).then(() => reportPluginRuntime({ ...report, event: "end" }));
+  };
+}
+
+// packages/plugin-core/src/mcp-runtime-observer.ts
+function createMcpRuntimeObserver(start) {
+  let accepted = false;
+  let closed = false;
+  let stopHeartbeat = null;
+  return {
+    observe(request, response) {
+      if (closed || stopHeartbeat) return;
+      if (request.method === "initialize") {
+        const reply = response;
+        accepted = request.id != null && reply?.id === request.id && !reply.error && typeof reply.result?.protocolVersion === "string";
+      } else if (request.method === "notifications/initialized" && accepted) {
+        stopHeartbeat = start();
+      }
+    },
+    stop() {
+      if (closed) return;
+      closed = true;
+      stopHeartbeat?.();
+    }
+  };
+}
+
 // packages/plugin-core/src/mcp-fallback.ts
-import { execSync as execSync2 } from "node:child_process";
+import { execSync } from "node:child_process";
 init_companion_client();
 
 // packages/plugin-core/src/bundle-cache.ts
@@ -27034,7 +27140,7 @@ function strArray(v) {
 }
 function readGitRemoteQuiet(cwd) {
   try {
-    const url2 = execSync2("git remote get-url origin", {
+    const url2 = execSync("git remote get-url origin", {
       windowsHide: true,
       cwd,
       stdio: ["ignore", "pipe", "ignore"],
@@ -27120,6 +27226,9 @@ function buildDegradedToolResult(id, payload) {
 
 // packages/plugin-core/src/cli/mcp-proxy.ts
 var MCP_URL = process.env.MEMLIN_MCP_URL || "https://memlin.ai/mcp";
+var runtimeObserver = createMcpRuntimeObserver(
+  () => startPluginRuntimeHeartbeat("codex")
+);
 var ACCOUNT_TTL_MS = 3e4;
 var accountCache = null;
 async function workspaceAccountId() {
@@ -27229,7 +27338,10 @@ async function forward(line) {
     return;
   }
   const text = await res.text().catch(() => "");
-  if (!isRequest || res.status === 204) return;
+  if (!isRequest || res.status === 204) {
+    if (res.ok) runtimeObserver.observe(msg, null);
+    return;
+  }
   if (!text) {
     if (res.status >= 500) {
       await emitBackendFailure(msg, JSON.parse(line), {
@@ -27245,6 +27357,7 @@ async function forward(line) {
   }
   const verdict = classifyUpstreamMcpResponse(text, res.status);
   if (verdict.kind === "relay") {
+    if (res.ok) runtimeObserver.observe(msg, JSON.parse(verdict.payload));
     emit(verdict.payload);
     return;
   }
@@ -27263,7 +27376,10 @@ rl.on("line", (raw) => {
   });
 });
 rl.on("close", () => {
-  void chain.finally(() => scheduleProcessExit(0));
+  void chain.finally(() => {
+    runtimeObserver.stop();
+    scheduleProcessExit(0);
+  });
 });
 process.on("uncaughtException", (err) => {
   process.stderr.write(`memlin mcp-proxy: uncaught ${err instanceof Error ? err.stack ?? err.message : String(err)}

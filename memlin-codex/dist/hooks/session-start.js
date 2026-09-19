@@ -24523,7 +24523,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.62";
+  cachedAgentVersion = "0.2.64";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -25886,8 +25886,7 @@ function log(msg) {
 }
 
 // packages/plugin-core/dist/project-resolver.js
-import { execSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
 import path9 from "node:path";
 init_workspace_binding();
 var ALLOW_ACCOUNT_MISMATCH_ENV = "MEMLIN_ALLOW_ACCOUNT_MISMATCH";
@@ -25992,14 +25991,41 @@ async function resolveProject(api, cwd, configProjectId) {
   };
 }
 function readGitRemote(cwd) {
+  const read = (file2) => {
+    const stat = lstatSync(file2);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 64 * 1024)
+      throw new Error("Unsupported Git metadata");
+    return readFileSync2(file2, "utf8");
+  };
   try {
-    const url2 = execSync("git remote get-url origin", {
-      windowsHide: true,
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8"
-    }).trim();
-    return normalizeGitRemote(url2);
+    let root = path9.resolve(cwd);
+    for (; ; ) {
+      const marker = path9.join(root, ".git");
+      if (existsSync(marker)) {
+        const info = lstatSync(marker);
+        if (info.isSymbolicLink()) return null;
+        let directory = marker;
+        if (info.isFile()) {
+          const match = /^gitdir:\s*(.+)$/m.exec(read(marker));
+          if (!match) return null;
+          directory = path9.resolve(root, match[1].trim());
+        }
+        const common2 = path9.join(directory, "commondir");
+        if (existsSync(common2)) directory = path9.resolve(directory, read(common2).trim());
+        let origin = false;
+        for (const line of read(path9.join(directory, "config")).split(/\r?\n/)) {
+          if (/^\s*\[/.test(line)) origin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/.test(line);
+          else if (origin) {
+            const match = /^\s*url\s*=\s*(.*?)\s*$/.exec(line);
+            if (match) return normalizeGitRemote(match[1].replace(/^"(.*)"$/, "$1"));
+          }
+        }
+        return null;
+      }
+      const parent = path9.dirname(root);
+      if (parent === root) return null;
+      root = parent;
+    }
   } catch {
     return null;
   }
@@ -26136,13 +26162,59 @@ async function recordCodexActivity(cwd, reason, opts = {}) {
   await recordInstallHeartbeat(cwd, reason, { ...opts, host: "codex" });
 }
 
+// packages/plugin-core/dist/plugin-runtime.js
+init_companion_client();
+import { createHash as createHash2, randomUUID as randomUUID4 } from "node:crypto";
+var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
+var VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
+var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
+function ownVersion() {
+  const version2 = "0.2.64";
+  return typeof version2 === "string" && VERSION.test(version2) ? version2 : null;
+}
+async function reportPluginRuntime(report) {
+  try {
+    return (await companionRequest("runtime.report", report, {
+      timeoutMs: PLUGIN_RUNTIME_TIMEOUT_MS
+    }))?.accepted === true;
+  } catch {
+    return false;
+  }
+}
+function reportPluginHookActivity(host, input, cwd) {
+  const version2 = ownVersion();
+  if (!version2 || !HOSTS3.has(host) || !cwd || !input || typeof input !== "object" || Array.isArray(input))
+    return;
+  const payload = input;
+  const session = payload.session_id ?? payload.conversation_id ?? payload.conversationId;
+  if (typeof session !== "string" || session.length === 0 || session.length > 256) return;
+  const instance = createHash2("sha256").update(JSON.stringify([host, cwd, session, version2])).digest("hex");
+  void reportPluginRuntime({
+    host,
+    plugin_version: version2,
+    instance_id: instance,
+    source: "hook",
+    event: payload.hook_event_name === "sessionEnd" ? "end" : "activity"
+  });
+}
+
 // apps/codex-plugin/src/hook-io.ts
 function readHookInput() {
   return new Promise((resolve) => {
     let data = "";
+    let settled = false;
     const done = () => {
+      if (settled) return;
+      settled = true;
       try {
-        resolve(data.trim() ? JSON.parse(data) : null);
+        const input = data.trim() ? JSON.parse(data) : null;
+        const cwd = input?.cwd;
+        reportPluginHookActivity(
+          "codex",
+          input,
+          typeof cwd === "string" && cwd.trim() ? cwd : process.cwd()
+        );
+        resolve(input);
       } catch {
         resolve(null);
       }

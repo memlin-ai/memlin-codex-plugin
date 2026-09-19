@@ -24446,7 +24446,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.62";
+  cachedAgentVersion = "0.2.64";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -25808,8 +25808,7 @@ function runCliMain(main2, onError) {
 }
 
 // packages/plugin-core/src/project-resolver.ts
-import { execSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
 import path8 from "node:path";
 init_workspace_binding();
 var WORKSPACE_ENV_VARS = [
@@ -25835,7 +25834,7 @@ init_workspace_binding();
 
 // packages/plugin-core/src/sibling-detect.ts
 import { readdirSync as readdirSync2, existsSync as existsSync2 } from "node:fs";
-import { execSync as execSync2 } from "node:child_process";
+import { execSync } from "node:child_process";
 import path9 from "node:path";
 var MAX_CHILD_DIRS = 32;
 var MAX_REMOTE_PROBES = 5;
@@ -25850,7 +25849,7 @@ function childGitRemotes(cwd, deps = {}) {
   const readRemote = deps.readRemote ?? ((repoPath) => {
     try {
       if (!existsSync2(path9.join(repoPath, ".git"))) return null;
-      const url2 = execSync2("git remote get-url origin", {
+      const url2 = execSync("git remote get-url origin", {
         windowsHide: true,
         cwd: repoPath,
         stdio: ["ignore", "pipe", "ignore"],

@@ -24148,8 +24148,7 @@ var HORIZON_MS = NEEDS_YOU_HORIZON_DAYS * 24 * 60 * 60 * 1e3;
 var STALLED_GOAL_AGE_MS = 30 * 24 * 60 * 60 * 1e3;
 
 // packages/plugin-core/src/project-resolver.ts
-import { execSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, lstatSync } from "node:fs";
 import path4 from "node:path";
 
 // packages/plugin-core/src/runtime-shared.ts
@@ -24356,14 +24355,41 @@ async function resolveProject(api, cwd, configProjectId) {
   };
 }
 function readGitRemote(cwd) {
+  const read2 = (file2) => {
+    const stat = lstatSync(file2);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 64 * 1024)
+      throw new Error("Unsupported Git metadata");
+    return readFileSync(file2, "utf8");
+  };
   try {
-    const url2 = execSync("git remote get-url origin", {
-      windowsHide: true,
-      cwd,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf8"
-    }).trim();
-    return normalizeGitRemote(url2);
+    let root = path4.resolve(cwd);
+    for (; ; ) {
+      const marker = path4.join(root, ".git");
+      if (existsSync(marker)) {
+        const info = lstatSync(marker);
+        if (info.isSymbolicLink()) return null;
+        let directory = marker;
+        if (info.isFile()) {
+          const match = /^gitdir:\s*(.+)$/m.exec(read2(marker));
+          if (!match) return null;
+          directory = path4.resolve(root, match[1].trim());
+        }
+        const common2 = path4.join(directory, "commondir");
+        if (existsSync(common2)) directory = path4.resolve(directory, read2(common2).trim());
+        let origin = false;
+        for (const line of read2(path4.join(directory, "config")).split(/\r?\n/)) {
+          if (/^\s*\[/.test(line)) origin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/.test(line);
+          else if (origin) {
+            const match = /^\s*url\s*=\s*(.*?)\s*$/.exec(line);
+            if (match) return normalizeGitRemote(match[1].replace(/^"(.*)"$/, "$1"));
+          }
+        }
+        return null;
+      }
+      const parent = path4.dirname(root);
+      if (parent === root) return null;
+      root = parent;
+    }
   } catch {
     return null;
   }
@@ -24911,7 +24937,7 @@ init_atomic_rename();
 
 // packages/plugin-core/src/memlin-api-client.ts
 init_auth_refusal();
-import { readFileSync } from "node:fs";
+import { readFileSync as readFileSync2 } from "node:fs";
 import crypto4 from "node:crypto";
 import os6 from "node:os";
 import { dirname, join } from "node:path";
@@ -24992,7 +25018,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.62";
+  cachedAgentVersion = "0.2.64";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -26450,7 +26476,7 @@ import path14 from "node:path";
 init_atomic_rename();
 
 // packages/plugin-core/src/edit-activity.ts
-import { execSync as execSync2 } from "node:child_process";
+import { execSync } from "node:child_process";
 import { realpathSync as realpathSync2 } from "node:fs";
 import path13 from "node:path";
 import os10 from "node:os";
@@ -26462,7 +26488,7 @@ import {
   existsSync as existsSync3,
   mkdirSync,
   openSync,
-  readFileSync as readFileSync2,
+  readFileSync as readFileSync3,
   realpathSync,
   renameSync,
   rmSync,
