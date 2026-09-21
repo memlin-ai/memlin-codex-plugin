@@ -3412,7 +3412,7 @@ var require_parse = __commonJS({
 var require_gray_matter = __commonJS({
   "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
-    var fs7 = __require("fs");
+    var fs9 = __require("fs");
     var sections = require_section_matter();
     var defaults = require_defaults();
     var stringify = require_stringify();
@@ -3496,7 +3496,7 @@ var require_gray_matter = __commonJS({
       return stringify(file2, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str2 = fs7.readFileSync(filepath, "utf8");
+      const str2 = fs9.readFileSync(filepath, "utf8");
       const file2 = matter3(str2, options2);
       file2.path = filepath;
       return file2;
@@ -4222,9 +4222,9 @@ var init_workspace_binding = __esm({
   }
 });
 
-// packages/plugin-core/src/cli/diff.ts
-import { promises as fs6 } from "node:fs";
-import { pathToFileURL } from "node:url";
+// packages/plugin-core/src/cli/upload.ts
+import path11 from "node:path";
+import { promises as fs8 } from "node:fs";
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4704,8 +4704,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path8, errorMaps, issueData } = params;
-  const fullPath = [...path8, ...issueData.path || []];
+  const { data, path: path12, errorMaps, issueData } = params;
+  const fullPath = [...path12, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -4821,11 +4821,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path8, key) {
+  constructor(parent, value, path12, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path8;
+    this._path = path12;
     this._key = key;
   }
   get path() {
@@ -8727,6 +8727,33 @@ for (const p of REDACTION_PATTERNS) {
 var SECRET_REDACTION_PATTERNS = REDACTION_PATTERNS.filter(
   (p) => !p.validate
 );
+var SECRET_REDACTION_MAX_PASSES = 64;
+function applyRedaction(input, builtIns, extraPatterns) {
+  if (!input) {
+    return { redacted: input, hits: [], changed: false };
+  }
+  const counts = /* @__PURE__ */ new Map();
+  const apply = (text, p) => {
+    p.regex.lastIndex = 0;
+    return text.replaceAll(p.regex, (match) => {
+      if (p.validate && !p.validate(match)) return match;
+      counts.set(p, (counts.get(p) ?? 0) + 1);
+      return `[REDACTED-${p.name}]`;
+    });
+  };
+  let out = input;
+  for (let pass = 0; pass < SECRET_REDACTION_MAX_PASSES; pass++) {
+    const before = out;
+    for (const p of builtIns) out = apply(out, p);
+    if (out === before) break;
+  }
+  for (const p of extraPatterns) out = apply(out, p);
+  const hits = [...builtIns, ...extraPatterns].filter((p) => counts.has(p)).map((p) => ({ name: p.name, count: counts.get(p) }));
+  return { redacted: out, hits, changed: hits.length > 0 };
+}
+function redactSecretShapes(input, extraPatterns = []) {
+  return applyRedaction(input, SECRET_REDACTION_PATTERNS, extraPatterns);
+}
 
 // packages/shared/dist/action-metadata.js
 var ActionNameSchema = external_exports.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9._-]*$/, {
@@ -8906,31 +8933,6 @@ function estCostUsd(inputTokens, usdPerMTok) {
 }
 var SONNET_BLENDED_USD_PER_MTOK = SONNET_INPUT_USD_PER_MTOK + OUTPUT_MULTIPLIER * SONNET_OUTPUT_USD_PER_MTOK;
 var SAVINGS_USD_PER_TOKEN = estCostUsd(1);
-
-// packages/shared/dist/memlin-contract.js
-var FENCE = /```memlin-contract\s*\n([\s\S]*?)\n```/g;
-function extractMemlinContract(body) {
-  const re = new RegExp(FENCE.source, "g");
-  const merged = {};
-  let found = false;
-  let m;
-  while (m = re.exec(body)) {
-    found = true;
-    let parsed;
-    try {
-      parsed = JSON.parse(m[1]);
-    } catch (e) {
-      throw new Error(
-        `contract block is not valid JSON: ${e instanceof Error ? e.message : e}`
-      );
-    }
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error("contract block must be a JSON object at the top level");
-    }
-    Object.assign(merged, parsed);
-  }
-  return found ? merged : null;
-}
 
 // packages/shared/dist/feature-discovery.js
 function featureDiscoverySystem({
@@ -9403,19 +9405,19 @@ var ContextManifestV1Schema = external_exports.object({
       location: `linked_contexts.${index}`
     }))
   ];
-  references.forEach(({ ref, path: path8, location }) => {
+  references.forEach(({ ref, path: path12, location }) => {
     const identity = contextReferenceIdentityKey(ref);
     const prior = seen.get(identity);
     if (prior && prior.revision !== ref.revision) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path8,
+        path: path12,
         message: `context ${identity} has conflicting revisions in ${prior.location} and ${location}`
       });
     } else if (prior && location.startsWith("linked_contexts.")) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path8,
+        path: path12,
         message: `duplicate linked context ${identity}`
       });
     }
@@ -9729,11 +9731,11 @@ var ContextBundleV1Schema = external_exports.object({
         path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
       }))
     ];
-    for (const { ref, path: path8 } of references) {
+    for (const { ref, path: path12 } of references) {
       if (!contextKeys.has(contextReferenceKey(ref))) {
         ctx.addIssue({
           code: external_exports.ZodIssueCode.custom,
-          path: path8,
+          path: path12,
           message: "provider coverage is outside the exact manifest contexts"
         });
       }
@@ -12613,10 +12615,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path8) {
-  if (!path8)
+function getElementAtPath(obj, path12) {
+  if (!path12)
     return obj;
-  return path8.reduce((acc, key) => acc?.[key], obj);
+  return path12.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -12936,11 +12938,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path8, issues) {
+function prefixIssues(path12, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path8);
+    iss.path.unshift(path12);
     return iss;
   });
 }
@@ -13077,7 +13079,7 @@ function treeifyError(error40, _mapper) {
     return issue2.message;
   };
   const result = { errors: [] };
-  const processError = (error41, path8 = []) => {
+  const processError = (error41, path12 = []) => {
     var _a, _b;
     for (const issue2 of error41.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
@@ -13087,7 +13089,7 @@ function treeifyError(error40, _mapper) {
       } else if (issue2.code === "invalid_element") {
         processError({ issues: issue2.issues }, issue2.path);
       } else {
-        const fullpath = [...path8, ...issue2.path];
+        const fullpath = [...path12, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -13117,9 +13119,9 @@ function treeifyError(error40, _mapper) {
   processError(error40);
   return result;
 }
-function toDotPath(path8) {
+function toDotPath(path12) {
   const segs = [];
-  for (const seg of path8) {
+  for (const seg of path12) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -23777,10 +23779,10 @@ function validateFlowDefinitionSemantics(flow) {
       ],
       ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, path: `stages.${stageIndex}.bypass_target` }]
     ];
-    targets.forEach(({ target, path: path8 }) => {
+    targets.forEach(({ target, path: path12 }) => {
       if (!isReservedTarget(target) && !stageById.has(target)) {
         issues.push({
-          path: path8,
+          path: path12,
           code: "missing_transition_target",
           message: `transition target ${JSON.stringify(target)} does not exist`
         });
@@ -23810,7 +23812,7 @@ function validateFlowDefinitionSemantics(flow) {
   const visiting = /* @__PURE__ */ new Set();
   const visited = /* @__PURE__ */ new Set();
   let hasReachableEnd = false;
-  const visit = (stageId, path8, pathBounds) => {
+  const visit = (stageId, path12, pathBounds) => {
     reachable.add(stageId);
     if (visited.has(stageId)) return;
     visiting.add(stageId);
@@ -23826,7 +23828,7 @@ function validateFlowDefinitionSemantics(flow) {
         ...stage.default_transition === null ? [] : [{ target: stage.default_transition, bounded: false }],
         ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, bounded: false }]
       ];
-      const currentPath = [...path8, stageId];
+      const currentPath = [...path12, stageId];
       for (const edge of edges) {
         const { target } = edge;
         if (target === "$end") {
@@ -23934,18 +23936,18 @@ var FlowPackManifestBaseSchema = external_exports2.object({
   evals: external_exports2.array(ManifestEvalSchema).max(256),
   model_roles: external_exports2.array(ManifestModelRoleSchema).max(64)
 }).strict();
-function validateRelativePackPath(path8) {
-  if (path8.startsWith("/") || path8.startsWith("\\")) return "path must be relative";
-  if (/^[A-Za-z]:/.test(path8) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path8)) {
+function validateRelativePackPath(path12) {
+  if (path12.startsWith("/") || path12.startsWith("\\")) return "path must be relative";
+  if (/^[A-Za-z]:/.test(path12) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path12)) {
     return "drive-qualified paths and URI schemes are not allowed";
   }
-  if (/[\u0000-\u001f\u007f]/.test(path8)) return "control characters are not allowed";
-  if (/%(?:2e|2f|5c)/i.test(path8)) return "encoded path traversal is not allowed";
-  if (path8.includes("\\")) return "path must use forward slashes";
-  if (path8.split("/").some((segment) => segment === ".." || segment === ".")) {
+  if (/[\u0000-\u001f\u007f]/.test(path12)) return "control characters are not allowed";
+  if (/%(?:2e|2f|5c)/i.test(path12)) return "encoded path traversal is not allowed";
+  if (path12.includes("\\")) return "path must use forward slashes";
+  if (path12.split("/").some((segment) => segment === ".." || segment === ".")) {
     return "path traversal and dot segments are not allowed";
   }
-  if (path8.split("/").some((segment) => segment.length === 0)) {
+  if (path12.split("/").some((segment) => segment.length === 0)) {
     return "path cannot contain empty segments";
   }
   return null;
@@ -23992,22 +23994,22 @@ function validateFlowPackManifestSemantics(manifest) {
       issues
     );
     role.independence.compare_against_roles.forEach((comparedRole, comparedIndex) => {
-      const path8 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
+      const path12 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
       if (comparedRole === role.id) {
         issues.push({
-          path: path8,
+          path: path12,
           code: "self_referential_model_independence",
           message: "a model role cannot require independence from itself"
         });
       } else if (!modelRolesById.has(comparedRole)) {
         issues.push({
-          path: path8,
+          path: path12,
           code: "missing_independence_model_role",
           message: `independence policy references undeclared model role ${JSON.stringify(comparedRole)}`
         });
       } else if (modelRolesById.get(comparedRole)?.independence !== null) {
         issues.push({
-          path: path8,
+          path: path12,
           code: "independence_reference_not_author",
           message: `independence policy must compare against an author role; ${JSON.stringify(comparedRole)} declares its own independence policy`
         });
@@ -24137,6 +24139,20 @@ var FileProvenanceSchema = external_exports.object({
   agent_installation_id: external_exports.string().max(200).optional(),
   session_id: external_exports.string().max(200).optional()
 }).strict();
+var parseFileUploadRequest = (raw) => {
+  const extra = external_exports.object({
+    purpose: external_exports.enum(["source", "artifact"]).default("artifact"),
+    role: external_exports.enum(RESOURCE_ATTACHMENT_ROLES).default("reference"),
+    provenance: FileProvenanceSchema.default({})
+  }).parse(raw);
+  const {
+    purpose: _purpose,
+    role: _role,
+    provenance: _provenance,
+    ...base
+  } = external_exports.record(external_exports.unknown()).parse(raw);
+  return { ...ResourceUploadRequestV2Schema.parse(base), ...extra };
+};
 var FileUploadPreparedResponseV1Schema = external_exports.object({
   receipt: ResourceUploadReceiptV2Schema,
   upload_url: external_exports.string().url().nullable(),
@@ -24245,6 +24261,143 @@ var KIND_MAX_BYTES = {
   audio: 25 * 1024 * 1024,
   video: 25 * 1024 * 1024
 };
+var FILE_FORMATS = [
+  {
+    kind: "document",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    extension: "docx",
+    acceptedMimeTypes: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    acceptedExtensions: ["docx"]
+  },
+  {
+    kind: "document",
+    mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    extension: "pptx",
+    acceptedMimeTypes: [
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    ],
+    acceptedExtensions: ["pptx"]
+  },
+  {
+    kind: "pdf",
+    mimeType: "application/pdf",
+    extension: "pdf",
+    acceptedMimeTypes: ["application/pdf"],
+    acceptedExtensions: ["pdf"]
+  },
+  {
+    kind: "image",
+    mimeType: "image/png",
+    extension: "png",
+    acceptedMimeTypes: ["image/png"],
+    acceptedExtensions: ["png"]
+  },
+  {
+    kind: "image",
+    mimeType: "image/jpeg",
+    extension: "jpg",
+    acceptedMimeTypes: ["image/jpeg", "image/jpg"],
+    acceptedExtensions: ["jpg", "jpeg"]
+  },
+  {
+    kind: "image",
+    mimeType: "image/webp",
+    extension: "webp",
+    acceptedMimeTypes: ["image/webp"],
+    acceptedExtensions: ["webp"]
+  },
+  {
+    kind: "image",
+    mimeType: "image/gif",
+    extension: "gif",
+    acceptedMimeTypes: ["image/gif"],
+    acceptedExtensions: ["gif"]
+  },
+  {
+    kind: "audio",
+    mimeType: "audio/mpeg",
+    extension: "mp3",
+    acceptedMimeTypes: ["audio/mpeg", "audio/mp3"],
+    acceptedExtensions: ["mp3"]
+  },
+  {
+    kind: "audio",
+    mimeType: "audio/wav",
+    extension: "wav",
+    acceptedMimeTypes: ["audio/wav", "audio/x-wav", "audio/wave"],
+    acceptedExtensions: ["wav"]
+  },
+  {
+    kind: "audio",
+    mimeType: "audio/ogg",
+    extension: "ogg",
+    acceptedMimeTypes: ["audio/ogg"],
+    acceptedExtensions: ["ogg", "oga"]
+  },
+  {
+    kind: "audio",
+    mimeType: "audio/mp4",
+    extension: "m4a",
+    acceptedMimeTypes: ["audio/mp4", "audio/x-m4a"],
+    acceptedExtensions: ["m4a"]
+  },
+  {
+    kind: "audio",
+    mimeType: "audio/webm",
+    extension: "weba",
+    acceptedMimeTypes: ["audio/webm"],
+    acceptedExtensions: ["weba"]
+  },
+  {
+    kind: "video",
+    mimeType: "video/mp4",
+    extension: "mp4",
+    acceptedMimeTypes: ["video/mp4"],
+    acceptedExtensions: ["mp4", "m4v"]
+  },
+  {
+    kind: "video",
+    mimeType: "video/webm",
+    extension: "webm",
+    acceptedMimeTypes: ["video/webm"],
+    acceptedExtensions: ["webm"]
+  },
+  {
+    kind: "video",
+    mimeType: "video/quicktime",
+    extension: "mov",
+    acceptedMimeTypes: ["video/quicktime"],
+    acceptedExtensions: ["mov"]
+  },
+  {
+    kind: "text",
+    mimeType: "text/plain",
+    extension: "txt",
+    acceptedMimeTypes: ["text/plain"],
+    acceptedExtensions: ["txt"]
+  },
+  {
+    kind: "text",
+    mimeType: "text/plain",
+    extension: "log",
+    acceptedMimeTypes: ["text/plain"],
+    acceptedExtensions: ["log"]
+  },
+  {
+    kind: "markdown",
+    mimeType: "text/markdown",
+    extension: "md",
+    acceptedMimeTypes: ["text/markdown"],
+    acceptedExtensions: ["md"]
+  },
+  {
+    kind: "dataset",
+    mimeType: "application/json",
+    extension: "json",
+    acceptedMimeTypes: ["application/json"],
+    acceptedExtensions: ["json"]
+  }
+];
 
 // packages/shared/dist/feature-binding.js
 var FeatureCaptureFieldsSchema = external_exports.object({
@@ -24252,6 +24405,10 @@ var FeatureCaptureFieldsSchema = external_exports.object({
   git_branch: external_exports.string().trim().min(1).max(300).nullish(),
   feature_id: external_exports.string().uuid().nullish()
 });
+function featureBranch(branch) {
+  const value = branch?.trim().replace(/^(refs\/heads\/|refs\/remotes\/[^/]+\/|origin\/)/i, "");
+  return value && !["main", "master", "develop", "trunk", "head"].includes(value.toLowerCase()) ? value : null;
+}
 
 // packages/shared/dist/feature-work.js
 var Receipt = external_exports.object({
@@ -24309,6 +24466,46 @@ function describeOpaqueBody(status, text) {
     return `HTTP ${status} (${via}HTML error page suppressed, ${trimmed.length} chars)`;
   }
   return `HTTP ${status}: ${singleLine(trimmed)}`;
+}
+function backendUnreachableLine(detail) {
+  return `memlin: backend unreachable (${detail}), no memory available`;
+}
+var ROUTING_PATTERN = /account routing (unavailable|lookup failed)/i;
+var CLOUDFLARE_STATUS = /\b(52[0-7])\b/;
+function statusOf(err) {
+  if (err instanceof MemlinApiError) return err.status;
+  const status = err?.status;
+  if (typeof status === "number" && status >= 100 && status <= 599) return status;
+  const message = err instanceof Error ? err.message : String(err);
+  const arrow = message.match(/→ (\d{3}):/);
+  if (arrow) return Number(arrow[1]);
+  return null;
+}
+function summarizeBackendFailure(err) {
+  const message = err instanceof Error ? err.message : String(err ?? "");
+  const status = statusOf(err);
+  if (ROUTING_PATTERN.test(message)) {
+    const embedded = message.match(CLOUDFLARE_STATUS)?.[1];
+    const code = embedded ?? (status !== null && status >= 500 ? String(status) : null);
+    const detail = code ? `routing ${code}` : "routing unavailable";
+    return { kind: "routing", status: code ? Number(code) : status, detail, line: backendUnreachableLine(detail) };
+  }
+  if (status !== null && status >= 500) {
+    const detail = `HTTP ${status}`;
+    return { kind: "http", status, detail, line: backendUnreachableLine(detail) };
+  }
+  if (/took longer than \d+ seconds/i.test(message)) {
+    return { kind: "network", status: null, detail: "timeout", line: backendUnreachableLine("timeout") };
+  }
+  if (/couldn'?t reach|fetch failed|ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|network/i.test(message)) {
+    return {
+      kind: "network",
+      status: null,
+      detail: "network unreachable",
+      line: backendUnreachableLine("network unreachable")
+    };
+  }
+  return null;
 }
 
 // packages/plugin-core/src/auth.ts
@@ -24551,6 +24748,42 @@ var AGENT_EXPECTED_CAPABILITIES = {
   // of its own.
   companion: ["cli", "sync", "realtime", "resolve"]
 };
+var PROVIDER_HOSTS = [
+  "github.com",
+  "gitlab.com",
+  "bitbucket.org",
+  "dev.azure.com",
+  "ssh.dev.azure.com",
+  "codeberg.org",
+  "sr.ht",
+  "git.sr.ht"
+];
+function normalizeGitRemote(raw) {
+  if (!raw) return null;
+  let s = raw.trim();
+  if (!s) return null;
+  if (!s.includes("://")) {
+    s = s.replace(/^(?:[^@/\s]+@)?([^:/\s]+):(?!\/)/, "https://$1/");
+  }
+  s = s.replace(/^(?:ssh|git|https?):\/\//, "");
+  s = s.replace(/^[^/@]+@/, "");
+  s = s.replace(/\.git$/, "");
+  s = s.replace(/\/$/, "");
+  const slash = s.indexOf("/");
+  if (slash > 0) {
+    const host = s.slice(0, slash).toLowerCase();
+    const rest = s.slice(slash);
+    s = host + rest;
+    for (const provider of PROVIDER_HOSTS) {
+      if (host === provider) break;
+      if (host.startsWith(provider + "-")) {
+        s = provider + rest;
+        break;
+      }
+    }
+  }
+  return s || null;
+}
 async function closeHttpSockets() {
   try {
     const dispatcher = globalThis[/* @__PURE__ */ Symbol.for("undici.globalDispatcher.1")];
@@ -26063,6 +26296,561 @@ function applyWorkspaceOverlay(config2, overlay) {
   };
 }
 
+// packages/plugin-core/src/project-resolver.ts
+import { existsSync, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
+import path8 from "node:path";
+init_workspace_binding();
+var ALLOW_ACCOUNT_MISMATCH_ENV = "MEMLIN_ALLOW_ACCOUNT_MISMATCH";
+function allowAccountMismatch(env = process.env) {
+  const v = env[ALLOW_ACCOUNT_MISMATCH_ENV];
+  return v === "1" || v === "true" || v === "yes";
+}
+function accountBindingHazard(r, opts = {}) {
+  if (!r.hasGitRemote || !r.project_id) return "none";
+  if (r.reason === "local-path") return opts.allowMismatch ? "warn" : "block";
+  if (r.reason === "config") return "warn";
+  return "none";
+}
+var WORKSPACE_ENV_VARS = [
+  // Claude Code exposes the original project dir to hooks/plugin commands.
+  "CLAUDE_PROJECT_DIR",
+  // Cursor/plugin shims and local tests can set this explicitly.
+  "CURSOR_WORKSPACE_ROOT",
+  "CURSOR_PROJECT_ROOT",
+  "MEMLIN_WORKSPACE_ROOT",
+  // npm/pnpm set INIT_CWD to the directory where the user invoked a script.
+  "INIT_CWD"
+];
+function runtimeCwd(fallback = process.cwd()) {
+  for (const name of WORKSPACE_ENV_VARS) {
+    const raw = process.env[name]?.trim();
+    if (raw && path8.isAbsolute(raw)) return path8.resolve(raw);
+  }
+  return path8.resolve(fallback);
+}
+async function resolveProject(api, cwd, configProjectId) {
+  const absCwd = path8.resolve(cwd);
+  const remotes = detectGitRemotes(cwd);
+  const hasGitRemote = remotes.length > 0;
+  let serverFailure;
+  try {
+    const result = await api.resolveProject({
+      // Primary remote (back-compat with the single-remote server path).
+      git_remote: remotes[0] ?? null,
+      // All detected remotes — for the workspace-root-of-repos case, this is
+      // every sibling repo so the server resolves to the owning project.
+      git_remotes: remotes,
+      cwd: absCwd
+    });
+    if (result.project_id) {
+      return {
+        project_id: result.project_id,
+        project_name: result.name,
+        account_id: result.account_id,
+        reason: result.reason === "none" ? "config" : result.reason,
+        hasGitRemote,
+        enforce_done_deployed: result.enforce_done_deployed
+      };
+    }
+  } catch (e) {
+    serverFailure = summarizeBackendFailure(e) ?? void 0;
+  }
+  if (configProjectId) {
+    const localBinding = await findWorkspaceBinding(absCwd).catch(() => null);
+    if (localBinding?.binding.project_id === configProjectId) {
+      return {
+        project_id: configProjectId,
+        project_name: null,
+        account_id: null,
+        reason: "config",
+        hasGitRemote,
+        server_failure: serverFailure
+      };
+    }
+  }
+  return {
+    project_id: null,
+    project_name: null,
+    account_id: null,
+    reason: "none",
+    hasGitRemote,
+    server_failure: serverFailure
+  };
+}
+function readGitRemote(cwd) {
+  const read = (file2) => {
+    const stat = lstatSync(file2);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 64 * 1024)
+      throw new Error("Unsupported Git metadata");
+    return readFileSync2(file2, "utf8");
+  };
+  try {
+    let root = path8.resolve(cwd);
+    for (; ; ) {
+      const marker = path8.join(root, ".git");
+      if (existsSync(marker)) {
+        const info = lstatSync(marker);
+        if (info.isSymbolicLink()) return null;
+        let directory = marker;
+        if (info.isFile()) {
+          const match = /^gitdir:\s*(.+)$/m.exec(read(marker));
+          if (!match) return null;
+          directory = path8.resolve(root, match[1].trim());
+        }
+        const common2 = path8.join(directory, "commondir");
+        if (existsSync(common2)) directory = path8.resolve(directory, read(common2).trim());
+        let origin = false;
+        for (const line of read(path8.join(directory, "config")).split(/\r?\n/)) {
+          if (/^\s*\[/.test(line)) origin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/.test(line);
+          else if (origin) {
+            const match = /^\s*url\s*=\s*(.*?)\s*$/.exec(line);
+            if (match) return normalizeGitRemote(match[1].replace(/^"(.*)"$/, "$1"));
+          }
+        }
+        return null;
+      }
+      const parent = path8.dirname(root);
+      if (parent === root) return null;
+      root = parent;
+    }
+  } catch {
+    return null;
+  }
+}
+var MAX_WORKSPACE_SCAN = 64;
+function detectGitRemotes(cwd) {
+  const enclosing = readGitRemote(cwd);
+  if (enclosing) return [enclosing];
+  const out = [];
+  try {
+    let scanned = 0;
+    for (const entry of readdirSync(cwd, { withFileTypes: true })) {
+      if (scanned >= MAX_WORKSPACE_SCAN) break;
+      if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") {
+        continue;
+      }
+      scanned++;
+      const child = path8.join(cwd, entry.name);
+      if (!existsSync(path8.join(child, ".git"))) continue;
+      const remote = readGitRemote(child);
+      if (remote && !out.includes(remote)) out.push(remote);
+    }
+  } catch {
+  }
+  return out;
+}
+function effectiveAccountId(input) {
+  return input.resolvedAccountId ?? input.configAccountId;
+}
+
+// packages/plugin-core/src/session-feature.ts
+import { execFileSync } from "node:child_process";
+
+// packages/plugin-core/src/state.ts
+init_atomic_rename();
+import { promises as fs6 } from "node:fs";
+import path9 from "node:path";
+import os7 from "node:os";
+import crypto4 from "node:crypto";
+var STATE_FILE = path9.join(os7.homedir(), ".config", "memlin", "state.json");
+var LOCK_DIR = `${STATE_FILE}.lock`;
+
+// packages/plugin-core/src/session-feature.ts
+var TTL = 14 * 864e5;
+function readFeatureBranch(cwd) {
+  try {
+    const raw = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 2e3
+    }).trim();
+    return raw.length <= 300 ? featureBranch(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+// packages/plugin-core/src/file-upload.ts
+import { constants as constants2, promises as fs7 } from "node:fs";
+import path10 from "node:path";
+import os8 from "node:os";
+import { createHash, randomUUID as randomUUID4 } from "node:crypto";
+function validateFileUploadId(value) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))
+    throw new FileUploadRefusal("Expected a UUID.");
+  return value;
+}
+var FileUploadRefusal = class extends Error {
+  exitCode = 2;
+};
+var FileUploadFailure = class extends Error {
+  constructor(message, uploadId) {
+    super(message);
+    this.uploadId = uploadId;
+  }
+  uploadId;
+};
+var inside = (root, file2) => {
+  const relative = path10.relative(root, file2);
+  return relative === "" || !relative.startsWith(`..${path10.sep}`) && relative !== ".." && !path10.isAbsolute(relative);
+};
+function denyPath(file2) {
+  const pieces = path10.resolve(file2).split(path10.sep).map((x) => x.toLowerCase());
+  const name = pieces.at(-1);
+  if (pieces.some((x) => [".git", ".ssh", ".aws", ".memlin"].includes(x)) || pieces.some((x, i) => x === ".config" && pieces[i + 1] === "memlin") || /^\.env/i.test(name) || /\.(pem|key|p12|pfx)$/i.test(name) || /^id_/i.test(name) || ["token.json", "auth.json", "credentials", ".netrc", ".npmrc"].includes(name))
+    throw new FileUploadRefusal(
+      "Refusing a credential, configuration, or repository-internal file."
+    );
+}
+async function prepareLocalFile(input) {
+  const lexical = path10.resolve(input.filePath);
+  denyPath(lexical);
+  let file2, workspace, temporary;
+  try {
+    [file2, workspace, temporary] = await Promise.all([
+      fs7.realpath(lexical),
+      fs7.realpath(input.workspaceRoot),
+      fs7.realpath(input.tmpRoot ?? os8.tmpdir())
+    ]);
+  } catch {
+    throw new FileUploadRefusal("The file or workspace could not be opened.");
+  }
+  denyPath(file2);
+  if (inside(path10.resolve(input.workspaceRoot), lexical) && !inside(workspace, file2))
+    throw new FileUploadRefusal("Refusing a symlink that leaves the workspace.");
+  if (!inside(workspace, file2) && !inside(temporary, file2))
+    throw new FileUploadRefusal("Files must be inside the workspace or temporary directory.");
+  const fileName = path10.basename(file2);
+  const extension = fileName.split(".").at(-1)?.toLowerCase() ?? "";
+  const format = FILE_FORMATS.find((x) => x.acceptedExtensions.includes(extension));
+  if (!format)
+    throw new FileUploadRefusal(
+      "Unsupported file format. Use text, Markdown, JSON, an image, PDF, Office document, or recording."
+    );
+  let handle;
+  try {
+    const expected = await fs7.stat(file2);
+    if (!expected.isFile()) throw new FileUploadRefusal("Only regular files can be uploaded.");
+    handle = await fs7.open(
+      file2,
+      constants2.O_RDONLY | (constants2.O_NOFOLLOW ?? 0) | (constants2.O_NONBLOCK ?? 0)
+    );
+    const before = await handle.stat();
+    if (!before.isFile() || before.dev !== expected.dev || before.ino !== expected.ino)
+      throw new FileUploadRefusal("The file changed while being opened; retry.");
+    if (before.size < 1 || before.size > KIND_MAX_BYTES[format.kind])
+      throw new FileUploadRefusal("The file is empty or exceeds the format size limit.");
+    const hash = createHash("sha256");
+    const chunks = [];
+    let total = 0;
+    for await (const chunk of handle.createReadStream({ autoClose: false })) {
+      const data = Buffer.from(chunk);
+      total += data.length;
+      if (total > KIND_MAX_BYTES[format.kind])
+        throw new FileUploadRefusal("The file exceeds the format size limit.");
+      hash.update(data);
+      chunks.push(data);
+    }
+    const after = await handle.stat();
+    if (before.size !== after.size || total !== before.size || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs || await fs7.realpath(lexical) !== file2)
+      throw new FileUploadRefusal("The file changed while being read; retry.");
+    const bytes = Buffer.concat(chunks);
+    verifyLocalContent(bytes, format.mimeType);
+    return {
+      fileName,
+      mimeType: format.mimeType,
+      kind: format.kind,
+      byteSize: total,
+      sha256: hash.digest("hex"),
+      bytes
+    };
+  } catch (error40) {
+    if (error40 instanceof FileUploadRefusal) throw error40;
+    throw new FileUploadRefusal("The file could not be safely read.");
+  } finally {
+    await handle?.close();
+  }
+}
+function verifyLocalContent(bytes, mime) {
+  const ascii = (offset, length) => Buffer.from(bytes.subarray(offset, offset + length)).toString("ascii");
+  const prefix = (values) => values.every((value, index) => bytes[index] === value);
+  if (["text/plain", "text/markdown", "application/json"].includes(mime)) {
+    let text;
+    try {
+      text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+      throw new FileUploadRefusal("Text files must contain valid UTF-8.");
+    }
+    if (text.includes("\0")) throw new FileUploadRefusal("Text files cannot contain NUL bytes.");
+    if (redactSecretShapes(text).changed)
+      throw new FileUploadRefusal("Refusing text that contains a secret or access token.");
+    if (mime === "application/json")
+      try {
+        JSON.parse(text);
+      } catch {
+        throw new FileUploadRefusal("The JSON file is invalid.");
+      }
+    return;
+  }
+  const matches = mime === "image/png" ? prefix([137, 80, 78, 71, 13, 10, 26, 10]) : mime === "image/jpeg" ? prefix([255, 216, 255]) : mime === "image/gif" ? ["GIF87a", "GIF89a"].includes(ascii(0, 6)) : mime === "image/webp" ? ascii(0, 4) === "RIFF" && ascii(8, 4) === "WEBP" : mime === "application/pdf" ? ascii(0, 5) === "%PDF-" : mime.includes("openxmlformats") ? prefix([80, 75, 3, 4]) : mime === "audio/mpeg" ? ascii(0, 3) === "ID3" || bytes[0] === 255 && ((bytes[1] ?? 0) & 224) === 224 : mime === "audio/wav" ? ascii(0, 4) === "RIFF" && ascii(8, 4) === "WAVE" : mime === "audio/ogg" ? ascii(0, 4) === "OggS" : ["audio/mp4", "video/mp4", "video/quicktime"].includes(mime) ? ascii(4, 4) === "ftyp" : ["audio/webm", "video/webm"].includes(mime) ? prefix([26, 69, 223, 163]) : false;
+  if (!matches) throw new FileUploadRefusal("The file content does not match its extension.");
+}
+async function uploadLocalFile(input) {
+  const uploadId = validateFileUploadId(input.uploadId ?? randomUUID4());
+  const role = input.role ?? "reference";
+  if (input.host && !input.api.attachFile)
+    throw new FileUploadRefusal("This client cannot attach files. Update the Memlin CLI.");
+  const attachmentInput = input.host ? FileAttachmentInputSchema.parse({
+    host: input.host,
+    role,
+    caption: input.caption,
+    provenance: { client: "cli" }
+  }) : null;
+  if (input.file.kind === "markdown" && role === "report" && input.file.byteSize > 1048576)
+    throw new FileUploadRefusal(
+      "Editable reports are limited to 1 MiB; use --role reference for larger Markdown."
+    );
+  const scope = input.scope ?? (input.projectId ? "project" : "private");
+  if (scope === "project" && !input.projectId)
+    throw new FileUploadRefusal("Choose a linked project or use --scope private.");
+  const manifest = parseFileUploadRequest({
+    version: 2,
+    upload_id: uploadId,
+    home: {
+      account_id: input.accountId,
+      project_id: scope === "project" ? input.projectId : null,
+      scope
+    },
+    file_name: input.file.fileName,
+    mime_type: input.file.mimeType,
+    byte_size: input.file.byteSize,
+    sha256: input.file.sha256,
+    title: input.title ?? "",
+    rights_confirmed: true,
+    role,
+    purpose: "artifact",
+    provenance: { client: "cli" }
+  });
+  try {
+    const prepared = FileUploadPrepareResponseV1Schema.parse(
+      await input.api.prepareFileUpload(manifest)
+    );
+    let saved;
+    if ("deduplicated" in prepared) {
+      saved = FileUploadFinalizeResponseV1Schema.parse({
+        resource_id: prepared.resource_id,
+        version_id: prepared.version_id,
+        sha256: prepared.sha256,
+        idempotent_replay: true,
+        ...prepared.document_id ? { document_id: prepared.document_id } : {}
+      });
+    } else {
+      if (prepared.receipt.upload_id !== uploadId || prepared.receipt.mime_type !== input.file.mimeType)
+        throw Error("Upload receipt does not match this file.");
+      if (prepared.receipt.upload_required) {
+        if (!prepared.upload_url) throw Error("Upload URL is missing.");
+        const url2 = new URL(prepared.upload_url);
+        if (url2.username || url2.password || url2.protocol !== "https:" && !(url2.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url2.hostname)))
+          throw Error("Upload URL must use HTTPS.");
+        if (prepared.upload_headers["content-type"] !== input.file.mimeType)
+          throw Error("Upload headers do not match this file.");
+        const response = await (input.fetch ?? fetch)(url2, {
+          method: "PUT",
+          headers: prepared.upload_headers,
+          body: new Uint8Array(input.file.bytes),
+          redirect: "error",
+          signal: AbortSignal.timeout(12e4)
+        });
+        if (!response.ok) {
+          await response.body?.cancel();
+          throw Error(`File upload failed (${response.status}).`);
+        }
+        await response.body?.cancel();
+      }
+      saved = FileUploadFinalizeResponseV1Schema.parse(
+        await input.api.finalizeFileUpload(uploadId)
+      );
+    }
+    if (saved.sha256 !== input.file.sha256)
+      throw Error("Saved file hash does not match the original.");
+    let attachmentId;
+    if (attachmentInput && input.api.attachFile) {
+      try {
+        const attached = FileAttachmentReceiptSchema.parse(
+          await input.api.attachFile(saved.resource_id, {
+            ...attachmentInput,
+            pinned_version_id: saved.version_id
+          })
+        );
+        if (attached.resource_id !== saved.resource_id || attached.version_id !== saved.version_id)
+          throw Error("Attachment receipt does not match the saved version.");
+        attachmentId = attached.attachment_id;
+      } catch (error40) {
+        throw Error(
+          `File saved to Library (${saved.resource_id}), but attachment failed: ${error40 instanceof Error ? error40.message : "unavailable"}`
+        );
+      }
+    }
+    return {
+      ...saved,
+      ...attachmentId ? { attachment_id: attachmentId } : {},
+      role,
+      upload_id: uploadId,
+      artifact_ref: ArtifactRefSchema.parse({
+        artifact_id: saved.resource_id,
+        version_id: saved.version_id,
+        kind: role === "screenshot" && input.file.kind === "image" ? "interface_capture" : "file",
+        label: (input.title || input.file.fileName).slice(0, 280),
+        uri: `memlin-resource:${saved.resource_id}`,
+        media_type: input.file.mimeType,
+        digest: `sha256:${saved.sha256}`
+      }),
+      embed: `![${(input.title ?? input.file.fileName).replace(/[\]\\\n\r]/g, " ")}](memlin-resource:${saved.resource_id}?v=${saved.version_id})`
+    };
+  } catch (error40) {
+    throw new FileUploadFailure(
+      error40 instanceof Error ? error40.message : "File upload failed.",
+      uploadId
+    );
+  }
+}
+
+// packages/plugin-core/src/upload-target.ts
+var UUID2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function parseFeature(value) {
+  const row = value;
+  if (!row || typeof row.id !== "string" || !UUID2.test(row.id) || typeof row.project_id !== "string" || !UUID2.test(row.project_id))
+    throw new FileUploadRefusal("Feature response is invalid.");
+  return { id: row.id, project_id: row.project_id };
+}
+async function resolveUploadFeature(api, input) {
+  if (input.feature === "none") return null;
+  if (!input.feature || input.feature === "auto") {
+    if (!input.projectId || !input.sessionId && !input.gitBranch) return null;
+    const { binding, auto_link } = await api.getFeatureBinding(
+      {
+        project_id: input.projectId,
+        ...input.sessionId ? { session_id: input.sessionId } : {},
+        ...input.gitBranch ? { git_branch: input.gitBranch } : {}
+      },
+      { accountId: input.accountId }
+    );
+    return binding && auto_link ? { id: binding.feature_id, project_id: input.projectId } : null;
+  }
+  if (UUID2.test(input.feature)) {
+    const result = await api.getFeature(input.feature, { accountId: input.accountId });
+    const target = parseFeature(result.feature);
+    if (target.id !== input.feature)
+      throw new FileUploadRefusal("Feature response did not match the requested ID.");
+    return target;
+  }
+  if (!/^[0-9a-f-]{4,35}$/i.test(input.feature))
+    throw new FileUploadRefusal("Use a feature ID, an unambiguous ID prefix, auto, or none.");
+  let cursor;
+  const matches = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (let page = 0; page < 10; page++) {
+    const result = await api.listFeatures({
+      accountId: input.accountId,
+      project_id: input.projectId,
+      limit: 100,
+      cursor
+    });
+    for (const raw of result.features) {
+      const target = parseFeature(raw);
+      if (target.id.startsWith(input.feature) && !seen.has(target.id)) {
+        seen.add(target.id);
+        matches.push(target);
+      }
+    }
+    if (matches.length > 1)
+      throw new FileUploadRefusal("Feature prefix is ambiguous. Use its full ID.");
+    if (!result.next_cursor) {
+      if (!matches.length) throw new FileUploadRefusal("Feature is unavailable.");
+      return matches[0];
+    }
+    if (cursor === result.next_cursor) break;
+    cursor = result.next_cursor;
+  }
+  throw new FileUploadRefusal("Use the full feature ID for this workspace.");
+}
+
+// packages/plugin-core/src/cli/upload.ts
+init_workspace_binding();
+
+// packages/plugin-core/src/cli/args.ts
+function parseSlashArgs(raw) {
+  const tokens = [];
+  let cur = "";
+  let inSingle = false;
+  let inDouble = false;
+  let started = false;
+  let i = 0;
+  const flush = () => {
+    if (started) {
+      tokens.push(cur);
+      cur = "";
+      started = false;
+    }
+  };
+  while (i < raw.length) {
+    const ch = raw[i];
+    if (inSingle) {
+      if (ch === "'") {
+        inSingle = false;
+      } else {
+        cur += ch;
+      }
+      i++;
+      continue;
+    }
+    if (inDouble) {
+      if (ch === "\\" && i + 1 < raw.length) {
+        const next = raw[i + 1];
+        if (next === '"' || next === "\\") {
+          cur += next;
+          i += 2;
+          continue;
+        }
+        cur += ch;
+        i++;
+        continue;
+      }
+      if (ch === '"') {
+        inDouble = false;
+        i++;
+        continue;
+      }
+      cur += ch;
+      i++;
+      continue;
+    }
+    if (ch === "'") {
+      inSingle = true;
+      started = true;
+      i++;
+      continue;
+    }
+    if (ch === '"') {
+      inDouble = true;
+      started = true;
+      i++;
+      continue;
+    }
+    if (ch === " " || ch === "	" || ch === "\n") {
+      flush();
+      i++;
+      continue;
+    }
+    cur += ch;
+    started = true;
+    i++;
+  }
+  flush();
+  return tokens;
+}
+
 // packages/plugin-core/src/cli/cli-runner.ts
 var WATCHDOG_MS = 2e3;
 var CliExit = class extends Error {
@@ -26073,9 +26861,6 @@ var CliExit = class extends Error {
   }
   code;
 };
-function exitCli(code) {
-  throw new CliExit(code);
-}
 function scheduleProcessExit(code) {
   process.exitCode = code;
   void closeHttpSockets();
@@ -26105,239 +26890,181 @@ function runCliMain(main2, onError) {
   );
 }
 
-// packages/plugin-core/src/cli/diff.ts
-function parseDiffArgs(argv) {
-  const out = {
-    documentId: null,
-    localFile: null,
-    mode: "subset",
-    json: false,
-    record: false,
-    groundTruthKind: "file",
-    revision: null,
-    agentLabel: null
-  };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === "--strict") {
-      out.mode = "strict";
-    } else if (a === "--subset") {
-      out.mode = "subset";
-    } else if (a === "--json") {
-      out.json = true;
-    } else if (a === "--record") {
-      out.record = true;
-    } else if (a === "--kind") {
-      const v = argv[++i];
-      if (!v) return { error: "--kind needs a value" };
-      out.groundTruthKind = v;
-    } else if (a === "--revision") {
-      const v = argv[++i];
-      if (!v) return { error: "--revision needs a value" };
-      out.revision = v;
-    } else if (a === "--agent") {
-      const v = argv[++i];
-      if (!v) return { error: "--agent needs a value" };
-      out.agentLabel = v;
-    } else if (a === "--help" || a === "-h") {
-      return { error: "help" };
-    } else if (a.startsWith("--")) {
-      return { error: `unknown flag: ${a}` };
-    } else if (out.documentId === null) {
-      out.documentId = a;
-    } else if (out.localFile === null) {
-      out.localFile = a;
-    } else {
-      return { error: `unexpected positional: ${a}` };
-    }
-  }
-  if (!out.documentId) return { error: "document id is required" };
-  if (!out.localFile) return { error: "local file path is required" };
-  return out;
-}
-var extractContract = extractMemlinContract;
-function diffContract(contract, local, mode = "subset") {
-  const drift = [];
-  function walk(c, l, path8) {
-    if (c === null || typeof c !== "object" || Array.isArray(c)) {
-      if (!deepEq(c, l)) drift.push({ path: path8, contract: c, local: l, reason: "mismatch" });
-      return;
-    }
-    const lObj = l && typeof l === "object" && !Array.isArray(l) ? l : null;
-    for (const [k, cv] of Object.entries(c)) {
-      const nextPath = path8 ? `${path8}.${k}` : k;
-      if (!lObj || !(k in lObj)) {
-        drift.push({ path: nextPath, contract: cv, local: void 0, reason: "missing" });
-        continue;
-      }
-      walk(cv, lObj[k], nextPath);
-    }
-    if (mode === "strict" && lObj) {
-      for (const k of Object.keys(lObj)) {
-        if (!(k in c)) {
-          drift.push({
-            path: path8 ? `${path8}.${k}` : k,
-            contract: void 0,
-            local: lObj[k],
-            reason: "extra"
-          });
-        }
-      }
-    }
-  }
-  walk(contract, local, "");
-  return drift;
-}
-function deepEq(a, b) {
-  if (a === b) return true;
-  if (a === null || b === null || typeof a !== typeof b) return false;
-  if (Array.isArray(a)) {
-    if (!Array.isArray(b) || a.length !== b.length) return false;
-    return a.every((v, i) => deepEq(v, b[i]));
-  }
-  if (typeof a === "object") {
-    const ak = Object.keys(a);
-    const bk = Object.keys(b);
-    if (ak.length !== bk.length) return false;
-    return ak.every(
-      (k) => deepEq(
-        a[k],
-        b[k]
-      )
-    );
-  }
-  return false;
-}
+// packages/plugin-core/src/cli/upload.ts
 async function main() {
-  const parsed = parseDiffArgs(process.argv.slice(2));
-  if ("error" in parsed) {
-    if (parsed.error === "help") {
-      console.log("memlin diff <document-id> <local-file> [--strict|--subset] [--json]");
-      console.log("");
-      console.log("Diff a fenced `memlin-contract` JSON block in a Memlin doc against");
-      console.log("a local JSON file. Exit 0 on match, 1 on drift, 2 on error.");
-      exitCli(0);
-    }
-    console.error(`memlin diff: ${parsed.error}`);
-    exitCli(2);
-  }
-  const documentId = parsed.documentId;
-  const localFile = parsed.localFile;
-  let localRaw;
-  try {
-    localRaw = await fs6.readFile(localFile, "utf8");
-  } catch (e) {
-    console.error(`memlin diff: cannot read ${localFile}: ${e instanceof Error ? e.message : e}`);
-    exitCli(2);
-  }
-  let local;
-  try {
-    local = JSON.parse(localRaw);
-  } catch (e) {
-    console.error(`memlin diff: ${localFile} is not valid JSON: ${e instanceof Error ? e.message : e}`);
-    exitCli(2);
-  }
-  if (!local || typeof local !== "object" || Array.isArray(local)) {
-    console.error(`memlin diff: ${localFile} must be a JSON object at the top level`);
-    exitCli(2);
-  }
-  const apiCtx = await getApi();
-  if (!apiCtx) {
-    console.error(`memlin diff: not signed in (run \`memlin login\`)`);
-    exitCli(2);
-  }
-  const { api } = apiCtx;
-  let doc;
-  try {
-    doc = await api.getDocument(documentId);
-  } catch (e) {
-    console.error(`memlin diff: fetch document ${documentId} failed: ${e instanceof Error ? e.message : e}`);
-    exitCli(2);
-  }
-  const docContent = typeof doc.content === "string" ? doc.content : "";
-  let contract;
-  try {
-    contract = extractContract(docContent);
-  } catch (e) {
-    console.error(`memlin diff: ${e instanceof Error ? e.message : e}`);
-    exitCli(2);
-  }
-  if (!contract) {
-    console.error(
-      `memlin diff: no \`memlin-contract\` fenced block found in document ${documentId}`
-    );
-    exitCli(2);
-  }
-  const drift = diffContract(contract, local, parsed.mode);
-  if (parsed.json) {
+  const cwd = runtimeCwd();
+  let args = process.argv.slice(2);
+  if (args.length === 1 && !await fs8.lstat(path11.resolve(cwd, args[0])).then(
+    () => true,
+    () => false
+  ))
+    args = parseSlashArgs(args[0]);
+  if (args.includes("--help") || args.length === 0) {
     process.stdout.write(
-      JSON.stringify(
-        {
-          document_id: documentId,
-          local_file: localFile,
-          mode: parsed.mode,
-          ok: drift.length === 0,
-          drift
-        },
-        null,
-        2
-      ) + "\n"
+      "memlin upload <path>... [--role screenshot|log|report|output|reference] [--title TEXT] [--scope project|private] [--project UUID] [--upload-id UUID] [--feature auto|none|ID|--work-item ID|--flow-stage ID|--thought ID] [--caption TEXT] [--json]\n"
     );
-  } else if (drift.length === 0) {
-    console.log(`\u2713 ${localFile} matches contract in ${doc.title ?? documentId}`);
-  } else {
-    console.error(`\u2717 ${localFile} drifts from contract in ${doc.title ?? documentId}:`);
-    for (const d of drift) {
-      if (d.reason === "missing") {
-        console.error(`  - ${d.path}: missing in local (contract has ${JSON.stringify(d.contract)})`);
-      } else if (d.reason === "extra") {
-        console.error(`  - ${d.path}: extra in local (${JSON.stringify(d.local)})`);
-      } else {
-        console.error(
-          `  - ${d.path}: contract=${JSON.stringify(d.contract)} local=${JSON.stringify(d.local)}`
-        );
-      }
-    }
+    return args.length === 0 ? 2 : 0;
   }
-  if (parsed.record) {
-    const status = drift.length === 0 ? "verified" : "drifted";
-    const payload = {
-      status,
-      document_version: doc.version_number,
-      ground_truth: {
-        kind: parsed.groundTruthKind,
-        ref: localFile,
-        ...parsed.revision ? { revision: parsed.revision } : {}
-      },
-      ...status === "drifted" ? { drift } : {},
-      ...parsed.agentLabel ? { agent_attribution: { label: parsed.agentLabel } } : {}
-    };
-    try {
-      await api.recordContractVerification(documentId, payload);
-      if (!parsed.json) {
-        process.stderr.write(`  \u2192 recorded ${status} on document ${documentId}
-`);
-      }
-    } catch (e) {
+  const paths = [];
+  let role = "reference", title, scope, project, uploadId, json2 = false, flags = true;
+  let feature, host, caption;
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (flags && arg === "--") {
+      flags = false;
+      continue;
+    }
+    if (flags && arg === "--json") {
+      json2 = true;
+      continue;
+    }
+    if (flags && [
+      "--role",
+      "--title",
+      "--scope",
+      "--project",
+      "--upload-id",
+      "--feature",
+      "--work-item",
+      "--flow-stage",
+      "--thought",
+      "--caption"
+    ].includes(arg)) {
+      const value = args[++i];
+      if (!value || value.startsWith("--"))
+        throw new FileUploadRefusal(`Missing value for ${arg}.`);
+      if (arg === "--caption") caption = value;
+      else if (["--feature", "--work-item", "--flow-stage", "--thought"].includes(arg)) {
+        if (feature || host) throw new FileUploadRefusal("Choose one attachment target.");
+        if (arg === "--feature") feature = value;
+        else
+          host = {
+            kind: arg === "--work-item" ? "project_work_item" : arg === "--flow-stage" ? "flow_stage_run" : "thought",
+            id: validateFileUploadId(value)
+          };
+      } else if (arg === "--role") role = value;
+      else if (arg === "--title") title = value;
+      else if (arg === "--scope") {
+        if (!["project", "private"].includes(value))
+          throw new FileUploadRefusal("Scope must be project or private.");
+        scope = value;
+      } else if (arg === "--project") project = validateFileUploadId(value);
+      else uploadId = validateFileUploadId(value);
+      continue;
+    }
+    if (flags && arg.startsWith("--")) throw new FileUploadRefusal(`Unsupported option ${arg}.`);
+    paths.push(path11.resolve(cwd, arg));
+  }
+  if (!RESOURCE_ATTACHMENT_ROLES.some((value) => value === role))
+    throw new FileUploadRefusal("Unknown file role.");
+  if (scope === "private" && feature && feature !== "none")
+    throw new FileUploadRefusal("Private files cannot be attached to a shared feature.");
+  if (caption && (caption.length > 500 || feature === "none"))
+    throw new FileUploadRefusal(
+      "A caption needs an attachment target and must be 500 characters or fewer."
+    );
+  const fileRole = role;
+  if (paths.length === 0 || uploadId && paths.length !== 1)
+    throw new FileUploadRefusal(
+      "Choose at least one file; --upload-id is only valid with one file."
+    );
+  const binding = await findWorkspaceBinding(cwd);
+  const boundRoot = binding?.workspaceRoot;
+  const relative = boundRoot ? path11.relative(boundRoot, cwd) : "..";
+  const workspaceRoot = boundRoot && relative !== ".." && !relative.startsWith(`..${path11.sep}`) && !path11.isAbsolute(relative) ? boundRoot : cwd;
+  if (paths.length > 20) throw new FileUploadRefusal("Upload at most 20 files at a time.");
+  const files = [];
+  let totalBytes = 0;
+  for (const filePath of paths) {
+    const file2 = await prepareLocalFile({ filePath, workspaceRoot });
+    if (file2.kind === "markdown" && fileRole === "report" && file2.byteSize > 1048576)
+      throw new FileUploadRefusal(
+        "Editable reports are limited to 1 MiB; use --role reference for larger Markdown."
+      );
+    totalBytes += file2.byteSize;
+    if (totalBytes > 100 * 1024 * 1024)
+      throw new FileUploadRefusal("Upload at most 100 MiB at a time.");
+    files.push(file2);
+  }
+  const ctx = await getApi({ cwd });
+  if (!ctx) {
+    process.stderr.write("Not signed in. Run memlin login first.\n");
+    return 1;
+  }
+  const resolved = await resolveProject(ctx.api, cwd, ctx.config.project_id);
+  if (accountBindingHazard(resolved, { allowMismatch: allowAccountMismatch() }) === "block")
+    throw new FileUploadRefusal(
+      "This workspace does not own its git remote. Correct its Memlin project binding before uploading."
+    );
+  const accountId = effectiveAccountId({
+    configAccountId: ctx.config.account_id,
+    resolvedAccountId: resolved.account_id
+  });
+  if (!accountId) throw new FileUploadRefusal("No workspace account resolved. Sign in to Memlin.");
+  let targetProject = project ?? resolved.project_id;
+  if (!host && scope !== "private") {
+    const target = await resolveUploadFeature(ctx.api, {
+      accountId,
+      projectId: targetProject,
+      feature,
+      sessionId: process.env.MEMLIN_SESSION_ID,
+      gitBranch: readFeatureBranch(cwd)
+    });
+    if (target) {
+      if (project && project !== target.project_id)
+        throw new FileUploadRefusal("The feature belongs to a different project.");
+      targetProject = target.project_id;
+      host = { kind: "feature", id: target.id };
+    } else if (feature === "auto") {
       process.stderr.write(
-        `  \u26A0 recorded the diff but Memlin didn't accept it: ${e instanceof Error ? e.message : e}
-`
+        "No active feature binding; saving to the Library without an attachment.\n"
       );
     }
   }
-  return drift.length === 0 ? 0 : 1;
+  if (caption && !host)
+    throw new FileUploadRefusal("A caption needs an available attachment target.");
+  if (host && ["project_work_item", "flow_stage_run"].includes(host.kind) && !targetProject)
+    throw new FileUploadRefusal(
+      "Choose the target project with --project before uploading this attachment."
+    );
+  const results = [];
+  for (const file2 of files) {
+    const saved = await uploadLocalFile({
+      api: {
+        prepareFileUpload: (input) => ctx.api.prepareFileUpload(input, { accountId }),
+        finalizeFileUpload: (id) => ctx.api.finalizeFileUpload(id, { accountId }),
+        attachFile: (id, input) => ctx.api.attachFile(id, input, { accountId })
+      },
+      file: file2,
+      accountId,
+      projectId: targetProject,
+      host,
+      caption,
+      scope,
+      title,
+      role: fileRole,
+      uploadId
+    });
+    results.push(saved);
+    if (!json2)
+      process.stdout.write(`Saved ${title ?? file2.fileName} to Library.
+${saved.embed}
+`);
+  }
+  if (json2)
+    process.stdout.write(JSON.stringify(results.length === 1 ? results[0] : results) + "\n");
+  return 0;
 }
-if (import.meta.url === (process.argv[1] ? pathToFileURL(process.argv[1]).href : void 0)) {
-  runCliMain(main, (err) => {
-    console.error(`memlin diff: ${err instanceof Error ? err.message : err}`);
-    return 2;
-  });
-}
-export {
-  diffContract,
-  extractContract,
-  parseDiffArgs
-};
+runCliMain(main, (error40) => {
+  process.stderr.write(
+    `Upload refused: ${error40 instanceof Error ? error40.message : "Unknown error"}
+`
+  );
+  if (error40 instanceof FileUploadFailure)
+    process.stderr.write(`Retry the same file and options with --upload-id ${error40.uploadId}
+`);
+  return error40 instanceof FileUploadRefusal || error40 instanceof Error && error40.name === "ZodError" ? 2 : 1;
+});
 /*! Bundled license information:
 
 is-extendable/index.js:
