@@ -41,290 +41,6 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// packages/plugin-core/dist/companion-client.js
-var companion_client_exports = {};
-__export(companion_client_exports, {
-  CODEX_ADDITIONAL_CONTEXT_MAX_BYTES: () => CODEX_ADDITIONAL_CONTEXT_MAX_BYTES,
-  CODEX_HOOK_RESOLVE_PROFILE: () => CODEX_HOOK_RESOLVE_PROFILE,
-  COMPANION_PROTOCOL: () => COMPANION_PROTOCOL,
-  COMPANION_SOCKET_ENV: () => COMPANION_SOCKET_ENV,
-  IS_COMPANION_ENV: () => IS_COMPANION_ENV,
-  MAX_COMPANION_PROTOCOL: () => MAX_COMPANION_PROTOCOL,
-  MIN_COMPANION_PROTOCOL: () => MIN_COMPANION_PROTOCOL,
-  NO_COMPANION_ENV: () => NO_COMPANION_ENV,
-  USE_COMPANION_ENV: () => USE_COMPANION_ENV,
-  companionCommitResolveDelivery: () => companionCommitResolveDelivery,
-  companionDelegationEnabled: () => companionDelegationEnabled,
-  companionForDelegation: () => companionForDelegation,
-  companionGetToken: () => companionGetToken,
-  companionReadLocal: () => companionReadLocal,
-  companionReleaseResolveDelivery: () => companionReleaseResolveDelivery,
-  companionReportResolveDelivery: () => companionReportResolveDelivery,
-  companionReportSession: () => companionReportSession,
-  companionRequest: () => companionRequest,
-  companionReserveLateResolveDelivery: () => companionReserveLateResolveDelivery,
-  companionReserveResolveDelivery: () => companionReserveResolveDelivery,
-  companionResolveJoin: () => companionResolveJoin,
-  companionResolveReuse: () => companionResolveReuse,
-  companionResolveStart: () => companionResolveStart,
-  companionResolveTake: () => companionResolveTake,
-  companionResolveWorkspace: () => companionResolveWorkspace,
-  companionRunDir: () => companionRunDir,
-  companionSearchLocal: () => companionSearchLocal,
-  companionSocketPath: () => companionSocketPath,
-  companionStatus: () => companionStatus,
-  companionSyncNow: () => companionSyncNow,
-  deriveResolveId: () => deriveResolveId,
-  isCompanionHealthyForDelegation: () => isCompanionHealthyForDelegation,
-  resetCompanionClientCache: () => resetCompanionClientCache
-});
-import http from "node:http";
-import crypto from "node:crypto";
-import os from "node:os";
-import path from "node:path";
-function companionSocketPath(env = process.env) {
-  const override = env[COMPANION_SOCKET_ENV];
-  if (override) return override;
-  if (process.platform === "win32") {
-    return `\\\\.\\pipe\\memlin-companion-${os.userInfo().username}`;
-  }
-  return path.join(os.homedir(), ".config", "memlin", "run", "companion.sock");
-}
-function companionRunDir() {
-  return path.join(os.homedir(), ".config", "memlin", "run");
-}
-function deriveResolveId(input) {
-  const digest = crypto.createHash("sha256").update("memlin.resolve.v2\0").update(JSON.stringify([input.accountId, input.host, input.sessionId ?? null, input.turnId])).digest().subarray(0, 16);
-  digest[6] = digest[6] & 15 | 80;
-  digest[8] = digest[8] & 63 | 128;
-  const hex = digest.toString("hex");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
-function companionDisabled(env = process.env) {
-  const off = env[NO_COMPANION_ENV];
-  if (off === "1" || off === "true" || off === "yes") return true;
-  return env[IS_COMPANION_ENV] === "1";
-}
-async function companionRequest(method, body, opts = {}) {
-  const env = opts.env ?? process.env;
-  if (companionDisabled(env)) return null;
-  if (Date.now() < socketDeadUntil) return null;
-  const timeoutMs = opts.timeoutMs ?? CALL_TIMEOUTS[method] ?? DEFAULT_CALL_TIMEOUT_MS;
-  const payload = JSON.stringify(body ?? {});
-  return new Promise((resolve) => {
-    let settled = false;
-    const fail = (markDead) => {
-      if (settled) return;
-      settled = true;
-      if (markDead) socketDeadUntil = Date.now() + SOCKET_DEAD_TTL_MS;
-      resolve(null);
-    };
-    const req = http.request(
-      {
-        socketPath: companionSocketPath(env),
-        path: `/v1/${method}`,
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "content-length": Buffer.byteLength(payload),
-          "memlin-client-protocol": String(COMPANION_PROTOCOL)
-        },
-        // Overall call budget; the connect phase gets its own tighter cap
-        // below via the socket timeout before the connection exists.
-        timeout: timeoutMs
-      },
-      (res) => {
-        const chunks = [];
-        res.on("data", (c) => chunks.push(c));
-        res.on("end", () => {
-          if (settled) return;
-          settled = true;
-          if (res.statusCode !== 200) return resolve(null);
-          try {
-            resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
-          } catch {
-            resolve(null);
-          }
-        });
-        res.on("error", () => fail(false));
-      }
-    );
-    const connectTimer = setTimeout(() => {
-      req.destroy();
-      fail(true);
-    }, CONNECT_TIMEOUT_MS);
-    connectTimer.unref?.();
-    req.on("socket", (socket) => {
-      if (!socket.connecting) clearTimeout(connectTimer);
-      else socket.once("connect", () => clearTimeout(connectTimer));
-    });
-    req.once("close", () => clearTimeout(connectTimer));
-    req.on("timeout", () => {
-      req.destroy();
-      fail(false);
-    });
-    req.on("error", () => fail(true));
-    req.end(payload);
-  });
-}
-async function companionStatus(opts = {}) {
-  const status = await companionRequest("status.get", {}, opts);
-  if (!status) return null;
-  if (status.protocol < MIN_COMPANION_PROTOCOL || status.protocol > MAX_COMPANION_PROTOCOL) {
-    return null;
-  }
-  return status;
-}
-async function companionGetToken() {
-  const token = await companionRequest("token.get", {});
-  if (!token || token.expires_at <= Date.now() + 6e4) return null;
-  return token;
-}
-async function companionResolveWorkspace(cwd) {
-  return companionRequest("workspace.resolve", { cwd });
-}
-async function companionSyncNow(req) {
-  return companionRequest("sync.now", req);
-}
-async function companionSearchLocal(req) {
-  return companionRequest("memory.search", req);
-}
-async function companionReadLocal(req) {
-  return companionRequest("memory.read", req);
-}
-async function companionResolveStart(req, opts = {}) {
-  return companionRequest("resolve.start", req, opts);
-}
-async function companionResolveTake(req) {
-  return companionRequest("resolve.take", req, {
-    timeoutMs: Math.max(250, req.wait_ms + 250)
-  });
-}
-async function companionResolveJoin(req) {
-  return companionRequest("resolve.join", req, {
-    timeoutMs: Math.max(250, req.wait_ms + 250)
-  });
-}
-async function companionResolveReuse(req) {
-  return companionRequest("resolve.reuse", req, {
-    timeoutMs: Math.max(250, Math.min(4500, req.wait_ms + 500))
-  });
-}
-async function companionReserveResolveDelivery(req, opts = {}) {
-  return companionRequest("resolve.reserve", req, opts);
-}
-async function companionReserveLateResolveDelivery(req, opts = {}) {
-  return companionRequest("resolve.reserve-late", req, opts);
-}
-async function companionCommitResolveDelivery(req, opts = {}) {
-  return (await companionRequest("resolve.commit", req, opts))?.accepted ?? null;
-}
-async function companionReleaseResolveDelivery(req, opts = {}) {
-  return (await companionRequest("resolve.release", req, opts))?.released ?? null;
-}
-async function companionReportResolveDelivery(req, opts = {}) {
-  return (await companionRequest("resolve.report", req, opts))?.accepted ?? null;
-}
-async function companionReportSession(req) {
-  return (await companionRequest("session.report", req))?.registered ?? false;
-}
-function isCompanionHealthyForDelegation(status) {
-  if (!status) return false;
-  if (status.auth.state !== "ok") return false;
-  if (status.sync.mode === "realtime") return true;
-  if (status.sync.mode !== "polling") return false;
-  if (!status.sync.last_delta_at) return false;
-  const age = Date.now() - Date.parse(status.sync.last_delta_at);
-  return Number.isFinite(age) && age < 5 * 6e4;
-}
-function companionDelegationEnabled(env = process.env) {
-  const v = env[USE_COMPANION_ENV];
-  return v === "1" || v === "true" || v === "yes";
-}
-async function companionForDelegation() {
-  if (!companionDelegationEnabled()) return null;
-  const status = await companionStatus();
-  return isCompanionHealthyForDelegation(status) ? status : null;
-}
-function resetCompanionClientCache() {
-  socketDeadUntil = 0;
-}
-var COMPANION_PROTOCOL, MIN_COMPANION_PROTOCOL, MAX_COMPANION_PROTOCOL, NO_COMPANION_ENV, IS_COMPANION_ENV, COMPANION_SOCKET_ENV, CODEX_HOOK_RESOLVE_PROFILE, CODEX_ADDITIONAL_CONTEXT_MAX_BYTES, CONNECT_TIMEOUT_MS, DEFAULT_CALL_TIMEOUT_MS, CALL_TIMEOUTS, socketDeadUntil, SOCKET_DEAD_TTL_MS, USE_COMPANION_ENV;
-var init_companion_client = __esm({
-  "packages/plugin-core/dist/companion-client.js"() {
-    "use strict";
-    COMPANION_PROTOCOL = 1;
-    MIN_COMPANION_PROTOCOL = 1;
-    MAX_COMPANION_PROTOCOL = 1;
-    NO_COMPANION_ENV = "MEMLIN_NO_DAEMON";
-    IS_COMPANION_ENV = "MEMLIN_DAEMON";
-    COMPANION_SOCKET_ENV = "MEMLIN_COMPANION_SOCKET";
-    CODEX_HOOK_RESOLVE_PROFILE = "codex-hook-v1:tokens=2200";
-    CODEX_ADDITIONAL_CONTEXT_MAX_BYTES = 2200;
-    CONNECT_TIMEOUT_MS = 150;
-    DEFAULT_CALL_TIMEOUT_MS = 1e3;
-    CALL_TIMEOUTS = {
-      "workspace.resolve": 2e3,
-      "resolve.start": 750,
-      "resolve.reuse": 4500,
-      "resolve.reserve": 750,
-      "resolve.reserve-late": 750,
-      "resolve.commit": 750,
-      "resolve.release": 500,
-      "resolve.report": 500,
-      "sync.now": 5e3,
-      "login.start": 1e4,
-      // Local-store reads walk the materialized doc tree on disk.
-      "memory.search": 2e3,
-      "memory.read": 2e3
-    };
-    socketDeadUntil = 0;
-    SOCKET_DEAD_TTL_MS = 5e3;
-    USE_COMPANION_ENV = "MEMLIN_USE_DAEMON";
-  }
-});
-
-// packages/plugin-core/dist/atomic-rename.js
-import { promises as fs } from "node:fs";
-import path2 from "node:path";
-async function renameWithRetry(from, to, rename) {
-  for (let attempt = 1; ; attempt++) {
-    try {
-      await rename(from, to);
-      return;
-    } catch (error40) {
-      const code = error40.code;
-      if (attempt >= MAX_ATTEMPTS || !code || !RETRYABLE_CODES.has(code)) throw error40;
-      const cap = Math.min(BASE_DELAY_MS * 2 ** (attempt - 1), MAX_DELAY_MS);
-      const delay2 = cap / 2 + Math.random() * (cap / 2);
-      await new Promise((resolve) => setTimeout(resolve, delay2));
-    }
-  }
-}
-async function atomicRename(from, to, dependencies = {}) {
-  const rename = dependencies.rename ?? fs.rename;
-  const queueKey = path2.resolve(to);
-  const previous = renameQueues.get(queueKey) ?? Promise.resolve();
-  const run = previous.catch(() => void 0).then(() => renameWithRetry(from, to, rename));
-  renameQueues.set(queueKey, run);
-  try {
-    await run;
-  } finally {
-    if (renameQueues.get(queueKey) === run) renameQueues.delete(queueKey);
-  }
-}
-var RETRYABLE_CODES, MAX_ATTEMPTS, BASE_DELAY_MS, MAX_DELAY_MS, renameQueues;
-var init_atomic_rename = __esm({
-  "packages/plugin-core/dist/atomic-rename.js"() {
-    "use strict";
-    RETRYABLE_CODES = /* @__PURE__ */ new Set(["EPERM", "EACCES", "EBUSY"]);
-    MAX_ATTEMPTS = 10;
-    BASE_DELAY_MS = 10;
-    MAX_DELAY_MS = 100;
-    renameQueues = /* @__PURE__ */ new Map();
-  }
-});
-
 // node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js
 var require_kind_of = __commonJS({
   "node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js"(exports2, module2) {
@@ -3696,7 +3412,7 @@ var require_parse = __commonJS({
 var require_gray_matter = __commonJS({
   "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
-    var fs9 = __require("fs");
+    var fs10 = __require("fs");
     var sections = require_section_matter();
     var defaults = require_defaults();
     var stringify = require_stringify();
@@ -3780,7 +3496,7 @@ var require_gray_matter = __commonJS({
       return stringify(file2, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str2 = fs9.readFileSync(filepath, "utf8");
+      const str2 = fs10.readFileSync(filepath, "utf8");
       const file2 = matter3(str2, options2);
       file2.path = filepath;
       return file2;
@@ -3808,11 +3524,52 @@ var require_gray_matter = __commonJS({
   }
 });
 
+// packages/plugin-core/dist/atomic-rename.js
+import { promises as fs } from "node:fs";
+import path from "node:path";
+async function renameWithRetry(from, to, rename) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await rename(from, to);
+      return;
+    } catch (error40) {
+      const code = error40.code;
+      if (attempt >= MAX_ATTEMPTS || !code || !RETRYABLE_CODES.has(code)) throw error40;
+      const cap = Math.min(BASE_DELAY_MS * 2 ** (attempt - 1), MAX_DELAY_MS);
+      const delay2 = cap / 2 + Math.random() * (cap / 2);
+      await new Promise((resolve) => setTimeout(resolve, delay2));
+    }
+  }
+}
+async function atomicRename(from, to, dependencies = {}) {
+  const rename = dependencies.rename ?? fs.rename;
+  const queueKey = path.resolve(to);
+  const previous = renameQueues.get(queueKey) ?? Promise.resolve();
+  const run = previous.catch(() => void 0).then(() => renameWithRetry(from, to, rename));
+  renameQueues.set(queueKey, run);
+  try {
+    await run;
+  } finally {
+    if (renameQueues.get(queueKey) === run) renameQueues.delete(queueKey);
+  }
+}
+var RETRYABLE_CODES, MAX_ATTEMPTS, BASE_DELAY_MS, MAX_DELAY_MS, renameQueues;
+var init_atomic_rename = __esm({
+  "packages/plugin-core/dist/atomic-rename.js"() {
+    "use strict";
+    RETRYABLE_CODES = /* @__PURE__ */ new Set(["EPERM", "EACCES", "EBUSY"]);
+    MAX_ATTEMPTS = 10;
+    BASE_DELAY_MS = 10;
+    MAX_DELAY_MS = 100;
+    renameQueues = /* @__PURE__ */ new Map();
+  }
+});
+
 // packages/plugin-core/dist/auth-refusal.js
-import crypto4 from "node:crypto";
-import { promises as fs4 } from "node:fs";
-import os5 from "node:os";
-import path6 from "node:path";
+import crypto from "node:crypto";
+import { promises as fs2 } from "node:fs";
+import os from "node:os";
+import path2 from "node:path";
 function isReason(value) {
   return value === "not_member" || value === "no_profile";
 }
@@ -3833,19 +3590,19 @@ function classifyAuthRefusal(status, body) {
   return null;
 }
 function authRefusalDir() {
-  return process.env.MEMLIN_AUTH_REFUSAL_DIR ?? path6.join(os5.homedir(), ".config", "memlin", "auth-refusal");
+  return process.env.MEMLIN_AUTH_REFUSAL_DIR ?? path2.join(os.homedir(), ".config", "memlin", "auth-refusal");
 }
 function sha(value) {
-  return crypto4.createHash("sha256").update(value).digest("hex").slice(0, 32);
+  return crypto.createHash("sha256").update(value).digest("hex").slice(0, 32);
 }
 function normalizeBinding(binding) {
-  return binding ? path6.resolve(binding) : null;
+  return binding ? path2.resolve(binding) : null;
 }
 function accountDir(accountId) {
-  return path6.join(authRefusalDir(), sha(accountId));
+  return path2.join(authRefusalDir(), sha(accountId));
 }
 function entryPath(accountId, binding) {
-  return path6.join(accountDir(accountId), `${sha(binding ?? "(global)")}.json`);
+  return path2.join(accountDir(accountId), `${sha(binding ?? "(global)")}.json`);
 }
 function isEntry(value) {
   if (typeof value !== "object" || value === null) return false;
@@ -3854,7 +3611,7 @@ function isEntry(value) {
 }
 async function readRaw(file2) {
   try {
-    const parsed = JSON.parse(await fs4.readFile(file2, "utf8"));
+    const parsed = JSON.parse(await fs2.readFile(file2, "utf8"));
     return isEntry(parsed) ? parsed : null;
   } catch {
     return null;
@@ -3862,9 +3619,9 @@ async function readRaw(file2) {
 }
 async function writeEntry(entry) {
   const file2 = entryPath(entry.account_id, entry.binding);
-  await fs4.mkdir(path6.dirname(file2), { recursive: true });
-  const tmp = `${file2}.${process.pid}.${crypto4.randomUUID()}.tmp`;
-  await fs4.writeFile(tmp, JSON.stringify(entry), { mode: 384 });
+  await fs2.mkdir(path2.dirname(file2), { recursive: true });
+  const tmp = `${file2}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  await fs2.writeFile(tmp, JSON.stringify(entry), { mode: 384 });
   await atomicRename(tmp, file2);
 }
 async function recordAuthRefusal(input) {
@@ -3888,18 +3645,18 @@ async function readAuthRefusal(accountId, binding, now = Date.now()) {
   const entry = await readRaw(file2);
   if (!entry) return null;
   if (now >= entry.expires_at) {
-    await fs4.rm(file2, { force: true }).catch(() => {
+    await fs2.rm(file2, { force: true }).catch(() => {
     });
     return null;
   }
   return entry;
 }
 async function clearAuthRefusalsForAccount(accountId) {
-  await fs4.rm(accountDir(accountId), { recursive: true, force: true }).catch(() => {
+  await fs2.rm(accountDir(accountId), { recursive: true, force: true }).catch(() => {
   });
 }
 async function clearAllAuthRefusals() {
-  await fs4.rm(authRefusalDir(), { recursive: true, force: true }).catch(() => {
+  await fs2.rm(authRefusalDir(), { recursive: true, force: true }).catch(() => {
   });
 }
 function formatAuthRefusalNotice(entry) {
@@ -3936,6 +3693,249 @@ var init_auth_refusal = __esm({
   }
 });
 
+// packages/plugin-core/dist/companion-client.js
+var companion_client_exports = {};
+__export(companion_client_exports, {
+  CODEX_ADDITIONAL_CONTEXT_MAX_BYTES: () => CODEX_ADDITIONAL_CONTEXT_MAX_BYTES,
+  CODEX_HOOK_RESOLVE_PROFILE: () => CODEX_HOOK_RESOLVE_PROFILE,
+  COMPANION_PROTOCOL: () => COMPANION_PROTOCOL,
+  COMPANION_SOCKET_ENV: () => COMPANION_SOCKET_ENV,
+  IS_COMPANION_ENV: () => IS_COMPANION_ENV,
+  MAX_COMPANION_PROTOCOL: () => MAX_COMPANION_PROTOCOL,
+  MIN_COMPANION_PROTOCOL: () => MIN_COMPANION_PROTOCOL,
+  NO_COMPANION_ENV: () => NO_COMPANION_ENV,
+  USE_COMPANION_ENV: () => USE_COMPANION_ENV,
+  companionCommitResolveDelivery: () => companionCommitResolveDelivery,
+  companionDelegationEnabled: () => companionDelegationEnabled,
+  companionForDelegation: () => companionForDelegation,
+  companionGetToken: () => companionGetToken,
+  companionReadLocal: () => companionReadLocal,
+  companionReleaseResolveDelivery: () => companionReleaseResolveDelivery,
+  companionReportResolveDelivery: () => companionReportResolveDelivery,
+  companionReportSession: () => companionReportSession,
+  companionRequest: () => companionRequest,
+  companionReserveLateResolveDelivery: () => companionReserveLateResolveDelivery,
+  companionReserveResolveDelivery: () => companionReserveResolveDelivery,
+  companionResolveJoin: () => companionResolveJoin,
+  companionResolveReuse: () => companionResolveReuse,
+  companionResolveStart: () => companionResolveStart,
+  companionResolveTake: () => companionResolveTake,
+  companionResolveWorkspace: () => companionResolveWorkspace,
+  companionRunDir: () => companionRunDir,
+  companionSearchLocal: () => companionSearchLocal,
+  companionSocketPath: () => companionSocketPath,
+  companionStatus: () => companionStatus,
+  companionSyncNow: () => companionSyncNow,
+  deriveResolveId: () => deriveResolveId,
+  isCompanionHealthyForDelegation: () => isCompanionHealthyForDelegation,
+  resetCompanionClientCache: () => resetCompanionClientCache
+});
+import http from "node:http";
+import crypto2 from "node:crypto";
+import os2 from "node:os";
+import path3 from "node:path";
+function companionSocketPath(env = process.env) {
+  const override = env[COMPANION_SOCKET_ENV];
+  if (override) return override;
+  if (process.platform === "win32") {
+    return `\\\\.\\pipe\\memlin-companion-${os2.userInfo().username}`;
+  }
+  return path3.join(os2.homedir(), ".config", "memlin", "run", "companion.sock");
+}
+function companionRunDir() {
+  return path3.join(os2.homedir(), ".config", "memlin", "run");
+}
+function deriveResolveId(input) {
+  const digest = crypto2.createHash("sha256").update("memlin.resolve.v2\0").update(JSON.stringify([input.accountId, input.host, input.sessionId ?? null, input.turnId])).digest().subarray(0, 16);
+  digest[6] = digest[6] & 15 | 80;
+  digest[8] = digest[8] & 63 | 128;
+  const hex = digest.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+function companionDisabled(env = process.env) {
+  const off = env[NO_COMPANION_ENV];
+  if (off === "1" || off === "true" || off === "yes") return true;
+  return env[IS_COMPANION_ENV] === "1";
+}
+async function companionRequest(method, body, opts = {}) {
+  const env = opts.env ?? process.env;
+  if (companionDisabled(env)) return null;
+  if (Date.now() < socketDeadUntil) return null;
+  const timeoutMs = opts.timeoutMs ?? CALL_TIMEOUTS[method] ?? DEFAULT_CALL_TIMEOUT_MS;
+  const payload = JSON.stringify(body ?? {});
+  return new Promise((resolve) => {
+    let settled = false;
+    const fail = (markDead) => {
+      if (settled) return;
+      settled = true;
+      if (markDead) socketDeadUntil = Date.now() + SOCKET_DEAD_TTL_MS;
+      resolve(null);
+    };
+    const req = http.request(
+      {
+        socketPath: companionSocketPath(env),
+        path: `/v1/${method}`,
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "content-length": Buffer.byteLength(payload),
+          "memlin-client-protocol": String(COMPANION_PROTOCOL)
+        },
+        // Overall call budget; the connect phase gets its own tighter cap
+        // below via the socket timeout before the connection exists.
+        timeout: timeoutMs
+      },
+      (res) => {
+        const chunks = [];
+        res.on("data", (c) => chunks.push(c));
+        res.on("end", () => {
+          if (settled) return;
+          settled = true;
+          if (res.statusCode !== 200) return resolve(null);
+          try {
+            resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+          } catch {
+            resolve(null);
+          }
+        });
+        res.on("error", () => fail(false));
+      }
+    );
+    const connectTimer = setTimeout(() => {
+      req.destroy();
+      fail(true);
+    }, CONNECT_TIMEOUT_MS);
+    connectTimer.unref?.();
+    req.on("socket", (socket) => {
+      if (!socket.connecting) clearTimeout(connectTimer);
+      else socket.once("connect", () => clearTimeout(connectTimer));
+    });
+    req.once("close", () => clearTimeout(connectTimer));
+    req.on("timeout", () => {
+      req.destroy();
+      fail(false);
+    });
+    req.on("error", () => fail(true));
+    req.end(payload);
+  });
+}
+async function companionStatus(opts = {}) {
+  const status = await companionRequest("status.get", {}, opts);
+  if (!status) return null;
+  if (status.protocol < MIN_COMPANION_PROTOCOL || status.protocol > MAX_COMPANION_PROTOCOL) {
+    return null;
+  }
+  return status;
+}
+async function companionGetToken() {
+  const token = await companionRequest("token.get", {});
+  if (!token || token.expires_at <= Date.now() + 6e4) return null;
+  return token;
+}
+async function companionResolveWorkspace(cwd) {
+  return companionRequest("workspace.resolve", { cwd });
+}
+async function companionSyncNow(req) {
+  return companionRequest("sync.now", req);
+}
+async function companionSearchLocal(req) {
+  return companionRequest("memory.search", req);
+}
+async function companionReadLocal(req) {
+  return companionRequest("memory.read", req);
+}
+async function companionResolveStart(req, opts = {}) {
+  return companionRequest("resolve.start", req, opts);
+}
+async function companionResolveTake(req) {
+  return companionRequest("resolve.take", req, {
+    timeoutMs: Math.max(250, req.wait_ms + 250)
+  });
+}
+async function companionResolveJoin(req) {
+  return companionRequest("resolve.join", req, {
+    timeoutMs: Math.max(250, req.wait_ms + 250)
+  });
+}
+async function companionResolveReuse(req) {
+  return companionRequest("resolve.reuse", req, {
+    timeoutMs: Math.max(250, Math.min(4500, req.wait_ms + 500))
+  });
+}
+async function companionReserveResolveDelivery(req, opts = {}) {
+  return companionRequest("resolve.reserve", req, opts);
+}
+async function companionReserveLateResolveDelivery(req, opts = {}) {
+  return companionRequest("resolve.reserve-late", req, opts);
+}
+async function companionCommitResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.commit", req, opts))?.accepted ?? null;
+}
+async function companionReleaseResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.release", req, opts))?.released ?? null;
+}
+async function companionReportResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.report", req, opts))?.accepted ?? null;
+}
+async function companionReportSession(req) {
+  return (await companionRequest("session.report", req))?.registered ?? false;
+}
+function isCompanionHealthyForDelegation(status) {
+  if (!status) return false;
+  if (status.auth.state !== "ok") return false;
+  if (status.sync.mode === "realtime") return true;
+  if (status.sync.mode !== "polling") return false;
+  if (!status.sync.last_delta_at) return false;
+  const age = Date.now() - Date.parse(status.sync.last_delta_at);
+  return Number.isFinite(age) && age < 5 * 6e4;
+}
+function companionDelegationEnabled(env = process.env) {
+  const v = env[USE_COMPANION_ENV];
+  return v === "1" || v === "true" || v === "yes";
+}
+async function companionForDelegation() {
+  if (!companionDelegationEnabled()) return null;
+  const status = await companionStatus();
+  return isCompanionHealthyForDelegation(status) ? status : null;
+}
+function resetCompanionClientCache() {
+  socketDeadUntil = 0;
+}
+var COMPANION_PROTOCOL, MIN_COMPANION_PROTOCOL, MAX_COMPANION_PROTOCOL, NO_COMPANION_ENV, IS_COMPANION_ENV, COMPANION_SOCKET_ENV, CODEX_HOOK_RESOLVE_PROFILE, CODEX_ADDITIONAL_CONTEXT_MAX_BYTES, CONNECT_TIMEOUT_MS, DEFAULT_CALL_TIMEOUT_MS, CALL_TIMEOUTS, socketDeadUntil, SOCKET_DEAD_TTL_MS, USE_COMPANION_ENV;
+var init_companion_client = __esm({
+  "packages/plugin-core/dist/companion-client.js"() {
+    "use strict";
+    COMPANION_PROTOCOL = 1;
+    MIN_COMPANION_PROTOCOL = 1;
+    MAX_COMPANION_PROTOCOL = 1;
+    NO_COMPANION_ENV = "MEMLIN_NO_DAEMON";
+    IS_COMPANION_ENV = "MEMLIN_DAEMON";
+    COMPANION_SOCKET_ENV = "MEMLIN_COMPANION_SOCKET";
+    CODEX_HOOK_RESOLVE_PROFILE = "codex-hook-v1:tokens=2200";
+    CODEX_ADDITIONAL_CONTEXT_MAX_BYTES = 2200;
+    CONNECT_TIMEOUT_MS = 150;
+    DEFAULT_CALL_TIMEOUT_MS = 1e3;
+    CALL_TIMEOUTS = {
+      "workspace.resolve": 2e3,
+      "resolve.start": 750,
+      "resolve.reuse": 4500,
+      "resolve.reserve": 750,
+      "resolve.reserve-late": 750,
+      "resolve.commit": 750,
+      "resolve.release": 500,
+      "resolve.report": 500,
+      "sync.now": 5e3,
+      "login.start": 1e4,
+      // Local-store reads walk the materialized doc tree on disk.
+      "memory.search": 2e3,
+      "memory.read": 2e3
+    };
+    socketDeadUntil = 0;
+    SOCKET_DEAD_TTL_MS = 5e3;
+    USE_COMPANION_ENV = "MEMLIN_USE_DAEMON";
+  }
+});
+
 // packages/plugin-core/dist/workspace-binding.js
 var workspace_binding_exports = {};
 __export(workspace_binding_exports, {
@@ -3946,15 +3946,15 @@ __export(workspace_binding_exports, {
   resolveGitWorkspaceIdentity: () => resolveGitWorkspaceIdentity,
   writeWorkspaceBinding: () => writeWorkspaceBinding
 });
-import { randomUUID as randomUUID3 } from "node:crypto";
-import { constants, promises as fs6 } from "node:fs";
-import path9 from "node:path";
+import { randomUUID as randomUUID2 } from "node:crypto";
+import { constants, promises as fs4 } from "node:fs";
+import path6 from "node:path";
 async function walkForWorkspaceBinding(startDir) {
-  let dir = path9.resolve(startDir);
+  let dir = path6.resolve(startDir);
   for (let i = 0; i < 64; i++) {
-    const candidate = path9.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE);
+    const candidate = path6.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE);
     try {
-      const raw = await fs6.readFile(candidate, "utf8");
+      const raw = await fs4.readFile(candidate, "utf8");
       const parsed = JSON.parse(raw);
       if (typeof parsed.account_id === "string" && parsed.account_id) {
         return {
@@ -3968,7 +3968,7 @@ async function walkForWorkspaceBinding(startDir) {
       }
     } catch {
     }
-    const parent = path9.dirname(dir);
+    const parent = path6.dirname(dir);
     if (parent === dir) return null;
     dir = parent;
   }
@@ -3977,7 +3977,7 @@ async function walkForWorkspaceBinding(startDir) {
 async function readSmallRegularFile(file2) {
   let before;
   try {
-    before = await fs6.lstat(file2);
+    before = await fs4.lstat(file2);
   } catch (error40) {
     return isFileNotFound(error40) ? { kind: "missing" } : { kind: "invalid" };
   }
@@ -3986,14 +3986,14 @@ async function readSmallRegularFile(file2) {
       return { kind: "invalid" };
     }
     const noFollow = typeof constants.O_NOFOLLOW === "number" ? constants.O_NOFOLLOW : 0;
-    const handle = await fs6.open(file2, constants.O_RDONLY | noFollow);
+    const handle = await fs4.open(file2, constants.O_RDONLY | noFollow);
     try {
       const opened = await handle.stat();
       if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino || opened.size !== before.size || opened.size > GIT_POINTER_MAX_BYTES) {
         return { kind: "invalid" };
       }
       const bytes = await handle.readFile();
-      const [after, afterPath] = await Promise.all([handle.stat(), fs6.lstat(file2)]);
+      const [after, afterPath] = await Promise.all([handle.stat(), fs4.lstat(file2)]);
       if (afterPath.isSymbolicLink() || !afterPath.isFile() || after.dev !== opened.dev || after.ino !== opened.ino || after.size !== opened.size || afterPath.dev !== opened.dev || afterPath.ino !== opened.ino || afterPath.size !== opened.size || bytes.byteLength !== opened.size || bytes.includes(0)) {
         return { kind: "invalid" };
       }
@@ -4006,16 +4006,16 @@ async function readSmallRegularFile(file2) {
   }
 }
 function containedBy(parent, child) {
-  const relative = path9.relative(parent, child);
-  return relative === "" || relative !== ".." && !relative.startsWith(`..${path9.sep}`) && !path9.isAbsolute(relative);
+  const relative = path6.relative(parent, child);
+  return relative === "" || relative !== ".." && !relative.startsWith(`..${path6.sep}`) && !path6.isAbsolute(relative);
 }
 async function canonicalSafeDirectory(candidate) {
   try {
-    const before = await fs6.lstat(candidate);
+    const before = await fs4.lstat(candidate);
     if (before.isSymbolicLink() || !before.isDirectory()) return null;
-    await fs6.access(candidate, constants.R_OK | constants.X_OK);
-    const canonical = await fs6.realpath(candidate);
-    const after = await fs6.lstat(candidate);
+    await fs4.access(candidate, constants.R_OK | constants.X_OK);
+    const canonical = await fs4.realpath(candidate);
+    const after = await fs4.lstat(candidate);
     if (after.isSymbolicLink() || !after.isDirectory() || after.dev !== before.dev || after.ino !== before.ino) {
       return null;
     }
@@ -4032,24 +4032,24 @@ function gitIdentity(checkoutRoot, state, repositoryRoot = checkoutRoot) {
   };
 }
 async function resolveGitWorkspaceIdentity(startDir) {
-  const requested = path9.resolve(startDir);
+  const requested = path6.resolve(startDir);
   let canonicalStart;
   try {
-    canonicalStart = await fs6.realpath(requested);
-    const startEntry = await fs6.stat(canonicalStart);
+    canonicalStart = await fs4.realpath(requested);
+    const startEntry = await fs4.stat(canonicalStart);
     if (!startEntry.isDirectory()) return gitIdentity(canonicalStart, "unknown");
   } catch {
     return gitIdentity(requested, "unknown");
   }
   let dir = canonicalStart;
   for (let i = 0; i < 64; i++) {
-    const gitEntry = path9.join(dir, ".git");
+    const gitEntry = path6.join(dir, ".git");
     let entry;
     try {
-      entry = await fs6.lstat(gitEntry);
+      entry = await fs4.lstat(gitEntry);
     } catch (error40) {
       if (!isFileNotFound(error40)) return gitIdentity(dir, "unknown");
-      const parent = path9.dirname(dir);
+      const parent = path6.dirname(dir);
       if (parent === dir) return gitIdentity(canonicalStart, "none");
       dir = parent;
       continue;
@@ -4070,16 +4070,16 @@ async function resolveGitWorkspaceIdentity(startDir) {
     if (!pointerValue) return gitIdentity(checkoutRoot, "unknown");
     let gitDirCandidate;
     try {
-      gitDirCandidate = path9.isAbsolute(pointerValue) ? pointerValue : path9.resolve(checkoutRoot, pointerValue);
+      gitDirCandidate = path6.isAbsolute(pointerValue) ? pointerValue : path6.resolve(checkoutRoot, pointerValue);
     } catch {
       return gitIdentity(checkoutRoot, "unknown");
     }
     const gitDir = await canonicalSafeDirectory(gitDirCandidate);
     if (!gitDir) return gitIdentity(checkoutRoot, "unknown");
-    const commonRead = await readSmallRegularFile(path9.join(gitDir, "commondir"));
+    const commonRead = await readSmallRegularFile(path6.join(gitDir, "commondir"));
     if (commonRead.kind === "missing") {
-      const gitDirParent = path9.dirname(gitDir);
-      const looksLikeWorktreeAdmin = path9.basename(gitDirParent) === "worktrees" && path9.basename(path9.dirname(gitDirParent)) === ".git";
+      const gitDirParent = path6.dirname(gitDir);
+      const looksLikeWorktreeAdmin = path6.basename(gitDirParent) === "worktrees" && path6.basename(path6.dirname(gitDirParent)) === ".git";
       if (looksLikeWorktreeAdmin) return gitIdentity(checkoutRoot, "unknown");
       return gitIdentity(checkoutRoot, "main");
     }
@@ -4091,22 +4091,22 @@ async function resolveGitWorkspaceIdentity(startDir) {
     if (!commonValue) return gitIdentity(checkoutRoot, "unknown");
     let commonCandidate;
     try {
-      commonCandidate = path9.isAbsolute(commonValue) ? commonValue : path9.resolve(gitDir, commonValue);
+      commonCandidate = path6.isAbsolute(commonValue) ? commonValue : path6.resolve(gitDir, commonValue);
     } catch {
       return gitIdentity(checkoutRoot, "unknown");
     }
     const commonDir = await canonicalSafeDirectory(commonCandidate);
     if (!commonDir) return gitIdentity(checkoutRoot, "unknown");
-    const worktreesDir = path9.join(commonDir, "worktrees");
-    if (path9.basename(commonDir) !== ".git" || gitDir === worktreesDir || !containedBy(worktreesDir, gitDir)) {
+    const worktreesDir = path6.join(commonDir, "worktrees");
+    if (path6.basename(commonDir) !== ".git" || gitDir === worktreesDir || !containedBy(worktreesDir, gitDir)) {
       return gitIdentity(checkoutRoot, "unknown");
     }
-    const repositoryRoot = path9.dirname(commonDir);
-    const repositoryGitDir = await canonicalSafeDirectory(path9.join(repositoryRoot, ".git"));
+    const repositoryRoot = path6.dirname(commonDir);
+    const repositoryGitDir = await canonicalSafeDirectory(path6.join(repositoryRoot, ".git"));
     if (!repositoryGitDir || repositoryGitDir !== commonDir) {
       return gitIdentity(checkoutRoot, "unknown");
     }
-    const reverseRead = await readSmallRegularFile(path9.join(gitDir, "gitdir"));
+    const reverseRead = await readSmallRegularFile(path6.join(gitDir, "gitdir"));
     if (reverseRead.kind !== "ok" || reverseRead.value.includes("\0")) {
       return gitIdentity(checkoutRoot, "unknown");
     }
@@ -4114,10 +4114,10 @@ async function resolveGitWorkspaceIdentity(startDir) {
     const reverseValue = reverseMatch?.[1];
     if (!reverseValue) return gitIdentity(checkoutRoot, "unknown");
     try {
-      const reverseCandidate = path9.isAbsolute(reverseValue) ? reverseValue : path9.resolve(gitDir, reverseValue);
+      const reverseCandidate = path6.isAbsolute(reverseValue) ? reverseValue : path6.resolve(gitDir, reverseValue);
       const [reverseTarget, checkoutGitFile] = await Promise.all([
-        fs6.realpath(reverseCandidate),
-        fs6.realpath(gitEntry)
+        fs4.realpath(reverseCandidate),
+        fs4.realpath(gitEntry)
       ]);
       if (reverseTarget !== checkoutGitFile) return gitIdentity(checkoutRoot, "unknown");
     } catch {
@@ -4132,7 +4132,7 @@ async function findWorkspaceBinding(startDir) {
   const gitIdentity2 = await resolveGitWorkspaceIdentity(startDir);
   if (gitIdentity2.state !== "worktree") return direct;
   if (direct) {
-    const bindingRoot = await fs6.realpath(direct.workspaceRoot).catch(() => path9.resolve(direct.workspaceRoot));
+    const bindingRoot = await fs4.realpath(direct.workspaceRoot).catch(() => path6.resolve(direct.workspaceRoot));
     if (containedBy(gitIdentity2.checkout_root, bindingRoot)) return direct;
   }
   return walkForWorkspaceBinding(gitIdentity2.repository_root);
@@ -4141,26 +4141,26 @@ async function writeWorkspaceBinding(workspaceRoot, binding) {
   if (typeof binding.account_id !== "string" || binding.account_id.length === 0) {
     throw new Error("Workspace binding account_id is required.");
   }
-  const root = await fs6.realpath(path9.resolve(workspaceRoot));
-  const rootEntry = await fs6.stat(root);
+  const root = await fs4.realpath(path6.resolve(workspaceRoot));
+  const rootEntry = await fs4.stat(root);
   if (!rootEntry.isDirectory()) throw new Error("Workspace root must be a directory.");
-  const dir = path9.join(root, WORKSPACE_DIR_NAME);
+  const dir = path6.join(root, WORKSPACE_DIR_NAME);
   try {
-    const entry = await fs6.lstat(dir);
+    const entry = await fs4.lstat(dir);
     if (!entry.isDirectory() || entry.isSymbolicLink()) {
       throw new Error(`Refusing an unsafe Memlin workspace directory at ${dir}`);
     }
   } catch (error40) {
     if (!isFileNotFound(error40)) throw error40;
-    await fs6.mkdir(dir, { mode: 448, recursive: true });
-    const entry = await fs6.lstat(dir);
+    await fs4.mkdir(dir, { mode: 448, recursive: true });
+    const entry = await fs4.lstat(dir);
     if (!entry.isDirectory() || entry.isSymbolicLink()) {
       throw new Error(`Refusing an unsafe Memlin workspace directory at ${dir}`);
     }
   }
-  const file2 = path9.join(dir, WORKSPACE_BINDING_FILE);
+  const file2 = path6.join(dir, WORKSPACE_BINDING_FILE);
   try {
-    const existing = await fs6.lstat(file2);
+    const existing = await fs4.lstat(file2);
     if (!existing.isFile() || existing.isSymbolicLink()) {
       throw new Error(`Refusing to replace an unsafe workspace binding at ${file2}`);
     }
@@ -4176,16 +4176,16 @@ async function writeWorkspaceBinding(workspaceRoot, binding) {
     null,
     2
   );
-  const temporary = path9.join(dir, `.config.${randomUUID3()}.tmp`);
+  const temporary = path6.join(dir, `.config.${randomUUID2()}.tmp`);
   let handle;
   try {
-    handle = await fs6.open(temporary, "wx", 384);
+    handle = await fs4.open(temporary, "wx", 384);
     await handle.writeFile(body + "\n", "utf8");
     await handle.sync();
     await handle.close();
     handle = void 0;
     await atomicRename(temporary, file2);
-    const installed = await fs6.lstat(file2);
+    const installed = await fs4.lstat(file2);
     if (!installed.isFile() || installed.isSymbolicLink()) {
       throw new Error(`Workspace binding verification failed at ${file2}`);
     }
@@ -4193,16 +4193,16 @@ async function writeWorkspaceBinding(workspaceRoot, binding) {
     return file2;
   } finally {
     await handle?.close().catch(() => void 0);
-    await fs6.unlink(temporary).catch(() => void 0);
+    await fs4.unlink(temporary).catch(() => void 0);
   }
 }
 async function clearWorkspaceBinding(workspaceRoot) {
-  const root = await fs6.realpath(path9.resolve(workspaceRoot));
-  const rootEntry = await fs6.stat(root);
+  const root = await fs4.realpath(path6.resolve(workspaceRoot));
+  const rootEntry = await fs4.stat(root);
   if (!rootEntry.isDirectory()) throw new Error("Workspace root must be a directory.");
-  const dir = path9.join(root, WORKSPACE_DIR_NAME);
+  const dir = path6.join(root, WORKSPACE_DIR_NAME);
   try {
-    const entry = await fs6.lstat(dir);
+    const entry = await fs4.lstat(dir);
     if (!entry.isDirectory() || entry.isSymbolicLink()) {
       throw new Error(`Refusing an unsafe Memlin workspace directory at ${dir}`);
     }
@@ -4210,13 +4210,13 @@ async function clearWorkspaceBinding(workspaceRoot) {
     if (isFileNotFound(error40)) return false;
     throw error40;
   }
-  const file2 = path9.join(dir, WORKSPACE_BINDING_FILE);
+  const file2 = path6.join(dir, WORKSPACE_BINDING_FILE);
   try {
-    const entry = await fs6.lstat(file2);
+    const entry = await fs4.lstat(file2);
     if (!entry.isFile() || entry.isSymbolicLink()) {
       throw new Error(`Refusing to remove an unsafe workspace binding at ${file2}`);
     }
-    await fs6.unlink(file2);
+    await fs4.unlink(file2);
     await clearAllAuthRefusals();
     return true;
   } catch (error40) {
@@ -4239,649 +4239,11 @@ var init_workspace_binding = __esm({
   }
 });
 
-// apps/codex-plugin/src/hooks/user-prompt-submit.ts
-import { promises as fs8 } from "node:fs";
-import { randomUUID as randomUUID5 } from "node:crypto";
-import os10 from "node:os";
-import path11 from "node:path";
-import { fileURLToPath as fileURLToPath2 } from "node:url";
-
-// packages/plugin-core/dist/plugin-runtime.js
-init_companion_client();
-import { createHash, randomUUID } from "node:crypto";
-var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
-var VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
-var HOSTS = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
-function ownVersion() {
-  const version2 = "0.2.68";
-  return typeof version2 === "string" && VERSION.test(version2) ? version2 : null;
-}
-async function reportPluginRuntime(report) {
-  try {
-    return (await companionRequest("runtime.report", report, {
-      timeoutMs: PLUGIN_RUNTIME_TIMEOUT_MS
-    }))?.accepted === true;
-  } catch {
-    return false;
-  }
-}
-function reportPluginHookActivity(host, input, cwd) {
-  const version2 = ownVersion();
-  if (!version2 || !HOSTS.has(host) || !cwd || !input || typeof input !== "object" || Array.isArray(input))
-    return;
-  const payload = input;
-  const session = payload.session_id ?? payload.conversation_id ?? payload.conversationId;
-  if (typeof session !== "string" || session.length === 0 || session.length > 256) return;
-  const instance = createHash("sha256").update(JSON.stringify([host, cwd, session, version2])).digest("hex");
-  void reportPluginRuntime({
-    host,
-    plugin_version: version2,
-    instance_id: instance,
-    source: "hook",
-    event: payload.hook_event_name === "sessionEnd" ? "end" : "activity"
-  });
-}
-
-// apps/codex-plugin/src/hook-io.ts
-function readHookInput() {
-  return new Promise((resolve) => {
-    let data = "";
-    let settled = false;
-    const done = () => {
-      if (settled) return;
-      settled = true;
-      try {
-        const input = data.trim() ? JSON.parse(data) : null;
-        const cwd = input?.cwd;
-        reportPluginHookActivity(
-          "codex",
-          input,
-          typeof cwd === "string" && cwd.trim() ? cwd : process.cwd()
-        );
-        resolve(input);
-      } catch {
-        resolve(null);
-      }
-    };
-    const timer = setTimeout(done, 1e3);
-    process.stdin.setEncoding("utf8");
-    process.stdin.on("data", (chunk) => {
-      data += chunk;
-    });
-    process.stdin.on("end", () => {
-      clearTimeout(timer);
-      done();
-    });
-    process.stdin.on("error", () => {
-      clearTimeout(timer);
-      done();
-    });
-  });
-}
-
-// packages/plugin-core/dist/state.js
-init_atomic_rename();
-import { promises as fs2 } from "node:fs";
-import path3 from "node:path";
-import os2 from "node:os";
-import crypto2 from "node:crypto";
-var STATE_FILE = path3.join(os2.homedir(), ".config", "memlin", "state.json");
-var MAX_LAST_RESOLVE_SESSIONS = 32;
-var EMPTY = { documents: {} };
-async function readState() {
-  try {
-    const raw = await fs2.readFile(STATE_FILE, "utf8");
-    return JSON.parse(raw);
-  } catch {
-    return { ...EMPTY };
-  }
-}
-async function writeState(state) {
-  await fs2.mkdir(path3.dirname(STATE_FILE), { recursive: true });
-  const tmp = `${STATE_FILE}.${process.pid}.tmp`;
-  await fs2.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
-  await atomicRename(tmp, STATE_FILE);
-}
-var LOCK_DIR = `${STATE_FILE}.lock`;
-var LOCK_STALE_MS = 2e3;
-var LOCK_WAIT_MS = 2e3;
-var LOCK_RETRY_MS = 50;
-async function acquireStateLock() {
-  const deadline = Date.now() + LOCK_WAIT_MS;
-  await fs2.mkdir(path3.dirname(LOCK_DIR), { recursive: true }).catch(() => {
-  });
-  for (; ; ) {
-    try {
-      await fs2.mkdir(LOCK_DIR);
-      return true;
-    } catch {
-      try {
-        const stat = await fs2.stat(LOCK_DIR);
-        if (Date.now() - stat.mtimeMs > LOCK_STALE_MS) {
-          await fs2.rmdir(LOCK_DIR).catch(() => {
-          });
-          continue;
-        }
-      } catch {
-        continue;
-      }
-      if (Date.now() >= deadline) return false;
-      await new Promise((r) => setTimeout(r, LOCK_RETRY_MS));
-    }
-  }
-}
-async function releaseStateLock() {
-  await fs2.rmdir(LOCK_DIR).catch(() => {
-  });
-}
-async function updateState(mutate) {
-  const locked = await acquireStateLock();
-  try {
-    const state = await readState();
-    await mutate(state);
-    await writeState(state);
-    return state;
-  } finally {
-    if (locked) await releaseStateLock();
-  }
-}
-function getLastResolveForSession(state, sessionId) {
-  if (sessionId) {
-    return state.last_resolves?.[sessionId] ?? (state.last_resolve?.session_id === sessionId ? state.last_resolve : void 0);
-  }
-  return state.last_resolve?.session_id ? void 0 : state.last_resolve;
-}
-function cacheLastResolve(state, entry) {
-  state.last_resolve = entry;
-  if (!entry.session_id) return;
-  state.last_resolves ??= {};
-  state.last_resolves[entry.session_id] = entry;
-  const entries = Object.entries(state.last_resolves);
-  if (entries.length <= MAX_LAST_RESOLVE_SESSIONS) return;
-  entries.sort(([, a], [, b]) => b.resolved_at - a.resolved_at).slice(MAX_LAST_RESOLVE_SESSIONS).forEach(([sessionId]) => {
-    delete state.last_resolves?.[sessionId];
-  });
-}
-async function recordLastResolve(entry) {
-  try {
-    await updateState((state) => {
-      cacheLastResolve(state, entry);
-    });
-  } catch {
-  }
-}
-async function markLastResolveDelivered(input) {
-  if (!input.auditId) return;
-  try {
-    await updateState((state) => {
-      const entry = getLastResolveForSession(state, input.sessionId);
-      if (entry?.audit_id !== input.auditId || entry.host !== input.host || entry.cwd !== input.cwd) {
-        return;
-      }
-      entry.delivered = true;
-      if (state.last_resolve?.audit_id === input.auditId && state.last_resolve.session_id === entry.session_id) {
-        state.last_resolve.delivered = true;
-      }
-    });
-  } catch {
-  }
-}
-
-// packages/plugin-core/dist/deploy-broker.js
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import os3 from "node:os";
-import path4 from "node:path";
-function deployWaiterDir() {
-  const override = process.env.MEMLIN_DEPLOY_WAITER_DIR?.trim();
-  if (override) return override;
-  return path4.join(os3.homedir(), ".config", "memlin", "deploy-waiters");
-}
-function waiterPath(sessionId) {
-  const safe = sessionId.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 180);
-  return path4.join(deployWaiterDir(), `${safe}.json`);
-}
-function clearLocalDeployWaiter(sessionId) {
-  try {
-    unlinkSync(waiterPath(sessionId));
-  } catch {
-  }
-}
-function readLocalDeployWaiter(sessionId) {
-  try {
-    const raw = readFileSync(waiterPath(sessionId), "utf8");
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed.session_id !== "string") return null;
-    if (parsed.session_id !== sessionId) return null;
-    if (parsed.status !== "waiting" && parsed.status !== "ready") return null;
-    const expiresAt = parsed.expires_at ? new Date(parsed.expires_at).getTime() : new Date(parsed.queued_at).getTime() + 60 * 60 * 1e3;
-    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
-      clearLocalDeployWaiter(sessionId);
-      return null;
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-function hasPendingDeployWaiter(sessionId) {
-  if (!sessionId) return false;
-  if (!existsSync(waiterPath(sessionId))) return false;
-  return readLocalDeployWaiter(sessionId) != null;
-}
-
-// packages/plugin-core/dist/continuity.js
-var CONTINUITY_WINDOW_MS = 10 * 60 * 1e3;
-function bundleHasContinuityContent(bundle) {
-  const claims = bundle.claim_guardrails;
-  return Boolean(bundle.primary_skill) || bundle.supporting_skills.length > 0 || bundle.memory.length > 0 || bundle.goals.length > 0 || bundle.schemas.length > 0 || (bundle.decisions?.length ?? 0) > 0 || (bundle.required_core?.length ?? 0) > 0 || (bundle.pinned?.length ?? 0) > 0 || (bundle.session_working?.length ?? 0) > 0 || (bundle.open_threads?.length ?? 0) > 0 || (bundle.pack_context?.length ?? 0) > 0 || (claims?.approved.length ?? 0) > 0 || (claims?.blocked.length ?? 0) > 0 || (claims?.competitor_facts.length ?? 0) > 0;
-}
-var CONTINUATION_PATTERNS = [
-  /^\s*(and|also|then|now|next|plus|but|or|so)\b(?=\s+\S)/i,
-  /^\s*(what about|how about|tell me more|go on|continue|keep going)\b/i,
-  /^\s*(explain|show me|expand|elaborate)\s+(that|this|it|the|more)\b/i,
-  /^\s*(yes|yeah|yep|ok|okay|sure|right|sounds good)[,;:]?\s+(now|and|so|continue|keep|do|ship|merge|apply|proceed)\b/i,
-  /^\s*(can you|could you)\s+(also|now|then|continue|elaborate)\b/i,
-  /^\s*(can|could|would|will)\s+you\s+(please\s+)?(do|fix|change|update|ship|merge|apply|open|show|explain|retry|run|test)\s+(it|that|this|them|those|these)\b/i,
-  /^\s*(do|fix|change|update|ship|merge|apply|open|show|explain|expand|remove|delete|revert|retry|run|test|review|check)\s+(it|that|this|them|those|these|the same)\b/i,
-  /^\s*(go ahead|please do|do it|ship it|merge it|apply it|try again|same (for|with)|one more time)\b/i,
-  /^\s*(why|how|how so|where|when|what next|which one|show me|more)\s*[?.!]*$/i,
-  /^\s*(the (first|second|third|last|other) one|option\s+(one|two|three|[1-3]))\s*[?.!]*$/i,
-  /^\s*(actually|instead|rather|to clarify|i mean|correction:)\b/i,
-  /^\s*(here(?:'s| is) (the|that|it|what)|here you go)\b/i,
-  /\b(the one|that|those|these)\b.*\?$/i
-];
-var IGNORABLE_PROMPT_PATTERNS = [
-  /^\s*(hi|hey|hello|yo|sup|thanks?|thx|ty|ok|okay|cool|nice|got it|sounds good)[!.\s]*$/i,
-  /^\s*(yes|no|yep|nope|sure|maybe|idk)[!.\s]*$/i,
-  /^\s*\/[a-z-]+(?:\s|$)/i,
-  // slash commands are handled by the host/agent
-  /^\s*[<>][a-z]/i
-  // partial host tags / XML envelopes
-];
-function isIgnorablePrompt(prompt) {
-  const trimmed = prompt.trim();
-  if (!trimmed) return true;
-  return IGNORABLE_PROMPT_PATTERNS.some((re) => re.test(trimmed));
-}
-function isContinuation(prompt, cwd, host, last, sessionId) {
-  if (last.host !== host) return false;
-  if ((sessionId ?? null) !== (last.session_id ?? null)) return false;
-  if (last.delivered === false) return false;
-  if (last.cwd !== cwd) return false;
-  if (Date.now() - last.resolved_at > CONTINUITY_WINDOW_MS) return false;
-  if (!last.had_content) return false;
-  const trimmed = prompt.trim();
-  for (const re of CONTINUATION_PATTERNS) {
-    if (re.test(trimmed)) return true;
-  }
-  return false;
-}
-function continuationForPrompt(state, prompt, cwd, host, sessionId) {
-  if (hasPendingDeployWaiter(sessionId)) return null;
-  const last = getLastResolveForSession(state, sessionId);
-  return last && isContinuation(prompt, cwd, host, last, sessionId) ? last : null;
-}
-function buildContinuityMarker(auditId) {
-  return [
-    "<memlin-context-unchanged>",
-    `# This turn is a follow-up to the prior turn. The same Memlin context applies.`,
-    `# Refer to the bundle injected on the previous turn (audit_id: ${auditId}).`,
-    "# Do not invoke memlin_resolve_task automatically for this follow-up.",
-    "</memlin-context-unchanged>"
-  ].join("\n");
-}
-
-// packages/plugin-core/dist/pending-bundle.js
-init_atomic_rename();
-import { spawn } from "node:child_process";
-import crypto3 from "node:crypto";
-import { promises as fs3 } from "node:fs";
-import path5 from "node:path";
-import os4 from "node:os";
-var PENDING_BUNDLE_MAX_AGE_MS = 10 * 60 * 1e3;
-function pendingBundlePath() {
-  return process.env.MEMLIN_RESOLVE_OUT ?? path5.join(os4.homedir(), ".config", "memlin", "pending-bundle.json");
-}
-var PENDING_BUNDLE_DIR = "pending-bundles";
-function pendingBundleSpoolDir() {
-  return process.env.MEMLIN_PENDING_BUNDLE_DIR ?? path5.join(os4.homedir(), ".config", "memlin", PENDING_BUNDLE_DIR);
-}
-function pendingBundleKey(cwd, host, sessionId, task) {
-  return crypto3.createHash("sha256").update(JSON.stringify([cwd, host, sessionId ?? null, task])).digest("hex");
-}
-function canonicalPendingBundlePathFor(cwd, host, sessionId, task) {
-  return path5.join(pendingBundleSpoolDir(), `${pendingBundleKey(cwd, host, sessionId, task)}.json`);
-}
-function pendingBundleTurnIndexPath(cwd, host, sessionId) {
-  const key = crypto3.createHash("sha256").update(JSON.stringify([cwd, host, sessionId ?? null])).digest("hex");
-  return path5.join(pendingBundleSpoolDir(), `turn-${key}.json`);
-}
-function pendingBundlePathFor(cwd, host, sessionId, task) {
-  return process.env.MEMLIN_RESOLVE_OUT ?? canonicalPendingBundlePathFor(cwd, host, sessionId, task);
-}
-async function takePendingBundle(cwd, host, match) {
-  const explicitFile = process.env.MEMLIN_RESOLVE_OUT;
-  const spoolDir = pendingBundleSpoolDir();
-  let files;
-  if (explicitFile) {
-    files = [explicitFile];
-  } else if (match?.task !== void 0) {
-    files = [pendingBundlePathFor(cwd, host, match.sessionId ?? null, match.task)];
-  } else {
-    const indexFile = pendingBundleTurnIndexPath(cwd, host, match?.sessionId ?? null);
-    try {
-      const parsed = JSON.parse(await fs3.readFile(indexFile, "utf8"));
-      files = /^[a-f0-9]{64}\.json$/.test(parsed.file ?? "") ? [path5.join(spoolDir, parsed.file)] : [];
-    } catch {
-      files = [];
-    }
-    files.push(pendingBundlePath());
-  }
-  const matches = [];
-  for (const file2 of [...new Set(files)]) {
-    let bundle;
-    try {
-      await fs3.chmod(file2, 384).catch(() => {
-      });
-      bundle = JSON.parse(await fs3.readFile(file2, "utf8"));
-    } catch {
-      continue;
-    }
-    if (typeof bundle !== "object" || bundle === null || typeof bundle.rendered !== "string" || bundle.rendered.length === 0 || typeof bundle.completed_at !== "number") {
-      await fs3.rm(file2, { force: true }).catch(() => {
-      });
-      continue;
-    }
-    if (Date.now() - bundle.completed_at > PENDING_BUNDLE_MAX_AGE_MS) {
-      await fs3.rm(file2, { force: true }).catch(() => {
-      });
-      continue;
-    }
-    if (bundle.cwd !== cwd || bundle.host !== host) continue;
-    if ((bundle.session_id ?? null) !== (match?.sessionId ?? null)) {
-      continue;
-    }
-    if (match?.task !== void 0 && bundle.task !== match.task) continue;
-    matches.push({ file: file2, bundle });
-  }
-  matches.sort((a, b) => b.bundle.completed_at - a.bundle.completed_at);
-  const selected = matches[0];
-  if (!selected) return null;
-  const claimed = `${selected.file}.${process.pid}.${Date.now()}.claim`;
-  try {
-    await fs3.rename(selected.file, claimed);
-    await fs3.chmod(claimed, 384).catch(() => {
-    });
-  } catch {
-    return null;
-  }
-  if (!explicitFile) {
-    const indexFile = pendingBundleTurnIndexPath(cwd, host, match?.sessionId ?? null);
-    try {
-      const pointer = JSON.parse(await fs3.readFile(indexFile, "utf8"));
-      if (pointer.file === path5.basename(selected.file)) {
-        await fs3.rm(indexFile, { force: true });
-      }
-    } catch {
-    }
-  }
-  if (match?.task === void 0) {
-    await Promise.all(
-      matches.slice(1).map(({ file: file2 }) => fs3.rm(file2, { force: true }).catch(() => void 0))
-    );
-  }
-  await fs3.rm(claimed, { force: true }).catch(() => {
-  });
-  return selected.bundle;
-}
-var DEFAULT_RESOLVE_BUDGET_MS = 6e3;
-function resolveBudgetMs(defaultMs = DEFAULT_RESOLVE_BUDGET_MS) {
-  const v = Number(process.env.MEMLIN_RESOLVE_BUDGET_MS);
-  const fallback = Number.isFinite(defaultMs) && defaultMs >= 1e3 ? Math.floor(defaultMs) : DEFAULT_RESOLVE_BUDGET_MS;
-  return Number.isFinite(v) && v >= 1e3 ? Math.floor(v) : fallback;
-}
-function runResolveWithBudget(opts) {
-  const budget = opts.budgetMs ?? resolveBudgetMs();
-  const outputFile = pendingBundlePathFor(opts.cwd, opts.host, opts.sessionId ?? null, opts.task);
-  return new Promise((resolve) => {
-    let child;
-    try {
-      child = spawn(process.execPath, [opts.resolveBin, opts.task], {
-        windowsHide: true,
-        cwd: opts.cwd,
-        env: {
-          ...process.env,
-          MEMLIN_HOST: opts.host,
-          // Handoff contract with cli/resolve.ts: write the compiled bundle
-          // to this file (atomic), and report a resolve.delivery telemetry
-          // row when the deadline was missed.
-          MEMLIN_RESOLVE_OUT: outputFile,
-          MEMLIN_RESOLVE_DEADLINE_MS: String(budget),
-          // Forward the agent's session id so the resolve's usage_event is
-          // attributable to this session (concurrent-work awareness).
-          ...opts.sessionId ? { MEMLIN_SESSION_ID: opts.sessionId } : {},
-          ...opts.turnId ? { MEMLIN_TURN_ID: opts.turnId } : {}
-        },
-        // Detached + no shared stdio: when the caller stops waiting, the
-        // child owns its own lifetime and finishes in the background.
-        detached: true,
-        stdio: "ignore"
-      });
-    } catch {
-      resolve({ bundle: null, stillRunning: false });
-      return;
-    }
-    let settled = false;
-    let claimInFlight = null;
-    const claimBundle = () => {
-      if (claimInFlight) return claimInFlight;
-      claimInFlight = takePendingBundle(opts.cwd, opts.host, {
-        sessionId: opts.sessionId ?? null,
-        task: opts.task
-      }).finally(() => {
-        claimInFlight = null;
-      });
-      return claimInFlight;
-    };
-    const settleFromBundle = async () => {
-      const bundle = await claimBundle();
-      if (!bundle || settled) return false;
-      settled = true;
-      clearTimeout(timer);
-      clearInterval(bundlePoll);
-      child.unref();
-      resolve({ bundle, stillRunning: false });
-      return true;
-    };
-    const timer = setTimeout(() => {
-      if (settled) return;
-      clearInterval(bundlePoll);
-      void claimBundle().then((bundle) => {
-        if (settled) return;
-        settled = true;
-        child.unref();
-        resolve(bundle ? { bundle, stillRunning: false } : { bundle: null, stillRunning: true });
-      });
-    }, budget);
-    const bundlePoll = setInterval(() => {
-      if (!settled) void settleFromBundle();
-    }, 40);
-    child.on("exit", () => {
-      if (settled) return;
-      void settleFromBundle().then((found) => {
-        if (found || settled) return;
-        settled = true;
-        clearTimeout(timer);
-        clearInterval(bundlePoll);
-        resolve({ bundle: null, stillRunning: false });
-      });
-    });
-    child.on("error", () => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      clearInterval(bundlePoll);
-      resolve({ bundle: null, stillRunning: false });
-    });
-  });
-}
-function buildLateDeliveryEnvelope(bundle, opts = {}) {
-  return [
-    "<memlin-late-context>",
-    "# Memlin context resolved for the PREVIOUS prompt \u2014 it finished after that",
-    `# turn's delivery deadline. It is not fresh context for the current prompt.`,
-    ...bundle.stale ? [
-      `# ADDITIONALLY: the backend was unreachable (${bundle.stale.reason}) \u2014 this is a STALE`,
-      "# fallback bundle, not a live resolve. Weigh it accordingly."
-    ] : [],
-    opts.currentResolvePending ? "# Treat as background context. The current prompt resolve is already in flight; do not invoke memlin_resolve_task again." : "# Treat as background context; invoke memlin_resolve_task if this turn needs fresh context.",
-    "",
-    bundle.rendered,
-    "</memlin-late-context>"
-  ].join("\n");
-}
-function buildPendingContextEnvelope() {
-  return [
-    "<memlin-context-pending>",
-    "# Memlin is still resolving context for THIS prompt in the background.",
-    "# Codex will inject full enrichment at the next safe point; if this turn ends first,",
-    "# the persisted result remains available to the next invocation.",
-    "# Do not invoke memlin_resolve_task for this message; that would duplicate the same resolve.",
-    "</memlin-context-pending>"
-  ].join("\n");
-}
-function buildProgressiveDeliveryEnvelope(phase, rendered, hookResolveRef, semanticStatus = "pending") {
-  const phaseLine = phase === "hot" ? semanticStatus === "failed" ? "# FAST ONLY: honor required/pinned context; semantic enrichment failed." : "# FAST: honor required/pinned context; semantic enrichment follows." : "# ENRICHMENT: documents delivered in FAST are omitted.";
-  return [
-    `<memlin-resolved-context phase="${phase}">`,
-    phaseLine,
-    "# Canonical for this turn; do not call memlin_resolve_task again.",
-    ...hookResolveRef ? [`<!-- memlin-resolve-ref: ${hookResolveRef} -->`] : [],
-    "",
-    rendered.trim(),
-    "</memlin-resolved-context>"
-  ].join("\n");
-}
-function buildResolveFailedEnvelope(failure) {
-  const detail = failure?.message?.replace(/\s+/g, " ").slice(0, 180);
-  return [
-    "<memlin-context-pending>",
-    "# Memlin could not complete this turn\u2019s context resolve.",
-    ...detail ? [`# ${detail}`] : [],
-    failure?.retryable ? "# The operation may be retried on a later turn; do not duplicate it through MCP now." : "# The operation was rejected deterministically; do not duplicate it through MCP.",
-    "</memlin-context-pending>"
-  ].join("\n");
-}
-function boundAdditionalContextForHook(additionalContext, options2) {
-  const outputBytes = Buffer.byteLength(additionalContext, "utf8");
-  if (outputBytes <= options2.maxBytes) {
-    return { context: additionalContext, capped: false, outputBytes };
-  }
-  const context = buildResolveFailedEnvelope({
-    message: `Memlin ${options2.label} context exceeded the safe hook envelope; its required content was not delivered.`,
-    retryable: true
-  });
-  const degradedBytes = Buffer.byteLength(context, "utf8");
-  if (degradedBytes > options2.maxBytes) {
-    throw new Error("degraded hook marker exceeds its UTF-8 byte budget");
-  }
-  return { context, capped: true, outputBytes: degradedBytes };
-}
-function buildInlineDeliveryEnvelope(bundle) {
-  if (bundle.stale) {
-    return [
-      "<memlin-stale-context>",
-      `# Memlin backend unreachable (${bundle.stale.reason}) \u2014 this is the LAST SUCCESSFUL bundle`,
-      "# for this project, not a live resolve. Treat as possibly out of date; retry",
-      "# memlin_resolve_task later for fresh context. Memory writes are unavailable.",
-      "",
-      bundle.rendered,
-      "</memlin-stale-context>"
-    ].join("\n");
-  }
-  return [
-    "<memlin-resolved-context>",
-    "# Auto-resolved by Memlin \u2014 authoritative project context. Apply skills; honor",
-    "# approved goals and required/pinned decisions/directives; use other decisions as cited",
-    "# context; validate schemas; cite sources; do not re-invoke memlin_resolve_task.",
-    "",
-    bundle.rendered,
-    "</memlin-resolved-context>"
-  ].join("\n");
-}
-
-// packages/plugin-core/dist/scribe-notice.js
-function count(value) {
-  return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
-}
-function buildScribeNotice(capturedValue, pendingValue) {
-  const captured = count(capturedValue);
-  if (captured === 0) return "";
-  const pending = Math.min(captured, count(pendingValue ?? captured));
-  const handled = captured - pending;
-  const proposalLabel = captured === 1 ? "proposal" : "proposals";
-  const reviewLabel = pending === 1 ? "needs" : "need";
-  let status;
-  if (pending === 0) {
-    status = `Memlin auto-captured ${captured} new ${proposalLabel} and handled ${captured === 1 ? "it" : "them"} automatically; no inbox review is needed for this batch.`;
-  } else if (handled === 0) {
-    status = `Memlin auto-captured ${captured} new ${proposalLabel}; ${pending} ${reviewLabel} review with /memlin-inbox.`;
-  } else {
-    status = `Memlin auto-captured ${captured} new ${proposalLabel}; ${handled} handled automatically and ${pending} ${reviewLabel} review with /memlin-inbox.`;
-  }
-  return [
-    "<memlin-notice>",
-    "# Status line for the user \u2014 surface it, do not act on it.",
-    status,
-    "</memlin-notice>",
-    ""
-  ].join("\n");
-}
-async function takeScribeNotice(currentSessionId) {
-  let state;
-  try {
-    state = await readState();
-  } catch {
-    return "";
-  }
-  const notice = state.scribe_notice;
-  const n = notice?.unsurfaced ?? 0;
-  if (n <= 0) return "";
-  try {
-    delete state.scribe_notice;
-    await writeState(state);
-  } catch {
-  }
-  if (currentSessionId && notice?.session_id && notice.session_id !== currentSessionId) {
-    return "";
-  }
-  return buildScribeNotice(n, notice?.pending);
-}
-async function takeCorrectionNotice(currentSessionId) {
-  let state;
-  try {
-    state = await readState();
-  } catch {
-    return "";
-  }
-  const notice = state.correction_notice;
-  if (!notice || !notice.rule_title) return "";
-  try {
-    delete state.correction_notice;
-    await writeState(state);
-  } catch {
-  }
-  if (currentSessionId && notice.session_id && notice.session_id !== currentSessionId) {
-    return "";
-  }
-  return [
-    "<memlin-notice>",
-    "# Status line for the user \u2014 surface it, do not act on it.",
-    `\u26A1 Memlin captured a correction \u2192 rule: "${notice.rule_title}". It's active now; review or undo with /memlin-inbox.`,
-    "</memlin-notice>",
-    ""
-  ].join("\n");
-}
+// packages/plugin-core/dist/remote-session-hook.js
+import { promises as fs6 } from "node:fs";
+import os7 from "node:os";
+import path8 from "node:path";
+import { createHash, randomUUID as randomUUID4 } from "node:crypto";
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -5361,8 +4723,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path12, errorMaps, issueData } = params;
-  const fullPath = [...path12, ...issueData.path || []];
+  const { data, path: path13, errorMaps, issueData } = params;
+  const fullPath = [...path13, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -5478,11 +4840,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path12, key) {
+  constructor(parent, value, path13, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path12;
+    this._path = path13;
     this._key = key;
   }
   get path() {
@@ -9384,6 +8746,33 @@ for (const p of REDACTION_PATTERNS) {
 var SECRET_REDACTION_PATTERNS = REDACTION_PATTERNS.filter(
   (p) => !p.validate
 );
+var SECRET_REDACTION_MAX_PASSES = 64;
+function applyRedaction(input, builtIns, extraPatterns) {
+  if (!input) {
+    return { redacted: input, hits: [], changed: false };
+  }
+  const counts = /* @__PURE__ */ new Map();
+  const apply = (text, p) => {
+    p.regex.lastIndex = 0;
+    return text.replaceAll(p.regex, (match) => {
+      if (p.validate && !p.validate(match)) return match;
+      counts.set(p, (counts.get(p) ?? 0) + 1);
+      return `[REDACTED-${p.name}]`;
+    });
+  };
+  let out = input;
+  for (let pass = 0; pass < SECRET_REDACTION_MAX_PASSES; pass++) {
+    const before = out;
+    for (const p of builtIns) out = apply(out, p);
+    if (out === before) break;
+  }
+  for (const p of extraPatterns) out = apply(out, p);
+  const hits = [...builtIns, ...extraPatterns].filter((p) => counts.has(p)).map((p) => ({ name: p.name, count: counts.get(p) }));
+  return { redacted: out, hits, changed: hits.length > 0 };
+}
+function redactSecretShapes(input, extraPatterns = []) {
+  return applyRedaction(input, SECRET_REDACTION_PATTERNS, extraPatterns);
+}
 
 // packages/shared/dist/action-metadata.js
 var ActionNameSchema = external_exports.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9._-]*$/, {
@@ -9518,6 +8907,21 @@ var MODEL_PRICES = {
   // $3/$15 on the strength of the old launch announcement — that over-bills
   // every Sonnet 5 turn by 50%.
   "claude-sonnet-5": { inputUsdPerMTok: 2, outputUsdPerMTok: 10 },
+  // Opus 5.5 shipped after the 5 pair and is the current default Anthropic
+  // recommends "for most workloads" — which makes it a current Claude Code
+  // default too, and therefore a model that arrives in ingested telemetry
+  // whether or not this app ever requests it. Absent until 2026-09-22, it was
+  // the THIRD time an Opus tier priced as $0: Opus at all (fixed 2026-07-23),
+  // Opus 5 (2026-09-02), and this. The pattern is not "we forgot" — it is that
+  // a new tier is invisible here until someone checks the sheet against the
+  // pricing page, so re-verify on every model launch.
+  //
+  // It is also CHEAPER than the tier it replaces ($4/$20 against Opus 5's
+  // $5/$25) and reads cache at 0.05x rather than the standard 0.1x — the
+  // second entry in this sheet to need the override, and the reason the
+  // override is a field rather than a special case for the 5.1 pair.
+  // Verified 2026-09-22 against https://platform.claude.com/docs/en/about-claude/pricing.
+  "claude-opus-5-5": { inputUsdPerMTok: 4, outputUsdPerMTok: 20, cacheReadMultiplier: 0.05 },
   // Opus 5 was absent until 2026-09-02. The app never requests it, but
   // aggregateTurnTiming prices provider-reported models from ingested Claude
   // Code telemetry, where it is a current default — so every Opus 5 turn was
@@ -10035,19 +9439,19 @@ var ContextManifestV1Schema = external_exports.object({
       location: `linked_contexts.${index}`
     }))
   ];
-  references.forEach(({ ref, path: path12, location }) => {
+  references.forEach(({ ref, path: path13, location }) => {
     const identity = contextReferenceIdentityKey(ref);
     const prior = seen.get(identity);
     if (prior && prior.revision !== ref.revision) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path12,
+        path: path13,
         message: `context ${identity} has conflicting revisions in ${prior.location} and ${location}`
       });
     } else if (prior && location.startsWith("linked_contexts.")) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path12,
+        path: path13,
         message: `duplicate linked context ${identity}`
       });
     }
@@ -10361,11 +9765,11 @@ var ContextBundleV1Schema = external_exports.object({
         path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
       }))
     ];
-    for (const { ref, path: path12 } of references) {
+    for (const { ref, path: path13 } of references) {
       if (!contextKeys.has(contextReferenceKey(ref))) {
         ctx.addIssue({
           code: external_exports.ZodIssueCode.custom,
-          path: path12,
+          path: path13,
           message: "provider coverage is outside the exact manifest contexts"
         });
       }
@@ -12522,7 +11926,7 @@ var ExperienceHarnessRunControlV2Schema = external_exports.discriminatedUnion("a
 ]);
 
 // packages/shared/dist/light-provenance.js
-var HOSTS2 = new Set(LIGHT_HOSTS);
+var HOSTS = new Set(LIGHT_HOSTS);
 
 // packages/shared/dist/memory-decisions.js
 var DECISION_KINDS = {
@@ -12854,6 +12258,9 @@ var ThoughtHandoffReceiptV2Schema = external_exports.object({
   stale: external_exports.boolean(),
   replayed: external_exports.boolean().optional()
 }).passthrough();
+
+// packages/shared/dist/ops-watch.js
+var OPS_DIAGNOSE_SEV2_AFTER_MS = 15 * 6e4;
 
 // packages/shared/dist/entitlements.js
 var COORDINATION_SELF = [
@@ -13545,10 +12952,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path12) {
-  if (!path12)
+function getElementAtPath(obj, path13) {
+  if (!path13)
     return obj;
-  return path12.reduce((acc, key) => acc?.[key], obj);
+  return path13.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -13868,11 +13275,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path12, issues) {
+function prefixIssues(path13, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path12);
+    iss.path.unshift(path13);
     return iss;
   });
 }
@@ -14009,7 +13416,7 @@ function treeifyError(error40, _mapper) {
     return issue2.message;
   };
   const result = { errors: [] };
-  const processError = (error41, path12 = []) => {
+  const processError = (error41, path13 = []) => {
     var _a, _b;
     for (const issue2 of error41.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
@@ -14019,7 +13426,7 @@ function treeifyError(error40, _mapper) {
       } else if (issue2.code === "invalid_element") {
         processError({ issues: issue2.issues }, issue2.path);
       } else {
-        const fullpath = [...path12, ...issue2.path];
+        const fullpath = [...path13, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -14049,9 +13456,9 @@ function treeifyError(error40, _mapper) {
   processError(error40);
   return result;
 }
-function toDotPath(path12) {
+function toDotPath(path13) {
   const segs = [];
-  for (const seg of path12) {
+  for (const seg of path13) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -24709,10 +24116,10 @@ function validateFlowDefinitionSemantics(flow) {
       ],
       ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, path: `stages.${stageIndex}.bypass_target` }]
     ];
-    targets.forEach(({ target, path: path12 }) => {
+    targets.forEach(({ target, path: path13 }) => {
       if (!isReservedTarget(target) && !stageById.has(target)) {
         issues.push({
-          path: path12,
+          path: path13,
           code: "missing_transition_target",
           message: `transition target ${JSON.stringify(target)} does not exist`
         });
@@ -24742,7 +24149,7 @@ function validateFlowDefinitionSemantics(flow) {
   const visiting = /* @__PURE__ */ new Set();
   const visited = /* @__PURE__ */ new Set();
   let hasReachableEnd = false;
-  const visit = (stageId, path12, pathBounds) => {
+  const visit = (stageId, path13, pathBounds) => {
     reachable.add(stageId);
     if (visited.has(stageId)) return;
     visiting.add(stageId);
@@ -24758,7 +24165,7 @@ function validateFlowDefinitionSemantics(flow) {
         ...stage.default_transition === null ? [] : [{ target: stage.default_transition, bounded: false }],
         ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, bounded: false }]
       ];
-      const currentPath = [...path12, stageId];
+      const currentPath = [...path13, stageId];
       for (const edge of edges) {
         const { target } = edge;
         if (target === "$end") {
@@ -24866,18 +24273,18 @@ var FlowPackManifestBaseSchema = external_exports2.object({
   evals: external_exports2.array(ManifestEvalSchema).max(256),
   model_roles: external_exports2.array(ManifestModelRoleSchema).max(64)
 }).strict();
-function validateRelativePackPath(path12) {
-  if (path12.startsWith("/") || path12.startsWith("\\")) return "path must be relative";
-  if (/^[A-Za-z]:/.test(path12) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path12)) {
+function validateRelativePackPath(path13) {
+  if (path13.startsWith("/") || path13.startsWith("\\")) return "path must be relative";
+  if (/^[A-Za-z]:/.test(path13) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path13)) {
     return "drive-qualified paths and URI schemes are not allowed";
   }
-  if (/[\u0000-\u001f\u007f]/.test(path12)) return "control characters are not allowed";
-  if (/%(?:2e|2f|5c)/i.test(path12)) return "encoded path traversal is not allowed";
-  if (path12.includes("\\")) return "path must use forward slashes";
-  if (path12.split("/").some((segment) => segment === ".." || segment === ".")) {
+  if (/[\u0000-\u001f\u007f]/.test(path13)) return "control characters are not allowed";
+  if (/%(?:2e|2f|5c)/i.test(path13)) return "encoded path traversal is not allowed";
+  if (path13.includes("\\")) return "path must use forward slashes";
+  if (path13.split("/").some((segment) => segment === ".." || segment === ".")) {
     return "path traversal and dot segments are not allowed";
   }
-  if (path12.split("/").some((segment) => segment.length === 0)) {
+  if (path13.split("/").some((segment) => segment.length === 0)) {
     return "path cannot contain empty segments";
   }
   return null;
@@ -24924,22 +24331,22 @@ function validateFlowPackManifestSemantics(manifest) {
       issues
     );
     role.independence.compare_against_roles.forEach((comparedRole, comparedIndex) => {
-      const path12 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
+      const path13 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
       if (comparedRole === role.id) {
         issues.push({
-          path: path12,
+          path: path13,
           code: "self_referential_model_independence",
           message: "a model role cannot require independence from itself"
         });
       } else if (!modelRolesById.has(comparedRole)) {
         issues.push({
-          path: path12,
+          path: path13,
           code: "missing_independence_model_role",
           message: `independence policy references undeclared model role ${JSON.stringify(comparedRole)}`
         });
       } else if (modelRolesById.get(comparedRole)?.independence !== null) {
         issues.push({
-          path: path12,
+          path: path13,
           code: "independence_reference_not_author",
           message: `independence policy must compare against an author role; ${JSON.stringify(comparedRole)} declares its own independence policy`
         });
@@ -25202,17 +24609,17 @@ var Receipt = external_exports.object({
 });
 
 // packages/plugin-core/dist/client.js
-import { promises as fs7 } from "node:fs";
-import path10 from "node:path";
-import os9 from "node:os";
-import { randomUUID as randomUUID4 } from "node:crypto";
-
-// packages/plugin-core/dist/auth.js
-init_atomic_rename();
 import { promises as fs5 } from "node:fs";
 import path7 from "node:path";
 import os6 from "node:os";
-import { randomUUID as randomUUID2 } from "node:crypto";
+import { randomUUID as randomUUID3 } from "node:crypto";
+
+// packages/plugin-core/dist/auth.js
+init_atomic_rename();
+import { promises as fs3 } from "node:fs";
+import path4 from "node:path";
+import os3 from "node:os";
+import { randomUUID } from "node:crypto";
 
 // packages/plugin-core/dist/backend-error.js
 var MemlinApiError = class extends Error {
@@ -25251,7 +24658,7 @@ var AUTH0_DOMAIN = process.env.MEMLIN_AUTH0_DOMAIN || MEMLIN_PROD_AUTH0_DOMAIN;
 var AUTH0_CLIENT_ID = process.env.MEMLIN_AUTH0_CLIENT_ID || MEMLIN_PROD_AUTH0_CLIENT_ID;
 var AUTH0_AUDIENCE = process.env.MEMLIN_AUTH0_AUDIENCE ?? "https://api.memlin.ai";
 function persistedTokenFilePath() {
-  return process.env.MEMLIN_TOKEN_FILE || path7.join(os6.homedir(), ".config", "memlin", "token.json");
+  return process.env.MEMLIN_TOKEN_FILE || path4.join(os3.homedir(), ".config", "memlin", "token.json");
 }
 var AUTH_FILE_LOCK_TIMEOUT_MS = 15e3;
 var AUTH_FILE_LOCK_STALE_MS = 2 * 6e4;
@@ -25261,19 +24668,19 @@ function authFileLockPath() {
 }
 async function acquireAuthFileLock() {
   const file2 = authFileLockPath();
-  const owner = `${process.pid}:${randomUUID2()}`;
-  await fs5.mkdir(path7.dirname(file2), { recursive: true });
+  const owner = `${process.pid}:${randomUUID()}`;
+  await fs3.mkdir(path4.dirname(file2), { recursive: true });
   const deadline = Date.now() + AUTH_FILE_LOCK_TIMEOUT_MS;
   while (true) {
     try {
-      const handle = await fs5.open(file2, "wx", 384);
+      const handle = await fs3.open(file2, "wx", 384);
       try {
         await handle.writeFile(owner, "utf8");
         await handle.sync();
       } catch (error40) {
         await handle.close().catch(() => {
         });
-        await fs5.rm(file2, { force: true }).catch(() => {
+        await fs3.rm(file2, { force: true }).catch(() => {
         });
         throw error40;
       }
@@ -25283,16 +24690,16 @@ async function acquireAuthFileLock() {
         released = true;
         await handle.close().catch(() => {
         });
-        const currentOwner = await fs5.readFile(file2, "utf8").catch(() => null);
-        if (currentOwner === owner) await fs5.rm(file2, { force: true }).catch(() => {
+        const currentOwner = await fs3.readFile(file2, "utf8").catch(() => null);
+        if (currentOwner === owner) await fs3.rm(file2, { force: true }).catch(() => {
         });
       };
     } catch (error40) {
       if (error40.code !== "EEXIST") throw error40;
       try {
-        const stat = await fs5.stat(file2);
+        const stat = await fs3.stat(file2);
         if (Date.now() - stat.mtimeMs > AUTH_FILE_LOCK_STALE_MS) {
-          await fs5.rm(file2, { force: true });
+          await fs3.rm(file2, { force: true });
           continue;
         }
       } catch (statError) {
@@ -25316,7 +24723,7 @@ async function withAuthFileLock(operation) {
 }
 async function readPersistedToken() {
   try {
-    const raw = await fs5.readFile(persistedTokenFilePath(), "utf8");
+    const raw = await fs3.readFile(persistedTokenFilePath(), "utf8");
     return JSON.parse(raw);
   } catch {
     return null;
@@ -25324,14 +24731,14 @@ async function readPersistedToken() {
 }
 async function writePersistedToken(t) {
   const file2 = persistedTokenFilePath();
-  await fs5.mkdir(path7.dirname(file2), { recursive: true });
-  const tmp = path7.join(
-    path7.dirname(file2),
-    `${path7.basename(file2)}.tmp-${process.pid}-${randomUUID2()}`
+  await fs3.mkdir(path4.dirname(file2), { recursive: true });
+  const tmp = path4.join(
+    path4.dirname(file2),
+    `${path4.basename(file2)}.tmp-${process.pid}-${randomUUID()}`
   );
   const previous = await readPersistedToken().catch(() => null);
-  await fs5.writeFile(tmp, JSON.stringify(t, null, 2), { mode: 384 });
-  await fs5.chmod(tmp, 384).catch(() => {
+  await fs3.writeFile(tmp, JSON.stringify(t, null, 2), { mode: 384 });
+  await fs3.chmod(tmp, 384).catch(() => {
   });
   await atomicRename(tmp, file2);
   await clearRefusalsIfAccountsChanged(previous?.access_token ?? null, t.access_token);
@@ -25450,9 +24857,9 @@ init_atomic_rename();
 
 // packages/plugin-core/dist/memlin-api-client.js
 init_auth_refusal();
-import { readFileSync as readFileSync2 } from "node:fs";
-import crypto5 from "node:crypto";
-import os8 from "node:os";
+import { readFileSync } from "node:fs";
+import crypto3 from "node:crypto";
+import os5 from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -25517,8 +24924,8 @@ async function closeHttpSockets() {
 }
 
 // packages/plugin-core/dist/host.js
-import os7 from "node:os";
-import path8 from "node:path";
+import os4 from "node:os";
+import path5 from "node:path";
 var BaseHost = class {
   constructor(kind, home) {
     this.kind = kind;
@@ -25530,45 +24937,45 @@ var BaseHost = class {
     return this.home;
   }
   plansDir() {
-    return path8.join(this.home, "plans");
+    return path5.join(this.home, "plans");
   }
 };
 var ClaudeCodeHost = class extends BaseHost {
   constructor() {
-    super("claude-code", path8.join(os7.homedir(), ".claude"));
+    super("claude-code", path5.join(os4.homedir(), ".claude"));
   }
 };
 var CursorHost = class extends BaseHost {
   constructor() {
-    super("cursor", path8.join(os7.homedir(), ".config", "memlin"));
+    super("cursor", path5.join(os4.homedir(), ".config", "memlin"));
   }
 };
 var CodexHost = class extends BaseHost {
   constructor() {
-    super("codex", path8.join(os7.homedir(), ".config", "memlin"));
+    super("codex", path5.join(os4.homedir(), ".config", "memlin"));
   }
 };
 var WindsurfHost = class extends BaseHost {
   constructor() {
-    super("windsurf", path8.join(os7.homedir(), ".config", "memlin"));
+    super("windsurf", path5.join(os4.homedir(), ".config", "memlin"));
   }
 };
 var AntigravityHost = class extends BaseHost {
   constructor() {
-    super("antigravity", path8.join(os7.homedir(), ".config", "memlin"));
+    super("antigravity", path5.join(os4.homedir(), ".config", "memlin"));
   }
 };
 var VSCodeHost = class extends BaseHost {
   constructor() {
-    super("vscode", path8.join(os7.homedir(), ".config", "memlin"));
+    super("vscode", path5.join(os4.homedir(), ".config", "memlin"));
   }
 };
 var CompanionHost = class extends BaseHost {
   constructor() {
-    super("companion", path8.join(os7.homedir(), ".config", "memlin"));
+    super("companion", path5.join(os4.homedir(), ".config", "memlin"));
   }
 };
-var HOSTS3 = {
+var HOSTS2 = {
   "claude-code": () => new ClaudeCodeHost(),
   cursor: () => new CursorHost(),
   codex: () => new CodexHost(),
@@ -25579,19 +24986,19 @@ var HOSTS3 = {
 };
 function resolveHost() {
   const envHost = process.env.MEMLIN_HOST ?? (process.env.CURSOR_AGENT ? "cursor" : "claude-code");
-  const make = HOSTS3[envHost];
-  return (make ?? HOSTS3["claude-code"])();
+  const make = HOSTS2[envHost];
+  return (make ?? HOSTS2["claude-code"])();
 }
 
 // packages/plugin-core/dist/memlin-api-client.js
 var DEFAULT_API_URL = "https://memlin.ai/api/v1";
 function agentDevice() {
-  return process.env.MEMLIN_AGENT_DEVICE || os8.hostname() || "unknown";
+  return process.env.MEMLIN_AGENT_DEVICE || os5.hostname() || "unknown";
 }
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.68";
+  cachedAgentVersion = "0.2.71";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -25742,6 +25149,9 @@ var MemlinApiClient = class {
   get defaultAccountId() {
     return this.cfg.accountId;
   }
+  nativeSessionHook(input, opts) {
+    return this.request("POST", "/agent-control/hook", input, { ...opts, agentVersion: agentVersion() });
+  }
   // ---------- low-level ----------
   async authHeaders(includeAccount = true, override = {}) {
     const token = await this.cfg.getAccessToken();
@@ -25753,8 +25163,8 @@ var MemlinApiClient = class {
       [AGENT_DEVICE_HEADER]: agentDevice(),
       [AGENT_VERSION_HEADER]: version2,
       [AGENT_CAPABILITIES_HEADER]: (override.agentKind ? AGENT_EXPECTED_CAPABILITIES[kind] : agentCapabilities()).join(","),
-      [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os8.platform(),
-      [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os8.arch()
+      [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os5.platform(),
+      [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os5.arch()
     };
     if (includeAccount && this.cfg.accountId) {
       h["Memlin-Account-Id"] = this.cfg.accountId;
@@ -25884,8 +25294,8 @@ var MemlinApiClient = class {
     if (body !== void 0) headers["Content-Type"] = "application/json";
     if (opts.traceId) {
       const normalized = opts.traceId.replaceAll("-", "").toLowerCase();
-      const traceId = /^[0-9a-f]{32}$/.test(normalized) ? normalized : crypto5.createHash("sha256").update(opts.traceId).digest("hex").slice(0, 32);
-      headers.traceparent = `00-${traceId}-${crypto5.randomBytes(8).toString("hex")}-01`;
+      const traceId = /^[0-9a-f]{32}$/.test(normalized) ? normalized : crypto3.createHash("sha256").update(opts.traceId).digest("hex").slice(0, 32);
+      headers.traceparent = `00-${traceId}-${crypto3.randomBytes(8).toString("hex")}-01`;
     }
     const timeoutMs = Math.max(
       1,
@@ -26951,13 +26361,13 @@ function exitHook(code) {
 // packages/plugin-core/dist/client.js
 init_auth_refusal();
 function globalConfigFilePath() {
-  return process.env.MEMLIN_CONFIG_FILE || path10.join(os9.homedir(), ".config", "memlin", "config.json");
+  return process.env.MEMLIN_CONFIG_FILE || path7.join(os6.homedir(), ".config", "memlin", "config.json");
 }
-var CONFIG_DIR = path10.join(os9.homedir(), ".config", "memlin");
-var TOKEN_FILE = path10.join(CONFIG_DIR, "token.json");
+var CONFIG_DIR = path7.join(os6.homedir(), ".config", "memlin");
+var TOKEN_FILE = path7.join(CONFIG_DIR, "token.json");
 async function readConfig() {
   try {
-    const raw = await fs7.readFile(globalConfigFilePath(), "utf8");
+    const raw = await fs5.readFile(globalConfigFilePath(), "utf8");
     const parsed = JSON.parse(raw);
     if (typeof parsed.account_id !== "string" || !parsed.account_id.trim() || typeof parsed.user_id !== "string" || !parsed.user_id.trim() || typeof parsed.auth0_sub !== "string" || !parsed.auth0_sub.trim()) {
       return null;
@@ -27046,6 +26456,727 @@ function applyWorkspaceOverlay(config2, overlay) {
   };
 }
 
+// packages/plugin-core/dist/remote-session-hook.js
+init_companion_client();
+function remoteHookEventId(input, phase) {
+  const invocation = phase === "tool" ? input.tool_use_id ?? input.tool_call_id : phase === "prompt" ? input.turn_id : void 0;
+  if (!invocation) return randomUUID4();
+  const digest = createHash("sha256").update(JSON.stringify([input.session_id, phase, invocation])).digest("hex");
+  return `${digest.slice(0, 8)}-${digest.slice(8, 12)}-4${digest.slice(13, 16)}-8${digest.slice(17, 20)}-${digest.slice(20, 32)}`;
+}
+async function remoteHookRootAllowed(cwd, settingsPath = path8.join(os7.homedir(), ".config/memlin/remote-control.json")) {
+  try {
+    const config2 = JSON.parse(await fs6.readFile(settingsPath, "utf8"));
+    if (config2.enabled !== true || !Array.isArray(config2.workspace_roots)) return false;
+    const root = await fs6.realpath(cwd);
+    return (await Promise.all(
+      config2.workspace_roots.filter((r) => typeof r === "string").map((r) => fs6.realpath(r).catch(() => null))
+    )).includes(root);
+  } catch {
+    return false;
+  }
+}
+function nativeFollowUpDecision(message) {
+  if (!message || typeof message !== "object") return null;
+  const m = message;
+  if (typeof m.id !== "string" || !/^[0-9a-f-]{36}$/i.test(m.id) || typeof m.text !== "string" || !m.text.trim() || m.text.length > 8e3)
+    return null;
+  return {
+    decision: "block",
+    reason: `The signed-in user sent this follow-up from Memlin for this same task. Continue under the existing permissions and workspace rules.
+
+${m.text}`
+  };
+}
+async function runRemoteSessionHook(input, host, phase, allowDelivery = false) {
+  if (process.env.MEMLIN_REMOTE_CONTROL_MANAGED === "1") return false;
+  const cwd = input.cwd ?? process.cwd(), session = input.session_id;
+  if (!session || session.length > 256 || !await remoteHookRootAllowed(cwd)) return false;
+  try {
+    const ctx = await getApi({ cwd });
+    if (!ctx) return false;
+    const bound = await companionResolveWorkspace(cwd);
+    if (!bound?.project_id || !bound.account_id || bound.hazard !== "none") return false;
+    const args = { accountId: bound.account_id, agentKind: host, requestTimeoutMs: 1800 };
+    const text = redactSecretShapes(
+      phase === "prompt" ? input.prompt ?? "" : phase === "stop" ? input.last_assistant_message ?? "" : input.tool_name ? `Using ${input.tool_name}` : ""
+    ).redacted;
+    const eventId = remoteHookEventId(input, phase);
+    const payload = {
+      native_session_id: session,
+      project_id: bound.project_id,
+      phase,
+      event_id: eventId,
+      title: phase === "prompt" ? text.slice(0, 200) : void 0,
+      text: text.slice(0, 8e3),
+      allow_delivery: allowDelivery
+    };
+    const result = await ctx.api.nativeSessionHook(payload, args);
+    const decision = allowDelivery ? nativeFollowUpDecision(result.message) : null;
+    if (!decision) return false;
+    process.stdout.write(JSON.stringify(decision));
+    await ctx.api.nativeSessionHook(
+      {
+        ...payload,
+        phase: "ack",
+        event_id: randomUUID4(),
+        allow_delivery: false,
+        text: void 0,
+        message_id: result.message.id
+      },
+      args
+    ).catch(() => {
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// apps/codex-plugin/src/hooks/user-prompt-submit.ts
+import { promises as fs9 } from "node:fs";
+import { randomUUID as randomUUID6 } from "node:crypto";
+import os11 from "node:os";
+import path12 from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
+
+// packages/plugin-core/dist/plugin-runtime.js
+init_companion_client();
+import { createHash as createHash2, randomUUID as randomUUID5 } from "node:crypto";
+var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
+var VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
+var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
+function ownVersion() {
+  const version2 = "0.2.71";
+  return typeof version2 === "string" && VERSION.test(version2) ? version2 : null;
+}
+async function reportPluginRuntime(report) {
+  try {
+    return (await companionRequest("runtime.report", report, {
+      timeoutMs: PLUGIN_RUNTIME_TIMEOUT_MS
+    }))?.accepted === true;
+  } catch {
+    return false;
+  }
+}
+function reportPluginHookActivity(host, input, cwd) {
+  const version2 = ownVersion();
+  if (!version2 || !HOSTS3.has(host) || !cwd || !input || typeof input !== "object" || Array.isArray(input))
+    return;
+  const payload = input;
+  const session = payload.session_id ?? payload.conversation_id ?? payload.conversationId;
+  if (typeof session !== "string" || session.length === 0 || session.length > 256) return;
+  const instance = createHash2("sha256").update(JSON.stringify([host, cwd, session, version2])).digest("hex");
+  void reportPluginRuntime({
+    host,
+    plugin_version: version2,
+    instance_id: instance,
+    source: "hook",
+    event: payload.hook_event_name === "sessionEnd" ? "end" : "activity"
+  });
+}
+
+// apps/codex-plugin/src/hook-io.ts
+function readHookInput() {
+  return new Promise((resolve) => {
+    let data = "";
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      try {
+        const input = data.trim() ? JSON.parse(data) : null;
+        const cwd = input?.cwd;
+        reportPluginHookActivity(
+          "codex",
+          input,
+          typeof cwd === "string" && cwd.trim() ? cwd : process.cwd()
+        );
+        resolve(input);
+      } catch {
+        resolve(null);
+      }
+    };
+    const timer = setTimeout(done, 1e3);
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => {
+      data += chunk;
+    });
+    process.stdin.on("end", () => {
+      clearTimeout(timer);
+      done();
+    });
+    process.stdin.on("error", () => {
+      clearTimeout(timer);
+      done();
+    });
+  });
+}
+
+// packages/plugin-core/dist/state.js
+init_atomic_rename();
+import { promises as fs7 } from "node:fs";
+import path9 from "node:path";
+import os8 from "node:os";
+import crypto4 from "node:crypto";
+var STATE_FILE = path9.join(os8.homedir(), ".config", "memlin", "state.json");
+var MAX_LAST_RESOLVE_SESSIONS = 32;
+var EMPTY = { documents: {} };
+async function readState() {
+  try {
+    const raw = await fs7.readFile(STATE_FILE, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return { ...EMPTY };
+  }
+}
+async function writeState(state) {
+  await fs7.mkdir(path9.dirname(STATE_FILE), { recursive: true });
+  const tmp = `${STATE_FILE}.${process.pid}.tmp`;
+  await fs7.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
+  await atomicRename(tmp, STATE_FILE);
+}
+var LOCK_DIR = `${STATE_FILE}.lock`;
+var LOCK_STALE_MS = 2e3;
+var LOCK_WAIT_MS = 2e3;
+var LOCK_RETRY_MS = 50;
+async function acquireStateLock() {
+  const deadline = Date.now() + LOCK_WAIT_MS;
+  await fs7.mkdir(path9.dirname(LOCK_DIR), { recursive: true }).catch(() => {
+  });
+  for (; ; ) {
+    try {
+      await fs7.mkdir(LOCK_DIR);
+      return true;
+    } catch {
+      try {
+        const stat = await fs7.stat(LOCK_DIR);
+        if (Date.now() - stat.mtimeMs > LOCK_STALE_MS) {
+          await fs7.rmdir(LOCK_DIR).catch(() => {
+          });
+          continue;
+        }
+      } catch {
+        continue;
+      }
+      if (Date.now() >= deadline) return false;
+      await new Promise((r) => setTimeout(r, LOCK_RETRY_MS));
+    }
+  }
+}
+async function releaseStateLock() {
+  await fs7.rmdir(LOCK_DIR).catch(() => {
+  });
+}
+async function updateState(mutate) {
+  const locked = await acquireStateLock();
+  try {
+    const state = await readState();
+    await mutate(state);
+    await writeState(state);
+    return state;
+  } finally {
+    if (locked) await releaseStateLock();
+  }
+}
+function getLastResolveForSession(state, sessionId) {
+  if (sessionId) {
+    return state.last_resolves?.[sessionId] ?? (state.last_resolve?.session_id === sessionId ? state.last_resolve : void 0);
+  }
+  return state.last_resolve?.session_id ? void 0 : state.last_resolve;
+}
+function cacheLastResolve(state, entry) {
+  state.last_resolve = entry;
+  if (!entry.session_id) return;
+  state.last_resolves ??= {};
+  state.last_resolves[entry.session_id] = entry;
+  const entries = Object.entries(state.last_resolves);
+  if (entries.length <= MAX_LAST_RESOLVE_SESSIONS) return;
+  entries.sort(([, a], [, b]) => b.resolved_at - a.resolved_at).slice(MAX_LAST_RESOLVE_SESSIONS).forEach(([sessionId]) => {
+    delete state.last_resolves?.[sessionId];
+  });
+}
+async function recordLastResolve(entry) {
+  try {
+    await updateState((state) => {
+      cacheLastResolve(state, entry);
+    });
+  } catch {
+  }
+}
+async function markLastResolveDelivered(input) {
+  if (!input.auditId) return;
+  try {
+    await updateState((state) => {
+      const entry = getLastResolveForSession(state, input.sessionId);
+      if (entry?.audit_id !== input.auditId || entry.host !== input.host || entry.cwd !== input.cwd) {
+        return;
+      }
+      entry.delivered = true;
+      if (state.last_resolve?.audit_id === input.auditId && state.last_resolve.session_id === entry.session_id) {
+        state.last_resolve.delivered = true;
+      }
+    });
+  } catch {
+  }
+}
+
+// packages/plugin-core/dist/deploy-broker.js
+import { existsSync, mkdirSync, readFileSync as readFileSync2, unlinkSync, writeFileSync } from "node:fs";
+import os9 from "node:os";
+import path10 from "node:path";
+function deployWaiterDir() {
+  const override = process.env.MEMLIN_DEPLOY_WAITER_DIR?.trim();
+  if (override) return override;
+  return path10.join(os9.homedir(), ".config", "memlin", "deploy-waiters");
+}
+function waiterPath(sessionId) {
+  const safe = sessionId.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 180);
+  return path10.join(deployWaiterDir(), `${safe}.json`);
+}
+function clearLocalDeployWaiter(sessionId) {
+  try {
+    unlinkSync(waiterPath(sessionId));
+  } catch {
+  }
+}
+function readLocalDeployWaiter(sessionId) {
+  try {
+    const raw = readFileSync2(waiterPath(sessionId), "utf8");
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.session_id !== "string") return null;
+    if (parsed.session_id !== sessionId) return null;
+    if (parsed.status !== "waiting" && parsed.status !== "ready") return null;
+    const expiresAt = parsed.expires_at ? new Date(parsed.expires_at).getTime() : new Date(parsed.queued_at).getTime() + 60 * 60 * 1e3;
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      clearLocalDeployWaiter(sessionId);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+function hasPendingDeployWaiter(sessionId) {
+  if (!sessionId) return false;
+  if (!existsSync(waiterPath(sessionId))) return false;
+  return readLocalDeployWaiter(sessionId) != null;
+}
+
+// packages/plugin-core/dist/continuity.js
+var CONTINUITY_WINDOW_MS = 10 * 60 * 1e3;
+function bundleHasContinuityContent(bundle) {
+  const claims = bundle.claim_guardrails;
+  return Boolean(bundle.primary_skill) || bundle.supporting_skills.length > 0 || bundle.memory.length > 0 || bundle.goals.length > 0 || bundle.schemas.length > 0 || (bundle.decisions?.length ?? 0) > 0 || (bundle.required_core?.length ?? 0) > 0 || (bundle.pinned?.length ?? 0) > 0 || (bundle.session_working?.length ?? 0) > 0 || (bundle.open_threads?.length ?? 0) > 0 || (bundle.pack_context?.length ?? 0) > 0 || (claims?.approved.length ?? 0) > 0 || (claims?.blocked.length ?? 0) > 0 || (claims?.competitor_facts.length ?? 0) > 0;
+}
+var CONTINUATION_PATTERNS = [
+  /^\s*(and|also|then|now|next|plus|but|or|so)\b(?=\s+\S)/i,
+  /^\s*(what about|how about|tell me more|go on|continue|keep going)\b/i,
+  /^\s*(explain|show me|expand|elaborate)\s+(that|this|it|the|more)\b/i,
+  /^\s*(yes|yeah|yep|ok|okay|sure|right|sounds good)[,;:]?\s+(now|and|so|continue|keep|do|ship|merge|apply|proceed)\b/i,
+  /^\s*(can you|could you)\s+(also|now|then|continue|elaborate)\b/i,
+  /^\s*(can|could|would|will)\s+you\s+(please\s+)?(do|fix|change|update|ship|merge|apply|open|show|explain|retry|run|test)\s+(it|that|this|them|those|these)\b/i,
+  /^\s*(do|fix|change|update|ship|merge|apply|open|show|explain|expand|remove|delete|revert|retry|run|test|review|check)\s+(it|that|this|them|those|these|the same)\b/i,
+  /^\s*(go ahead|please do|do it|ship it|merge it|apply it|try again|same (for|with)|one more time)\b/i,
+  /^\s*(why|how|how so|where|when|what next|which one|show me|more)\s*[?.!]*$/i,
+  /^\s*(the (first|second|third|last|other) one|option\s+(one|two|three|[1-3]))\s*[?.!]*$/i,
+  /^\s*(actually|instead|rather|to clarify|i mean|correction:)\b/i,
+  /^\s*(here(?:'s| is) (the|that|it|what)|here you go)\b/i,
+  /\b(the one|that|those|these)\b.*\?$/i
+];
+var IGNORABLE_PROMPT_PATTERNS = [
+  /^\s*(hi|hey|hello|yo|sup|thanks?|thx|ty|ok|okay|cool|nice|got it|sounds good)[!.\s]*$/i,
+  /^\s*(yes|no|yep|nope|sure|maybe|idk)[!.\s]*$/i,
+  /^\s*\/[a-z-]+(?:\s|$)/i,
+  // slash commands are handled by the host/agent
+  /^\s*[<>][a-z]/i
+  // partial host tags / XML envelopes
+];
+function isIgnorablePrompt(prompt) {
+  const trimmed = prompt.trim();
+  if (!trimmed) return true;
+  return IGNORABLE_PROMPT_PATTERNS.some((re) => re.test(trimmed));
+}
+function isContinuation(prompt, cwd, host, last, sessionId) {
+  if (last.host !== host) return false;
+  if ((sessionId ?? null) !== (last.session_id ?? null)) return false;
+  if (last.delivered === false) return false;
+  if (last.cwd !== cwd) return false;
+  if (Date.now() - last.resolved_at > CONTINUITY_WINDOW_MS) return false;
+  if (!last.had_content) return false;
+  const trimmed = prompt.trim();
+  for (const re of CONTINUATION_PATTERNS) {
+    if (re.test(trimmed)) return true;
+  }
+  return false;
+}
+function continuationForPrompt(state, prompt, cwd, host, sessionId) {
+  if (hasPendingDeployWaiter(sessionId)) return null;
+  const last = getLastResolveForSession(state, sessionId);
+  return last && isContinuation(prompt, cwd, host, last, sessionId) ? last : null;
+}
+function buildContinuityMarker(auditId) {
+  return [
+    "<memlin-context-unchanged>",
+    `# This turn is a follow-up to the prior turn. The same Memlin context applies.`,
+    `# Refer to the bundle injected on the previous turn (audit_id: ${auditId}).`,
+    "# Do not invoke memlin_resolve_task automatically for this follow-up.",
+    "</memlin-context-unchanged>"
+  ].join("\n");
+}
+
+// packages/plugin-core/dist/pending-bundle.js
+init_atomic_rename();
+import { spawn } from "node:child_process";
+import crypto5 from "node:crypto";
+import { promises as fs8 } from "node:fs";
+import path11 from "node:path";
+import os10 from "node:os";
+var PENDING_BUNDLE_MAX_AGE_MS = 10 * 60 * 1e3;
+function pendingBundlePath() {
+  return process.env.MEMLIN_RESOLVE_OUT ?? path11.join(os10.homedir(), ".config", "memlin", "pending-bundle.json");
+}
+var PENDING_BUNDLE_DIR = "pending-bundles";
+function pendingBundleSpoolDir() {
+  return process.env.MEMLIN_PENDING_BUNDLE_DIR ?? path11.join(os10.homedir(), ".config", "memlin", PENDING_BUNDLE_DIR);
+}
+function pendingBundleKey(cwd, host, sessionId, task) {
+  return crypto5.createHash("sha256").update(JSON.stringify([cwd, host, sessionId ?? null, task])).digest("hex");
+}
+function canonicalPendingBundlePathFor(cwd, host, sessionId, task) {
+  return path11.join(pendingBundleSpoolDir(), `${pendingBundleKey(cwd, host, sessionId, task)}.json`);
+}
+function pendingBundleTurnIndexPath(cwd, host, sessionId) {
+  const key = crypto5.createHash("sha256").update(JSON.stringify([cwd, host, sessionId ?? null])).digest("hex");
+  return path11.join(pendingBundleSpoolDir(), `turn-${key}.json`);
+}
+function pendingBundlePathFor(cwd, host, sessionId, task) {
+  return process.env.MEMLIN_RESOLVE_OUT ?? canonicalPendingBundlePathFor(cwd, host, sessionId, task);
+}
+async function takePendingBundle(cwd, host, match) {
+  const explicitFile = process.env.MEMLIN_RESOLVE_OUT;
+  const spoolDir = pendingBundleSpoolDir();
+  let files;
+  if (explicitFile) {
+    files = [explicitFile];
+  } else if (match?.task !== void 0) {
+    files = [pendingBundlePathFor(cwd, host, match.sessionId ?? null, match.task)];
+  } else {
+    const indexFile = pendingBundleTurnIndexPath(cwd, host, match?.sessionId ?? null);
+    try {
+      const parsed = JSON.parse(await fs8.readFile(indexFile, "utf8"));
+      files = /^[a-f0-9]{64}\.json$/.test(parsed.file ?? "") ? [path11.join(spoolDir, parsed.file)] : [];
+    } catch {
+      files = [];
+    }
+    files.push(pendingBundlePath());
+  }
+  const matches = [];
+  for (const file2 of [...new Set(files)]) {
+    let bundle;
+    try {
+      await fs8.chmod(file2, 384).catch(() => {
+      });
+      bundle = JSON.parse(await fs8.readFile(file2, "utf8"));
+    } catch {
+      continue;
+    }
+    if (typeof bundle !== "object" || bundle === null || typeof bundle.rendered !== "string" || bundle.rendered.length === 0 || typeof bundle.completed_at !== "number") {
+      await fs8.rm(file2, { force: true }).catch(() => {
+      });
+      continue;
+    }
+    if (Date.now() - bundle.completed_at > PENDING_BUNDLE_MAX_AGE_MS) {
+      await fs8.rm(file2, { force: true }).catch(() => {
+      });
+      continue;
+    }
+    if (bundle.cwd !== cwd || bundle.host !== host) continue;
+    if ((bundle.session_id ?? null) !== (match?.sessionId ?? null)) {
+      continue;
+    }
+    if (match?.task !== void 0 && bundle.task !== match.task) continue;
+    matches.push({ file: file2, bundle });
+  }
+  matches.sort((a, b) => b.bundle.completed_at - a.bundle.completed_at);
+  const selected = matches[0];
+  if (!selected) return null;
+  const claimed = `${selected.file}.${process.pid}.${Date.now()}.claim`;
+  try {
+    await fs8.rename(selected.file, claimed);
+    await fs8.chmod(claimed, 384).catch(() => {
+    });
+  } catch {
+    return null;
+  }
+  if (!explicitFile) {
+    const indexFile = pendingBundleTurnIndexPath(cwd, host, match?.sessionId ?? null);
+    try {
+      const pointer = JSON.parse(await fs8.readFile(indexFile, "utf8"));
+      if (pointer.file === path11.basename(selected.file)) {
+        await fs8.rm(indexFile, { force: true });
+      }
+    } catch {
+    }
+  }
+  if (match?.task === void 0) {
+    await Promise.all(
+      matches.slice(1).map(({ file: file2 }) => fs8.rm(file2, { force: true }).catch(() => void 0))
+    );
+  }
+  await fs8.rm(claimed, { force: true }).catch(() => {
+  });
+  return selected.bundle;
+}
+var DEFAULT_RESOLVE_BUDGET_MS = 6e3;
+function resolveBudgetMs(defaultMs = DEFAULT_RESOLVE_BUDGET_MS) {
+  const v = Number(process.env.MEMLIN_RESOLVE_BUDGET_MS);
+  const fallback = Number.isFinite(defaultMs) && defaultMs >= 1e3 ? Math.floor(defaultMs) : DEFAULT_RESOLVE_BUDGET_MS;
+  return Number.isFinite(v) && v >= 1e3 ? Math.floor(v) : fallback;
+}
+function runResolveWithBudget(opts) {
+  const budget = opts.budgetMs ?? resolveBudgetMs();
+  const outputFile = pendingBundlePathFor(opts.cwd, opts.host, opts.sessionId ?? null, opts.task);
+  return new Promise((resolve) => {
+    let child;
+    try {
+      child = spawn(process.execPath, [opts.resolveBin, opts.task], {
+        windowsHide: true,
+        cwd: opts.cwd,
+        env: {
+          ...process.env,
+          MEMLIN_HOST: opts.host,
+          // Handoff contract with cli/resolve.ts: write the compiled bundle
+          // to this file (atomic), and report a resolve.delivery telemetry
+          // row when the deadline was missed.
+          MEMLIN_RESOLVE_OUT: outputFile,
+          MEMLIN_RESOLVE_DEADLINE_MS: String(budget),
+          // Forward the agent's session id so the resolve's usage_event is
+          // attributable to this session (concurrent-work awareness).
+          ...opts.sessionId ? { MEMLIN_SESSION_ID: opts.sessionId } : {},
+          ...opts.turnId ? { MEMLIN_TURN_ID: opts.turnId } : {}
+        },
+        // Detached + no shared stdio: when the caller stops waiting, the
+        // child owns its own lifetime and finishes in the background.
+        detached: true,
+        stdio: "ignore"
+      });
+    } catch {
+      resolve({ bundle: null, stillRunning: false });
+      return;
+    }
+    let settled = false;
+    let claimInFlight = null;
+    const claimBundle = () => {
+      if (claimInFlight) return claimInFlight;
+      claimInFlight = takePendingBundle(opts.cwd, opts.host, {
+        sessionId: opts.sessionId ?? null,
+        task: opts.task
+      }).finally(() => {
+        claimInFlight = null;
+      });
+      return claimInFlight;
+    };
+    const settleFromBundle = async () => {
+      const bundle = await claimBundle();
+      if (!bundle || settled) return false;
+      settled = true;
+      clearTimeout(timer);
+      clearInterval(bundlePoll);
+      child.unref();
+      resolve({ bundle, stillRunning: false });
+      return true;
+    };
+    const timer = setTimeout(() => {
+      if (settled) return;
+      clearInterval(bundlePoll);
+      void claimBundle().then((bundle) => {
+        if (settled) return;
+        settled = true;
+        child.unref();
+        resolve(bundle ? { bundle, stillRunning: false } : { bundle: null, stillRunning: true });
+      });
+    }, budget);
+    const bundlePoll = setInterval(() => {
+      if (!settled) void settleFromBundle();
+    }, 40);
+    child.on("exit", () => {
+      if (settled) return;
+      void settleFromBundle().then((found) => {
+        if (found || settled) return;
+        settled = true;
+        clearTimeout(timer);
+        clearInterval(bundlePoll);
+        resolve({ bundle: null, stillRunning: false });
+      });
+    });
+    child.on("error", () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      clearInterval(bundlePoll);
+      resolve({ bundle: null, stillRunning: false });
+    });
+  });
+}
+function buildLateDeliveryEnvelope(bundle, opts = {}) {
+  return [
+    "<memlin-late-context>",
+    "# Memlin context resolved for the PREVIOUS prompt \u2014 it finished after that",
+    `# turn's delivery deadline. It is not fresh context for the current prompt.`,
+    ...bundle.stale ? [
+      `# ADDITIONALLY: the backend was unreachable (${bundle.stale.reason}) \u2014 this is a STALE`,
+      "# fallback bundle, not a live resolve. Weigh it accordingly."
+    ] : [],
+    opts.currentResolvePending ? "# Treat as background context. The current prompt resolve is already in flight; do not invoke memlin_resolve_task again." : "# Treat as background context; invoke memlin_resolve_task if this turn needs fresh context.",
+    "",
+    bundle.rendered,
+    "</memlin-late-context>"
+  ].join("\n");
+}
+function buildPendingContextEnvelope() {
+  return [
+    "<memlin-context-pending>",
+    "# Memlin is still resolving context for THIS prompt in the background.",
+    "# Codex will inject full enrichment at the next safe point; if this turn ends first,",
+    "# the persisted result remains available to the next invocation.",
+    "# Do not invoke memlin_resolve_task for this message; that would duplicate the same resolve.",
+    "</memlin-context-pending>"
+  ].join("\n");
+}
+function buildProgressiveDeliveryEnvelope(phase, rendered, hookResolveRef, semanticStatus = "pending") {
+  const phaseLine = phase === "hot" ? semanticStatus === "failed" ? "# FAST ONLY: honor required/pinned context; semantic enrichment failed." : "# FAST: honor required/pinned context; semantic enrichment follows." : "# ENRICHMENT: documents delivered in FAST are omitted.";
+  return [
+    `<memlin-resolved-context phase="${phase}">`,
+    phaseLine,
+    "# Canonical for this turn; do not call memlin_resolve_task again.",
+    ...hookResolveRef ? [`<!-- memlin-resolve-ref: ${hookResolveRef} -->`] : [],
+    "",
+    rendered.trim(),
+    "</memlin-resolved-context>"
+  ].join("\n");
+}
+function buildResolveFailedEnvelope(failure) {
+  const detail = failure?.message?.replace(/\s+/g, " ").slice(0, 180);
+  return [
+    "<memlin-context-pending>",
+    "# Memlin could not complete this turn\u2019s context resolve.",
+    ...detail ? [`# ${detail}`] : [],
+    failure?.retryable ? "# The operation may be retried on a later turn; do not duplicate it through MCP now." : "# The operation was rejected deterministically; do not duplicate it through MCP.",
+    "</memlin-context-pending>"
+  ].join("\n");
+}
+function boundAdditionalContextForHook(additionalContext, options2) {
+  const outputBytes = Buffer.byteLength(additionalContext, "utf8");
+  if (outputBytes <= options2.maxBytes) {
+    return { context: additionalContext, capped: false, outputBytes };
+  }
+  const context = buildResolveFailedEnvelope({
+    message: `Memlin ${options2.label} context exceeded the safe hook envelope; its required content was not delivered.`,
+    retryable: true
+  });
+  const degradedBytes = Buffer.byteLength(context, "utf8");
+  if (degradedBytes > options2.maxBytes) {
+    throw new Error("degraded hook marker exceeds its UTF-8 byte budget");
+  }
+  return { context, capped: true, outputBytes: degradedBytes };
+}
+function buildInlineDeliveryEnvelope(bundle) {
+  if (bundle.stale) {
+    return [
+      "<memlin-stale-context>",
+      `# Memlin backend unreachable (${bundle.stale.reason}) \u2014 this is the LAST SUCCESSFUL bundle`,
+      "# for this project, not a live resolve. Treat as possibly out of date; retry",
+      "# memlin_resolve_task later for fresh context. Memory writes are unavailable.",
+      "",
+      bundle.rendered,
+      "</memlin-stale-context>"
+    ].join("\n");
+  }
+  return [
+    "<memlin-resolved-context>",
+    "# Auto-resolved by Memlin \u2014 authoritative project context. Apply skills; honor",
+    "# approved goals and required/pinned decisions/directives; use other decisions as cited",
+    "# context; validate schemas; cite sources; do not re-invoke memlin_resolve_task.",
+    "",
+    bundle.rendered,
+    "</memlin-resolved-context>"
+  ].join("\n");
+}
+
+// packages/plugin-core/dist/scribe-notice.js
+function count(value) {
+  return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+}
+function buildScribeNotice(capturedValue, pendingValue) {
+  const captured = count(capturedValue);
+  if (captured === 0) return "";
+  const pending = Math.min(captured, count(pendingValue ?? captured));
+  const handled = captured - pending;
+  const proposalLabel = captured === 1 ? "proposal" : "proposals";
+  const reviewLabel = pending === 1 ? "needs" : "need";
+  let status;
+  if (pending === 0) {
+    status = `Memlin auto-captured ${captured} new ${proposalLabel} and handled ${captured === 1 ? "it" : "them"} automatically; no inbox review is needed for this batch.`;
+  } else if (handled === 0) {
+    status = `Memlin auto-captured ${captured} new ${proposalLabel}; ${pending} ${reviewLabel} review with /memlin-inbox.`;
+  } else {
+    status = `Memlin auto-captured ${captured} new ${proposalLabel}; ${handled} handled automatically and ${pending} ${reviewLabel} review with /memlin-inbox.`;
+  }
+  return [
+    "<memlin-notice>",
+    "# Status line for the user \u2014 surface it, do not act on it.",
+    status,
+    "</memlin-notice>",
+    ""
+  ].join("\n");
+}
+async function takeScribeNotice(currentSessionId) {
+  let state;
+  try {
+    state = await readState();
+  } catch {
+    return "";
+  }
+  const notice = state.scribe_notice;
+  const n = notice?.unsurfaced ?? 0;
+  if (n <= 0) return "";
+  try {
+    delete state.scribe_notice;
+    await writeState(state);
+  } catch {
+  }
+  if (currentSessionId && notice?.session_id && notice.session_id !== currentSessionId) {
+    return "";
+  }
+  return buildScribeNotice(n, notice?.pending);
+}
+async function takeCorrectionNotice(currentSessionId) {
+  let state;
+  try {
+    state = await readState();
+  } catch {
+    return "";
+  }
+  const notice = state.correction_notice;
+  if (!notice || !notice.rule_title) return "";
+  try {
+    delete state.correction_notice;
+    await writeState(state);
+  } catch {
+  }
+  if (currentSessionId && notice.session_id && notice.session_id !== currentSessionId) {
+    return "";
+  }
+  return [
+    "<memlin-notice>",
+    "# Status line for the user \u2014 surface it, do not act on it.",
+    `\u26A1 Memlin captured a correction \u2192 rule: "${notice.rule_title}". It's active now; review or undo with /memlin-inbox.`,
+    "</memlin-notice>",
+    ""
+  ].join("\n");
+}
+
 // packages/plugin-core/dist/session-decisions.js
 var MARK_ASKED_TIMEOUT_MS = 1500;
 function queueFor(state, sessionId) {
@@ -27120,8 +27251,8 @@ function composeDecisionContext(decisions, context, opts) {
 
 // apps/codex-plugin/src/hooks/user-prompt-submit.ts
 init_companion_client();
-var HOOK_DIR = path11.dirname(fileURLToPath2(import.meta.url));
-var RESOLVE_BIN = path11.resolve(HOOK_DIR, "../cli/resolve.js");
+var HOOK_DIR = path12.dirname(fileURLToPath2(import.meta.url));
+var RESOLVE_BIN = path12.resolve(HOOK_DIR, "../cli/resolve.js");
 var CODEX_RESOLVE_BUDGET_MS = 8e3;
 var CODEX_RESOLVE_BUDGET_MAX_MS = 8e3;
 var CODEX_HOT_HOOK_BUDGET_MS = 2500;
@@ -27133,8 +27264,8 @@ var DELIVERY_RESERVATION_POLL_MS = 25;
 var SYSTEM_MESSAGE_MAX_BYTES = 700;
 async function hasToken() {
   try {
-    const raw = await fs8.readFile(
-      path11.join(os10.homedir(), ".config", "memlin", "token.json"),
+    const raw = await fs9.readFile(
+      path12.join(os11.homedir(), ".config", "memlin", "token.json"),
       "utf8"
     );
     return Boolean(JSON.parse(raw).access_token);
@@ -27212,7 +27343,7 @@ async function reportDelivery(started, input, outcome, beganAt, output, phase) {
   );
 }
 async function reservePhase(started, input, phase, waitUntil) {
-  const requestId = randomUUID5();
+  const requestId = randomUUID6();
   do {
     const reservation = await companionReserveResolveDelivery(
       {
@@ -27320,7 +27451,7 @@ async function emitPriorLatePhase(started, input, cwd, beganAt) {
     {
       ...waitRequest(started, input, 0),
       owner: "hook",
-      request_id: randomUUID5()
+      request_id: randomUUID6()
     },
     { timeoutMs: 500 }
   );
@@ -27415,7 +27546,7 @@ async function runCompanionPath(mode, input, prompt, cwd, beganAt, systemMessage
     session_id: input.session_id ?? null,
     turn_id: input.turn_id,
     join_only: mode === "full",
-    plugin_version: "0.2.68",
+    plugin_version: "0.2.71",
     deadline_at: new Date(beganAt + CODEX_RESOLVE_BUDGET_MAX_MS).toISOString(),
     workspace_signals: { cwd }
   };
@@ -27539,6 +27670,7 @@ async function main() {
   const cwd = input.cwd ?? process.cwd();
   const sessionId = input.session_id ?? null;
   const mode = process.argv.includes("--background") ? "full" : "hot";
+  if (mode === "hot") await runRemoteSessionHook(input, "codex", "prompt");
   if (isIgnorablePrompt(prompt)) {
     exitHook(0);
     return;
@@ -27548,7 +27680,10 @@ async function main() {
     if (refusal.notice) {
       process.stdout.write(
         JSON.stringify({
-          hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: refusal.notice },
+          hookSpecificOutput: {
+            hookEventName: "UserPromptSubmit",
+            additionalContext: refusal.notice
+          },
           systemMessage: refusal.notice
         })
       );

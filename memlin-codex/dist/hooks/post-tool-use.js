@@ -9117,19 +9117,135 @@ var ActionMetadataSchema = external_exports.object({
 });
 
 // packages/shared/dist/task-classifier.js
-var DEPLOY_TOOL_RE = /\b(?:vercel\s+(?:deploy|--?prod\w*)|fly(?:ctl)?\s+deploy|wrangler\s+(?:deploy|publish)|sst\s+deploy|serverless\s+deploy|sls\s+deploy|(?:npm|pnpm|yarn)\s+(?:run\s+)?deploy|make\s+deploy|git\s+push\s+\S*(?:deploy|prod|production|heroku))\b/i;
-var DEPLOY_CMD_RE = /(?:^|;|&&|\|\||&|\|)\s*(?:[\w./-]*\/)?deploy(?:\.[a-z]+)?(?=\s|$)/i;
-var FOREGROUND_SHIP_CMD_RE = /(?:^|;|&&|\|\||&|\|)\s*(?:(?:bash|sh|env)\s+)?(?:[\w./-]*\/)?deploy-(?:web|admin|prod|mcp)(?:-local)?(?:\.[a-z]+)?(?=\s|$)|(?:^|;|&&|\|\||&|\|)\s*az\s+webapp\s+deploy\b|(?:^|;|&&|\|\||&|\|)\s*azd\s+deploy\b/i;
-var DEPLOY_TRIGGER_CMD_RE = /\bgh\s+pr\s+merge\b|\bgh\s+workflow\s+run\b[^;&|]*\b(?:deploy|prod|production|release)\b|\bgit\s+push\b[^;&|]*?[\s:](?:main|master|prod|production|release\/\S+)(?=\s|$)/i;
+function deployCommands(command) {
+  const commands = [];
+  let words = [];
+  let word = "";
+  let started = false;
+  let quote = "";
+  let heredocs = [];
+  const flushWord = () => {
+    if (started) words.push(word);
+    word = "";
+    started = false;
+  };
+  const flushCommand = () => {
+    flushWord();
+    if (words.length) commands.push(words);
+    words = [];
+  };
+  for (let i = 0; i < command.length; i++) {
+    const c = command.charAt(i);
+    if (quote) {
+      if (c === quote) quote = "";
+      else if (c === "\\" && quote === '"' && /["\\$`\n]/.test(command[i + 1] ?? "")) {
+        const next = command[++i];
+        if (next !== "\n") word += next;
+      } else word += c;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      quote = c;
+      started = true;
+    } else if (c === "\\") {
+      const next = command[++i];
+      if (next && next !== "\n") {
+        word += next;
+        started = true;
+      }
+    } else if (c === "#" && !started) {
+      const end = command.indexOf("\n", i);
+      i = end < 0 ? command.length : end - 1;
+    } else if (c === "<" && command[i + 1] === "<") {
+      const match = /^<<(-?)\s*(?:'([^']+)'|"([^"]+)"|([\w-]+))/.exec(command.slice(i));
+      if (!match) return commands;
+      flushWord();
+      heredocs.push({ delimiter: match[2] ?? match[3] ?? match[4] ?? "", tabs: !!match[1] });
+      i += match[0].length - 1;
+    } else if (";|&\n".includes(c)) {
+      flushCommand();
+      if (c === "\n" && heredocs.length) {
+        for (const doc of heredocs) {
+          let found = false;
+          while (++i < command.length) {
+            const end = command.indexOf("\n", i);
+            const lineEnd = end < 0 ? command.length : end;
+            let line = command.slice(i, lineEnd).replace(/\r$/, "");
+            if (doc.tabs) line = line.replace(/^\t+/, "");
+            i = lineEnd;
+            if (line === doc.delimiter) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) return commands;
+        }
+        heredocs = [];
+      }
+    } else if (/\s/.test(c)) flushWord();
+    else {
+      word += c;
+      started = true;
+    }
+  }
+  if (!quote) flushCommand();
+  return commands.map((argv) => {
+    let i = 0;
+    while (/^[A-Za-z_][A-Za-z0-9_]*=/.test(argv[i] ?? "")) i++;
+    if (argv[i] === "env") {
+      i++;
+      while (/^[A-Za-z_][A-Za-z0-9_]*=/.test(argv[i] ?? "")) i++;
+    }
+    return argv.slice(i);
+  });
+}
+function foregroundCommand(argv) {
+  if (!argv.length || /\s/.test(argv[0] ?? "")) return false;
+  const script = /^(?:bash|sh)$/.test(argv[0] ?? "") ? argv[1] : argv[0];
+  if (/^(?:[\w./-]*\/)?deploy(?:-(?:web|admin|prod|mcp|scanners)(?:-local)?)?(?:\.[a-z]+)?$/i.test(
+    script ?? ""
+  ))
+    return true;
+  if (argv[0] === "az") return argv[1] === "webapp" && argv[2] === "deploy";
+  if (argv[0] === "azd") return argv[1] === "deploy";
+  switch (argv[0]) {
+    case "vercel":
+      return argv[1] === "deploy" || argv[1] === "--prod";
+    case "fly":
+    case "flyctl":
+    case "sst":
+    case "serverless":
+    case "sls":
+      return argv[1] === "deploy";
+    case "wrangler":
+      return argv[1] === "deploy" || argv[1] === "publish";
+    case "npm":
+    case "pnpm":
+    case "yarn":
+      return /^deploy(?::[\w-]+)?$/.test(argv[argv[1] === "run" ? 2 : 1] ?? "");
+    case "make":
+      return argv[1] === "deploy";
+    case "git":
+      return argv[1] === "push" && /^\S*(?:deploy|prod|production|heroku)$/.test(argv[2] ?? "");
+    default:
+      return false;
+  }
+}
+function triggerCommand(argv) {
+  return argv[0] === "gh" && argv[1] === "workflow" && argv[2] === "run" && /\b(?:deploy|prod|production|release)\b/i.test(argv[3] ?? "");
+}
 function isDeployCommand(command) {
   if (!command) return false;
-  return DEPLOY_TOOL_RE.test(command) || DEPLOY_CMD_RE.test(command) || FOREGROUND_SHIP_CMD_RE.test(command) || DEPLOY_TRIGGER_CMD_RE.test(command);
+  return deployCommands(command).some((argv) => foregroundCommand(argv) || triggerCommand(argv));
 }
 function isSelfLeasingDeployCommand(command) {
   if (!command) return false;
-  return /(?:^|;|&&|\|\||&|\|)\s*(?:(?:bash|sh|env)\s+)?(?:[\w./-]*\/)?deploy-(?:web|admin|prod|mcp)(?:-local)?(?:\.[a-z]+)?(?=\s|$)/i.test(
-    command
-  ) || /(?:npm|pnpm|yarn)\s+(?:run\s+)?deploy:(?:web|admin|mcp)\b/i.test(command);
+  return deployCommands(command).some((argv) => {
+    const script = /^(?:bash|sh)$/.test(argv[0] ?? "") ? argv[1] : argv[0];
+    return /^(?:[\w./-]*\/)?deploy-(?:web|admin|prod|mcp|scanners)(?:-local)?(?:\.[a-z]+)?$/i.test(
+      script ?? ""
+    ) || /^(?:npm|pnpm|yarn)$/.test(argv[0] ?? "") && /^deploy:(?:web|admin|mcp|scanners)$/.test(argv[argv[1] === "run" ? 2 : 1] ?? "");
+  });
 }
 
 // packages/shared/dist/authority.js
@@ -9165,6 +9281,21 @@ var MODEL_PRICES = {
   // $3/$15 on the strength of the old launch announcement — that over-bills
   // every Sonnet 5 turn by 50%.
   "claude-sonnet-5": { inputUsdPerMTok: 2, outputUsdPerMTok: 10 },
+  // Opus 5.5 shipped after the 5 pair and is the current default Anthropic
+  // recommends "for most workloads" — which makes it a current Claude Code
+  // default too, and therefore a model that arrives in ingested telemetry
+  // whether or not this app ever requests it. Absent until 2026-09-22, it was
+  // the THIRD time an Opus tier priced as $0: Opus at all (fixed 2026-07-23),
+  // Opus 5 (2026-09-02), and this. The pattern is not "we forgot" — it is that
+  // a new tier is invisible here until someone checks the sheet against the
+  // pricing page, so re-verify on every model launch.
+  //
+  // It is also CHEAPER than the tier it replaces ($4/$20 against Opus 5's
+  // $5/$25) and reads cache at 0.05x rather than the standard 0.1x — the
+  // second entry in this sheet to need the override, and the reason the
+  // override is a field rather than a special case for the 5.1 pair.
+  // Verified 2026-09-22 against https://platform.claude.com/docs/en/about-claude/pricing.
+  "claude-opus-5-5": { inputUsdPerMTok: 4, outputUsdPerMTok: 20, cacheReadMultiplier: 0.05 },
   // Opus 5 was absent until 2026-09-02. The app never requests it, but
   // aggregateTurnTiming prices provider-reported models from ingested Claude
   // Code telemetry, where it is a current default — so every Opus 5 turn was
@@ -12376,6 +12507,9 @@ var ThoughtHandoffReceiptV2Schema = external_exports.object({
   stale: external_exports.boolean(),
   replayed: external_exports.boolean().optional()
 }).passthrough();
+
+// packages/shared/dist/ops-watch.js
+var OPS_DIAGNOSE_SEV2_AFTER_MS = 15 * 6e4;
 
 // packages/shared/dist/entitlements.js
 var COORDINATION_SELF = [
@@ -24892,7 +25026,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.68";
+  cachedAgentVersion = "0.2.71";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -25042,6 +25176,9 @@ var MemlinApiClient = class {
   /** The configured account (the light-gate cache key when a call names none). */
   get defaultAccountId() {
     return this.cfg.accountId;
+  }
+  nativeSessionHook(input, opts) {
+    return this.request("POST", "/agent-control/hook", input, { ...opts, agentVersion: agentVersion() });
   }
   // ---------- low-level ----------
   async authHeaders(includeAccount = true, override = {}) {
@@ -27208,7 +27345,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version2 = "0.2.68";
+  const version2 = "0.2.71";
   return typeof version2 === "string" && VERSION.test(version2) ? version2 : null;
 }
 async function reportPluginRuntime(report) {

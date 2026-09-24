@@ -9101,6 +9101,21 @@ var MODEL_PRICES = {
   // $3/$15 on the strength of the old launch announcement — that over-bills
   // every Sonnet 5 turn by 50%.
   "claude-sonnet-5": { inputUsdPerMTok: 2, outputUsdPerMTok: 10 },
+  // Opus 5.5 shipped after the 5 pair and is the current default Anthropic
+  // recommends "for most workloads" — which makes it a current Claude Code
+  // default too, and therefore a model that arrives in ingested telemetry
+  // whether or not this app ever requests it. Absent until 2026-09-22, it was
+  // the THIRD time an Opus tier priced as $0: Opus at all (fixed 2026-07-23),
+  // Opus 5 (2026-09-02), and this. The pattern is not "we forgot" — it is that
+  // a new tier is invisible here until someone checks the sheet against the
+  // pricing page, so re-verify on every model launch.
+  //
+  // It is also CHEAPER than the tier it replaces ($4/$20 against Opus 5's
+  // $5/$25) and reads cache at 0.05x rather than the standard 0.1x — the
+  // second entry in this sheet to need the override, and the reason the
+  // override is a field rather than a special case for the 5.1 pair.
+  // Verified 2026-09-22 against https://platform.claude.com/docs/en/about-claude/pricing.
+  "claude-opus-5-5": { inputUsdPerMTok: 4, outputUsdPerMTok: 20, cacheReadMultiplier: 0.05 },
   // Opus 5 was absent until 2026-09-02. The app never requests it, but
   // aggregateTurnTiming prices provider-reported models from ingested Claude
   // Code telemetry, where it is a current default — so every Opus 5 turn was
@@ -12140,6 +12155,9 @@ var ThoughtHandoffReceiptV2Schema = external_exports.object({
   stale: external_exports.boolean(),
   replayed: external_exports.boolean().optional()
 }).passthrough();
+
+// packages/shared/dist/ops-watch.js
+var OPS_DIAGNOSE_SEV2_AFTER_MS = 15 * 6e4;
 
 // packages/shared/dist/entitlements.js
 var COORDINATION_SELF = [
@@ -25283,14 +25301,17 @@ async function archiveDestination(trackedRelPath) {
   }
   return `${stem}.${Date.now()}${ext}`;
 }
-async function applyPullToLocal(docs, state, now, rootOverride) {
+async function applyPullToLocal(docs, state, now, rootOverride, opts = {}) {
+  const reconcileMissing = opts.reconcileMissing ?? true;
   const out = {
     written: [],
     unchanged: [],
     removed: [],
     archived: [],
     keptEdited: [],
-    citations: {}
+    citations: {},
+    reconciliationSkipped: !reconcileMissing,
+    collisions: {}
   };
   const currentPaths = /* @__PURE__ */ new Set();
   const root = rootOverride ?? resolveHost().homeDir();
@@ -25298,6 +25319,9 @@ async function applyPullToLocal(docs, state, now, rootOverride) {
     if (d.kind === "brand_guidelines") continue;
     if (d.kind === "feedback") continue;
     const localPath = inferLocalPath(d.kind, d.title, d.path);
+    if (currentPaths.has(localPath)) {
+      out.collisions[localPath] = (out.collisions[localPath] ?? 1) + 1;
+    }
     currentPaths.add(localPath);
     const full = path9.join(root, localPath);
     const contentHash = hash2(d.content);
@@ -25323,6 +25347,7 @@ async function applyPullToLocal(docs, state, now, rootOverride) {
     };
   }
   for (const tracked of Object.keys(state.documents)) {
+    if (!reconcileMissing) break;
     if (currentPaths.has(tracked)) continue;
     const full = path9.join(root, tracked);
     if (existsSync3(full)) {
@@ -25596,7 +25621,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.68";
+  cachedAgentVersion = "0.2.71";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -25738,6 +25763,7 @@ async function* parseNdjsonEvents(body) {
     reader.releaseLock();
   }
 }
+var LIST_MAX_ROWS = 1e3;
 var MemlinApiClient = class {
   constructor(cfg) {
     this.cfg = cfg;
@@ -25746,6 +25772,9 @@ var MemlinApiClient = class {
   /** The configured account (the light-gate cache key when a call names none). */
   get defaultAccountId() {
     return this.cfg.accountId;
+  }
+  nativeSessionHook(input, opts) {
+    return this.request("POST", "/agent-control/hook", input, { ...opts, agentVersion: agentVersion() });
   }
   // ---------- low-level ----------
   async authHeaders(includeAccount = true, override = {}) {
@@ -27102,6 +27131,13 @@ async function readCompiledTriggers(file2 = compiledTriggersPath()) {
   }
 }
 var COMPILED_MESSAGE_MAX = 700;
+async function refreshWorkspaceTriggers(args) {
+  const docs = await args.api.listDocuments(
+    { kinds: ["memory"], has_trigger: true, project_id: args.projectId },
+    args.callOpts ?? {}
+  );
+  return compileWorkspaceTriggers({ ...args, docs });
+}
 async function compileWorkspaceTriggers(args) {
   const file2 = args.file ?? compiledTriggersPath();
   const root = await canonicalRoot(args.workspaceRoot);
@@ -27372,7 +27408,15 @@ async function main() {
     project_id: resolved.project_id
   });
   const remote = [...m1, ...m2];
-  const result = await applyPullToLocal(remote, state, now);
+  const listTruncated = m1.length >= LIST_MAX_ROWS || m2.length >= LIST_MAX_ROWS;
+  const result = await applyPullToLocal(remote, state, now, void 0, {
+    reconcileMissing: !listTruncated
+  });
+  if (result.reconciliationSkipped) {
+    console.log(
+      `  \u26A0 server returned its maximum of ${LIST_MAX_ROWS} documents \u2014 the list is truncated, so nothing was archived this run.`
+    );
+  }
   for (const p of result.written) {
     console.log(`  \u2193 ${p}`);
     const cite = result.citations[p];
@@ -27386,11 +27430,11 @@ async function main() {
   for (const p of result.keptEdited) console.log(`  \u2022 ${p} (kept \u2014 locally edited)`);
   await writeState(state);
   try {
-    const compiled = await compileWorkspaceTriggers({
+    const compiled = await refreshWorkspaceTriggers({
+      api,
       workspaceRoot: await workspaceRootFor(runtimeCwd()),
       accountId: resolved.account_id ?? config2.account_id,
-      projectId: resolved.project_id,
-      docs: m1
+      projectId: resolved.project_id
     });
     if (compiled.compiled > 0 || compiled.skipped > 0) {
       console.log(

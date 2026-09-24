@@ -3806,7 +3806,7 @@ var require_parse = __commonJS({
 var require_gray_matter = __commonJS({
   "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
-    var fs13 = __require("fs");
+    var fs14 = __require("fs");
     var sections = require_section_matter();
     var defaults = require_defaults();
     var stringify = require_stringify();
@@ -3890,7 +3890,7 @@ var require_gray_matter = __commonJS({
       return stringify(file2, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str2 = fs13.readFileSync(filepath, "utf8");
+      const str2 = fs14.readFileSync(filepath, "utf8");
       const file2 = matter3(str2, options2);
       file2.path = filepath;
       return file2;
@@ -4222,7 +4222,7 @@ var init_workspace_binding = __esm({
 });
 
 // packages/plugin-core/src/cli/light-worker.ts
-import os9 from "node:os";
+import os10 from "node:os";
 
 // packages/plugin-core/src/heartbeat.ts
 import crypto4 from "node:crypto";
@@ -4995,8 +4995,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path24, errorMaps, issueData } = params;
-  const fullPath = [...path24, ...issueData.path || []];
+  const { data, path: path25, errorMaps, issueData } = params;
+  const fullPath = [...path25, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -5112,11 +5112,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path24, key) {
+  constructor(parent, value, path25, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path24;
+    this._path = path25;
     this._key = key;
   }
   get path() {
@@ -9625,6 +9625,21 @@ var MODEL_PRICES = {
   // $3/$15 on the strength of the old launch announcement — that over-bills
   // every Sonnet 5 turn by 50%.
   "claude-sonnet-5": { inputUsdPerMTok: 2, outputUsdPerMTok: 10 },
+  // Opus 5.5 shipped after the 5 pair and is the current default Anthropic
+  // recommends "for most workloads" — which makes it a current Claude Code
+  // default too, and therefore a model that arrives in ingested telemetry
+  // whether or not this app ever requests it. Absent until 2026-09-22, it was
+  // the THIRD time an Opus tier priced as $0: Opus at all (fixed 2026-07-23),
+  // Opus 5 (2026-09-02), and this. The pattern is not "we forgot" — it is that
+  // a new tier is invisible here until someone checks the sheet against the
+  // pricing page, so re-verify on every model launch.
+  //
+  // It is also CHEAPER than the tier it replaces ($4/$20 against Opus 5's
+  // $5/$25) and reads cache at 0.05x rather than the standard 0.1x — the
+  // second entry in this sheet to need the override, and the reason the
+  // override is a field rather than a special case for the 5.1 pair.
+  // Verified 2026-09-22 against https://platform.claude.com/docs/en/about-claude/pricing.
+  "claude-opus-5-5": { inputUsdPerMTok: 4, outputUsdPerMTok: 20, cacheReadMultiplier: 0.05 },
   // Opus 5 was absent until 2026-09-02. The app never requests it, but
   // aggregateTurnTiming prices provider-reported models from ingested Claude
   // Code telemetry, where it is a current default — so every Opus 5 turn was
@@ -10912,19 +10927,19 @@ var ContextManifestV1Schema = external_exports.object({
       location: `linked_contexts.${index}`
     }))
   ];
-  references.forEach(({ ref, path: path24, location }) => {
+  references.forEach(({ ref, path: path25, location }) => {
     const identity = contextReferenceIdentityKey(ref);
     const prior = seen.get(identity);
     if (prior && prior.revision !== ref.revision) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path24,
+        path: path25,
         message: `context ${identity} has conflicting revisions in ${prior.location} and ${location}`
       });
     } else if (prior && location.startsWith("linked_contexts.")) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path24,
+        path: path25,
         message: `duplicate linked context ${identity}`
       });
     }
@@ -11238,11 +11253,11 @@ var ContextBundleV1Schema = external_exports.object({
         path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
       }))
     ];
-    for (const { ref, path: path24 } of references) {
+    for (const { ref, path: path25 } of references) {
       if (!contextKeys.has(contextReferenceKey(ref))) {
         ctx.addIssue({
           code: external_exports.ZodIssueCode.custom,
-          path: path24,
+          path: path25,
           message: "provider coverage is outside the exact manifest contexts"
         });
       }
@@ -13714,6 +13729,9 @@ var ThoughtHandoffReceiptV2Schema = external_exports.object({
   replayed: external_exports.boolean().optional()
 }).passthrough();
 
+// packages/shared/dist/ops-watch.js
+var OPS_DIAGNOSE_SEV2_AFTER_MS = 15 * 6e4;
+
 // packages/shared/dist/entitlements.js
 var COORDINATION_SELF = [
   "coordination.work_ledger",
@@ -14404,10 +14422,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj2, path24) {
-  if (!path24)
+function getElementAtPath(obj2, path25) {
+  if (!path25)
     return obj2;
-  return path24.reduce((acc, key) => acc?.[key], obj2);
+  return path25.reduce((acc, key) => acc?.[key], obj2);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -14727,11 +14745,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path24, issues) {
+function prefixIssues(path25, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path24);
+    iss.path.unshift(path25);
     return iss;
   });
 }
@@ -14868,7 +14886,7 @@ function treeifyError(error40, _mapper) {
     return issue2.message;
   };
   const result = { errors: [] };
-  const processError = (error41, path24 = []) => {
+  const processError = (error41, path25 = []) => {
     var _a, _b;
     for (const issue2 of error41.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
@@ -14878,7 +14896,7 @@ function treeifyError(error40, _mapper) {
       } else if (issue2.code === "invalid_element") {
         processError({ issues: issue2.issues }, issue2.path);
       } else {
-        const fullpath = [...path24, ...issue2.path];
+        const fullpath = [...path25, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -14908,9 +14926,9 @@ function treeifyError(error40, _mapper) {
   processError(error40);
   return result;
 }
-function toDotPath(path24) {
+function toDotPath(path25) {
   const segs = [];
-  for (const seg of path24) {
+  for (const seg of path25) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -25568,10 +25586,10 @@ function validateFlowDefinitionSemantics(flow) {
       ],
       ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, path: `stages.${stageIndex}.bypass_target` }]
     ];
-    targets.forEach(({ target, path: path24 }) => {
+    targets.forEach(({ target, path: path25 }) => {
       if (!isReservedTarget(target) && !stageById.has(target)) {
         issues.push({
-          path: path24,
+          path: path25,
           code: "missing_transition_target",
           message: `transition target ${JSON.stringify(target)} does not exist`
         });
@@ -25601,7 +25619,7 @@ function validateFlowDefinitionSemantics(flow) {
   const visiting = /* @__PURE__ */ new Set();
   const visited = /* @__PURE__ */ new Set();
   let hasReachableEnd = false;
-  const visit = (stageId, path24, pathBounds) => {
+  const visit = (stageId, path25, pathBounds) => {
     reachable.add(stageId);
     if (visited.has(stageId)) return;
     visiting.add(stageId);
@@ -25617,7 +25635,7 @@ function validateFlowDefinitionSemantics(flow) {
         ...stage.default_transition === null ? [] : [{ target: stage.default_transition, bounded: false }],
         ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, bounded: false }]
       ];
-      const currentPath = [...path24, stageId];
+      const currentPath = [...path25, stageId];
       for (const edge of edges) {
         const { target } = edge;
         if (target === "$end") {
@@ -25725,18 +25743,18 @@ var FlowPackManifestBaseSchema = external_exports2.object({
   evals: external_exports2.array(ManifestEvalSchema).max(256),
   model_roles: external_exports2.array(ManifestModelRoleSchema).max(64)
 }).strict();
-function validateRelativePackPath(path24) {
-  if (path24.startsWith("/") || path24.startsWith("\\")) return "path must be relative";
-  if (/^[A-Za-z]:/.test(path24) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path24)) {
+function validateRelativePackPath(path25) {
+  if (path25.startsWith("/") || path25.startsWith("\\")) return "path must be relative";
+  if (/^[A-Za-z]:/.test(path25) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path25)) {
     return "drive-qualified paths and URI schemes are not allowed";
   }
-  if (/[\u0000-\u001f\u007f]/.test(path24)) return "control characters are not allowed";
-  if (/%(?:2e|2f|5c)/i.test(path24)) return "encoded path traversal is not allowed";
-  if (path24.includes("\\")) return "path must use forward slashes";
-  if (path24.split("/").some((segment) => segment === ".." || segment === ".")) {
+  if (/[\u0000-\u001f\u007f]/.test(path25)) return "control characters are not allowed";
+  if (/%(?:2e|2f|5c)/i.test(path25)) return "encoded path traversal is not allowed";
+  if (path25.includes("\\")) return "path must use forward slashes";
+  if (path25.split("/").some((segment) => segment === ".." || segment === ".")) {
     return "path traversal and dot segments are not allowed";
   }
-  if (path24.split("/").some((segment) => segment.length === 0)) {
+  if (path25.split("/").some((segment) => segment.length === 0)) {
     return "path cannot contain empty segments";
   }
   return null;
@@ -25783,22 +25801,22 @@ function validateFlowPackManifestSemantics(manifest) {
       issues
     );
     role.independence.compare_against_roles.forEach((comparedRole, comparedIndex) => {
-      const path24 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
+      const path25 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
       if (comparedRole === role.id) {
         issues.push({
-          path: path24,
+          path: path25,
           code: "self_referential_model_independence",
           message: "a model role cannot require independence from itself"
         });
       } else if (!modelRolesById.has(comparedRole)) {
         issues.push({
-          path: path24,
+          path: path25,
           code: "missing_independence_model_role",
           message: `independence policy references undeclared model role ${JSON.stringify(comparedRole)}`
         });
       } else if (modelRolesById.get(comparedRole)?.independence !== null) {
         issues.push({
-          path: path24,
+          path: path25,
           code: "independence_reference_not_author",
           message: `independence policy must compare against an author role; ${JSON.stringify(comparedRole)} declares its own independence policy`
         });
@@ -26225,7 +26243,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.68";
+  cachedAgentVersion = "0.2.71";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -26375,6 +26393,9 @@ var MemlinApiClient = class {
   /** The configured account (the light-gate cache key when a call names none). */
   get defaultAccountId() {
     return this.cfg.accountId;
+  }
+  nativeSessionHook(input, opts) {
+    return this.request("POST", "/agent-control/hook", input, { ...opts, agentVersion: agentVersion() });
   }
   // ---------- low-level ----------
   async authHeaders(includeAccount = true, override = {}) {
@@ -31874,6 +31895,87 @@ async function runLightSync(opts) {
   }
 }
 
+// packages/plugin-core/src/remote-session-hook.ts
+import { promises as fs10 } from "node:fs";
+import os8 from "node:os";
+import path21 from "node:path";
+import { createHash as createHash3, randomUUID as randomUUID6 } from "node:crypto";
+init_companion_client();
+function remoteHookEventId(input, phase) {
+  const invocation = phase === "tool" ? input.tool_use_id ?? input.tool_call_id : phase === "prompt" ? input.turn_id : void 0;
+  if (!invocation) return randomUUID6();
+  const digest = createHash3("sha256").update(JSON.stringify([input.session_id, phase, invocation])).digest("hex");
+  return `${digest.slice(0, 8)}-${digest.slice(8, 12)}-4${digest.slice(13, 16)}-8${digest.slice(17, 20)}-${digest.slice(20, 32)}`;
+}
+async function remoteHookRootAllowed(cwd, settingsPath = path21.join(os8.homedir(), ".config/memlin/remote-control.json")) {
+  try {
+    const config2 = JSON.parse(await fs10.readFile(settingsPath, "utf8"));
+    if (config2.enabled !== true || !Array.isArray(config2.workspace_roots)) return false;
+    const root = await fs10.realpath(cwd);
+    return (await Promise.all(
+      config2.workspace_roots.filter((r) => typeof r === "string").map((r) => fs10.realpath(r).catch(() => null))
+    )).includes(root);
+  } catch {
+    return false;
+  }
+}
+function nativeFollowUpDecision(message) {
+  if (!message || typeof message !== "object") return null;
+  const m = message;
+  if (typeof m.id !== "string" || !/^[0-9a-f-]{36}$/i.test(m.id) || typeof m.text !== "string" || !m.text.trim() || m.text.length > 8e3)
+    return null;
+  return {
+    decision: "block",
+    reason: `The signed-in user sent this follow-up from Memlin for this same task. Continue under the existing permissions and workspace rules.
+
+${m.text}`
+  };
+}
+async function runRemoteSessionHook(input, host, phase, allowDelivery = false) {
+  if (process.env.MEMLIN_REMOTE_CONTROL_MANAGED === "1") return false;
+  const cwd = input.cwd ?? process.cwd(), session = input.session_id;
+  if (!session || session.length > 256 || !await remoteHookRootAllowed(cwd)) return false;
+  try {
+    const ctx = await getApi({ cwd });
+    if (!ctx) return false;
+    const bound = await companionResolveWorkspace(cwd);
+    if (!bound?.project_id || !bound.account_id || bound.hazard !== "none") return false;
+    const args = { accountId: bound.account_id, agentKind: host, requestTimeoutMs: 1800 };
+    const text = redactSecretShapes(
+      phase === "prompt" ? input.prompt ?? "" : phase === "stop" ? input.last_assistant_message ?? "" : input.tool_name ? `Using ${input.tool_name}` : ""
+    ).redacted;
+    const eventId = remoteHookEventId(input, phase);
+    const payload = {
+      native_session_id: session,
+      project_id: bound.project_id,
+      phase,
+      event_id: eventId,
+      title: phase === "prompt" ? text.slice(0, 200) : void 0,
+      text: text.slice(0, 8e3),
+      allow_delivery: allowDelivery
+    };
+    const result = await ctx.api.nativeSessionHook(payload, args);
+    const decision = allowDelivery ? nativeFollowUpDecision(result.message) : null;
+    if (!decision) return false;
+    process.stdout.write(JSON.stringify(decision));
+    await ctx.api.nativeSessionHook(
+      {
+        ...payload,
+        phase: "ack",
+        event_id: randomUUID6(),
+        allow_delivery: false,
+        text: void 0,
+        message_id: result.message.id
+      },
+      args
+    ).catch(() => {
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // packages/plugin-core/src/light-transcript.ts
 function flattenLightTranscript(raw) {
   const turns = [];
@@ -31911,11 +32013,11 @@ ${text.trim()}`);
 
 // packages/plugin-core/src/light-worker.ts
 import { spawn } from "node:child_process";
-import path21 from "node:path";
+import path22 from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 function startLightWorker(cwd, payload) {
-  const directory = path21.dirname(fileURLToPath2(import.meta.url));
-  const worker = path21.basename(directory) === "hooks" || path21.basename(directory) === "cli" ? path21.resolve(directory, "../cli/light-worker.js") : path21.join(directory, "cli/light-worker.js");
+  const directory = path22.dirname(fileURLToPath2(import.meta.url));
+  const worker = path22.basename(directory) === "hooks" || path22.basename(directory) === "cli" ? path22.resolve(directory, "../cli/light-worker.js") : path22.join(directory, "cli/light-worker.js");
   const child = spawn(process.execPath, [worker, JSON.stringify({ cwd, payload })], {
     cwd,
     stdio: "ignore",
@@ -31929,14 +32031,14 @@ function startLightWorker(cwd, payload) {
 
 // packages/plugin-core/src/stop-handler.ts
 import { execSync } from "node:child_process";
-import { createHash as createHash3 } from "node:crypto";
-import { promises as fs12, constants as fsConstants } from "node:fs";
+import { createHash as createHash4 } from "node:crypto";
+import { promises as fs13, constants as fsConstants } from "node:fs";
 
 // packages/plugin-core/src/done-gate.ts
 init_companion_client();
 import { execFileSync } from "node:child_process";
-import { promises as fs10 } from "node:fs";
-import path22 from "node:path";
+import { promises as fs11 } from "node:fs";
+import path23 from "node:path";
 var CLAIM = /\bit'?s (now )?(live|deployed|done|fixed|shipped)\b|\bnow live\b|\bis live\b|\bis deployed\b|\bdeployed to prod\b|\ball done\b|\bfully (fixed|working|deployed|shipped)\b|\bfix(ed)? (and|&) deployed\b|\bmerged (and|&) deployed\b|(^|\n)\s*[-*•\s]*(done|deployed|shipped|fixed)\b|✅/i;
 var HARD = /(^|\n)\s*[-*✅•\s]*\s*(fixed|deployed|shipped|done)\b[.! ]*\s*$/im;
 var HONEST = /not (yet )?(live|merged|deployed|shipped)|isn'?t (live|merged|deployed|shipped)|remaining step|next step (is|to)|not on main|still on (the |a )?(feature )?branch|needs? (to be )?merg|to be merged|before (this|it) is live|to make (it|this) live|awaiting (merge|deploy)|hold(ing)? the merge/i;
@@ -31947,11 +32049,11 @@ function isOff(v) {
   return s === "off" || s === "0" || s === "false" || s === "no";
 }
 async function readMarker(cwd) {
-  let dir = path22.resolve(cwd);
+  let dir = path23.resolve(cwd);
   for (let i = 0; i < 40; i += 1) {
-    const file2 = path22.join(dir, ".memlin", "enforce-done-deployed.json");
+    const file2 = path23.join(dir, ".memlin", "enforce-done-deployed.json");
     try {
-      const raw = await fs10.readFile(file2, "utf8");
+      const raw = await fs11.readFile(file2, "utf8");
       const parsed = JSON.parse(raw);
       const deploymentEvidence = Array.isArray(parsed.deploymentEvidence) ? parsed.deploymentEvidence.filter(
         (item) => item && typeof item.name === "string" && typeof item.tag === "string" && Array.isArray(item.paths) && item.paths.every((p) => typeof p === "string" && p.length > 0)
@@ -31964,7 +32066,7 @@ async function readMarker(cwd) {
       };
     } catch {
     }
-    const parent = path22.dirname(dir);
+    const parent = path23.dirname(dir);
     if (parent === dir) break;
     dir = parent;
   }
@@ -32007,7 +32109,7 @@ function contentText(content) {
 async function readTranscript(transcriptPath) {
   let raw;
   try {
-    raw = await fs10.readFile(transcriptPath, "utf8");
+    raw = await fs11.readFile(transcriptPath, "utf8");
   } catch {
     return null;
   }
@@ -32116,7 +32218,7 @@ function pendingDeploymentEvidence(evidence, changedPaths, cwd) {
 function strictBlock(reasons, base) {
   return {
     decision: "block",
-    reason: "HOLD \u2014 this session has an unfinished delivery obligation: " + reasons.join("; ") + `. Keep working until the change is committed, merged into ${base}, deployed, and verified by the configured production evidence. An honest \u201Cnot deployed\u201D status does not complete the task. Only the user may cancel the requirement or disable the gate.`
+    reason: "HOLD \u2014 this session has an unfinished delivery obligation: " + reasons.join("; ") + `. Commit it and merge it into ${base}. If production evidence is behind, say so. Do not start a deploy from this hold. Merging does not deploy, and a ship runs only when the user asked to deploy that service. Only the user may cancel the requirement or disable the gate.`
   };
 }
 async function enforceDoneMeansDeployed(payload) {
@@ -32177,9 +32279,7 @@ async function enforceDoneMeansDeployed(payload) {
     if (!merged) why.push(`HEAD (${branch}) is not merged into ${cfg.base}`);
     if (dirty) why.push("the working tree has uncommitted changes");
     if (unpushed) why.push(`there are unpushed commits (${cfg.base}..HEAD)`);
-    const reason = "HOLD \u2014 the last message claims the work is done/fixed/deployed, but it is NOT live: " + why.join("; ") + `. On this project "done" means merged into ${cfg.base} and deployed. Do ONE of:
-  (1) Ship it: commit \u2192 merge \u2192 confirm the deploy succeeded \u2192 verify the change live, THEN report done; or
-  (2) If you cannot merge right now (a concurrent deploy is in flight, you need sign-off, CI is red), say so plainly and state the exact remaining step \u2014 but do NOT call it done, fixed, or deployed.
+    const reason = "HOLD \u2014 the last message claims the work is done, fixed, or deployed, but git disagrees: " + why.join("; ") + `. On this project "done" means committed and merged into ${cfg.base}. Merging does not deploy. Do not start a deploy from this hold. A ship runs only when the user asked to deploy that service. Report the state as committed, merged, or not merged. Do not call it deployed or live unless a deploy script finished and its gates passed.
 Override (deliberate): include [skip-done-gate] in your message to ship-anyway this once, or disable the gate entirely with MEMLIN_DONE_GATE=off (or set "enabled": false in .memlin/enforce-done-deployed.json). The gate is opt-in and read-only \u2014 it never edits your files.`;
     return { decision: "block", reason };
   } catch (error40) {
@@ -32295,11 +32395,11 @@ function attributeAppliedItems(agentMessage, replay) {
   const titleIds = /* @__PURE__ */ new Map();
   const titleVersionIds = /* @__PURE__ */ new Map();
   for (const candidate of candidates) {
-    const path24 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
+    const path25 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
     const title = normalizeReference(candidate.title);
-    addReferenceKey(pathIds, path24, candidate.id);
-    if (path24) {
-      addReferenceKey(pathVersionIds, `${path24}\0${candidate.version_number}`, candidate.id);
+    addReferenceKey(pathIds, path25, candidate.id);
+    if (path25) {
+      addReferenceKey(pathVersionIds, `${path25}\0${candidate.version_number}`, candidate.id);
     }
     addReferenceKey(titleIds, title, candidate.id);
     if (title) {
@@ -32308,14 +32408,14 @@ function attributeAppliedItems(agentMessage, replay) {
   }
   const referenced = [];
   for (const candidate of candidates) {
-    const path24 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
+    const path25 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
     const title = normalizeReference(candidate.title);
-    const pathPositions = unnegatedReferencePositions(message, path24);
-    const pathVersionKey = `${path24}\0${candidate.version_number}`;
-    const pathIsUnique = pathIds.get(path24)?.size === 1;
+    const pathPositions = unnegatedReferencePositions(message, path25);
+    const pathVersionKey = `${path25}\0${candidate.version_number}`;
+    const pathIsUnique = pathIds.get(path25)?.size === 1;
     const pathVersionIsUnique = pathVersionIds.get(pathVersionKey)?.size === 1;
     const pathMatch = pathPositions.length > 0 && (pathIsUnique || pathVersionIsUnique && pathPositions.some(
-      (position) => versionMentionNear(message, position, path24.length, candidate.version_number)
+      (position) => versionMentionNear(message, position, path25.length, candidate.version_number)
     ));
     const titlePositions = unnegatedReferencePositions(message, title);
     const titleVersionKey = `${title}\0${candidate.version_number}`;
@@ -32342,24 +32442,24 @@ function attributeAppliedItems(agentMessage, replay) {
 
 // packages/plugin-core/src/state.ts
 init_atomic_rename();
-import { promises as fs11 } from "node:fs";
-import path23 from "node:path";
-import os8 from "node:os";
+import { promises as fs12 } from "node:fs";
+import path24 from "node:path";
+import os9 from "node:os";
 import crypto5 from "node:crypto";
-var STATE_FILE = path23.join(os8.homedir(), ".config", "memlin", "state.json");
+var STATE_FILE = path24.join(os9.homedir(), ".config", "memlin", "state.json");
 var EMPTY = { documents: {} };
 async function readState() {
   try {
-    const raw = await fs11.readFile(STATE_FILE, "utf8");
+    const raw = await fs12.readFile(STATE_FILE, "utf8");
     return JSON.parse(raw);
   } catch {
     return { ...EMPTY };
   }
 }
 async function writeState(state) {
-  await fs11.mkdir(path23.dirname(STATE_FILE), { recursive: true });
+  await fs12.mkdir(path24.dirname(STATE_FILE), { recursive: true });
   const tmp = `${STATE_FILE}.${process.pid}.tmp`;
-  await fs11.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
+  await fs12.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
   await atomicRename(tmp, STATE_FILE);
 }
 var LOCK_DIR = `${STATE_FILE}.lock`;
@@ -32368,17 +32468,17 @@ var LOCK_WAIT_MS = 2e3;
 var LOCK_RETRY_MS = 50;
 async function acquireStateLock() {
   const deadline2 = Date.now() + LOCK_WAIT_MS;
-  await fs11.mkdir(path23.dirname(LOCK_DIR), { recursive: true }).catch(() => {
+  await fs12.mkdir(path24.dirname(LOCK_DIR), { recursive: true }).catch(() => {
   });
   for (; ; ) {
     try {
-      await fs11.mkdir(LOCK_DIR);
+      await fs12.mkdir(LOCK_DIR);
       return true;
     } catch {
       try {
-        const stat = await fs11.stat(LOCK_DIR);
+        const stat = await fs12.stat(LOCK_DIR);
         if (Date.now() - stat.mtimeMs > LOCK_STALE_MS) {
-          await fs11.rmdir(LOCK_DIR).catch(() => {
+          await fs12.rmdir(LOCK_DIR).catch(() => {
           });
           continue;
         }
@@ -32391,7 +32491,7 @@ async function acquireStateLock() {
   }
 }
 async function releaseStateLock() {
-  await fs11.rmdir(LOCK_DIR).catch(() => {
+  await fs12.rmdir(LOCK_DIR).catch(() => {
   });
 }
 async function updateState(mutate) {
@@ -32700,7 +32800,7 @@ function flattenContent(c) {
 async function readLastExchange(transcriptPath) {
   let raw;
   try {
-    raw = await fs12.readFile(transcriptPath, "utf8");
+    raw = await fs13.readFile(transcriptPath, "utf8");
   } catch {
     return null;
   }
@@ -32742,7 +32842,7 @@ function nonNegativeInt(v) {
 async function readLastAssistantUsage(transcriptPath) {
   let raw;
   try {
-    raw = await fs12.readFile(transcriptPath, "utf8");
+    raw = await fs13.readFile(transcriptPath, "utf8");
   } catch {
     return null;
   }
@@ -33062,7 +33162,7 @@ async function maybeScribeSession(ctx, payload, routing, lightMode = false) {
   let raw;
   try {
     if (lightMode) {
-      const handle = await fs12.open(
+      const handle = await fs13.open(
         payload.transcript_path,
         fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW
       );
@@ -33075,7 +33175,7 @@ async function maybeScribeSession(ctx, payload, routing, lightMode = false) {
       } finally {
         await handle.close();
       }
-    } else raw = await fs12.readFile(payload.transcript_path, "utf8");
+    } else raw = await fs13.readFile(payload.transcript_path, "utf8");
   } catch {
     return;
   }
@@ -33250,7 +33350,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
     log("working memory: skipped \u2014 no resolve or exchange yet");
     return;
   }
-  const path24 = workingMemoryPath(sessionId);
+  const path25 = workingMemoryPath(sessionId);
   const callOpts = { accountId: routing.accountId };
   let documentId = state.working_memory_ids?.[sessionId] ?? null;
   if (!documentId) {
@@ -33259,7 +33359,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
         ctx.api.listDocuments(
           {
             kinds: ["memory"],
-            path: path24,
+            path: path25,
             ...routing.projectId ? { project_id: routing.projectId } : {}
           },
           callOpts
@@ -33267,7 +33367,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
         TIMEOUT_MS,
         []
       );
-      const hit = docs.find((d) => d.path === path24);
+      const hit = docs.find((d) => d.path === path25);
       if (hit) documentId = hit.id;
     } catch (err) {
       log(
@@ -33275,7 +33375,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
       );
     }
   }
-  const contentHash = createHash3("sha256").update(content).digest("hex");
+  const contentHash = createHash4("sha256").update(content).digest("hex");
   if (documentId && state.working_memory_hashes?.[sessionId] === contentHash) {
     log("working memory: unchanged since last turn, skipping write");
     return;
@@ -33287,7 +33387,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
         scope: routing.projectId ? "project" : "team",
         kind: "memory",
         title: `Working memory \u2014 ${sessionId.slice(0, 12)}`,
-        path: path24,
+        path: path25,
         content,
         commit_message: "session working memory",
         project_id: routing.projectId,
@@ -33330,7 +33430,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
       Object.entries(next.working_memory_hashes).filter(([k]) => keep.has(k))
     );
     await writeState(next);
-    log(`working memory: upserted ${path24} (v${result.version_number})`);
+    log(`working memory: upserted ${path25} (v${result.version_number})`);
   } catch (err) {
     log(`working memory failed: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -33342,6 +33442,8 @@ async function runStopHandler(payload, opts = {}) {
     process.stdout.write(JSON.stringify(gate));
     return;
   }
+  if (opts.urgentDecisionHost && await runRemoteSessionHook(payload, opts.urgentDecisionHost, "stop", true))
+    return;
   const ctx = await getApi({ cwd });
   if (!ctx) return;
   const light = await ctx.api.lightStatus().catch(() => void 0);
@@ -33394,7 +33496,7 @@ try {
         await runLightSync({
           api: ctx.api,
           lightRoot: root,
-          home: os9.homedir(),
+          home: os10.homedir(),
           trigger: "auto",
           client: "plugin"
         }).catch(() => {

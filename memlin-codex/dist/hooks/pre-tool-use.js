@@ -3412,7 +3412,7 @@ var require_parse = __commonJS({
 var require_gray_matter = __commonJS({
   "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
-    var fs7 = __require("fs");
+    var fs8 = __require("fs");
     var sections = require_section_matter();
     var defaults = require_defaults();
     var stringify = require_stringify();
@@ -3496,7 +3496,7 @@ var require_gray_matter = __commonJS({
       return stringify(file2, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str2 = fs7.readFileSync(filepath, "utf8");
+      const str2 = fs8.readFileSync(filepath, "utf8");
       const file2 = matter3(str2, options2);
       file2.path = filepath;
       return file2;
@@ -4239,9 +4239,11 @@ var init_workspace_binding = __esm({
   }
 });
 
-// packages/plugin-core/dist/pre-tool-use-handler.js
-import { execSync as execSync2 } from "node:child_process";
-import path16 from "node:path";
+// packages/plugin-core/dist/remote-session-hook.js
+import { promises as fs6 } from "node:fs";
+import os7 from "node:os";
+import path8 from "node:path";
+import { createHash, randomUUID as randomUUID4 } from "node:crypto";
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4721,8 +4723,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path17, errorMaps, issueData } = params;
-  const fullPath = [...path17, ...issueData.path || []];
+  const { data, path: path18, errorMaps, issueData } = params;
+  const fullPath = [...path18, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -4838,11 +4840,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path17, key) {
+  constructor(parent, value, path18, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path17;
+    this._path = path18;
     this._key = key;
   }
   get path() {
@@ -8744,6 +8746,33 @@ for (const p of REDACTION_PATTERNS) {
 var SECRET_REDACTION_PATTERNS = REDACTION_PATTERNS.filter(
   (p) => !p.validate
 );
+var SECRET_REDACTION_MAX_PASSES = 64;
+function applyRedaction(input, builtIns, extraPatterns) {
+  if (!input) {
+    return { redacted: input, hits: [], changed: false };
+  }
+  const counts = /* @__PURE__ */ new Map();
+  const apply = (text, p) => {
+    p.regex.lastIndex = 0;
+    return text.replaceAll(p.regex, (match) => {
+      if (p.validate && !p.validate(match)) return match;
+      counts.set(p, (counts.get(p) ?? 0) + 1);
+      return `[REDACTED-${p.name}]`;
+    });
+  };
+  let out = input;
+  for (let pass = 0; pass < SECRET_REDACTION_MAX_PASSES; pass++) {
+    const before = out;
+    for (const p of builtIns) out = apply(out, p);
+    if (out === before) break;
+  }
+  for (const p of extraPatterns) out = apply(out, p);
+  const hits = [...builtIns, ...extraPatterns].filter((p) => counts.has(p)).map((p) => ({ name: p.name, count: counts.get(p) }));
+  return { redacted: out, hits, changed: hits.length > 0 };
+}
+function redactSecretShapes(input, extraPatterns = []) {
+  return applyRedaction(input, SECRET_REDACTION_PATTERNS, extraPatterns);
+}
 
 // packages/shared/dist/guardrails.js
 function compileGuardrailPattern(raw) {
@@ -9025,27 +9054,143 @@ var ActionMetadataSchema = external_exports.object({
 });
 
 // packages/shared/dist/task-classifier.js
-var DEPLOY_TOOL_RE = /\b(?:vercel\s+(?:deploy|--?prod\w*)|fly(?:ctl)?\s+deploy|wrangler\s+(?:deploy|publish)|sst\s+deploy|serverless\s+deploy|sls\s+deploy|(?:npm|pnpm|yarn)\s+(?:run\s+)?deploy|make\s+deploy|git\s+push\s+\S*(?:deploy|prod|production|heroku))\b/i;
-var DEPLOY_CMD_RE = /(?:^|;|&&|\|\||&|\|)\s*(?:[\w./-]*\/)?deploy(?:\.[a-z]+)?(?=\s|$)/i;
-var FOREGROUND_SHIP_CMD_RE = /(?:^|;|&&|\|\||&|\|)\s*(?:(?:bash|sh|env)\s+)?(?:[\w./-]*\/)?deploy-(?:web|admin|prod|mcp)(?:-local)?(?:\.[a-z]+)?(?=\s|$)|(?:^|;|&&|\|\||&|\|)\s*az\s+webapp\s+deploy\b|(?:^|;|&&|\|\||&|\|)\s*azd\s+deploy\b/i;
-var DEPLOY_TRIGGER_CMD_RE = /\bgh\s+pr\s+merge\b|\bgh\s+workflow\s+run\b[^;&|]*\b(?:deploy|prod|production|release)\b|\bgit\s+push\b[^;&|]*?[\s:](?:main|master|prod|production|release\/\S+)(?=\s|$)/i;
+function deployCommands(command) {
+  const commands = [];
+  let words = [];
+  let word = "";
+  let started = false;
+  let quote = "";
+  let heredocs = [];
+  const flushWord = () => {
+    if (started) words.push(word);
+    word = "";
+    started = false;
+  };
+  const flushCommand = () => {
+    flushWord();
+    if (words.length) commands.push(words);
+    words = [];
+  };
+  for (let i = 0; i < command.length; i++) {
+    const c = command.charAt(i);
+    if (quote) {
+      if (c === quote) quote = "";
+      else if (c === "\\" && quote === '"' && /["\\$`\n]/.test(command[i + 1] ?? "")) {
+        const next = command[++i];
+        if (next !== "\n") word += next;
+      } else word += c;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      quote = c;
+      started = true;
+    } else if (c === "\\") {
+      const next = command[++i];
+      if (next && next !== "\n") {
+        word += next;
+        started = true;
+      }
+    } else if (c === "#" && !started) {
+      const end = command.indexOf("\n", i);
+      i = end < 0 ? command.length : end - 1;
+    } else if (c === "<" && command[i + 1] === "<") {
+      const match = /^<<(-?)\s*(?:'([^']+)'|"([^"]+)"|([\w-]+))/.exec(command.slice(i));
+      if (!match) return commands;
+      flushWord();
+      heredocs.push({ delimiter: match[2] ?? match[3] ?? match[4] ?? "", tabs: !!match[1] });
+      i += match[0].length - 1;
+    } else if (";|&\n".includes(c)) {
+      flushCommand();
+      if (c === "\n" && heredocs.length) {
+        for (const doc of heredocs) {
+          let found = false;
+          while (++i < command.length) {
+            const end = command.indexOf("\n", i);
+            const lineEnd = end < 0 ? command.length : end;
+            let line = command.slice(i, lineEnd).replace(/\r$/, "");
+            if (doc.tabs) line = line.replace(/^\t+/, "");
+            i = lineEnd;
+            if (line === doc.delimiter) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) return commands;
+        }
+        heredocs = [];
+      }
+    } else if (/\s/.test(c)) flushWord();
+    else {
+      word += c;
+      started = true;
+    }
+  }
+  if (!quote) flushCommand();
+  return commands.map((argv) => {
+    let i = 0;
+    while (/^[A-Za-z_][A-Za-z0-9_]*=/.test(argv[i] ?? "")) i++;
+    if (argv[i] === "env") {
+      i++;
+      while (/^[A-Za-z_][A-Za-z0-9_]*=/.test(argv[i] ?? "")) i++;
+    }
+    return argv.slice(i);
+  });
+}
+function foregroundCommand(argv) {
+  if (!argv.length || /\s/.test(argv[0] ?? "")) return false;
+  const script = /^(?:bash|sh)$/.test(argv[0] ?? "") ? argv[1] : argv[0];
+  if (/^(?:[\w./-]*\/)?deploy(?:-(?:web|admin|prod|mcp|scanners)(?:-local)?)?(?:\.[a-z]+)?$/i.test(
+    script ?? ""
+  ))
+    return true;
+  if (argv[0] === "az") return argv[1] === "webapp" && argv[2] === "deploy";
+  if (argv[0] === "azd") return argv[1] === "deploy";
+  switch (argv[0]) {
+    case "vercel":
+      return argv[1] === "deploy" || argv[1] === "--prod";
+    case "fly":
+    case "flyctl":
+    case "sst":
+    case "serverless":
+    case "sls":
+      return argv[1] === "deploy";
+    case "wrangler":
+      return argv[1] === "deploy" || argv[1] === "publish";
+    case "npm":
+    case "pnpm":
+    case "yarn":
+      return /^deploy(?::[\w-]+)?$/.test(argv[argv[1] === "run" ? 2 : 1] ?? "");
+    case "make":
+      return argv[1] === "deploy";
+    case "git":
+      return argv[1] === "push" && /^\S*(?:deploy|prod|production|heroku)$/.test(argv[2] ?? "");
+    default:
+      return false;
+  }
+}
+function triggerCommand(argv) {
+  return argv[0] === "gh" && argv[1] === "workflow" && argv[2] === "run" && /\b(?:deploy|prod|production|release)\b/i.test(argv[3] ?? "");
+}
 function isDeployCommand(command) {
   if (!command) return false;
-  return DEPLOY_TOOL_RE.test(command) || DEPLOY_CMD_RE.test(command) || FOREGROUND_SHIP_CMD_RE.test(command) || DEPLOY_TRIGGER_CMD_RE.test(command);
+  return deployCommands(command).some((argv) => foregroundCommand(argv) || triggerCommand(argv));
 }
 function isForegroundDeployCommand(command) {
   if (!command) return false;
-  return DEPLOY_TOOL_RE.test(command) || DEPLOY_CMD_RE.test(command) || FOREGROUND_SHIP_CMD_RE.test(command);
+  return deployCommands(command).some(foregroundCommand);
 }
 function isSelfLeasingDeployCommand(command) {
   if (!command) return false;
-  return /(?:^|;|&&|\|\||&|\|)\s*(?:(?:bash|sh|env)\s+)?(?:[\w./-]*\/)?deploy-(?:web|admin|prod|mcp)(?:-local)?(?:\.[a-z]+)?(?=\s|$)/i.test(
-    command
-  ) || /(?:npm|pnpm|yarn)\s+(?:run\s+)?deploy:(?:web|admin|mcp)\b/i.test(command);
+  return deployCommands(command).some((argv) => {
+    const script = /^(?:bash|sh)$/.test(argv[0] ?? "") ? argv[1] : argv[0];
+    return /^(?:[\w./-]*\/)?deploy-(?:web|admin|prod|mcp|scanners)(?:-local)?(?:\.[a-z]+)?$/i.test(
+      script ?? ""
+    ) || /^(?:npm|pnpm|yarn)$/.test(argv[0] ?? "") && /^deploy:(?:web|admin|mcp|scanners)$/.test(argv[argv[1] === "run" ? 2 : 1] ?? "");
+  });
 }
 function isDeployTriggerCommand(command) {
   if (!command) return false;
-  return DEPLOY_TRIGGER_CMD_RE.test(command);
+  return deployCommands(command).some(triggerCommand);
 }
 
 // packages/shared/dist/authority.js
@@ -9081,6 +9226,21 @@ var MODEL_PRICES = {
   // $3/$15 on the strength of the old launch announcement — that over-bills
   // every Sonnet 5 turn by 50%.
   "claude-sonnet-5": { inputUsdPerMTok: 2, outputUsdPerMTok: 10 },
+  // Opus 5.5 shipped after the 5 pair and is the current default Anthropic
+  // recommends "for most workloads" — which makes it a current Claude Code
+  // default too, and therefore a model that arrives in ingested telemetry
+  // whether or not this app ever requests it. Absent until 2026-09-22, it was
+  // the THIRD time an Opus tier priced as $0: Opus at all (fixed 2026-07-23),
+  // Opus 5 (2026-09-02), and this. The pattern is not "we forgot" — it is that
+  // a new tier is invisible here until someone checks the sheet against the
+  // pricing page, so re-verify on every model launch.
+  //
+  // It is also CHEAPER than the tier it replaces ($4/$20 against Opus 5's
+  // $5/$25) and reads cache at 0.05x rather than the standard 0.1x — the
+  // second entry in this sheet to need the override, and the reason the
+  // override is a field rather than a special case for the 5.1 pair.
+  // Verified 2026-09-22 against https://platform.claude.com/docs/en/about-claude/pricing.
+  "claude-opus-5-5": { inputUsdPerMTok: 4, outputUsdPerMTok: 20, cacheReadMultiplier: 0.05 },
   // Opus 5 was absent until 2026-09-02. The app never requests it, but
   // aggregateTurnTiming prices provider-reported models from ingested Claude
   // Code telemetry, where it is a current default — so every Opus 5 turn was
@@ -9598,19 +9758,19 @@ var ContextManifestV1Schema = external_exports.object({
       location: `linked_contexts.${index}`
     }))
   ];
-  references.forEach(({ ref, path: path17, location }) => {
+  references.forEach(({ ref, path: path18, location }) => {
     const identity = contextReferenceIdentityKey(ref);
     const prior = seen.get(identity);
     if (prior && prior.revision !== ref.revision) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path17,
+        path: path18,
         message: `context ${identity} has conflicting revisions in ${prior.location} and ${location}`
       });
     } else if (prior && location.startsWith("linked_contexts.")) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path17,
+        path: path18,
         message: `duplicate linked context ${identity}`
       });
     }
@@ -9924,11 +10084,11 @@ var ContextBundleV1Schema = external_exports.object({
         path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
       }))
     ];
-    for (const { ref, path: path17 } of references) {
+    for (const { ref, path: path18 } of references) {
       if (!contextKeys.has(contextReferenceKey(ref))) {
         ctx.addIssue({
           code: external_exports.ZodIssueCode.custom,
-          path: path17,
+          path: path18,
           message: "provider coverage is outside the exact manifest contexts"
         });
       }
@@ -12118,6 +12278,9 @@ var ThoughtHandoffReceiptV2Schema = external_exports.object({
   replayed: external_exports.boolean().optional()
 }).passthrough();
 
+// packages/shared/dist/ops-watch.js
+var OPS_DIAGNOSE_SEV2_AFTER_MS = 15 * 6e4;
+
 // packages/shared/dist/entitlements.js
 var COORDINATION_SELF = [
   "coordination.work_ledger",
@@ -12808,10 +12971,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path17) {
-  if (!path17)
+function getElementAtPath(obj, path18) {
+  if (!path18)
     return obj;
-  return path17.reduce((acc, key) => acc?.[key], obj);
+  return path18.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -13131,11 +13294,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path17, issues) {
+function prefixIssues(path18, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path17);
+    iss.path.unshift(path18);
     return iss;
   });
 }
@@ -13272,7 +13435,7 @@ function treeifyError(error40, _mapper) {
     return issue2.message;
   };
   const result = { errors: [] };
-  const processError = (error41, path17 = []) => {
+  const processError = (error41, path18 = []) => {
     var _a, _b;
     for (const issue2 of error41.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
@@ -13282,7 +13445,7 @@ function treeifyError(error40, _mapper) {
       } else if (issue2.code === "invalid_element") {
         processError({ issues: issue2.issues }, issue2.path);
       } else {
-        const fullpath = [...path17, ...issue2.path];
+        const fullpath = [...path18, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -13312,9 +13475,9 @@ function treeifyError(error40, _mapper) {
   processError(error40);
   return result;
 }
-function toDotPath(path17) {
+function toDotPath(path18) {
   const segs = [];
-  for (const seg of path17) {
+  for (const seg of path18) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -23972,10 +24135,10 @@ function validateFlowDefinitionSemantics(flow) {
       ],
       ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, path: `stages.${stageIndex}.bypass_target` }]
     ];
-    targets.forEach(({ target, path: path17 }) => {
+    targets.forEach(({ target, path: path18 }) => {
       if (!isReservedTarget(target) && !stageById.has(target)) {
         issues.push({
-          path: path17,
+          path: path18,
           code: "missing_transition_target",
           message: `transition target ${JSON.stringify(target)} does not exist`
         });
@@ -24005,7 +24168,7 @@ function validateFlowDefinitionSemantics(flow) {
   const visiting = /* @__PURE__ */ new Set();
   const visited = /* @__PURE__ */ new Set();
   let hasReachableEnd = false;
-  const visit = (stageId, path17, pathBounds) => {
+  const visit = (stageId, path18, pathBounds) => {
     reachable.add(stageId);
     if (visited.has(stageId)) return;
     visiting.add(stageId);
@@ -24021,7 +24184,7 @@ function validateFlowDefinitionSemantics(flow) {
         ...stage.default_transition === null ? [] : [{ target: stage.default_transition, bounded: false }],
         ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, bounded: false }]
       ];
-      const currentPath = [...path17, stageId];
+      const currentPath = [...path18, stageId];
       for (const edge of edges) {
         const { target } = edge;
         if (target === "$end") {
@@ -24129,18 +24292,18 @@ var FlowPackManifestBaseSchema = external_exports2.object({
   evals: external_exports2.array(ManifestEvalSchema).max(256),
   model_roles: external_exports2.array(ManifestModelRoleSchema).max(64)
 }).strict();
-function validateRelativePackPath(path17) {
-  if (path17.startsWith("/") || path17.startsWith("\\")) return "path must be relative";
-  if (/^[A-Za-z]:/.test(path17) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path17)) {
+function validateRelativePackPath(path18) {
+  if (path18.startsWith("/") || path18.startsWith("\\")) return "path must be relative";
+  if (/^[A-Za-z]:/.test(path18) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path18)) {
     return "drive-qualified paths and URI schemes are not allowed";
   }
-  if (/[\u0000-\u001f\u007f]/.test(path17)) return "control characters are not allowed";
-  if (/%(?:2e|2f|5c)/i.test(path17)) return "encoded path traversal is not allowed";
-  if (path17.includes("\\")) return "path must use forward slashes";
-  if (path17.split("/").some((segment) => segment === ".." || segment === ".")) {
+  if (/[\u0000-\u001f\u007f]/.test(path18)) return "control characters are not allowed";
+  if (/%(?:2e|2f|5c)/i.test(path18)) return "encoded path traversal is not allowed";
+  if (path18.includes("\\")) return "path must use forward slashes";
+  if (path18.split("/").some((segment) => segment === ".." || segment === ".")) {
     return "path traversal and dot segments are not allowed";
   }
-  if (path17.split("/").some((segment) => segment.length === 0)) {
+  if (path18.split("/").some((segment) => segment.length === 0)) {
     return "path cannot contain empty segments";
   }
   return null;
@@ -24187,22 +24350,22 @@ function validateFlowPackManifestSemantics(manifest) {
       issues
     );
     role.independence.compare_against_roles.forEach((comparedRole, comparedIndex) => {
-      const path17 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
+      const path18 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
       if (comparedRole === role.id) {
         issues.push({
-          path: path17,
+          path: path18,
           code: "self_referential_model_independence",
           message: "a model role cannot require independence from itself"
         });
       } else if (!modelRolesById.has(comparedRole)) {
         issues.push({
-          path: path17,
+          path: path18,
           code: "missing_independence_model_role",
           message: `independence policy references undeclared model role ${JSON.stringify(comparedRole)}`
         });
       } else if (modelRolesById.get(comparedRole)?.independence !== null) {
         issues.push({
-          path: path17,
+          path: path18,
           code: "independence_reference_not_author",
           message: `independence policy must compare against an author role; ${JSON.stringify(comparedRole)} declares its own independence policy`
         });
@@ -24930,7 +25093,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.68";
+  cachedAgentVersion = "0.2.71";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -25080,6 +25243,9 @@ var MemlinApiClient = class {
   /** The configured account (the light-gate cache key when a call names none). */
   get defaultAccountId() {
     return this.cfg.accountId;
+  }
+  nativeSessionHook(input, opts) {
+    return this.request("POST", "/agent-control/hook", input, { ...opts, agentVersion: agentVersion() });
   }
   // ---------- low-level ----------
   async authHeaders(includeAccount = true, override = {}) {
@@ -26391,12 +26557,93 @@ function log(msg) {
   }
 }
 
+// packages/plugin-core/dist/remote-session-hook.js
+init_companion_client();
+function remoteHookEventId(input, phase) {
+  const invocation = phase === "tool" ? input.tool_use_id ?? input.tool_call_id : phase === "prompt" ? input.turn_id : void 0;
+  if (!invocation) return randomUUID4();
+  const digest2 = createHash("sha256").update(JSON.stringify([input.session_id, phase, invocation])).digest("hex");
+  return `${digest2.slice(0, 8)}-${digest2.slice(8, 12)}-4${digest2.slice(13, 16)}-8${digest2.slice(17, 20)}-${digest2.slice(20, 32)}`;
+}
+async function remoteHookRootAllowed(cwd, settingsPath = path8.join(os7.homedir(), ".config/memlin/remote-control.json")) {
+  try {
+    const config2 = JSON.parse(await fs6.readFile(settingsPath, "utf8"));
+    if (config2.enabled !== true || !Array.isArray(config2.workspace_roots)) return false;
+    const root = await fs6.realpath(cwd);
+    return (await Promise.all(
+      config2.workspace_roots.filter((r) => typeof r === "string").map((r) => fs6.realpath(r).catch(() => null))
+    )).includes(root);
+  } catch {
+    return false;
+  }
+}
+function nativeFollowUpDecision(message) {
+  if (!message || typeof message !== "object") return null;
+  const m = message;
+  if (typeof m.id !== "string" || !/^[0-9a-f-]{36}$/i.test(m.id) || typeof m.text !== "string" || !m.text.trim() || m.text.length > 8e3)
+    return null;
+  return {
+    decision: "block",
+    reason: `The signed-in user sent this follow-up from Memlin for this same task. Continue under the existing permissions and workspace rules.
+
+${m.text}`
+  };
+}
+async function runRemoteSessionHook(input, host, phase, allowDelivery = false) {
+  if (process.env.MEMLIN_REMOTE_CONTROL_MANAGED === "1") return false;
+  const cwd = input.cwd ?? process.cwd(), session = input.session_id;
+  if (!session || session.length > 256 || !await remoteHookRootAllowed(cwd)) return false;
+  try {
+    const ctx = await getApi({ cwd });
+    if (!ctx) return false;
+    const bound = await companionResolveWorkspace(cwd);
+    if (!bound?.project_id || !bound.account_id || bound.hazard !== "none") return false;
+    const args = { accountId: bound.account_id, agentKind: host, requestTimeoutMs: 1800 };
+    const text = redactSecretShapes(
+      phase === "prompt" ? input.prompt ?? "" : phase === "stop" ? input.last_assistant_message ?? "" : input.tool_name ? `Using ${input.tool_name}` : ""
+    ).redacted;
+    const eventId = remoteHookEventId(input, phase);
+    const payload = {
+      native_session_id: session,
+      project_id: bound.project_id,
+      phase,
+      event_id: eventId,
+      title: phase === "prompt" ? text.slice(0, 200) : void 0,
+      text: text.slice(0, 8e3),
+      allow_delivery: allowDelivery
+    };
+    const result = await ctx.api.nativeSessionHook(payload, args);
+    const decision = allowDelivery ? nativeFollowUpDecision(result.message) : null;
+    if (!decision) return false;
+    process.stdout.write(JSON.stringify(decision));
+    await ctx.api.nativeSessionHook(
+      {
+        ...payload,
+        phase: "ack",
+        event_id: randomUUID4(),
+        allow_delivery: false,
+        text: void 0,
+        message_id: result.message.id
+      },
+      args
+    ).catch(() => {
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// packages/plugin-core/dist/pre-tool-use-handler.js
+import { execSync as execSync2 } from "node:child_process";
+import path17 from "node:path";
+
 // packages/plugin-core/dist/project-resolver.js
 import { existsSync, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
-import path8 from "node:path";
+import path9 from "node:path";
 init_workspace_binding();
 async function resolveProject(api, cwd, configProjectId) {
-  const absCwd = path8.resolve(cwd);
+  const absCwd = path9.resolve(cwd);
   const remotes = detectGitRemotes(cwd);
   const hasGitRemote = remotes.length > 0;
   let serverFailure;
@@ -26452,9 +26699,9 @@ function readGitRemote(cwd) {
     return readFileSync2(file2, "utf8");
   };
   try {
-    let root = path8.resolve(cwd);
+    let root = path9.resolve(cwd);
     for (; ; ) {
-      const marker = path8.join(root, ".git");
+      const marker = path9.join(root, ".git");
       if (existsSync(marker)) {
         const info = lstatSync(marker);
         if (info.isSymbolicLink()) return null;
@@ -26462,12 +26709,12 @@ function readGitRemote(cwd) {
         if (info.isFile()) {
           const match = /^gitdir:\s*(.+)$/m.exec(read(marker));
           if (!match) return null;
-          directory = path8.resolve(root, match[1].trim());
+          directory = path9.resolve(root, match[1].trim());
         }
-        const common2 = path8.join(directory, "commondir");
-        if (existsSync(common2)) directory = path8.resolve(directory, read(common2).trim());
+        const common2 = path9.join(directory, "commondir");
+        if (existsSync(common2)) directory = path9.resolve(directory, read(common2).trim());
         let origin = false;
-        for (const line of read(path8.join(directory, "config")).split(/\r?\n/)) {
+        for (const line of read(path9.join(directory, "config")).split(/\r?\n/)) {
           if (/^\s*\[/.test(line)) origin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/.test(line);
           else if (origin) {
             const match = /^\s*url\s*=\s*(.*?)\s*$/.exec(line);
@@ -26476,7 +26723,7 @@ function readGitRemote(cwd) {
         }
         return null;
       }
-      const parent = path8.dirname(root);
+      const parent = path9.dirname(root);
       if (parent === root) return null;
       root = parent;
     }
@@ -26497,8 +26744,8 @@ function detectGitRemotes(cwd) {
         continue;
       }
       scanned++;
-      const child = path8.join(cwd, entry.name);
-      if (!existsSync(path8.join(child, ".git"))) continue;
+      const child = path9.join(cwd, entry.name);
+      if (!existsSync(path9.join(child, ".git"))) continue;
       const remote = readGitRemote(child);
       if (remote && !out.includes(remote)) out.push(remote);
     }
@@ -26513,8 +26760,8 @@ function isWorkspaceActive(input) {
 // packages/plugin-core/dist/edit-activity.js
 import { execSync } from "node:child_process";
 import { realpathSync as realpathSync2 } from "node:fs";
-import path10 from "node:path";
-import os8 from "node:os";
+import path11 from "node:path";
+import os9 from "node:os";
 
 // packages/plugin-core/dist/edit-broker-local.js
 import crypto4 from "node:crypto";
@@ -26529,8 +26776,8 @@ import {
   rmSync,
   writeFileSync
 } from "node:fs";
-import os7 from "node:os";
-import path9 from "node:path";
+import os8 from "node:os";
+import path10 from "node:path";
 import { execFileSync } from "node:child_process";
 var LOCAL_LEASE_MS = 2e4;
 var LOCK_STALE_MS = 1e4;
@@ -26555,7 +26802,7 @@ function canonical(value) {
   try {
     return realpathSync(value);
   } catch {
-    return path9.resolve(value);
+    return path10.resolve(value);
   }
 }
 function localBrokerIdentity(cwd) {
@@ -26564,9 +26811,9 @@ function localBrokerIdentity(cwd) {
   if (!rootRaw || !commonRaw) return null;
   const root = canonical(rootRaw);
   const commonDir = canonical(
-    path9.isAbsolute(commonRaw) ? commonRaw : path9.resolve(cwd, commonRaw)
+    path10.isAbsolute(commonRaw) ? commonRaw : path10.resolve(cwd, commonRaw)
   );
-  const deviceId = digest(`${os7.hostname()}\0${os7.platform()}\0${os7.arch()}`);
+  const deviceId = digest(`${os8.hostname()}\0${os8.platform()}\0${os8.arch()}`);
   return {
     root,
     commonDir,
@@ -26577,11 +26824,11 @@ function localBrokerIdentity(cwd) {
   };
 }
 function statePaths(identity) {
-  const dir = path9.join(identity.commonDir, "memlin");
+  const dir = path10.join(identity.commonDir, "memlin");
   return {
     dir,
-    state: path9.join(dir, "edit-broker-state.json"),
-    lock: path9.join(dir, "edit-broker.lock")
+    state: path10.join(dir, "edit-broker-state.json"),
+    lock: path10.join(dir, "edit-broker.lock")
   };
 }
 function emptyState() {
@@ -26720,7 +26967,7 @@ function globRegex(glob) {
   return new RegExp(`${source}$`);
 }
 function activeRepositoryClaims(identity, paths, selfAgent = process.env.CLAUDE_AGENT_NAME ?? process.env.MEMLIN_AGENT_NAME ?? "") {
-  const claimsDir = path9.join(identity.root, ".claude-agents");
+  const claimsDir = path10.join(identity.root, ".claude-agents");
   if (!existsSync2(claimsDir)) return [];
   let names = [];
   try {
@@ -26740,7 +26987,7 @@ function activeRepositoryClaims(identity, paths, selfAgent = process.env.CLAUDE_
   const conflicts = [];
   for (const name of names) {
     try {
-      const claim = JSON.parse(readFileSync3(path9.join(claimsDir, name), "utf8"));
+      const claim = JSON.parse(readFileSync3(path10.join(claimsDir, name), "utf8"));
       const agent = typeof claim.agent === "string" ? claim.agent : "";
       if (!agent || agent === selfAgent) continue;
       const started = typeof claim.started_at === "string" ? Date.parse(claim.started_at) : NaN;
@@ -26748,7 +26995,7 @@ function activeRepositoryClaims(identity, paths, selfAgent = process.env.CLAUDE_
       if (!Number.isFinite(started) || ttl <= 0 || started + ttl * 6e4 <= now) continue;
       const patterns = Array.isArray(claim.paths) ? claim.paths.filter((item) => typeof item === "string") : [];
       for (const pattern of patterns) {
-        const matcher = globRegex(pattern.replaceAll(path9.sep, "/"));
+        const matcher = globRegex(pattern.replaceAll(path10.sep, "/"));
         if (!paths.some((candidate) => matcher.test(candidate))) continue;
         conflicts.push({
           agent,
@@ -26819,25 +27066,25 @@ function repoRelativePath(absPath, cwd) {
   if (top) {
     const canonicalWithMissingTail = (candidate) => {
       const tail = [];
-      let cursor = path10.resolve(candidate);
+      let cursor = path11.resolve(candidate);
       while (true) {
         try {
-          return path10.join(realpathSync2(cursor), ...tail.reverse());
+          return path11.join(realpathSync2(cursor), ...tail.reverse());
         } catch {
-          const parent = path10.dirname(cursor);
-          if (parent === cursor) return path10.resolve(candidate);
-          tail.push(path10.basename(cursor));
+          const parent = path11.dirname(cursor);
+          if (parent === cursor) return path11.resolve(candidate);
+          tail.push(path11.basename(cursor));
           cursor = parent;
         }
       }
     };
-    const rel = path10.relative(
+    const rel = path11.relative(
       canonicalWithMissingTail(top),
       canonicalWithMissingTail(absPath)
     );
-    if (rel && !rel.startsWith("..") && !path10.isAbsolute(rel)) return rel;
+    if (rel && !rel.startsWith("..") && !path11.isAbsolute(rel)) return rel;
   }
-  return path10.basename(absPath);
+  return path11.basename(absPath);
 }
 function readGitBranch(cwd) {
   try {
@@ -26861,14 +27108,14 @@ import {
   rmSync as rmSync2,
   writeFileSync as writeFileSync2
 } from "node:fs";
-import os9 from "node:os";
-import path12 from "node:path";
+import os10 from "node:os";
+import path13 from "node:path";
 import { execFileSync as execFileSync2, spawnSync } from "node:child_process";
 
 // packages/plugin-core/dist/edit-intent.js
 import crypto5 from "node:crypto";
 import { readFileSync as readFileSync4 } from "node:fs";
-import path11 from "node:path";
+import path12 from "node:path";
 var WHOLE_FILE_END = 2147483647;
 var PATCH_TOOLS = /* @__PURE__ */ new Set(["edit", "multiedit"]);
 var WRITE_TOOLS = /* @__PURE__ */ new Set(["write"]);
@@ -27037,14 +27284,14 @@ function occurrences(content, needle) {
   return result;
 }
 function materializeMutation(mutation, cwd) {
-  const absolutePath = path11.resolve(cwd, mutation.path);
+  const absolutePath = path12.resolve(cwd, mutation.path);
   let baseContent = "";
   try {
     baseContent = readFileSync4(absolutePath, "utf8");
   } catch {
     baseContent = "";
   }
-  const relPath = repoRelativePath(absolutePath, cwd).replaceAll(path11.sep, "/");
+  const relPath = repoRelativePath(absolutePath, cwd).replaceAll(path12.sep, "/");
   let proposedContent = mutation.kind === "whole_file" ? mutation.content === void 0 ? null : mutation.content : baseContent;
   let fresh = true;
   let staleReason = null;
@@ -27127,7 +27374,7 @@ function buildEditIntents(toolName, toolInput, cwd) {
       if (match?.[2]) {
         try {
           mutations = parseApplyPatch(
-            readFileSync4(path11.resolve(cwd, match[2]), "utf8"),
+            readFileSync4(path12.resolve(cwd, match[2]), "utf8"),
             "shell_patch"
           );
         } catch {
@@ -27211,7 +27458,7 @@ function dryMergeWorktreeIntent(intent, identity, holder, holderRoot) {
   if (intent.proposedContent === null || !identity.head || !holder.head_sha) return "unknown";
   let holderContent;
   try {
-    holderContent = readFileSync5(path12.join(holderRoot, intent.path), "utf8");
+    holderContent = readFileSync5(path13.join(holderRoot, intent.path), "utf8");
   } catch {
     return "unknown";
   }
@@ -27224,10 +27471,10 @@ function dryMergeWorktreeIntent(intent, identity, holder, holderRoot) {
   if (!mergeBase) return "unknown";
   const baseContent = gitOutput(identity.root, ["show", `${mergeBase}:${intent.path}`]);
   if (baseContent === null) return "unknown";
-  const dir = mkdtempSync(path12.join(os9.tmpdir(), "memlin-edit-broker-"));
-  const ours = path12.join(dir, "ours");
-  const base = path12.join(dir, "base");
-  const theirs = path12.join(dir, "theirs");
+  const dir = mkdtempSync(path13.join(os10.tmpdir(), "memlin-edit-broker-"));
+  const ours = path13.join(dir, "ours");
+  const base = path13.join(dir, "base");
+  const theirs = path13.join(dir, "theirs");
   try {
     writeFileSync2(ours, intent.proposedContent, "utf8");
     writeFileSync2(base, baseContent, "utf8");
@@ -27422,10 +27669,10 @@ async function prepareEditBroker(ctx, payload, projectId, projectAccountId) {
 }
 
 // packages/plugin-core/dist/edit-collision-report.js
-import path13 from "node:path";
+import path14 from "node:path";
 function classifyCollision(c, local) {
   if (c.holder_root && local.root) {
-    return path13.resolve(c.holder_root) === path13.resolve(local.root) ? "same-worktree" : "other-worktree";
+    return path14.resolve(c.holder_root) === path14.resolve(local.root) ? "same-worktree" : "other-worktree";
   }
   if (c.holder_branch && local.branch) {
     return c.holder_branch === local.branch ? "same-worktree" : "other-worktree";
@@ -27519,9 +27766,9 @@ function shouldInterrupt(kind) {
 }
 
 // packages/plugin-core/dist/trigger-memories.js
-import { promises as fs6 } from "node:fs";
-import os10 from "node:os";
-import path14 from "node:path";
+import { promises as fs7 } from "node:fs";
+import os11 from "node:os";
+import path15 from "node:path";
 init_atomic_rename();
 init_workspace_binding();
 var WORKSPACE_TRIGGERS_FILE = "triggers.json";
@@ -27621,7 +27868,7 @@ function commandPathCandidates(command, cwd, root) {
       if (eq > 0 && eq < token.length - 1) candidates.push(token.slice(eq + 1));
       for (const cand of candidates) {
         if (!cand || cand.startsWith("-") || cand.includes("$")) continue;
-        const rel = toRootRelative(path14.resolve(cwd, cand), root);
+        const rel = toRootRelative(path15.resolve(cwd, cand), root);
         if (rel !== null) out.push(rel);
       }
     }
@@ -27629,10 +27876,10 @@ function commandPathCandidates(command, cwd, root) {
   return out;
 }
 function toRootRelative(absPath, root) {
-  const rel = path14.relative(root, absPath);
+  const rel = path15.relative(root, absPath);
   if (!rel) return "";
-  if (rel === ".." || rel.startsWith(`..${path14.sep}`) || path14.isAbsolute(rel)) return null;
-  return rel.split(path14.sep).join("/");
+  if (rel === ".." || rel.startsWith(`..${path15.sep}`) || path15.isAbsolute(rel)) return null;
+  return rel.split(path15.sep).join("/");
 }
 function entryMatches(entry, input) {
   const { command_pattern: pattern, path_prefix: prefix } = entry;
@@ -27662,7 +27909,7 @@ function evaluateTriggerEntries(entries, input, source) {
   return hits;
 }
 function compiledTriggersPath() {
-  return path14.join(os10.homedir(), ".config", "memlin", "triggers.json");
+  return path15.join(os11.homedir(), ".config", "memlin", "triggers.json");
 }
 function decodeStoredEntry(raw, fallbackId) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -27690,7 +27937,7 @@ async function readCompiledTriggers(file2 = compiledTriggersPath()) {
   const empty = { version: 1, workspaces: {} };
   let raw;
   try {
-    raw = await fs6.readFile(file2, "utf8");
+    raw = await fs7.readFile(file2, "utf8");
   } catch {
     return empty;
   }
@@ -27718,9 +27965,9 @@ async function readCompiledTriggers(file2 = compiledTriggersPath()) {
   }
 }
 async function canonicalRoot(dir) {
-  const resolved = path14.resolve(dir);
+  const resolved = path15.resolve(dir);
   try {
-    return await fs6.realpath(resolved);
+    return await fs7.realpath(resolved);
   } catch {
     return resolved;
   }
@@ -27728,12 +27975,12 @@ async function canonicalRoot(dir) {
 var WORKSPACE_FILE_MAX_ENTRIES = 200;
 var WALK_CAP = 64;
 async function readWorkspaceTriggersFile(startDir) {
-  let dir = path14.resolve(startDir);
+  let dir = path15.resolve(startDir);
   for (let i = 0; i < WALK_CAP; i++) {
-    const candidate = path14.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_TRIGGERS_FILE);
+    const candidate = path15.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_TRIGGERS_FILE);
     let raw = null;
     try {
-      raw = await fs6.readFile(candidate, "utf8");
+      raw = await fs7.readFile(candidate, "utf8");
     } catch {
       raw = null;
     }
@@ -27747,7 +27994,7 @@ async function readWorkspaceTriggersFile(startDir) {
         return { root: await canonicalRoot(dir), entries: [] };
       }
     }
-    const parent = path14.dirname(dir);
+    const parent = path15.dirname(dir);
     if (parent === dir) return null;
     dir = parent;
   }
@@ -27755,13 +28002,13 @@ async function readWorkspaceTriggersFile(startDir) {
 }
 function buildMatchInput(payload, root) {
   const command = payload.tool_name === "Bash" && typeof payload.tool_input?.command === "string" ? payload.tool_input.command : null;
-  const edited = editedPathsFromHook(payload.tool_name, payload.tool_input).map((p) => toRootRelative(path14.resolve(payload.cwd, p), root)).filter((p) => p !== null);
+  const edited = editedPathsFromHook(payload.tool_name, payload.tool_input).map((p) => toRootRelative(path15.resolve(payload.cwd, p), root)).filter((p) => p !== null);
   return {
     tool_name: payload.tool_name,
     command,
     edited_paths: edited,
     command_paths: command ? commandPathCandidates(command, payload.cwd, root) : [],
-    cwd_relative: toRootRelative(path14.resolve(payload.cwd), root)
+    cwd_relative: toRootRelative(path15.resolve(payload.cwd), root)
   };
 }
 var REASON_MESSAGE_MAX = 700;
@@ -27831,16 +28078,16 @@ async function evaluateTriggerMemories(payload, opts = {}) {
 
 // packages/plugin-core/dist/deploy-broker.js
 import { existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync6, unlinkSync, writeFileSync as writeFileSync3 } from "node:fs";
-import os11 from "node:os";
-import path15 from "node:path";
+import os12 from "node:os";
+import path16 from "node:path";
 function deployWaiterDir() {
   const override = process.env.MEMLIN_DEPLOY_WAITER_DIR?.trim();
   if (override) return override;
-  return path15.join(os11.homedir(), ".config", "memlin", "deploy-waiters");
+  return path16.join(os12.homedir(), ".config", "memlin", "deploy-waiters");
 }
 function waiterPath(sessionId) {
   const safe = sessionId.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 180);
-  return path15.join(deployWaiterDir(), `${safe}.json`);
+  return path16.join(deployWaiterDir(), `${safe}.json`);
 }
 function recordLocalDeployWaiter(record2) {
   const dir = deployWaiterDir();
@@ -27956,7 +28203,7 @@ async function loadEnforcementDecisions(ctx, projectId, accountId) {
 async function recordGuardrailEvent(ctx, args) {
   const metadata = {
     tool: args.payload.tool_name,
-    cwd: path16.resolve(args.payload.cwd ?? process.cwd()),
+    cwd: path17.resolve(args.payload.cwd ?? process.cwd()),
     project_id: args.projectId,
     session_id: args.payload.session_id ?? null,
     enforcement_on: args.enforcementOn,
@@ -28128,7 +28375,7 @@ async function evaluateEditCollision(ctx, payload, projectId, projectAccountId) 
   if (rawPaths.length === 0) return null;
   const cwd = payload.cwd ?? process.cwd();
   const relPaths = [
-    ...new Set(rawPaths.map((p) => repoRelativePath(path16.resolve(cwd, p), cwd)))
+    ...new Set(rawPaths.map((p) => repoRelativePath(path17.resolve(cwd, p), cwd)))
   ];
   if (relPaths.length === 0) return null;
   let res;
@@ -28203,7 +28450,7 @@ async function recordTriggerGuardrailEvent(payload, verdict) {
         event_type: "tool.guardrail",
         metadata: {
           tool: payload.tool_name,
-          cwd: path16.resolve(payload.cwd ?? process.cwd()),
+          cwd: path17.resolve(payload.cwd ?? process.cwd()),
           session_id: payload.session_id ?? null,
           trigger_memory: true,
           outcome: verdict.decision === "block" ? "blocked" : "asked",
@@ -28331,12 +28578,12 @@ async function runPreToolUseHandler(payload) {
 
 // packages/plugin-core/dist/plugin-runtime.js
 init_companion_client();
-import { createHash, randomUUID as randomUUID4 } from "node:crypto";
+import { createHash as createHash2, randomUUID as randomUUID5 } from "node:crypto";
 var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version2 = "0.2.68";
+  const version2 = "0.2.71";
   return typeof version2 === "string" && VERSION.test(version2) ? version2 : null;
 }
 async function reportPluginRuntime(report) {
@@ -28355,7 +28602,7 @@ function reportPluginHookActivity(host, input, cwd) {
   const payload = input;
   const session = payload.session_id ?? payload.conversation_id ?? payload.conversationId;
   if (typeof session !== "string" || session.length === 0 || session.length > 256) return;
-  const instance = createHash("sha256").update(JSON.stringify([host, cwd, session, version2])).digest("hex");
+  const instance = createHash2("sha256").update(JSON.stringify([host, cwd, session, version2])).digest("hex");
   void reportPluginRuntime({
     host,
     plugin_version: version2,
@@ -28421,6 +28668,7 @@ async function main() {
   process.env.MEMLIN_HOST = "codex";
   const payload = await readHookInput() ?? {};
   if (!payload.tool_name) return emitAllow();
+  await runRemoteSessionHook(payload, "codex", "tool");
   let verdict;
   try {
     verdict = await runPreToolUseHandler({

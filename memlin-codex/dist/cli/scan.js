@@ -254696,6 +254696,21 @@ var MODEL_PRICES = {
   // $3/$15 on the strength of the old launch announcement — that over-bills
   // every Sonnet 5 turn by 50%.
   "claude-sonnet-5": { inputUsdPerMTok: 2, outputUsdPerMTok: 10 },
+  // Opus 5.5 shipped after the 5 pair and is the current default Anthropic
+  // recommends "for most workloads" — which makes it a current Claude Code
+  // default too, and therefore a model that arrives in ingested telemetry
+  // whether or not this app ever requests it. Absent until 2026-09-22, it was
+  // the THIRD time an Opus tier priced as $0: Opus at all (fixed 2026-07-23),
+  // Opus 5 (2026-09-02), and this. The pattern is not "we forgot" — it is that
+  // a new tier is invisible here until someone checks the sheet against the
+  // pricing page, so re-verify on every model launch.
+  //
+  // It is also CHEAPER than the tier it replaces ($4/$20 against Opus 5's
+  // $5/$25) and reads cache at 0.05x rather than the standard 0.1x — the
+  // second entry in this sheet to need the override, and the reason the
+  // override is a field rather than a special case for the 5.1 pair.
+  // Verified 2026-09-22 against https://platform.claude.com/docs/en/about-claude/pricing.
+  "claude-opus-5-5": { inputUsdPerMTok: 4, outputUsdPerMTok: 20, cacheReadMultiplier: 0.05 },
   // Opus 5 was absent until 2026-09-02. The app never requests it, but
   // aggregateTurnTiming prices provider-reported models from ingested Claude
   // Code telemetry, where it is a current default — so every Opus 5 turn was
@@ -257732,6 +257747,9 @@ var ThoughtHandoffReceiptV2Schema = external_exports.object({
   stale: external_exports.boolean(),
   replayed: external_exports.boolean().optional()
 }).passthrough();
+
+// packages/shared/dist/ops-watch.js
+var OPS_DIAGNOSE_SEV2_AFTER_MS = 15 * 6e4;
 
 // packages/shared/dist/entitlements.js
 var COORDINATION_SELF = [
@@ -270226,7 +270244,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.68";
+  cachedAgentVersion = "0.2.71";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -270376,6 +270394,9 @@ var MemlinApiClient = class {
   /** The configured account (the light-gate cache key when a call names none). */
   get defaultAccountId() {
     return this.cfg.accountId;
+  }
+  nativeSessionHook(input, opts) {
+    return this.request("POST", "/agent-control/hook", input, { ...opts, agentVersion: agentVersion() });
   }
   // ---------- low-level ----------
   async authHeaders(includeAccount = true, override = {}) {
@@ -272622,22 +272643,6 @@ async function extractMigrations(root) {
 }
 async function extractTopLevelProposals(_root, signals) {
   const out2 = [];
-  if (signals.languages.length > 0 || signals.frameworks.length > 0 || signals.package_managers.length > 0) {
-    out2.push({
-      kind: "skill",
-      title: `Tech stack: ${signals.repo_name}`,
-      body: [
-        `Repository: ${signals.repo_name}`,
-        signals.languages.length > 0 && `Languages: ${signals.languages.join(", ")}`,
-        signals.frameworks.length > 0 && `Frameworks: ${signals.frameworks.join(", ")}`,
-        signals.component_count > 0 && `Components/projects: ${signals.component_count}`,
-        signals.package_managers.length > 0 && `Package managers: ${signals.package_managers.join(", ")}`,
-        signals.has_pnpm_workspace && "Monorepo: pnpm workspaces",
-        signals.has_turbo_repo && "Build orchestration: Turborepo"
-      ].filter(Boolean).join("\n"),
-      source: "repo:tech-stack"
-    });
-  }
   if (signals.readme_excerpt) {
     out2.push({
       kind: "memory",

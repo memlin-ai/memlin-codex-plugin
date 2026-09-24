@@ -2821,8 +2821,8 @@ var require_validate = __commonJS({
           return data;
       }
       let expr = data;
-      const segments = jsonPointer.split("/");
-      for (const segment of segments) {
+      const segments2 = jsonPointer.split("/");
+      for (const segment of segments2) {
         if (segment) {
           data = (0, codegen_1._)`${data}${(0, codegen_1.getProperty)((0, util_1.unescapeJsonPointer)(segment))}`;
           expr = (0, codegen_1._)`${expr} && ${data}`;
@@ -4331,9 +4331,9 @@ var require_core = __commonJS({
         const rules = this.RULES.all;
         metaSchema = JSON.parse(JSON.stringify(metaSchema));
         for (const jsonPointer of keywordsJsonPointers) {
-          const segments = jsonPointer.split("/").slice(1);
+          const segments2 = jsonPointer.split("/").slice(1);
           let keywords = metaSchema;
-          for (const seg of segments)
+          for (const seg of segments2)
             keywords = keywords[seg];
           for (const key2 in rules) {
             const rule = rules[key2];
@@ -60775,23 +60775,139 @@ function classifyTask(task) {
   }
   return "unknown";
 }
-var DEPLOY_TOOL_RE = /\b(?:vercel\s+(?:deploy|--?prod\w*)|fly(?:ctl)?\s+deploy|wrangler\s+(?:deploy|publish)|sst\s+deploy|serverless\s+deploy|sls\s+deploy|(?:npm|pnpm|yarn)\s+(?:run\s+)?deploy|make\s+deploy|git\s+push\s+\S*(?:deploy|prod|production|heroku))\b/i;
-var DEPLOY_CMD_RE = /(?:^|;|&&|\|\||&|\|)\s*(?:[\w./-]*\/)?deploy(?:\.[a-z]+)?(?=\s|$)/i;
-var FOREGROUND_SHIP_CMD_RE = /(?:^|;|&&|\|\||&|\|)\s*(?:(?:bash|sh|env)\s+)?(?:[\w./-]*\/)?deploy-(?:web|admin|prod|mcp)(?:-local)?(?:\.[a-z]+)?(?=\s|$)|(?:^|;|&&|\|\||&|\|)\s*az\s+webapp\s+deploy\b|(?:^|;|&&|\|\||&|\|)\s*azd\s+deploy\b/i;
-var DEPLOY_TRIGGER_CMD_RE = /\bgh\s+pr\s+merge\b|\bgh\s+workflow\s+run\b[^;&|]*\b(?:deploy|prod|production|release)\b|\bgit\s+push\b[^;&|]*?[\s:](?:main|master|prod|production|release\/\S+)(?=\s|$)/i;
+function deployCommands(command) {
+  const commands = [];
+  let words = [];
+  let word = "";
+  let started = false;
+  let quote2 = "";
+  let heredocs = [];
+  const flushWord = () => {
+    if (started) words.push(word);
+    word = "";
+    started = false;
+  };
+  const flushCommand = () => {
+    flushWord();
+    if (words.length) commands.push(words);
+    words = [];
+  };
+  for (let i2 = 0; i2 < command.length; i2++) {
+    const c2 = command.charAt(i2);
+    if (quote2) {
+      if (c2 === quote2) quote2 = "";
+      else if (c2 === "\\" && quote2 === '"' && /["\\$`\n]/.test(command[i2 + 1] ?? "")) {
+        const next = command[++i2];
+        if (next !== "\n") word += next;
+      } else word += c2;
+      continue;
+    }
+    if (c2 === "'" || c2 === '"') {
+      quote2 = c2;
+      started = true;
+    } else if (c2 === "\\") {
+      const next = command[++i2];
+      if (next && next !== "\n") {
+        word += next;
+        started = true;
+      }
+    } else if (c2 === "#" && !started) {
+      const end = command.indexOf("\n", i2);
+      i2 = end < 0 ? command.length : end - 1;
+    } else if (c2 === "<" && command[i2 + 1] === "<") {
+      const match = /^<<(-?)\s*(?:'([^']+)'|"([^"]+)"|([\w-]+))/.exec(command.slice(i2));
+      if (!match) return commands;
+      flushWord();
+      heredocs.push({ delimiter: match[2] ?? match[3] ?? match[4] ?? "", tabs: !!match[1] });
+      i2 += match[0].length - 1;
+    } else if (";|&\n".includes(c2)) {
+      flushCommand();
+      if (c2 === "\n" && heredocs.length) {
+        for (const doc of heredocs) {
+          let found = false;
+          while (++i2 < command.length) {
+            const end = command.indexOf("\n", i2);
+            const lineEnd = end < 0 ? command.length : end;
+            let line = command.slice(i2, lineEnd).replace(/\r$/, "");
+            if (doc.tabs) line = line.replace(/^\t+/, "");
+            i2 = lineEnd;
+            if (line === doc.delimiter) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) return commands;
+        }
+        heredocs = [];
+      }
+    } else if (/\s/.test(c2)) flushWord();
+    else {
+      word += c2;
+      started = true;
+    }
+  }
+  if (!quote2) flushCommand();
+  return commands.map((argv) => {
+    let i2 = 0;
+    while (/^[A-Za-z_][A-Za-z0-9_]*=/.test(argv[i2] ?? "")) i2++;
+    if (argv[i2] === "env") {
+      i2++;
+      while (/^[A-Za-z_][A-Za-z0-9_]*=/.test(argv[i2] ?? "")) i2++;
+    }
+    return argv.slice(i2);
+  });
+}
+function foregroundCommand(argv) {
+  if (!argv.length || /\s/.test(argv[0] ?? "")) return false;
+  const script = /^(?:bash|sh)$/.test(argv[0] ?? "") ? argv[1] : argv[0];
+  if (/^(?:[\w./-]*\/)?deploy(?:-(?:web|admin|prod|mcp|scanners)(?:-local)?)?(?:\.[a-z]+)?$/i.test(
+    script ?? ""
+  ))
+    return true;
+  if (argv[0] === "az") return argv[1] === "webapp" && argv[2] === "deploy";
+  if (argv[0] === "azd") return argv[1] === "deploy";
+  switch (argv[0]) {
+    case "vercel":
+      return argv[1] === "deploy" || argv[1] === "--prod";
+    case "fly":
+    case "flyctl":
+    case "sst":
+    case "serverless":
+    case "sls":
+      return argv[1] === "deploy";
+    case "wrangler":
+      return argv[1] === "deploy" || argv[1] === "publish";
+    case "npm":
+    case "pnpm":
+    case "yarn":
+      return /^deploy(?::[\w-]+)?$/.test(argv[argv[1] === "run" ? 2 : 1] ?? "");
+    case "make":
+      return argv[1] === "deploy";
+    case "git":
+      return argv[1] === "push" && /^\S*(?:deploy|prod|production|heroku)$/.test(argv[2] ?? "");
+    default:
+      return false;
+  }
+}
+function triggerCommand(argv) {
+  return argv[0] === "gh" && argv[1] === "workflow" && argv[2] === "run" && /\b(?:deploy|prod|production|release)\b/i.test(argv[3] ?? "");
+}
 function isDeployCommand(command) {
   if (!command) return false;
-  return DEPLOY_TOOL_RE.test(command) || DEPLOY_CMD_RE.test(command) || FOREGROUND_SHIP_CMD_RE.test(command) || DEPLOY_TRIGGER_CMD_RE.test(command);
+  return deployCommands(command).some((argv) => foregroundCommand(argv) || triggerCommand(argv));
 }
 function isForegroundDeployCommand(command) {
   if (!command) return false;
-  return DEPLOY_TOOL_RE.test(command) || DEPLOY_CMD_RE.test(command) || FOREGROUND_SHIP_CMD_RE.test(command);
+  return deployCommands(command).some(foregroundCommand);
 }
 function isSelfLeasingDeployCommand(command) {
   if (!command) return false;
-  return /(?:^|;|&&|\|\||&|\|)\s*(?:(?:bash|sh|env)\s+)?(?:[\w./-]*\/)?deploy-(?:web|admin|prod|mcp)(?:-local)?(?:\.[a-z]+)?(?=\s|$)/i.test(
-    command
-  ) || /(?:npm|pnpm|yarn)\s+(?:run\s+)?deploy:(?:web|admin|mcp)\b/i.test(command);
+  return deployCommands(command).some((argv) => {
+    const script = /^(?:bash|sh)$/.test(argv[0] ?? "") ? argv[1] : argv[0];
+    return /^(?:[\w./-]*\/)?deploy-(?:web|admin|prod|mcp|scanners)(?:-local)?(?:\.[a-z]+)?$/i.test(
+      script ?? ""
+    ) || /^(?:npm|pnpm|yarn)$/.test(argv[0] ?? "") && /^deploy:(?:web|admin|mcp|scanners)$/.test(argv[argv[1] === "run" ? 2 : 1] ?? "");
+  });
 }
 function isLiveShipSignal(task, meta) {
   const kind2 = typeof meta?.kind === "string" ? meta.kind : null;
@@ -60803,7 +60919,7 @@ function isLiveShipSignal(task, meta) {
 }
 function isDeployTriggerCommand(command) {
   if (!command) return false;
-  return DEPLOY_TRIGGER_CMD_RE.test(command);
+  return deployCommands(command).some(triggerCommand);
 }
 
 // packages/shared/dist/recall-eligibility.js
@@ -60971,6 +61087,21 @@ var MODEL_PRICES = {
   // $3/$15 on the strength of the old launch announcement — that over-bills
   // every Sonnet 5 turn by 50%.
   "claude-sonnet-5": { inputUsdPerMTok: 2, outputUsdPerMTok: 10 },
+  // Opus 5.5 shipped after the 5 pair and is the current default Anthropic
+  // recommends "for most workloads" — which makes it a current Claude Code
+  // default too, and therefore a model that arrives in ingested telemetry
+  // whether or not this app ever requests it. Absent until 2026-09-22, it was
+  // the THIRD time an Opus tier priced as $0: Opus at all (fixed 2026-07-23),
+  // Opus 5 (2026-09-02), and this. The pattern is not "we forgot" — it is that
+  // a new tier is invisible here until someone checks the sheet against the
+  // pricing page, so re-verify on every model launch.
+  //
+  // It is also CHEAPER than the tier it replaces ($4/$20 against Opus 5's
+  // $5/$25) and reads cache at 0.05x rather than the standard 0.1x — the
+  // second entry in this sheet to need the override, and the reason the
+  // override is a field rather than a special case for the 5.1 pair.
+  // Verified 2026-09-22 against https://platform.claude.com/docs/en/about-claude/pricing.
+  "claude-opus-5-5": { inputUsdPerMTok: 4, outputUsdPerMTok: 20, cacheReadMultiplier: 0.05 },
   // Opus 5 was absent until 2026-09-02. The app never requests it, but
   // aggregateTurnTiming prices provider-reported models from ingested Claude
   // Code telemetry, where it is a current default — so every Opus 5 turn was
@@ -64847,6 +64978,10 @@ function provenanceForWriter(writer, opts = {}) {
     case "doc_writer":
     case "correction_rule":
     case "light":
+    // Memlin Watch's own account of an outage. model_extracted like every other
+    // machine writer: it can never self-promote, and never retires a human's
+    // document (admission mayReplace stays false for this provenance).
+    case "watchdog":
       return "model_extracted";
   }
 }
@@ -64982,6 +65117,10 @@ function admitCapture(input) {
   return result("live", "active", "high_confidence");
 }
 
+// packages/shared/dist/ops-watch.js
+var OPS_WATCH_ACCOUNT_ID = "0b5e0a11-0000-4000-8000-00000000a001";
+var OPS_DIAGNOSE_SEV2_AFTER_MS = 15 * 6e4;
+
 // packages/shared/dist/entitlements.js
 var COORDINATION_SELF = [
   "coordination.work_ledger",
@@ -65031,7 +65170,12 @@ function minimumTierFor(capability) {
   }
   return null;
 }
-var DEFAULT_INTERNAL_ACCOUNT_IDS = ["c53842b8-a29f-47ea-97da-26a806bd2f8e"];
+var DEFAULT_INTERNAL_ACCOUNT_IDS = [
+  "c53842b8-a29f-47ea-97da-26a806bd2f8e",
+  // Memlin Watch's own workspace. Built in for the same reason: a self-inflicted
+  // cap on the monitor would silence it exactly when it is needed.
+  OPS_WATCH_ACCOUNT_ID
+];
 function parseInternalAccountIds(raw, defaults2 = []) {
   const fromEnv = (raw ?? "").split(/[\s,]+/).map((s2) => s2.trim().toLowerCase()).filter(Boolean);
   return /* @__PURE__ */ new Set([...defaults2.map((d2) => d2.toLowerCase()), ...fromEnv]);
@@ -66557,6 +66701,25 @@ var Receipt = external_exports.object({
   next_cursor: external_exports.string().uuid().nullable(),
   reason: external_exports.string().optional()
 });
+
+// packages/shared/dist/personal-scope.js
+var UUID2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function callerUserId(caller) {
+  if (!caller.userId || !UUID2.test(caller.userId)) return null;
+  return caller.userId;
+}
+function personalScopeOr(caller) {
+  const userId = callerUserId(caller);
+  if (userId) return `scope.neq.personal,created_by.eq.${userId}`;
+  if (caller.serviceTokenId || caller.bypassesRls) return "scope.neq.personal";
+  return null;
+}
+function canSeePersonalScope(caller, row) {
+  if (row.scope !== "personal") return true;
+  const userId = callerUserId(caller);
+  if (userId) return row.created_by === userId;
+  return !caller.serviceTokenId && !caller.bypassesRls;
+}
 
 // node_modules/.pnpm/openai@4.104.0_ws@8.20.1_zod@3.25.76/node_modules/openai/internal/qs/formats.mjs
 var default_format = "RFC3986";
@@ -76587,13 +76750,16 @@ async function sweepDuplicates(ctx, rawArgs) {
   const scanned = {};
   let truncated = false;
   let vectorlessCount = 0;
+  const personalScope = personalScopeOr(ctx);
   for (const kind2 of kinds) {
     let query = ctx.supabase.from("documents").select("id, title, status, updated_at, metadata").eq("account_id", ctx.accountId).eq("kind", kind2).neq("status", "archived").not("embedding", "is", null).or("metadata->>status.is.null,metadata->>status.eq.active");
+    if (personalScope) query = query.or(personalScope);
     if (args.project_id) query = query.eq("project_id", args.project_id);
     const { data, error: error40 } = await query.order("updated_at", { ascending: false }).limit(SWEEP_DOC_CAP);
     if (error40) throw new CurationError("invalid_args", `sweep candidate read failed: ${error40.message}`);
     try {
       let vectorlessQuery = ctx.supabase.from("documents").select("id", { count: "exact", head: true }).eq("account_id", ctx.accountId).eq("kind", kind2).neq("status", "archived").is("embedding", null).or("metadata->>status.is.null,metadata->>status.eq.active");
+      if (personalScope) vectorlessQuery = vectorlessQuery.or(personalScope);
       if (args.project_id) vectorlessQuery = vectorlessQuery.eq("project_id", args.project_id);
       const { count: count2 } = await vectorlessQuery;
       vectorlessCount += count2 ?? 0;
@@ -77560,14 +77726,14 @@ async function executeAction(args) {
     providerKeys: args.providerKeys,
     allowPlatformProviderKey: args.allowPlatformProviderKey === true
   };
-  const { data: row, error: rowErr } = await client2.from("documents").select("id, account_id, kind, metadata, title").eq("id", actionId).maybeSingle();
+  const { data: row, error: rowErr } = await client2.from("documents").select("id, account_id, kind, metadata, title, scope, created_by").eq("id", actionId).maybeSingle();
   if (rowErr) {
     throw new ActionExecuteError(`document lookup failed: ${rowErr.message}`, "server");
   }
   if (!row) {
     throw new ActionExecuteError("action not found", "not_found");
   }
-  if (row.account_id !== accountId) {
+  if (row.account_id !== accountId || !canSeePersonalScope({ userId }, row)) {
     throw new ActionExecuteError("action not found", "not_found");
   }
   if (row.kind !== "action") {
@@ -78159,6 +78325,8 @@ async function readMemory(ctx, rawArgs) {
        metadata, updated_at, created_at,
        document_versions!documents_current_version_fk ( content, version_number, author_id )`
   ).eq("account_id", ctx.accountId);
+  const personalScope = personalScopeOr(ctx);
+  if (personalScope) q2 = q2.or(personalScope);
   const light = await loadLightStatus(ctx.supabase, ctx.accountId);
   if (light?.active)
     q2 = q2.in("kind", [...LIGHT_READABLE_KINDS]).eq("project_id", light.project_id).neq("status", "archived").limit(50);
@@ -78303,9 +78471,9 @@ async function executeDocumentWrite(ctx, args) {
   };
   const projectId = await resolveProjectFilter(ctx, args.project_id);
   if (args.document_id) {
-    const { data: existing, error: ownErr } = await ctx.supabase.from("documents").select("account_id, kind").eq("id", args.document_id).maybeSingle();
+    const { data: existing, error: ownErr } = await ctx.supabase.from("documents").select("account_id, kind, scope, created_by").eq("id", args.document_id).maybeSingle();
     if (ownErr) throw new Error(`write_memory: ${ownErr.message}`);
-    if (!existing || existing.account_id !== ctx.accountId) {
+    if (!existing || existing.account_id !== ctx.accountId || !canSeePersonalScope(ctx, existing)) {
       throw new Error("write_memory: document not found in this account");
     }
     if (existing.kind !== args.kind) {
@@ -78428,9 +78596,9 @@ ${args.content}`).topics
 var ListVersionsArgs = external_exports.object({ document_id: external_exports.string().uuid() });
 async function listVersions(ctx, rawArgs) {
   const args = ListVersionsArgs.parse(rawArgs);
-  const { data: doc, error: docErr } = await ctx.supabase.from("documents").select("id, account_id, kind").eq("id", args.document_id).maybeSingle();
+  const { data: doc, error: docErr } = await ctx.supabase.from("documents").select("id, account_id, kind, scope, created_by").eq("id", args.document_id).maybeSingle();
   if (docErr) throw new Error(`list_versions: ${docErr.message}`);
-  if (!doc || doc.account_id !== ctx.accountId) {
+  if (!doc || doc.account_id !== ctx.accountId || !canSeePersonalScope(ctx, doc)) {
     throw new Error("list_versions: document not found in this account");
   }
   const light = await loadLightStatus(ctx.supabase, ctx.accountId);
@@ -78627,6 +78795,8 @@ async function searchRanked(ctx, args, limit2) {
        document_versions!documents_current_version_fk ( version_number, author_id )`
   ).eq("account_id", ctx.accountId).ilike("title", `%${args.query}%`).limit(Math.min(limit2 * 3, 100));
   if (projectId) q2 = q2.or(`scope.neq.project,project_id.eq.${projectId}`);
+  const personalScope = personalScopeOr(ctx);
+  if (personalScope) q2 = q2.or(personalScope);
   if (args.kinds?.length) q2 = q2.in("kind", args.kinds);
   const { data } = await q2;
   const eligibleRows = (data ?? []).filter(
@@ -78668,10 +78838,13 @@ async function searchMemory(ctx, rawArgs) {
 var GetDocArgs = external_exports.object({ document_id: external_exports.string().uuid() });
 async function getDocument(ctx, rawArgs) {
   const args = GetDocArgs.parse(rawArgs);
-  const { data, error: error40 } = await ctx.supabase.from("documents").select(
+  let docQuery = ctx.supabase.from("documents").select(
     `id, account_id, project_id, scope, kind, status, title, path, current_version_id,
        document_versions!documents_current_version_fk ( content, version_number )`
-  ).eq("id", args.document_id).eq("account_id", ctx.accountId).maybeSingle();
+  ).eq("id", args.document_id).eq("account_id", ctx.accountId);
+  const personalScope = personalScopeOr(ctx);
+  if (personalScope) docQuery = docQuery.or(personalScope);
+  const { data, error: error40 } = await docQuery.maybeSingle();
   if (error40) throw new Error(`get_document: ${error40.message}`);
   if (!data) throw new Error("get_document: document not found");
   if (!lightReadableKind(data.kind)) {
@@ -78706,6 +78879,8 @@ async function getSchema(ctx, rawArgs) {
     `id, title, scope, project_id, current_version_id,
        document_versions!documents_current_version_fk ( content )`
   ).eq("account_id", ctx.accountId).eq("kind", "schema");
+  const personalScope = personalScopeOr(ctx);
+  if (personalScope) q2 = q2.or(personalScope);
   if (args.document_id) q2 = q2.eq("id", args.document_id);
   if (args.name) q2 = q2.ilike("title", args.name);
   const { data, error: error40 } = await q2.maybeSingle();
@@ -78804,6 +78979,8 @@ async function listActions(ctx, rawArgs) {
   const args = ListActionsArgs.parse(rawArgs);
   const limit2 = args.limit ?? 50;
   let q2 = ctx.supabase.from("documents").select("id, metadata, title").eq("account_id", ctx.accountId).eq("kind", "action").eq("status", "approved").limit(limit2);
+  const personalScope = personalScopeOr(ctx);
+  if (personalScope) q2 = q2.or(personalScope);
   if (args.filter) {
     q2 = q2.ilike("title", `%${args.filter}%`);
   }
@@ -79251,18 +79428,7 @@ function cosine(a2, b2) {
   return denom === 0 ? 0 : dot / denom;
 }
 
-// packages/mcp-tools/src/resolver.ts
-function ageDaysSince(observedAt, nowMs) {
-  const then = Date.parse(observedAt);
-  if (Number.isNaN(then)) return 0;
-  return Math.max(0, Math.floor((nowMs - then) / 864e5));
-}
-function isMissingResolveCandidatesRpc(error40) {
-  if (!error40) return false;
-  return error40.code === "PGRST202" || error40.code === "42883" || /could not find the function|function .*resolve_candidates_v2.*does not exist/i.test(
-    error40.message ?? ""
-  );
-}
+// packages/mcp-tools/src/document-eligibility.ts
 function isDirectResolverDocumentEligible(row, context, options2 = {}) {
   if (row.account_id !== context.accountId) return false;
   if (row.locked_to_owners !== false) return false;
@@ -79303,6 +79469,314 @@ function isDirectResolverDocumentEligible(row, context, options2 = {}) {
     id: typeof row.id === "string" ? row.id : null,
     kind: row.kind
   });
+}
+
+// packages/mcp-tools/src/candidate-lanes.ts
+var RRF_TO_SIMILARITY_SCALE = 30;
+function isMissingResolveCandidatesRpc(error40) {
+  if (!error40) return false;
+  return error40.code === "PGRST202" || error40.code === "42883" || /could not find the function|function .*resolve_candidates_v2.*does not exist/i.test(
+    error40.message ?? ""
+  );
+}
+var primarySearchLane = {
+  id: "primary_search",
+  mergePrecedence: 1,
+  async fetch(kind2, req) {
+    const { ctx } = req;
+    const rpcName = req.hybrid ? "search_documents_hybrid" : "search_documents";
+    const searchProjectIds = kind2 === "memory" || kind2 === "decision" ? [.../* @__PURE__ */ new Set([req.projectId, ...req.linkedProjectIds])] : [req.projectId];
+    const projectRows = await Promise.all(
+      searchProjectIds.map(async (searchProjectId) => {
+        const rpcArgs = {
+          p_account_id: ctx.accountId,
+          p_project_id: searchProjectId,
+          p_query_embedding: req.queryVec,
+          p_kinds: [kind2],
+          p_scopes: null,
+          p_limit: req.kPerKind
+        };
+        if (req.hybrid) {
+          rpcArgs.p_query_text = req.task;
+          rpcArgs.p_audit_query_preview = sanitizeAuditTask(req.task).task || null;
+          rpcArgs.p_include_background = req.deep;
+        }
+        const { data, error: error40 } = await ctx.supabase.rpc(rpcName, rpcArgs);
+        if (error40) {
+          if (searchProjectId && req.linkedProjectIds.includes(searchProjectId)) {
+            throw new Error(`${rpcName} failed for linked Project context`);
+          }
+          console.warn(`[resolver] ${rpcName} failed for kind=${kind2}: ${error40.message}`);
+          return [];
+        }
+        return data ?? [];
+      })
+    );
+    const rows = projectRows.flat();
+    if (req.hybrid) {
+      for (const r2 of rows) {
+        if (typeof r2.rrf_score === "number") {
+          r2.similarity = r2.rrf_score * RRF_TO_SIMILARITY_SCALE;
+        }
+      }
+    }
+    return rows;
+  }
+};
+var titleFallbackLane = {
+  id: "title_fallback",
+  mergePrecedence: 0,
+  async fetch(kind2, req) {
+    const { ctx } = req;
+    const titleMatches = [];
+    const titleNeedle = req.task.trim();
+    if (titleNeedle.length < 8) return titleMatches;
+    const q2 = ctx.supabase.from("documents").select(
+      `id, account_id, created_by, locked_to_owners, status, title, kind, scope,
+             project_id, path, updated_at, created_at, metadata,
+             document_versions!documents_current_version_fk ( version_number, author_id )`
+    ).eq("account_id", ctx.accountId).eq("kind", kind2).ilike("title", `%${titleNeedle}%`).eq("locked_to_owners", false).limit(Math.min(50, req.kPerKind * 4));
+    const { data: titleData, error: titleErr } = await q2;
+    if (titleErr) return titleMatches;
+    for (const r2 of titleData ?? []) {
+      const rowProjectId = typeof r2.project_id === "string" ? r2.project_id : null;
+      const eligibleProjectId = (kind2 === "memory" || kind2 === "decision") && rowProjectId && req.linkedProjectIds.includes(rowProjectId) ? rowProjectId : req.projectId;
+      if (!isDirectResolverDocumentEligible(
+        r2,
+        {
+          accountId: ctx.accountId,
+          userId: ctx.userId,
+          projectId: eligibleProjectId,
+          audience: ctx.audience
+        },
+        { expectedKind: kind2 }
+      )) {
+        continue;
+      }
+      const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
+      titleMatches.push({
+        id: r2.id,
+        title: r2.title,
+        kind: r2.kind,
+        scope: r2.scope,
+        similarity: 1,
+        path: r2.path ?? null,
+        version_number: v2?.version_number ?? 1,
+        updated_at: r2.updated_at,
+        created_at: r2.created_at,
+        author_id: v2?.author_id ?? null
+      });
+      if (titleMatches.length >= req.kPerKind) break;
+    }
+    return titleMatches;
+  }
+};
+var FANOUT_LANES = [primarySearchLane, titleFallbackLane];
+function mergeLaneRows(outputs) {
+  const merged = /* @__PURE__ */ new Map();
+  const ordered = [...outputs].sort((a2, b2) => a2.lane.mergePrecedence - b2.lane.mergePrecedence);
+  for (const { rows } of ordered) {
+    for (const row of rows) {
+      const existing = merged.get(row.id);
+      if (!existing || row.similarity > existing.similarity) merged.set(row.id, row);
+    }
+  }
+  return [...merged.values()];
+}
+async function consolidatedSearch(req) {
+  const { ctx } = req;
+  const { data, error: error40 } = await ctx.supabase.rpc("resolve_candidates_v2", {
+    p_account_id: ctx.accountId,
+    p_project_id: req.projectId,
+    p_query_embedding: req.queryVec,
+    p_query_text: req.task,
+    p_resolve_id: req.resolveId,
+    p_request_hash: req.requestHash,
+    p_kinds: req.kinds,
+    p_scopes: null,
+    p_per_kind_limit: req.kPerKind,
+    p_title_limit: Math.min(50, req.kPerKind * 4),
+    p_include_background: req.deep,
+    p_audit_query_preview: sanitizeAuditTask(req.task).task || null,
+    p_user_id: req.governanceUserId,
+    p_agent_kind: req.agentKind,
+    p_excerpt_chars: req.excerptChars,
+    // V2's readOnly flag suppresses the legacy assembler's scattered writes;
+    // search metering is owned by this idempotent RPC/run claim instead.
+    p_meter: true,
+    p_deadline_at: req.deadlineAt
+  });
+  if (!error40 && Array.isArray(data)) {
+    const consolidatedById = /* @__PURE__ */ new Map();
+    const grouped = new Map(req.kinds.map((kind2) => [kind2, []]));
+    for (const raw of data) {
+      if (!req.kinds.includes(raw.kind)) continue;
+      const titleMatch = raw.title_match === true;
+      const row = {
+        ...raw,
+        similarity: titleMatch ? 1 : typeof raw.rrf_score === "number" ? raw.rrf_score * RRF_TO_SIMILARITY_SCALE : raw.similarity,
+        // Legacy title-fallback rows deliberately carry no cosine evidence:
+        // an exact title is its own high-precision admission signal.
+        cosine_sim: titleMatch ? void 0 : raw.cosine_sim
+      };
+      grouped.get(row.kind)?.push(row);
+      consolidatedById.set(row.id, row);
+    }
+    return {
+      kindResults: req.kinds.map((kind2) => ({ kind: kind2, rows: grouped.get(kind2) ?? [] })),
+      usedConsolidated: true,
+      consolidatedById
+    };
+  }
+  if (isMissingResolveCandidatesRpc(error40)) {
+    console.warn(
+      `[resolver] resolve_candidates_v2 unavailable (${error40?.message ?? "invalid response"}) \u2014 using legacy fanout`
+    );
+    return null;
+  }
+  const failure = new Error("resolve_candidates_v2 failed");
+  if (error40?.code) Object.assign(failure, { code: error40.code });
+  throw failure;
+}
+async function searchCandidates(req, lanes = FANOUT_LANES) {
+  if (req.hybrid && req.resolveId && req.requestHash) {
+    const consolidated = await consolidatedSearch(req);
+    if (consolidated) return consolidated;
+  }
+  const kindResults = await Promise.all(
+    req.kinds.map(async (kind2) => {
+      const outputs = [];
+      for (const lane of lanes) outputs.push({ lane, rows: await lane.fetch(kind2, req) });
+      return { kind: kind2, rows: mergeLaneRows(outputs) };
+    })
+  );
+  return { kindResults, usedConsolidated: false, consolidatedById: /* @__PURE__ */ new Map() };
+}
+
+// packages/mcp-tools/src/rerank-excerpt.ts
+var RERANK_EXCERPT_HEAD_CHARS = 160;
+var ELISION = " \u2026 ";
+var STOPWORDS = /* @__PURE__ */ new Set([
+  "a",
+  "an",
+  "and",
+  "are",
+  "as",
+  "at",
+  "be",
+  "but",
+  "by",
+  "do",
+  "for",
+  "from",
+  "how",
+  "i",
+  "if",
+  "in",
+  "is",
+  "it",
+  "its",
+  "me",
+  "my",
+  "no",
+  "not",
+  "of",
+  "on",
+  "or",
+  "our",
+  "so",
+  "that",
+  "the",
+  "then",
+  "this",
+  "to",
+  "up",
+  "us",
+  "we",
+  "what",
+  "when",
+  "which",
+  "why",
+  "with",
+  "you",
+  "your"
+]);
+function excerptTokens(text) {
+  const out = /* @__PURE__ */ new Set();
+  for (const raw of String(text).split(/[^A-Za-z0-9_.-]+/)) {
+    const word = raw.replace(/^[._-]+|[._-]+$/g, "");
+    if (!word) continue;
+    const parts = word.split(/[_.-]+|(?<=[a-z0-9])(?=[A-Z])/).filter(Boolean);
+    for (const piece of [word, ...parts]) {
+      const lower = piece.toLowerCase();
+      if (lower.length > 1 && !STOPWORDS.has(lower)) out.add(lower);
+    }
+  }
+  return out;
+}
+function segments(body) {
+  const out = [];
+  for (const block of body.split(/\n{2,}/)) {
+    const trimmed = block.trim();
+    if (!trimmed) continue;
+    const sentences = trimmed.split(/(?<=[.!?])\s+(?=[A-Z0-9])/);
+    for (const sentence of sentences) {
+      const piece = sentence.trim();
+      if (piece) out.push(piece);
+    }
+  }
+  return out.length > 0 ? out : [body.trim()];
+}
+function selectRerankExcerpt(body, task, maxChars) {
+  if (!body) return "";
+  if (body.length <= maxChars) return body;
+  const wanted = excerptTokens(task);
+  const parts = segments(body);
+  const scored = parts.map((text) => {
+    const present = excerptTokens(text);
+    let hits = 0;
+    for (const token of wanted) if (present.has(token)) hits += 1;
+    return hits;
+  });
+  let best = -1;
+  let bestScore = 0;
+  for (let i2 = 0; i2 < scored.length; i2++) {
+    if (scored[i2] > bestScore) {
+      bestScore = scored[i2];
+      best = i2;
+    }
+  }
+  if (best < 0) return body.slice(0, maxChars);
+  const head2 = body.slice(0, RERANK_EXCERPT_HEAD_CHARS).trimEnd();
+  const startsInHead = body.indexOf(parts[best]) < head2.length;
+  const budget = startsInHead ? maxChars : maxChars - head2.length - ELISION.length;
+  if (budget <= 0) return body.slice(0, maxChars);
+  let first = best;
+  let last = best;
+  let used = parts[best].length;
+  for (; ; ) {
+    const next = last + 1 < parts.length ? parts[last + 1].length + 1 : Infinity;
+    const prev = first > 0 ? parts[first - 1].length + 1 : Infinity;
+    if (next <= prev && used + next <= budget) {
+      last += 1;
+      used += next;
+    } else if (prev < next && used + prev <= budget) {
+      first -= 1;
+      used += prev;
+    } else {
+      break;
+    }
+  }
+  const window2 = parts.slice(first, last + 1).join(" ");
+  if (startsInHead) return window2.slice(0, maxChars);
+  return `${head2}${ELISION}${window2}`.slice(0, maxChars);
+}
+
+// packages/mcp-tools/src/resolver.ts
+function ageDaysSince(observedAt, nowMs) {
+  const then = Date.parse(observedAt);
+  if (Number.isNaN(then)) return 0;
+  return Math.max(0, Math.floor((nowMs - then) / 864e5));
 }
 var AGENT_KIND_ALIASES = /* @__PURE__ */ new Map([
   ["anthropic-claude-code", "claude-code"],
@@ -79701,7 +80175,7 @@ async function assembleDeployWaiters(ctx, projectId, ownSessionId) {
   for (const row of data) {
     const sid = typeof row.session_id === "string" ? row.session_id : null;
     const status = row.status === "ready" ? "ready" : row.status === "waiting" ? "waiting" : null;
-    if (!sid || !status) continue;
+    if (!sid || !status || !isDeployCommand(row.task)) continue;
     const minutesQueued = row.queued_at ? Math.max(0, Math.round((now - new Date(row.queued_at).getTime()) / 6e4)) : 0;
     const task = typeof row.task === "string" && row.task ? row.task.slice(0, 140) : "(deploy)";
     const gitSha = typeof row.git_sha === "string" ? row.git_sha : null;
@@ -79773,19 +80247,62 @@ async function assembleWorkInFlight(ctx, projectId, queryVec) {
   }
   return entries;
 }
+var UBIQUITOUS_BASENAMES = /* @__PURE__ */ new Set([
+  "index.ts",
+  "index.tsx",
+  "index.js",
+  "index.mjs",
+  "index.json",
+  "route.ts",
+  "route.tsx",
+  "page.tsx",
+  "page.ts",
+  "layout.tsx",
+  "layout.ts",
+  "types.ts",
+  "types.d.ts",
+  "utils.ts",
+  "helpers.ts",
+  "constants.ts",
+  "config.ts",
+  "config.js",
+  "config.json",
+  "main.ts",
+  "main.js",
+  "app.ts",
+  "app.tsx",
+  "package.json",
+  "tsconfig.json",
+  "readme.md",
+  "changelog.md",
+  "license.md",
+  "schema.sql",
+  "init.sql",
+  "setup.ts",
+  "client.ts",
+  "server.ts",
+  "db.ts"
+]);
+var SOURCE_BASENAME = /^[\w][\w.@-]{2,}\.(ts|tsx|js|jsx|mjs|cjs|sql|py|sh|yml|yaml|json|md)$/i;
 function dirsOfPaths(paths) {
   const dirs = [];
   const seen = /* @__PURE__ */ new Set();
+  const push2 = (t2) => {
+    if (!t2 || seen.has(t2) || dirs.length >= 30) return;
+    seen.add(t2);
+    dirs.push(t2);
+  };
   for (const p2 of paths) {
     if (typeof p2 !== "string" || !p2) continue;
     const clean = p2.replace(/^\.?\//, "").trim();
     if (!clean) continue;
     const segs = clean.split("/");
+    const base = segs[segs.length - 1] ?? "";
     segs.pop();
-    const d2 = segs.length === 0 ? "." : segs.slice(0, 3).join("/");
-    if (seen.has(d2)) continue;
-    seen.add(d2);
-    dirs.push(d2);
+    push2(segs.length === 0 ? "." : segs.slice(0, 3).join("/"));
+    if (SOURCE_BASENAME.test(base) && !UBIQUITOUS_BASENAMES.has(base.toLowerCase())) {
+      push2(base);
+    }
     if (dirs.length >= 30) break;
   }
   return dirs;
@@ -80718,6 +81235,14 @@ var AssembleBundleArgs = external_exports.object({
   /** Explicit marginal-value cutoff fraction (0..1), overriding the account
    *  setting. For eval sweeps and diagnostics; 0 disables. */
   marginal_cutoff: external_exports.number().min(0).max(1).optional(),
+  /** Memory decay policy. `legacy` (default) is the existing curve; `bounded`
+   *  keeps age as a tie-breaker for durable memories (see DecayPolicy). */
+  decay_policy: external_exports.enum(["legacy", "bounded"]).optional(),
+  supersession_evidence: external_exports.enum(["on", "off"]).optional(),
+  /** Which slice of a long memory the reranker reads. `passage` (default)
+   *  sends the part that matches the task with its neighbours; `head` restores
+   *  the previous leading slice. */
+  rerank_excerpt_mode: external_exports.enum(["passage", "head"]).optional(),
   /** Deprecated no-op. Open threads are always pulled (S1). Kept so older
    *  clients that still send the flag don't fail schema validation. */
   include_open_threads: external_exports.boolean().optional(),
@@ -80821,6 +81346,7 @@ var DEFAULT_K_PER_KIND = 20;
 var MIN_CANDIDATES_FOR_RERANK = 4;
 var RERANK_TIMEOUT_MS = 4e3;
 var RERANK_EXCERPT_CHARS = 500;
+var RERANK_PASSAGE_SOURCE_CHARS = 2e3;
 var RERANK_MIN_COVERAGE = 0.5;
 var RERANK_SKILL_MIN_SCORE = 0.15;
 var SKILL_RERANK_CANDIDATE_THRESHOLD = 0.35;
@@ -80957,6 +81483,66 @@ var DECAY_PROFILES = {
     floor: SKILL_DECAY_FLOOR_MULTIPLIER
   }
 };
+var SUPERSESSION_MAX_HOPS = 4;
+var SUPERSESSION_MAX_TOMBSTONES = 200;
+var BOUNDED_MEMORY_DECAY_FLOOR = 0.9;
+var BOUNDED_MEMORY_DECAY_PROFILE = {
+  fresh_days: DECAY_FRESH_DAYS,
+  stale_days: DECAY_STALE_DAYS,
+  floor: BOUNDED_MEMORY_DECAY_FLOOR
+};
+var BOUNDED_DECAY_FULL_CURVE_TYPES = /* @__PURE__ */ new Set(["episodic", "working"]);
+var RANKING_CONFIG_FINGERPRINT = createHash2("sha256").update(
+  JSON.stringify({
+    kind_thresholds: KIND_THRESHOLDS,
+    kind_weights: KIND_WEIGHTS,
+    memory_type_weights: MEMORY_TYPE_WEIGHTS,
+    source_evidence_weight: SOURCE_EVIDENCE_WEIGHT,
+    decay_profiles: DECAY_PROFILES,
+    bounded_memory_decay: {
+      profile: BOUNDED_MEMORY_DECAY_PROFILE,
+      full_curve_types: [...BOUNDED_DECAY_FULL_CURVE_TYPES].sort()
+    },
+    // Structural, not numeric: the rule has no tuned constant, but it
+    // reorders bundles, so replay must not pool across it.
+    supersession_evidence: {
+      rule: "rank_order_inherit_v1",
+      scope: "same_kind",
+      hops: SUPERSESSION_MAX_HOPS
+    },
+    fitness_boost_min_similarity: FITNESS_BOOST_MIN_SIMILARITY,
+    boosts: {
+      active_component: ACTIVE_COMPONENT_BOOST,
+      same_repo: SAME_REPO_BOOST,
+      cross_repo_demotion: CROSS_REPO_DEMOTION,
+      role_match: ROLE_MATCH_BOOST,
+      approved_status: APPROVED_STATUS_BOOST
+    },
+    redundancy: {
+      threshold: REDUNDANCY_COLLAPSE_THRESHOLD,
+      min: REDUNDANCY_COLLAPSE_MIN,
+      kinds: [...REDUNDANCY_COLLAPSE_KINDS].sort()
+    },
+    rerank: {
+      min_candidates: MIN_CANDIDATES_FOR_RERANK,
+      excerpt_chars: RERANK_EXCERPT_CHARS,
+      excerpt_head_chars: RERANK_EXCERPT_HEAD_CHARS,
+      passage_source_chars: RERANK_PASSAGE_SOURCE_CHARS,
+      min_coverage: RERANK_MIN_COVERAGE,
+      skill_min_score: RERANK_SKILL_MIN_SCORE,
+      skill_candidate_threshold: SKILL_RERANK_CANDIDATE_THRESHOLD,
+      decision_candidate_threshold: DECISION_RERANK_CANDIDATE_THRESHOLD,
+      decision_candidate_limit: DECISION_RERANK_CANDIDATE_LIMIT,
+      decision_min_score: RERANK_DECISION_MIN_SCORE
+    },
+    k_per_kind: DEFAULT_K_PER_KIND,
+    marginal: {
+      default: MARGINAL_CUTOFF_DEFAULT,
+      max: MARGINAL_CUTOFF_MAX,
+      min_keep: MARGINAL_CUTOFF_MIN_KEEP
+    }
+  })
+).digest("hex").slice(0, 16);
 function applyProfile(profile, updated_at, now) {
   if (!updated_at) return 1;
   const ts = Date.parse(updated_at);
@@ -80971,6 +81557,9 @@ function decayMultiplierForKind(kind2, updated_at, now = Date.now()) {
   const profile = DECAY_PROFILES[kind2];
   if (!profile) return 1;
   return applyProfile(profile, updated_at, now);
+}
+function boundedMemoryDecayMultiplier(created_at, now = Date.now()) {
+  return applyProfile(BOUNDED_MEMORY_DECAY_PROFILE, created_at, now);
 }
 async function loadFitnessMultipliers(ctx, candidateIds, resolveTaskCategory) {
   const multipliers = /* @__PURE__ */ new Map();
@@ -81126,10 +81715,10 @@ function inferActiveRepo(args) {
     if (hits.length === 1) return hits[0] ?? null;
   }
   if (args.cwd) {
-    const segments = new Set(args.cwd.toLowerCase().split(/[\\/]/).filter(Boolean));
+    const segments2 = new Set(args.cwd.toLowerCase().split(/[\\/]/).filter(Boolean));
     const hits = repoNames.filter((r2) => {
       const base = r2.split("/").pop()?.toLowerCase();
-      return !!base && segments.has(base);
+      return !!base && segments2.has(base);
     });
     if (hits.length === 1) return hits[0] ?? null;
   }
@@ -81855,151 +82444,33 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       budgetRpcMs = Date.now() - startedAt;
     });
   })() : null;
+  const rerankExcerptMode = args.rerank_excerpt_mode ?? "passage";
+  const skipRerank = args.skip_rerank === true || args.interactive === true;
+  const rerankerConfigured = !!(ctx.hostedRerank || ctx.rerank);
+  const candidateExcerptChars = rerankExcerptMode === "passage" && rerankerConfigured && !skipRerank ? RERANK_PASSAGE_SOURCE_CHARS : RERANK_EXCERPT_CHARS;
   const useHybrid = args.hybrid !== false;
-  const RRF_TO_SIMILARITY_SCALE = 30;
   const searchFanoutStartedAt = Date.now();
-  let usedConsolidatedCandidates = false;
-  const consolidatedCandidateById = /* @__PURE__ */ new Map();
-  let kindResults = null;
-  if (useHybrid && args.resolve_id && args.request_hash) {
-    const { data, error: error40 } = await ctx.supabase.rpc("resolve_candidates_v2", {
-      p_account_id: ctx.accountId,
-      p_project_id: projectId,
-      p_query_embedding: queryVec,
-      p_query_text: args.task,
-      p_resolve_id: args.resolve_id,
-      p_request_hash: args.request_hash,
-      p_kinds: requestedKinds,
-      p_scopes: null,
-      p_per_kind_limit: kPerKind,
-      p_title_limit: Math.min(50, kPerKind * 4),
-      p_include_background: args.deep === true,
-      p_audit_query_preview: sanitizeAuditTask(args.task).task || null,
-      p_user_id: governanceUserId,
-      p_agent_kind: audit.agentKind ?? ctx.agentKind ?? null,
-      p_excerpt_chars: RERANK_EXCERPT_CHARS,
-      // V2's readOnly flag suppresses the legacy assembler's scattered writes;
-      // search metering is owned by this idempotent RPC/run claim instead.
-      p_meter: true,
-      p_deadline_at: args.deadline_at ?? null
-    });
-    if (!error40 && Array.isArray(data)) {
-      usedConsolidatedCandidates = true;
-      const grouped = new Map(requestedKinds.map((kind2) => [kind2, []]));
-      for (const raw of data) {
-        if (!requestedKinds.includes(raw.kind)) continue;
-        const titleMatch = raw.title_match === true;
-        const row = {
-          ...raw,
-          similarity: titleMatch ? 1 : typeof raw.rrf_score === "number" ? raw.rrf_score * RRF_TO_SIMILARITY_SCALE : raw.similarity,
-          // Legacy title-fallback rows deliberately carry no cosine evidence:
-          // an exact title is its own high-precision admission signal.
-          cosine_sim: titleMatch ? void 0 : raw.cosine_sim
-        };
-        grouped.get(row.kind)?.push(row);
-        consolidatedCandidateById.set(row.id, row);
-      }
-      kindResults = requestedKinds.map((kind2) => ({ kind: kind2, rows: grouped.get(kind2) ?? [] }));
-    } else if (isMissingResolveCandidatesRpc(error40)) {
-      console.warn(
-        `[resolver] resolve_candidates_v2 unavailable (${error40?.message ?? "invalid response"}) \u2014 using legacy fanout`
-      );
-    } else {
-      const failure = new Error("resolve_candidates_v2 failed");
-      if (error40?.code) Object.assign(failure, { code: error40.code });
-      throw failure;
-    }
-  }
-  if (!kindResults) {
-    kindResults = await Promise.all(
-      requestedKinds.map(async (kind2) => {
-        const rpcName = useHybrid ? "search_documents_hybrid" : "search_documents";
-        const searchProjectIds = kind2 === "memory" || kind2 === "decision" ? [.../* @__PURE__ */ new Set([projectId, ...linkedProjectIds])] : [projectId];
-        const projectRows = await Promise.all(
-          searchProjectIds.map(async (searchProjectId) => {
-            const rpcArgs = {
-              p_account_id: ctx.accountId,
-              p_project_id: searchProjectId,
-              p_query_embedding: queryVec,
-              p_kinds: [kind2],
-              p_scopes: null,
-              p_limit: kPerKind
-            };
-            if (useHybrid) {
-              rpcArgs.p_query_text = args.task;
-              rpcArgs.p_audit_query_preview = sanitizeAuditTask(args.task).task || null;
-              rpcArgs.p_include_background = args.deep === true;
-            }
-            const { data, error: error40 } = await ctx.supabase.rpc(rpcName, rpcArgs);
-            if (error40) {
-              if (searchProjectId && linkedProjectIds.includes(searchProjectId)) {
-                throw new Error(`${rpcName} failed for linked Project context`);
-              }
-              console.warn(`[resolver] ${rpcName} failed for kind=${kind2}: ${error40.message}`);
-              return [];
-            }
-            return data ?? [];
-          })
-        );
-        const rows = projectRows.flat();
-        if (useHybrid) {
-          for (const r2 of rows) {
-            if (typeof r2.rrf_score === "number") {
-              r2.similarity = r2.rrf_score * RRF_TO_SIMILARITY_SCALE;
-            }
-          }
-        }
-        const titleMatches = [];
-        const titleNeedle = args.task.trim();
-        if (titleNeedle.length >= 8) {
-          const q2 = ctx.supabase.from("documents").select(
-            `id, account_id, created_by, locked_to_owners, status, title, kind, scope,
-             project_id, path, updated_at, created_at, metadata,
-             document_versions!documents_current_version_fk ( version_number, author_id )`
-          ).eq("account_id", ctx.accountId).eq("kind", kind2).ilike("title", `%${titleNeedle}%`).eq("locked_to_owners", false).limit(Math.min(50, kPerKind * 4));
-          const { data: titleData, error: titleErr } = await q2;
-          if (!titleErr) {
-            for (const r2 of titleData ?? []) {
-              const rowProjectId = typeof r2.project_id === "string" ? r2.project_id : null;
-              const eligibleProjectId = (kind2 === "memory" || kind2 === "decision") && rowProjectId && linkedProjectIds.includes(rowProjectId) ? rowProjectId : projectId;
-              if (!isDirectResolverDocumentEligible(
-                r2,
-                {
-                  accountId: ctx.accountId,
-                  userId: ctx.userId,
-                  projectId: eligibleProjectId,
-                  audience: ctx.audience
-                },
-                { expectedKind: kind2 }
-              )) {
-                continue;
-              }
-              const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
-              titleMatches.push({
-                id: r2.id,
-                title: r2.title,
-                kind: r2.kind,
-                scope: r2.scope,
-                similarity: 1,
-                path: r2.path ?? null,
-                version_number: v2?.version_number ?? 1,
-                updated_at: r2.updated_at,
-                created_at: r2.created_at,
-                author_id: v2?.author_id ?? null
-              });
-              if (titleMatches.length >= kPerKind) break;
-            }
-          }
-        }
-        const merged = /* @__PURE__ */ new Map();
-        for (const row of [...titleMatches, ...rows]) {
-          const existing = merged.get(row.id);
-          if (!existing || row.similarity > existing.similarity) merged.set(row.id, row);
-        }
-        return { kind: kind2, rows: [...merged.values()] };
-      })
-    );
-  }
+  const {
+    kindResults,
+    usedConsolidated: usedConsolidatedCandidates,
+    consolidatedById: consolidatedCandidateById
+  } = await searchCandidates({
+    ctx,
+    task: args.task,
+    projectId,
+    linkedProjectIds,
+    queryVec,
+    kinds: requestedKinds,
+    kPerKind,
+    hybrid: useHybrid,
+    deep: args.deep === true,
+    resolveId: args.resolve_id,
+    requestHash: args.request_hash,
+    deadlineAt: args.deadline_at ?? null,
+    governanceUserId,
+    agentKind: audit.agentKind ?? ctx.agentKind ?? null,
+    excerptChars: candidateExcerptChars
+  });
   const searchFanoutMs = Date.now() - searchFanoutStartedAt;
   const nativeFunctions = args.native_functions === true && !!projectId && requestedKinds.includes("memory");
   const functionBodyById = /* @__PURE__ */ new Map();
@@ -82039,8 +82510,6 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const omittedCandidates = [];
   const candidateIdsNeedingStatus = [];
   const belowThresholdIds = [];
-  const skipRerank = args.skip_rerank === true || args.interactive === true;
-  const rerankerConfigured = !!(ctx.hostedRerank || ctx.rerank);
   const canUseRerankAdmission = rerankerConfigured && !skipRerank;
   for (const { kind: kind2, rows } of kindResults) {
     const threshold = customThresholds?.[kind2] ?? KIND_THRESHOLDS[kind2];
@@ -82081,6 +82550,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         title: r2.title,
         similarity: r2.similarity,
         score: r2.similarity * KIND_WEIGHTS[kind2],
+        cosineEvidence: hasAbsoluteEvidence ? thresholdScore : null,
         rerankAdmission,
         citation: {
           path: r2.path,
@@ -82100,6 +82570,106 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       });
     }
   }
+  const decayPolicy = args.decay_policy ?? "bounded";
+  const volatilityIds = decayPolicy === "bounded" ? candidates.filter((c2) => c2.kind === "memory" && c2.decayMultiplier < 1).map((c2) => c2.id) : [];
+  const volatilityPromise = volatilityIds.length === 0 ? Promise.resolve({ fastIds: /* @__PURE__ */ new Set(), read: "not_needed" }) : Promise.resolve(
+    ctx.supabase.from("documents").select("id, volatility").eq("account_id", ctx.accountId).in("id", volatilityIds)
+  ).then(({ data, error: error40 }) => {
+    if (error40) {
+      console.warn(
+        `[resolver] volatility read failed: ${error40.message} \u2014 keeping legacy decay`
+      );
+      return { fastIds: /* @__PURE__ */ new Set(), read: "unavailable" };
+    }
+    const fastIds2 = /* @__PURE__ */ new Set();
+    for (const row of data ?? []) {
+      if (row.volatility === "fast") fastIds2.add(row.id);
+    }
+    return { fastIds: fastIds2, read: "ok" };
+  });
+  const supersessionPolicy = args.supersession_evidence ?? "on";
+  const supersessionIds = supersessionPolicy === "on" ? candidates.map((c2) => c2.id) : [];
+  const supersessionPromise = supersessionIds.length === 0 || !queryVec ? Promise.resolve({
+    evidenceById: /* @__PURE__ */ new Map(),
+    read: supersessionPolicy === "on" ? "not_needed" : "off",
+    hops: 0
+  }) : (async () => {
+    const terminalOf = new Map(supersessionIds.map((id4) => [id4, id4]));
+    const visited = new Set(supersessionIds);
+    const tombstoneIds = [];
+    let frontier = supersessionIds;
+    let reads = 0;
+    let depth = 0;
+    while (frontier.length > 0 && reads < SUPERSESSION_MAX_HOPS) {
+      const { data, error: error40 } = await Promise.resolve(
+        ctx.supabase.from("documents").select("id, status, metadata").eq("account_id", ctx.accountId).in("metadata->>superseded_by", frontier)
+      );
+      if (error40) throw new Error(error40.message);
+      reads++;
+      const next = [];
+      for (const row of data ?? []) {
+        if (visited.has(row.id)) continue;
+        const meta = row.metadata ?? {};
+        const metaStatus = typeof meta.status === "string" ? meta.status : null;
+        const isTombstone = row.status === "archived" || metaStatus !== null && metaStatus !== "active";
+        if (!isTombstone) continue;
+        const target = typeof meta.superseded_by === "string" ? meta.superseded_by.trim() : "";
+        if (!target || target === row.id) continue;
+        const terminal = terminalOf.get(target);
+        if (!terminal) continue;
+        visited.add(row.id);
+        terminalOf.set(row.id, terminal);
+        tombstoneIds.push(row.id);
+        next.push(row.id);
+      }
+      if (next.length > 0) depth = reads;
+      if (tombstoneIds.length >= SUPERSESSION_MAX_TOMBSTONES) break;
+      frontier = next;
+    }
+    if (tombstoneIds.length === 0) {
+      return {
+        evidenceById: /* @__PURE__ */ new Map(),
+        read: "none_found",
+        hops: depth
+      };
+    }
+    const ids = tombstoneIds.slice(0, SUPERSESSION_MAX_TOMBSTONES);
+    const vectorClient = ctx.privilegedSupabase ?? ctx.supabase;
+    const { data: embRows, error: embErr } = await Promise.resolve(
+      vectorClient.from("document_embeddings").select("document_id, embedding").eq("account_id", ctx.accountId).in("document_id", ids)
+    );
+    if (embErr) {
+      if (/permission denied/i.test(embErr.message)) {
+        return {
+          evidenceById: /* @__PURE__ */ new Map(),
+          read: "no_vector_access",
+          hops: depth
+        };
+      }
+      throw new Error(embErr.message);
+    }
+    const evidenceById = /* @__PURE__ */ new Map();
+    for (const row of embRows ?? []) {
+      const successor = terminalOf.get(row.document_id);
+      if (!successor) continue;
+      const vec = parsePgVector(row.embedding);
+      if (!vec || vec.length !== queryVec.length) continue;
+      const cos = cosineSim(queryVec, vec);
+      if (!Number.isFinite(cos)) continue;
+      const prev = evidenceById.get(successor);
+      if (prev === void 0 || cos > prev) evidenceById.set(successor, cos);
+    }
+    return { evidenceById, read: "ok", hops: depth };
+  })().catch((e2) => {
+    console.warn(
+      `[resolver] supersession evidence read failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 ranking as retrieved`
+    );
+    return {
+      evidenceById: /* @__PURE__ */ new Map(),
+      read: "unavailable",
+      hops: 0
+    };
+  });
   const metadataById = /* @__PURE__ */ new Map();
   const approvedColumnIds = /* @__PURE__ */ new Set();
   const poolStatusIds = belowThresholdIds.length > 0 ? [.../* @__PURE__ */ new Set([...candidateIdsNeedingStatus, ...belowThresholdIds])] : candidateIdsNeedingStatus;
@@ -82468,6 +83038,15 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       }
     }
   }
+  const { fastIds, read: volatilityRead } = await volatilityPromise;
+  if (decayPolicy === "bounded" && volatilityRead === "ok") {
+    for (const c2 of candidates) {
+      if (c2.kind !== "memory" || c2.decayMultiplier === 1) continue;
+      if (c2.memory_type && BOUNDED_DECAY_FULL_CURVE_TYPES.has(c2.memory_type)) continue;
+      if (fastIds.has(c2.id)) continue;
+      c2.decayMultiplier = Math.max(c2.decayMultiplier, boundedMemoryDecayMultiplier(c2.createdAt));
+    }
+  }
   let providerContextReceipt = null;
   const federatedEvidenceByInternalId = /* @__PURE__ */ new Map();
   if (audit.federatedContext) {
@@ -82606,6 +83185,10 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   }, 0);
   const candidatePoolAdmittedCount = candidates.length;
   const candidatePoolBelowThresholdCount = belowThresholdActiveIds.size;
+  const rerankExcerpt = (id4) => {
+    const body = bodyMap.get(id4) ?? "";
+    return rerankExcerptMode === "passage" ? selectRerankExcerpt(body, args.task, RERANK_EXCERPT_CHARS) : body.slice(0, RERANK_EXCERPT_CHARS);
+  };
   const skillRerankAdmissionCandidateIds = candidates.filter((candidate) => candidate.kind === "skill" && candidate.rerankAdmission).map((candidate) => candidate.id);
   const decisionRerankAdmissionCandidateIds = candidates.filter((candidate) => candidate.kind === "decision" && candidate.rerankAdmission).map((candidate) => candidate.id);
   const dropUnverifiedRerankAdmissions = (detail2) => {
@@ -82631,7 +83214,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       id: c2.id,
       kind: c2.kind,
       title: c2.title,
-      excerpt: (bodyMap.get(c2.id) ?? "").slice(0, RERANK_EXCERPT_CHARS)
+      excerpt: rerankExcerpt(c2.id)
     }));
     const rerankStageStartedAt = Date.now();
     try {
@@ -82677,7 +83260,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
               id: c2.id,
               kind: c2.kind,
               title: c2.title,
-              excerpt: (bodyMap.get(c2.id) ?? "").slice(0, RERANK_EXCERPT_CHARS)
+              excerpt: rerankExcerpt(c2.id)
             }));
             try {
               const judge = await Promise.race([
@@ -82990,7 +83573,41 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     if (f2 <= 1) return f2;
     return c2.similarity >= FITNESS_BOOST_MIN_SIMILARITY ? f2 : 1;
   };
-  const effectiveScore = (c2) => c2.score * c2.decayMultiplier * gatedFitness(c2) * memoryTypeMultiplier(c2);
+  const baseEffectiveScore = (c2) => c2.score * c2.decayMultiplier * gatedFitness(c2) * memoryTypeMultiplier(c2);
+  const {
+    evidenceById: supersessionEvidence,
+    read: supersessionRead,
+    hops: supersessionHops
+  } = await supersessionPromise;
+  const supersessionLifted = [];
+  const supersessionRenderFloor = /* @__PURE__ */ new Map();
+  if (supersessionRead === "ok" && supersessionEvidence.size > 0) {
+    for (const [successorId, tombstoneCosine] of supersessionEvidence) {
+      const successor = candidates.find((c2) => c2.id === successorId);
+      if (!successor) continue;
+      if (typeof successor.cosineEvidence !== "number") continue;
+      if (successor.cosineEvidence >= tombstoneCosine) continue;
+      const sameKind = candidates.filter((c2) => c2.kind === successor.kind);
+      const ahead = sameKind.filter(
+        (c2) => typeof c2.cosineEvidence === "number" && c2.cosineEvidence > tombstoneCosine
+      ).length;
+      const ladder = [...sameKind].sort((a2, b2) => baseEffectiveScore(b2) - baseEffectiveScore(a2));
+      const rung = ladder[ahead];
+      if (!rung) continue;
+      const own = baseEffectiveScore(successor);
+      const floor = baseEffectiveScore(rung);
+      if (floor <= own) continue;
+      successor.supersessionFloor = floor;
+      supersessionRenderFloor.set(successor.id, rung.similarity);
+      supersessionLifted.push({
+        id: successor.id,
+        from: Math.round(own * 1e6) / 1e6,
+        to: Math.round(floor * 1e6) / 1e6,
+        evidence: Math.round(tombstoneCosine * 1e3) / 1e3
+      });
+    }
+  }
+  const effectiveScore = (c2) => Math.max(baseEffectiveScore(c2), c2.supersessionFloor ?? 0);
   const byPrecedence = byAuthorityThenScore(
     (c2) => c2.authorityTier ?? AUTHORITY_TIER.HISTORICAL,
     effectiveScore
@@ -83000,6 +83617,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const dedupeClusters = [];
   let dedupeDroppedCount = 0;
   let dedupeTokensSaved = 0;
+  const renderNeighbours = /* @__PURE__ */ new Map();
   const dedupeEligibleIds = candidates.filter(
     (c2) => c2.kind !== "source.evidence" && REDUNDANCY_COLLAPSE_KINDS.has(c2.kind)
   ).map((c2) => c2.id);
@@ -83010,7 +83628,9 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         {
           p_account_id: ctx.accountId,
           p_ids: dedupeEligibleIds,
-          p_threshold: dedupeThreshold
+          // Ask at the LOWER bound and split client-side: edges at or above
+          // `dedupeThreshold` collapse, the 0.85–0.92 band only orders render.
+          p_threshold: Math.min(dedupeThreshold, REDUNDANCY_COLLAPSE_MIN)
         }
       );
       if (pairErr) {
@@ -83021,6 +83641,11 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         const neighbours = /* @__PURE__ */ new Map();
         const simByPair = /* @__PURE__ */ new Map();
         for (const row of pairRows) {
+          if (!renderNeighbours.has(row.id_a)) renderNeighbours.set(row.id_a, /* @__PURE__ */ new Set());
+          if (!renderNeighbours.has(row.id_b)) renderNeighbours.set(row.id_b, /* @__PURE__ */ new Set());
+          renderNeighbours.get(row.id_a).add(row.id_b);
+          renderNeighbours.get(row.id_b).add(row.id_a);
+          if (row.similarity < dedupeThreshold) continue;
           if (!neighbours.has(row.id_a)) neighbours.set(row.id_a, /* @__PURE__ */ new Set());
           if (!neighbours.has(row.id_b)) neighbours.set(row.id_b, /* @__PURE__ */ new Set());
           neighbours.get(row.id_a).add(row.id_b);
@@ -83317,10 +83942,40 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   }
   if (included.length > 1) {
     const lead = primarySkill && included[0]?.id === primarySkill.id ? included.shift() : null;
+    const renderSimilarity = (i2) => Math.max(i2.similarity, supersessionRenderFloor.get(i2.id) ?? 0);
+    const tierOf = (i2) => i2.authority_tier ?? AUTHORITY_TIER.HISTORICAL;
+    const effectiveById = new Map(budgetOrder.map((c2) => [c2.id, effectiveScore(c2)]));
+    const includedIds = new Set(included.map((i2) => i2.id));
+    const tierById = new Map(included.map((i2) => [i2.id, tierOf(i2)]));
+    const clusterOf = /* @__PURE__ */ new Map();
+    for (const item of included) {
+      if (clusterOf.has(item.id)) continue;
+      const stack = [item.id];
+      clusterOf.set(item.id, item.id);
+      while (stack.length > 0) {
+        const cur = stack.pop();
+        for (const nId of renderNeighbours.get(cur) ?? []) {
+          if (!includedIds.has(nId) || clusterOf.has(nId)) continue;
+          if (tierById.get(nId) !== tierById.get(cur)) continue;
+          clusterOf.set(nId, item.id);
+          stack.push(nId);
+        }
+      }
+    }
+    const clusterKey = /* @__PURE__ */ new Map();
+    for (const item of included) {
+      const cid = clusterOf.get(item.id) ?? item.id;
+      clusterKey.set(cid, Math.max(clusterKey.get(cid) ?? 0, renderSimilarity(item)));
+    }
+    const keyOf = (i2) => clusterKey.get(clusterOf.get(i2.id) ?? i2.id) ?? renderSimilarity(i2);
     included.sort((a2, b2) => {
-      const t2 = (a2.authority_tier ?? AUTHORITY_TIER.HISTORICAL) - (b2.authority_tier ?? AUTHORITY_TIER.HISTORICAL);
+      const t2 = tierOf(a2) - tierOf(b2);
       if (t2 !== 0) return t2;
-      return b2.similarity - a2.similarity;
+      const k2 = keyOf(b2) - keyOf(a2);
+      if (k2 !== 0) return k2;
+      const e2 = (effectiveById.get(b2.id) ?? 0) - (effectiveById.get(a2.id) ?? 0);
+      if (e2 !== 0) return e2;
+      return renderSimilarity(b2) - renderSimilarity(a2);
     });
     if (lead) included.unshift(lead);
   }
@@ -83823,7 +84478,11 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         p_entities: args.entities && args.entities.length > 0 ? args.entities : null,
         p_status: "open",
         p_project_id: projectId ?? null,
-        p_limit: 50
+        p_limit: 50,
+        // This lane feeds full thread bodies into the bundle for /resolve,
+        // /ask and agent turns. Under a service token the client bypasses
+        // RLS, so the function scopes personal threads by this identity.
+        p_user_id: ctx.userId ?? null
       });
       if (!threadErr && Array.isArray(threadRows)) {
         const taskLower = ` ${args.task.toLowerCase()} `;
@@ -84022,11 +84681,25 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   );
   used = deliveredItems.reduce((total, item) => total + item.estimated_tokens, 0) + sourceEvidenceTokens;
   if (used > maxTokens) truncated = true;
+  const rankedById = new Map(candidates.map((c2) => [c2.id, c2]));
+  const round4 = (n2) => Math.round(n2 * 1e4) / 1e4;
+  const scoreComponentsFor = (id4) => {
+    const c2 = rankedById.get(id4);
+    return c2 ? {
+      score: round4(c2.score),
+      decay: round4(c2.decayMultiplier),
+      fitness: round4(gatedFitness(c2)),
+      memory_type_weight: round4(memoryTypeMultiplier(c2)),
+      authority_tier: c2.authorityTier ?? AUTHORITY_TIER.HISTORICAL,
+      effective: round4(effectiveScore(c2))
+    } : void 0;
+  };
   const itemSnapshot = included.map((i2, idx) => ({
     id: i2.id,
     kind: i2.kind,
     rank: idx + 1,
     similarity: i2.similarity,
+    ...rankedById.has(i2.id) ? { score_components: scoreComponentsFor(i2.id) } : {},
     version_number: i2.citation.version_number,
     path: i2.citation.path,
     role: primary && i2.id === primary.id ? "primary" : i2.kind === "skill" ? "supporting" : i2.kind,
@@ -84198,6 +84871,27 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     delivered_items: deliveredItems,
     // New: full per-item snapshot drives audit replay.
     items: itemSnapshot,
+    // Which ranking policy produced this order. Learning and replay group by
+    // it; see RANKING_CONFIG_FINGERPRINT.
+    ranking_policy: {
+      ranker_version: RANKER_VERSION,
+      config_fingerprint: RANKING_CONFIG_FINGERPRINT,
+      decay_policy: decayPolicy,
+      decay_volatility_read: volatilityRead,
+      rerank_excerpt_mode: rerankExcerptMode,
+      candidate_excerpt_chars: candidateExcerptChars,
+      supersession_evidence: supersessionPolicy,
+      supersession_evidence_read: supersessionRead,
+      // Chain depth actually served: the deepest hop that yielded a tombstone,
+      // capped at SUPERSESSION_MAX_HOPS. Recorded so the depth this corpus
+      // really needs stays measured rather than assumed — if this starts
+      // pinning at the cap, the cap is too low.
+      supersession_hops: supersessionHops,
+      // Which documents inherited a superseded doc's reach, and how far. Empty
+      // on the overwhelming majority of resolves; when it is not, this is the
+      // record of a re-order that no similarity signal would explain.
+      supersession_lifted: supersessionLifted
+    },
     // Kept for backwards compat with existing audit timeline / billing
     // aggregations that look up these flat ID arrays. Both shapes
     // describe the same bundle.
@@ -85899,6 +86593,8 @@ async function searchFeedback(ctx, rawArgs) {
     `id, title, kind, metadata, created_at, updated_at,
        document_versions!documents_current_version_fk ( content )`
   ).eq("account_id", ctx.accountId).eq("kind", "feedback");
+  const personalScope = personalScopeOr(ctx);
+  if (personalScope) query = query.or(personalScope);
   if (projectId !== null) query = query.eq("project_id", projectId);
   if (args.source) query = query.eq("metadata->>source", args.source);
   if (args.target_id) query = query.eq("metadata->target->>id", args.target_id);
@@ -85980,6 +86676,8 @@ async function listFeedbackClusters(ctx, rawArgs) {
   const projectId = args.project_id ?? ctx.projectId ?? null;
   const limit2 = args.limit ?? 20;
   let query = ctx.supabase.from("documents").select("id, title, metadata, created_at, updated_at").eq("account_id", ctx.accountId).eq("kind", "feedback").not("metadata->>cluster_id", "is", null);
+  const personalScope = personalScopeOr(ctx);
+  if (personalScope) query = query.or(personalScope);
   if (projectId !== null) query = query.eq("project_id", projectId);
   const { data, error: error40 } = await query.order("updated_at", { ascending: false }).limit(500);
   if (error40) throw new Error(`feedback_clusters: ${error40.message}`);
@@ -86085,7 +86783,9 @@ async function listReviewDue(ctx, rawArgs) {
   const projectId = args.project_id ?? ctx.projectId ?? null;
   const { data, error: error40 } = await ctx.supabase.rpc("decisions_review_due", {
     p_account_id: ctx.accountId,
-    p_project_id: projectId
+    p_project_id: projectId,
+    // Scopes personal decisions to the caller when the client bypasses RLS.
+    p_user_id: ctx.userId ?? null
   });
   if (error40) {
     if (/decisions_review_due|PGRST202|does not exist/i.test(error40.message)) {
@@ -88058,12 +88758,12 @@ function lightHostForAgentKind(kind2) {
       return null;
   }
 }
-var UUID2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+var UUID3 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function lightRecallDocumentIds(items) {
   const ids = /* @__PURE__ */ new Set();
   for (const item of items ?? []) {
     if (item?.kind !== "memory" && item?.kind !== "plan") continue;
-    if (typeof item.id === "string" && UUID2.test(item.id)) ids.add(item.id);
+    if (typeof item.id === "string" && UUID3.test(item.id)) ids.add(item.id);
     if (ids.size >= LIGHT_RECALL_MAX_IDS) break;
   }
   return [...ids];
@@ -88167,6 +88867,26 @@ async function correctMemory(ctx, rawArgs) {
   if (mode === "revise" && (!repl || !str4(repl.title) || !str4(repl.content))) {
     throw new Error("revise requires replacement { title, content }");
   }
+  let targetScope = null;
+  let targetProjectId = null;
+  if (mode === "revise") {
+    try {
+      const { data: targets } = await ctx.supabase.from("documents").select("scope, project_id").eq("account_id", ctx.accountId).in("id", targetIds);
+      const rows = targets ?? [];
+      const scopes = new Set(rows.map((r2) => r2.scope));
+      const projects = new Set(rows.map((r2) => r2.project_id));
+      if (scopes.size === 1) targetScope = rows[0]?.scope ?? null;
+      if (projects.size === 1) targetProjectId = rows[0]?.project_id ?? null;
+    } catch {
+    }
+  }
+  const replacementScope = repl && str4(repl.scope) || targetScope || "project";
+  const replacementProjectId = repl && str4(repl.project_id) || targetProjectId || ctx.projectId || null;
+  if (replacementScope === "project" && !replacementProjectId) {
+    throw new Error(
+      'replacement scope is "project" but no project could be determined \u2014 pass replacement.project_id, or replacement.scope of "personal"/"team"'
+    );
+  }
   let replacementEmbedding = null;
   if (mode === "revise" && ctx.embed && repl) {
     try {
@@ -88183,8 +88903,8 @@ async function correctMemory(ctx, rawArgs) {
     p_replacement_title: repl ? str4(repl.title) : null,
     p_replacement_content: repl ? str4(repl.content) : null,
     p_replacement_kind: repl && str4(repl.kind) || "memory",
-    p_replacement_scope: repl && str4(repl.scope) || "project",
-    p_replacement_project_id: repl && str4(repl.project_id) || ctx.projectId || null,
+    p_replacement_scope: replacementScope,
+    p_replacement_project_id: replacementProjectId,
     // Default memory-kind heads to memory_type 'correction' so the replacement
     // carries USER_CORRECTION authority from birth — an unstamped head is born
     // HISTORICAL (tier 6) and loses to the very doc it corrects. The RPC also
@@ -89290,7 +90010,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.68";
+  cachedAgentVersion = "0.2.71";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -89440,6 +90160,9 @@ var MemlinApiClient = class {
   /** The configured account (the light-gate cache key when a call names none). */
   get defaultAccountId() {
     return this.cfg.accountId;
+  }
+  nativeSessionHook(input, opts) {
+    return this.request("POST", "/agent-control/hook", input, { ...opts, agentVersion: agentVersion() });
   }
   // ---------- low-level ----------
   async authHeaders(includeAccount = true, override = {}) {
@@ -91867,7 +92590,7 @@ init_atomic_rename();
 init_workspace_binding();
 var WORKSPACE_TRIGGERS_FILE = "triggers.json";
 function commandSegments(command) {
-  const segments = [];
+  const segments2 = [];
   let current = "";
   let quote2 = null;
   for (let i2 = 0; i2 < command.length; i2++) {
@@ -91898,14 +92621,14 @@ function commandSegments(command) {
       continue;
     }
     if (ch === "\n" || ch === ";" || ch === "&" || ch === "|" || ch === "(" || ch === ")") {
-      if (current.trim()) segments.push(current);
+      if (current.trim()) segments2.push(current);
       current = "";
       continue;
     }
     current += ch;
   }
-  if (current.trim()) segments.push(current);
-  return segments;
+  if (current.trim()) segments2.push(current);
+  return segments2;
 }
 var ENV_ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
 function segmentLeadingTokens(segment) {
@@ -92678,7 +93401,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION2 = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version5 = "0.2.68";
+  const version5 = "0.2.71";
   return typeof version5 === "string" && VERSION2.test(version5) ? version5 : null;
 }
 async function reportPluginRuntime(report) {
@@ -93245,7 +93968,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.68"?.trim();
+  const env = "0.2.71"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }
