@@ -25026,7 +25026,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.71";
+  cachedAgentVersion = "0.2.72";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -26802,6 +26802,9 @@ function gitToplevel(cwd) {
   }
 }
 function repoRelativePath(absPath, cwd) {
+  return repoPathOrNull(absPath, cwd) ?? path10.basename(absPath);
+}
+function repoPathOrNull(absPath, cwd) {
   const top = gitToplevel(cwd);
   if (top) {
     const canonicalWithMissingTail = (candidate) => {
@@ -26824,7 +26827,7 @@ function repoRelativePath(absPath, cwd) {
     );
     if (rel && !rel.startsWith("..") && !path10.isAbsolute(rel)) return rel;
   }
-  return path10.basename(absPath);
+  return null;
 }
 function readGitBranch(cwd) {
   try {
@@ -26896,6 +26899,9 @@ function hashEditContent(value) {
 }
 
 // packages/plugin-core/dist/edit-broker.js
+function brokerPaths(rawPaths, cwd) {
+  return rawPaths.map((file2) => repoPathOrNull(path12.resolve(cwd, file2), cwd)).filter((relPath) => relPath !== null).map((relPath) => relPath.replaceAll(path12.sep, "/"));
+}
 async function completeEditBroker(ctx, payload) {
   const sessionId = payload.session_id;
   if (!sessionId) return;
@@ -26903,9 +26909,8 @@ async function completeEditBroker(ctx, payload) {
   const identity = localBrokerIdentity(cwd);
   const rawPaths = editedPathsFromHook(payload.tool_name, payload.tool_input);
   if (!identity || rawPaths.length === 0) return;
-  const paths = [...new Set(rawPaths.map(
-    (file2) => repoRelativePath(path12.resolve(cwd, file2), cwd).replaceAll(path12.sep, "/")
-  ))];
+  const paths = [...new Set(brokerPaths(rawPaths, cwd))];
+  if (paths.length === 0) return;
   try {
     const resolved = await resolveProject(ctx.api, cwd, ctx.config.project_id);
     if (!resolved.project_id) return;
@@ -27345,7 +27350,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version2 = "0.2.71";
+  const version2 = "0.2.72";
   return typeof version2 === "string" && VERSION.test(version2) ? version2 : null;
 }
 async function reportPluginRuntime(report) {

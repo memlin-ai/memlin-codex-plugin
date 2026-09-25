@@ -75481,6 +75481,12 @@ var TOOLS = [
 ];
 
 // packages/mcp-tools/src/context.ts
+function requireProjectForScope(tool, scope, projectId) {
+  if (scope !== "project" || projectId) return;
+  throw new Error(
+    `${tool}: scope "project" needs a project, and this connection is not bound to one. Pass project_id, use scope "team" (the whole workspace) or "personal" (only you), or run from a folder linked to a project (/memlin-add-project).`
+  );
+}
 async function resolveProjectFilter(ctx, requested) {
   if (!requested) return ctx.projectId ?? null;
   if (requested === ctx.projectId) return requested;
@@ -77726,7 +77732,7 @@ async function executeAction(args) {
     providerKeys: args.providerKeys,
     allowPlatformProviderKey: args.allowPlatformProviderKey === true
   };
-  const { data: row, error: rowErr } = await client2.from("documents").select("id, account_id, kind, metadata, title, scope, created_by").eq("id", actionId).maybeSingle();
+  const { data: row, error: rowErr } = await client2.from("documents").select("id, account_id, kind, status, metadata, title, scope, created_by").eq("id", actionId).maybeSingle();
   if (rowErr) {
     throw new ActionExecuteError(`document lookup failed: ${rowErr.message}`, "server");
   }
@@ -77740,6 +77746,15 @@ async function executeAction(args) {
     throw new ActionExecuteError(
       `document ${actionId} is kind='${row.kind}', expected 'action'`,
       "wrong_kind"
+    );
+  }
+  if (row.status === "archived") {
+    throw new ActionExecuteError("this action is archived and cannot run", "not_approved");
+  }
+  if (row.status !== "approved" && args.allowUnapproved !== true) {
+    throw new ActionExecuteError(
+      `this action is ${row.status}; only approved actions can be run by a token or agent`,
+      "not_approved"
     );
   }
   const parsed = parseActionMetadata(row.metadata);
@@ -78469,10 +78484,12 @@ async function executeDocumentWrite(ctx, args) {
     title: redactSecretShapes(args.title).redacted,
     content: redactSecretShapes(args.content).redacted
   };
-  const projectId = await resolveProjectFilter(ctx, args.project_id);
+  let projectId = await resolveProjectFilter(ctx, args.project_id);
+  let existingProjectId = null;
   if (args.document_id) {
-    const { data: existing, error: ownErr } = await ctx.supabase.from("documents").select("account_id, kind, scope, created_by").eq("id", args.document_id).maybeSingle();
+    const { data: existing, error: ownErr } = await ctx.supabase.from("documents").select("account_id, kind, scope, created_by, project_id").eq("id", args.document_id).maybeSingle();
     if (ownErr) throw new Error(`write_memory: ${ownErr.message}`);
+    existingProjectId = existing?.project_id ?? null;
     if (!existing || existing.account_id !== ctx.accountId || !canSeePersonalScope(ctx, existing)) {
       throw new Error("write_memory: document not found in this account");
     }
@@ -78480,6 +78497,8 @@ async function executeDocumentWrite(ctx, args) {
       throw new Error("write_memory: document kind mismatch");
     }
   }
+  projectId = projectId ?? existingProjectId;
+  requireProjectForScope("write_memory", args.scope, projectId);
   const admission = args.document_id ? null : admitCapture({
     writer: "mcp_write",
     humanSession: ctx.captureProvenance === "human_typed",
@@ -86241,22 +86260,36 @@ var Args = external_exports.object({
   session_id: external_exports.string().min(1).max(256).optional(),
   conflict_id: external_exports.string().uuid().optional()
 });
+async function callerUserId2(ctx) {
+  if (ctx.userId) return ctx.userId;
+  const { data, error: error40 } = await ctx.supabase.rpc("memlin_user_id");
+  if (error40) throw new Error(`edit_coordination caller: ${error40.message}`);
+  if (typeof data !== "string" || data.length === 0) {
+    throw new Error("edit_coordination: this caller has no Memlin user");
+  }
+  return data;
+}
 async function editCoordination(ctx, rawArgs) {
   const args = Args.parse(rawArgs);
   const projectId = args.project_id ?? ctx.projectId;
   const sessionId = args.session_id ?? ctx.sessionId;
   if (!projectId) throw new Error("edit_coordination: project_id is required");
-  if (!sessionId) throw new Error("edit_coordination: session_id is required");
+  if (!sessionId) {
+    throw new Error(
+      "edit_coordination: session_id is required (the session id the edit-broker hook registered)"
+    );
+  }
+  const userId = await callerUserId2(ctx);
   if (args.action === "status") {
     const [{ data: intents, error: intentError }, { data: conflicts, error: conflictError }] = await Promise.all([
-      ctx.supabase.from("edit_intents").select("id, path, branch, intent_kind, state, expires_at, completed_at").eq("account_id", ctx.accountId).eq("project_id", projectId).eq("session_id", sessionId).eq("user_id", ctx.userId).eq("state", "active").is("released_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("updated_at", { ascending: false }),
+      ctx.supabase.from("edit_intents").select("id, path, branch, intent_kind, state, expires_at, completed_at").eq("account_id", ctx.accountId).eq("project_id", projectId).eq("session_id", sessionId).eq("user_id", userId).eq("state", "active").is("released_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("updated_at", { ascending: false }),
       ctx.supabase.from("edit_conflicts").select("id, path, owner_intent_id, owner_session_id, contender_session_id, contender_user_id, reason, status, created_at").eq("account_id", ctx.accountId).eq("project_id", projectId).or(`owner_session_id.eq.${sessionId},contender_session_id.eq.${sessionId}`).eq("status", "open").order("created_at", { ascending: false })
     ]);
     if (intentError) throw new Error(`edit_coordination status: ${intentError.message}`);
     if (conflictError) throw new Error(`edit_coordination status: ${conflictError.message}`);
     const ownIntentIds = new Set((intents ?? []).map((intent) => intent.id));
     const visibleConflicts = (conflicts ?? []).filter(
-      (conflict2) => conflict2.contender_session_id === sessionId && conflict2.contender_user_id === ctx.userId || conflict2.owner_session_id === sessionId && ownIntentIds.has(conflict2.owner_intent_id)
+      (conflict2) => conflict2.contender_session_id === sessionId && conflict2.contender_user_id === userId || conflict2.owner_session_id === sessionId && ownIntentIds.has(conflict2.owner_intent_id)
     );
     return { session_id: sessionId, intents: intents ?? [], conflicts: visibleConflicts };
   }
@@ -86274,7 +86307,7 @@ async function editCoordination(ctx, rawArgs) {
   if (ownerIdentityError) {
     throw new Error(`edit_coordination owner identity: ${ownerIdentityError.message}`);
   }
-  const callerOwnsSession = sessionId === conflict.contender_session_id && conflict.contender_user_id === ctx.userId || sessionId === conflict.owner_session_id && ownerIdentity?.user_id === ctx.userId;
+  const callerOwnsSession = sessionId === conflict.contender_session_id && conflict.contender_user_id === userId || sessionId === conflict.owner_session_id && ownerIdentity?.user_id === userId;
   if (!callerOwnsSession) {
     throw new Error("edit_coordination: session is not owned by the caller");
   }
@@ -86312,7 +86345,7 @@ async function editCoordination(ctx, rawArgs) {
     const { data: handoff, error: handoffError } = await ctx.supabase.from("agent_handoffs").insert({
       account_id: ctx.accountId,
       project_id: projectId,
-      created_by: ctx.userId,
+      created_by: userId,
       target_agent_kind: owner?.agent_kind ?? ctx.agentKind ?? "mcp",
       target_session_id: conflict.owner_session_id,
       source_session_id: sessionId,
@@ -86375,6 +86408,7 @@ var FeedbackTargetKindSchema = external_exports.enum([
   // means nothing to Memlin but lets the customer pivot later.
   "external"
 ]);
+var UUID_RE2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 var FeedbackReporterSchema = external_exports.object({
   type: external_exports.enum(["member", "service_token", "end_user"]),
   // member uuid, token id, or customer-supplied end-user id. Free-form
@@ -86527,7 +86561,10 @@ async function captureFeedback(ctx, rawArgs) {
     // see public replies. Long-lived but per-row — revoke by clearing
     // the field on the documents row. SDK + HTTP responses return it
     // so widget code can stash it in localStorage.
-    status_token: statusToken
+    status_token: statusToken,
+    // The credential that captured this row. A widget (mlt_) token may later
+    // open only threads its own token captured; see feedbackTokenOwnsThread.
+    ...ctx.serviceTokenId ? { captured_via_token_id: ctx.serviceTokenId } : {}
   };
   const title = deriveFeedbackTitle({
     body,
@@ -86539,10 +86576,14 @@ async function captureFeedback(ctx, rawArgs) {
     p_document_id: null,
     p_account_id: ctx.accountId,
     p_project_id: projectId,
-    // Personal scope keeps individual feedback rows out of team-wide
-    // resolves until promoted; the /feedback surface and the support
-    // overlay query by kind, not by scope, so visibility isn't affected.
-    p_scope: "personal",
+    // Feedback is the team's to triage: the /feedback surface, clustering,
+    // auto-triage and the support overlay ("12 customers reported this") all
+    // read it account-wide. It never reaches a resolve bundle, because
+    // 'feedback' is not a resolver kind. It used to be stored 'personal',
+    // which once personal scope was enforced left widget tickets visible only
+    // to the token's minter and email tickets, which have no Memlin creator,
+    // visible to nobody.
+    p_scope: projectId ? "project" : "team",
     p_kind: "feedback",
     p_title: title,
     p_path: null,
@@ -86552,7 +86593,11 @@ async function captureFeedback(ctx, rawArgs) {
     p_commit_message: null,
     p_yjs_state_b64: null,
     p_metadata_merge: false,
-    ...ctx.serviceTokenId ? { p_author_id: ctx.userId ?? null, p_service_token_id: ctx.serviceTokenId } : {}
+    // Attribution on the service role: a token derives its author from the
+    // credential; a trusted server path (the Slack command) names the Memlin
+    // user it already resolved. Without p_author_id, write_document records
+    // the row as an unattributed system write.
+    ...ctx.serviceTokenId ? { p_author_id: ctx.userId ?? null, p_service_token_id: ctx.serviceTokenId } : ctx.bypassesRls && ctx.userId && UUID_RE2.test(ctx.userId) ? { p_author_id: ctx.userId } : {}
   });
   if (error40) throw new Error(`feedback_capture: ${error40.message}`);
   const row = Array.isArray(data) ? data[0] : data;
@@ -87283,6 +87328,7 @@ async function createDecision(ctx, rawArgs) {
   const base = (ctx.apiBaseUrl || "https://memlin.ai/api/v1").replace(/\/+$/, "");
   const scope = args.scope ?? "team";
   const projectId = await resolveProjectFilter(ctx, args.project_id);
+  requireProjectForScope("create_decision", scope, projectId);
   const custom3 = {};
   if (args.expected_outcome !== void 0) custom3.expected_outcome = args.expected_outcome;
   if (args.review_by) custom3.review_by = args.review_by;
@@ -90010,7 +90056,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.71";
+  cachedAgentVersion = "0.2.72";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -91878,7 +91924,7 @@ function gitToplevel(cwd) {
     return null;
   }
 }
-function repoRelativePath(absPath, cwd) {
+function repoPathOrNull(absPath, cwd) {
   const top = gitToplevel(cwd);
   if (top) {
     const canonicalWithMissingTail = (candidate) => {
@@ -91901,7 +91947,7 @@ function repoRelativePath(absPath, cwd) {
     );
     if (rel && !rel.startsWith("..") && !path10.isAbsolute(rel)) return rel;
   }
-  return path10.basename(absPath);
+  return null;
 }
 function readGitBranch(cwd) {
   try {
@@ -92102,13 +92148,15 @@ function occurrences(content, needle) {
 }
 function materializeMutation(mutation, cwd) {
   const absolutePath = path11.resolve(cwd, mutation.path);
+  const repoPath = repoPathOrNull(absolutePath, cwd);
+  if (repoPath === null) return null;
   let baseContent = "";
   try {
     baseContent = readFileSync4(absolutePath, "utf8");
   } catch {
     baseContent = "";
   }
-  const relPath = repoRelativePath(absolutePath, cwd).replaceAll(path11.sep, "/");
+  const relPath = repoPath.replaceAll(path11.sep, "/");
   let proposedContent = mutation.kind === "whole_file" ? mutation.content === void 0 ? null : mutation.content : baseContent;
   let fresh = true;
   let staleReason = null;
@@ -92201,7 +92249,7 @@ function buildEditIntents(toolName, toolInput, cwd) {
   }
   const seen = /* @__PURE__ */ new Set();
   return mutations.map((mutation) => materializeMutation(mutation, cwd)).filter((intent) => {
-    if (seen.has(intent.path)) return false;
+    if (intent === null || seen.has(intent.path)) return false;
     seen.add(intent.path);
     return true;
   });
@@ -93192,7 +93240,9 @@ async function evaluateEditCollision(ctx, payload2, projectId, projectAccountId)
   if (rawPaths.length === 0) return null;
   const cwd = payload2.cwd ?? process.cwd();
   const relPaths = [
-    ...new Set(rawPaths.map((p2) => repoRelativePath(path16.resolve(cwd, p2), cwd)))
+    ...new Set(
+      rawPaths.map((p2) => repoPathOrNull(path16.resolve(cwd, p2), cwd)).filter((relPath) => relPath !== null)
+    )
   ];
   if (relPaths.length === 0) return null;
   let res;
@@ -93401,7 +93451,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION2 = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version5 = "0.2.71";
+  const version5 = "0.2.72";
   return typeof version5 === "string" && VERSION2.test(version5) ? version5 : null;
 }
 async function reportPluginRuntime(report) {
@@ -93968,7 +94018,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.71"?.trim();
+  const env = "0.2.72"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }

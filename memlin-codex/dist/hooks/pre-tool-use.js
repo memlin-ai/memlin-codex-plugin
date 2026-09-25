@@ -25093,7 +25093,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.71";
+  cachedAgentVersion = "0.2.72";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -27061,7 +27061,7 @@ function gitToplevel(cwd) {
     return null;
   }
 }
-function repoRelativePath(absPath, cwd) {
+function repoPathOrNull(absPath, cwd) {
   const top = gitToplevel(cwd);
   if (top) {
     const canonicalWithMissingTail = (candidate) => {
@@ -27084,7 +27084,7 @@ function repoRelativePath(absPath, cwd) {
     );
     if (rel && !rel.startsWith("..") && !path11.isAbsolute(rel)) return rel;
   }
-  return path11.basename(absPath);
+  return null;
 }
 function readGitBranch(cwd) {
   try {
@@ -27285,13 +27285,15 @@ function occurrences(content, needle) {
 }
 function materializeMutation(mutation, cwd) {
   const absolutePath = path12.resolve(cwd, mutation.path);
+  const repoPath = repoPathOrNull(absolutePath, cwd);
+  if (repoPath === null) return null;
   let baseContent = "";
   try {
     baseContent = readFileSync4(absolutePath, "utf8");
   } catch {
     baseContent = "";
   }
-  const relPath = repoRelativePath(absolutePath, cwd).replaceAll(path12.sep, "/");
+  const relPath = repoPath.replaceAll(path12.sep, "/");
   let proposedContent = mutation.kind === "whole_file" ? mutation.content === void 0 ? null : mutation.content : baseContent;
   let fresh = true;
   let staleReason = null;
@@ -27384,7 +27386,7 @@ function buildEditIntents(toolName, toolInput, cwd) {
   }
   const seen = /* @__PURE__ */ new Set();
   return mutations.map((mutation) => materializeMutation(mutation, cwd)).filter((intent) => {
-    if (seen.has(intent.path)) return false;
+    if (intent === null || seen.has(intent.path)) return false;
     seen.add(intent.path);
     return true;
   });
@@ -28375,7 +28377,9 @@ async function evaluateEditCollision(ctx, payload, projectId, projectAccountId) 
   if (rawPaths.length === 0) return null;
   const cwd = payload.cwd ?? process.cwd();
   const relPaths = [
-    ...new Set(rawPaths.map((p) => repoRelativePath(path17.resolve(cwd, p), cwd)))
+    ...new Set(
+      rawPaths.map((p) => repoPathOrNull(path17.resolve(cwd, p), cwd)).filter((relPath) => relPath !== null)
+    )
   ];
   if (relPaths.length === 0) return null;
   let res;
@@ -28583,7 +28587,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version2 = "0.2.71";
+  const version2 = "0.2.72";
   return typeof version2 === "string" && VERSION.test(version2) ? version2 : null;
 }
 async function reportPluginRuntime(report) {

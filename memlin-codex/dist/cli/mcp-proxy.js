@@ -24989,7 +24989,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.71";
+  cachedAgentVersion = "0.2.72";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -26586,7 +26586,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version2 = "0.2.71";
+  const version2 = "0.2.72";
   return typeof version2 === "string" && VERSION.test(version2) ? version2 : null;
 }
 async function reportPluginRuntime(report) {
@@ -27738,6 +27738,8 @@ var runtimeObserver = createMcpRuntimeObserver(
 );
 var ACCOUNT_TTL_MS = 3e4;
 var accountCache = null;
+var rawNativeSessionId = (process.env.MEMLIN_SESSION_ID ?? process.env.CLAUDE_CODE_SESSION_ID ?? "").trim();
+var NATIVE_SESSION_ID = /^[A-Za-z0-9._:-]{1,256}$/.test(rawNativeSessionId) ? rawNativeSessionId : null;
 async function workspaceAccountId() {
   if (accountCache && Date.now() - accountCache.at < ACCOUNT_TTL_MS) {
     return accountCache.accountId;
@@ -27745,17 +27747,26 @@ async function workspaceAccountId() {
   try {
     const fromDaemon = await companionResolveWorkspace(runtimeCwd());
     if (fromDaemon?.account_id) {
-      accountCache = { accountId: fromDaemon.account_id, at: Date.now() };
+      accountCache = {
+        accountId: fromDaemon.account_id,
+        projectId: fromDaemon.project_id ?? null,
+        at: Date.now()
+      };
       return accountCache.accountId;
     }
   } catch {
   }
   try {
-    const { accountId } = await resolveWorkspaceAccount(runtimeCwd());
-    accountCache = { accountId: accountId ?? accountCache?.accountId ?? null, at: Date.now() };
+    const { accountId, projectId } = await resolveWorkspaceAccount(runtimeCwd());
+    accountCache = accountId ? { accountId, projectId: projectId ?? null, at: Date.now() } : {
+      accountId: accountCache?.accountId ?? null,
+      projectId: accountCache?.projectId ?? null,
+      at: Date.now()
+    };
   } catch {
     accountCache = {
       accountId: accountCache?.accountId ?? null,
+      projectId: accountCache?.projectId ?? null,
       at: Date.now() - ACCOUNT_TTL_MS + 5e3
     };
   }
@@ -27794,7 +27805,13 @@ async function forward(line) {
     token = await getIdentityBoundAccessToken(config2);
   } catch (err) {
     if (isRequest) {
-      emit(errorResponse(msg.id, -32001, `Memlin: ${err instanceof Error ? err.message : String(err)}`));
+      emit(
+        errorResponse(
+          msg.id,
+          -32001,
+          `Memlin: ${err instanceof Error ? err.message : String(err)}`
+        )
+      );
     }
     return;
   }
@@ -27826,6 +27843,10 @@ async function forward(line) {
       Authorization: `Bearer ${token}`
     };
     if (accountId) headers["Memlin-Account-Id"] = accountId;
+    if (accountId && accountCache?.accountId === accountId && accountCache.projectId) {
+      headers["Memlin-Project-Id"] = accountCache.projectId;
+    }
+    if (NATIVE_SESSION_ID) headers["Memlin-Session-Id"] = NATIVE_SESSION_ID;
     res = await fetch(MCP_URL, {
       method: "POST",
       headers,
@@ -27889,12 +27910,16 @@ rl.on("close", () => {
   });
 });
 process.on("uncaughtException", (err) => {
-  process.stderr.write(`memlin mcp-proxy: uncaught ${err instanceof Error ? err.stack ?? err.message : String(err)}
-`);
+  process.stderr.write(
+    `memlin mcp-proxy: uncaught ${err instanceof Error ? err.stack ?? err.message : String(err)}
+`
+  );
 });
 process.on("unhandledRejection", (reason) => {
-  process.stderr.write(`memlin mcp-proxy: unhandled ${reason instanceof Error ? reason.message : String(reason)}
-`);
+  process.stderr.write(
+    `memlin mcp-proxy: unhandled ${reason instanceof Error ? reason.message : String(reason)}
+`
+  );
 });
 /*! Bundled license information:
 

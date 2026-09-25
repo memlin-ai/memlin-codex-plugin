@@ -24998,7 +24998,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.71";
+  cachedAgentVersion = "0.2.72";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -26547,7 +26547,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version2 = "0.2.71";
+  const version2 = "0.2.72";
   return typeof version2 === "string" && VERSION.test(version2) ? version2 : null;
 }
 async function reportPluginRuntime(report) {
@@ -27546,7 +27546,7 @@ async function runCompanionPath(mode, input, prompt, cwd, beganAt, systemMessage
     session_id: input.session_id ?? null,
     turn_id: input.turn_id,
     join_only: mode === "full",
-    plugin_version: "0.2.71",
+    plugin_version: "0.2.72",
     deadline_at: new Date(beganAt + CODEX_RESOLVE_BUDGET_MAX_MS).toISOString(),
     workspace_signals: { cwd }
   };
