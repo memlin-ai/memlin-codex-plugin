@@ -3239,8 +3239,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path21) {
-      let input = path21;
+    function removeDotSegments(path22) {
+      let input = path22;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -3492,8 +3492,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path21, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path21 && path21 !== "/" ? path21 : void 0;
+        const [path22, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path22 && path22 !== "/" ? path22 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -6886,12 +6886,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f2;
     };
-    function addFormats(ajv, list, fs10, exportName) {
+    function addFormats(ajv, list, fs11, exportName) {
       var _a2;
       var _b;
       (_a2 = (_b = ajv.opts.code).formats) !== null && _a2 !== void 0 ? _a2 : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f2 of list)
-        ajv.addFormat(f2, fs10[f2]);
+        ajv.addFormat(f2, fs11[f2]);
     }
     module2.exports = exports2 = formatsPlugin;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -7328,13 +7328,13 @@ function __disposeResources(env) {
   }
   return next();
 }
-function __rewriteRelativeImportExtension(path21, preserveJsx) {
-  if (typeof path21 === "string" && /^\.\.?\//.test(path21)) {
-    return path21.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m2, tsx, d2, ext, cm) {
+function __rewriteRelativeImportExtension(path22, preserveJsx) {
+  if (typeof path22 === "string" && /^\.\.?\//.test(path22)) {
+    return path22.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m2, tsx, d2, ext, cm) {
       return tsx ? preserveJsx ? ".jsx" : ".js" : d2 && (!ext || !cm) ? m2 : d2 + ext + "." + cm.toLowerCase() + "js";
     });
   }
-  return path21;
+  return path22;
 }
 var extendStatics, __assign, __createBinding, __setModuleDefault, ownKeys, _SuppressedError, tslib_es6_default;
 var init_tslib_es6 = __esm({
@@ -23271,7 +23271,7 @@ var require_parse = __commonJS({
 var require_gray_matter = __commonJS({
   "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
-    var fs10 = __require("fs");
+    var fs11 = __require("fs");
     var sections = require_section_matter();
     var defaults2 = require_defaults2();
     var stringify2 = require_stringify();
@@ -23355,7 +23355,7 @@ var require_gray_matter = __commonJS({
       return stringify2(file3, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str5 = fs10.readFileSync(filepath, "utf8");
+      const str5 = fs11.readFileSync(filepath, "utf8");
       const file3 = matter3(str5, options2);
       file3.path = filepath;
       return file3;
@@ -24115,14 +24115,14 @@ var require_url_state_machine = __commonJS({
       return url2.replace(/\u0009|\u000A|\u000D/g, "");
     }
     function shortenPath(url2) {
-      const path21 = url2.path;
-      if (path21.length === 0) {
+      const path22 = url2.path;
+      if (path22.length === 0) {
         return;
       }
-      if (url2.scheme === "file" && path21.length === 1 && isNormalizedWindowsDriveLetter(path21[0])) {
+      if (url2.scheme === "file" && path22.length === 1 && isNormalizedWindowsDriveLetter(path22[0])) {
         return;
       }
-      path21.pop();
+      path22.pop();
     }
     function includesCredentials(url2) {
       return url2.username !== "" || url2.password !== "";
@@ -29703,14 +29703,14 @@ __export(fileFromPath_exports, {
 });
 import { statSync, createReadStream, promises as fs } from "fs";
 import { basename } from "path";
-function createFileFromPath(path21, { mtimeMs, size }, filenameOrOptions, options2 = {}) {
+function createFileFromPath(path22, { mtimeMs, size }, filenameOrOptions, options2 = {}) {
   let filename;
   if (isPlainObject_default2(filenameOrOptions)) {
     [options2, filename] = [filenameOrOptions, void 0];
   } else {
     filename = filenameOrOptions;
   }
-  const file3 = new FileFromPath({ path: path21, size, lastModified: mtimeMs });
+  const file3 = new FileFromPath({ path: path22, size, lastModified: mtimeMs });
   if (!filename) {
     filename = file3.name;
   }
@@ -29719,13 +29719,13 @@ function createFileFromPath(path21, { mtimeMs, size }, filenameOrOptions, option
     lastModified: file3.lastModified
   });
 }
-function fileFromPathSync(path21, filenameOrOptions, options2 = {}) {
-  const stats = statSync(path21);
-  return createFileFromPath(path21, stats, filenameOrOptions, options2);
+function fileFromPathSync(path22, filenameOrOptions, options2 = {}) {
+  const stats = statSync(path22);
+  return createFileFromPath(path22, stats, filenameOrOptions, options2);
 }
-async function fileFromPath2(path21, filenameOrOptions, options2) {
-  const stats = await fs.stat(path21);
-  return createFileFromPath(path21, stats, filenameOrOptions, options2);
+async function fileFromPath2(path22, filenameOrOptions, options2) {
+  const stats = await fs.stat(path22);
+  return createFileFromPath(path22, stats, filenameOrOptions, options2);
 }
 var import_node_domexception, __classPrivateFieldSet5, __classPrivateFieldGet6, _FileFromPath_path, _FileFromPath_start, MESSAGE, FileFromPath;
 var init_fileFromPath = __esm({
@@ -31666,14 +31666,14 @@ __export(workspace_binding_exports, {
   writeWorkspaceBinding: () => writeWorkspaceBinding
 });
 import { randomUUID as randomUUID3 } from "node:crypto";
-import { constants, promises as fs5 } from "node:fs";
-import path6 from "node:path";
+import { constants, promises as fs6 } from "node:fs";
+import path7 from "node:path";
 async function walkForWorkspaceBinding(startDir) {
-  let dir = path6.resolve(startDir);
+  let dir = path7.resolve(startDir);
   for (let i2 = 0; i2 < 64; i2++) {
-    const candidate = path6.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE);
+    const candidate = path7.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE);
     try {
-      const raw = await fs5.readFile(candidate, "utf8");
+      const raw = await fs6.readFile(candidate, "utf8");
       const parsed = JSON.parse(raw);
       if (typeof parsed.account_id === "string" && parsed.account_id) {
         return {
@@ -31687,7 +31687,7 @@ async function walkForWorkspaceBinding(startDir) {
       }
     } catch {
     }
-    const parent = path6.dirname(dir);
+    const parent = path7.dirname(dir);
     if (parent === dir) return null;
     dir = parent;
   }
@@ -31696,7 +31696,7 @@ async function walkForWorkspaceBinding(startDir) {
 async function readSmallRegularFile(file3) {
   let before;
   try {
-    before = await fs5.lstat(file3);
+    before = await fs6.lstat(file3);
   } catch (error40) {
     return isFileNotFound(error40) ? { kind: "missing" } : { kind: "invalid" };
   }
@@ -31705,14 +31705,14 @@ async function readSmallRegularFile(file3) {
       return { kind: "invalid" };
     }
     const noFollow = typeof constants.O_NOFOLLOW === "number" ? constants.O_NOFOLLOW : 0;
-    const handle = await fs5.open(file3, constants.O_RDONLY | noFollow);
+    const handle = await fs6.open(file3, constants.O_RDONLY | noFollow);
     try {
       const opened = await handle.stat();
       if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino || opened.size !== before.size || opened.size > GIT_POINTER_MAX_BYTES) {
         return { kind: "invalid" };
       }
       const bytes = await handle.readFile();
-      const [after, afterPath] = await Promise.all([handle.stat(), fs5.lstat(file3)]);
+      const [after, afterPath] = await Promise.all([handle.stat(), fs6.lstat(file3)]);
       if (afterPath.isSymbolicLink() || !afterPath.isFile() || after.dev !== opened.dev || after.ino !== opened.ino || after.size !== opened.size || afterPath.dev !== opened.dev || afterPath.ino !== opened.ino || afterPath.size !== opened.size || bytes.byteLength !== opened.size || bytes.includes(0)) {
         return { kind: "invalid" };
       }
@@ -31725,16 +31725,16 @@ async function readSmallRegularFile(file3) {
   }
 }
 function containedBy(parent, child) {
-  const relative = path6.relative(parent, child);
-  return relative === "" || relative !== ".." && !relative.startsWith(`..${path6.sep}`) && !path6.isAbsolute(relative);
+  const relative = path7.relative(parent, child);
+  return relative === "" || relative !== ".." && !relative.startsWith(`..${path7.sep}`) && !path7.isAbsolute(relative);
 }
 async function canonicalSafeDirectory(candidate) {
   try {
-    const before = await fs5.lstat(candidate);
+    const before = await fs6.lstat(candidate);
     if (before.isSymbolicLink() || !before.isDirectory()) return null;
-    await fs5.access(candidate, constants.R_OK | constants.X_OK);
-    const canonical2 = await fs5.realpath(candidate);
-    const after = await fs5.lstat(candidate);
+    await fs6.access(candidate, constants.R_OK | constants.X_OK);
+    const canonical2 = await fs6.realpath(candidate);
+    const after = await fs6.lstat(candidate);
     if (after.isSymbolicLink() || !after.isDirectory() || after.dev !== before.dev || after.ino !== before.ino) {
       return null;
     }
@@ -31751,24 +31751,24 @@ function gitIdentity(checkoutRoot, state, repositoryRoot = checkoutRoot) {
   };
 }
 async function resolveGitWorkspaceIdentity(startDir) {
-  const requested = path6.resolve(startDir);
+  const requested = path7.resolve(startDir);
   let canonicalStart;
   try {
-    canonicalStart = await fs5.realpath(requested);
-    const startEntry = await fs5.stat(canonicalStart);
+    canonicalStart = await fs6.realpath(requested);
+    const startEntry = await fs6.stat(canonicalStart);
     if (!startEntry.isDirectory()) return gitIdentity(canonicalStart, "unknown");
   } catch {
     return gitIdentity(requested, "unknown");
   }
   let dir = canonicalStart;
   for (let i2 = 0; i2 < 64; i2++) {
-    const gitEntry = path6.join(dir, ".git");
+    const gitEntry = path7.join(dir, ".git");
     let entry2;
     try {
-      entry2 = await fs5.lstat(gitEntry);
+      entry2 = await fs6.lstat(gitEntry);
     } catch (error40) {
       if (!isFileNotFound(error40)) return gitIdentity(dir, "unknown");
-      const parent = path6.dirname(dir);
+      const parent = path7.dirname(dir);
       if (parent === dir) return gitIdentity(canonicalStart, "none");
       dir = parent;
       continue;
@@ -31789,16 +31789,16 @@ async function resolveGitWorkspaceIdentity(startDir) {
     if (!pointerValue) return gitIdentity(checkoutRoot, "unknown");
     let gitDirCandidate;
     try {
-      gitDirCandidate = path6.isAbsolute(pointerValue) ? pointerValue : path6.resolve(checkoutRoot, pointerValue);
+      gitDirCandidate = path7.isAbsolute(pointerValue) ? pointerValue : path7.resolve(checkoutRoot, pointerValue);
     } catch {
       return gitIdentity(checkoutRoot, "unknown");
     }
     const gitDir = await canonicalSafeDirectory(gitDirCandidate);
     if (!gitDir) return gitIdentity(checkoutRoot, "unknown");
-    const commonRead = await readSmallRegularFile(path6.join(gitDir, "commondir"));
+    const commonRead = await readSmallRegularFile(path7.join(gitDir, "commondir"));
     if (commonRead.kind === "missing") {
-      const gitDirParent = path6.dirname(gitDir);
-      const looksLikeWorktreeAdmin = path6.basename(gitDirParent) === "worktrees" && path6.basename(path6.dirname(gitDirParent)) === ".git";
+      const gitDirParent = path7.dirname(gitDir);
+      const looksLikeWorktreeAdmin = path7.basename(gitDirParent) === "worktrees" && path7.basename(path7.dirname(gitDirParent)) === ".git";
       if (looksLikeWorktreeAdmin) return gitIdentity(checkoutRoot, "unknown");
       return gitIdentity(checkoutRoot, "main");
     }
@@ -31810,22 +31810,22 @@ async function resolveGitWorkspaceIdentity(startDir) {
     if (!commonValue) return gitIdentity(checkoutRoot, "unknown");
     let commonCandidate;
     try {
-      commonCandidate = path6.isAbsolute(commonValue) ? commonValue : path6.resolve(gitDir, commonValue);
+      commonCandidate = path7.isAbsolute(commonValue) ? commonValue : path7.resolve(gitDir, commonValue);
     } catch {
       return gitIdentity(checkoutRoot, "unknown");
     }
     const commonDir = await canonicalSafeDirectory(commonCandidate);
     if (!commonDir) return gitIdentity(checkoutRoot, "unknown");
-    const worktreesDir = path6.join(commonDir, "worktrees");
-    if (path6.basename(commonDir) !== ".git" || gitDir === worktreesDir || !containedBy(worktreesDir, gitDir)) {
+    const worktreesDir = path7.join(commonDir, "worktrees");
+    if (path7.basename(commonDir) !== ".git" || gitDir === worktreesDir || !containedBy(worktreesDir, gitDir)) {
       return gitIdentity(checkoutRoot, "unknown");
     }
-    const repositoryRoot = path6.dirname(commonDir);
-    const repositoryGitDir = await canonicalSafeDirectory(path6.join(repositoryRoot, ".git"));
+    const repositoryRoot = path7.dirname(commonDir);
+    const repositoryGitDir = await canonicalSafeDirectory(path7.join(repositoryRoot, ".git"));
     if (!repositoryGitDir || repositoryGitDir !== commonDir) {
       return gitIdentity(checkoutRoot, "unknown");
     }
-    const reverseRead = await readSmallRegularFile(path6.join(gitDir, "gitdir"));
+    const reverseRead = await readSmallRegularFile(path7.join(gitDir, "gitdir"));
     if (reverseRead.kind !== "ok" || reverseRead.value.includes("\0")) {
       return gitIdentity(checkoutRoot, "unknown");
     }
@@ -31833,10 +31833,10 @@ async function resolveGitWorkspaceIdentity(startDir) {
     const reverseValue = reverseMatch?.[1];
     if (!reverseValue) return gitIdentity(checkoutRoot, "unknown");
     try {
-      const reverseCandidate = path6.isAbsolute(reverseValue) ? reverseValue : path6.resolve(gitDir, reverseValue);
+      const reverseCandidate = path7.isAbsolute(reverseValue) ? reverseValue : path7.resolve(gitDir, reverseValue);
       const [reverseTarget, checkoutGitFile] = await Promise.all([
-        fs5.realpath(reverseCandidate),
-        fs5.realpath(gitEntry)
+        fs6.realpath(reverseCandidate),
+        fs6.realpath(gitEntry)
       ]);
       if (reverseTarget !== checkoutGitFile) return gitIdentity(checkoutRoot, "unknown");
     } catch {
@@ -31851,7 +31851,7 @@ async function findWorkspaceBinding(startDir) {
   const gitIdentity2 = await resolveGitWorkspaceIdentity(startDir);
   if (gitIdentity2.state !== "worktree") return direct;
   if (direct) {
-    const bindingRoot = await fs5.realpath(direct.workspaceRoot).catch(() => path6.resolve(direct.workspaceRoot));
+    const bindingRoot = await fs6.realpath(direct.workspaceRoot).catch(() => path7.resolve(direct.workspaceRoot));
     if (containedBy(gitIdentity2.checkout_root, bindingRoot)) return direct;
   }
   return walkForWorkspaceBinding(gitIdentity2.repository_root);
@@ -31860,26 +31860,26 @@ async function writeWorkspaceBinding(workspaceRoot, binding) {
   if (typeof binding.account_id !== "string" || binding.account_id.length === 0) {
     throw new Error("Workspace binding account_id is required.");
   }
-  const root = await fs5.realpath(path6.resolve(workspaceRoot));
-  const rootEntry = await fs5.stat(root);
+  const root = await fs6.realpath(path7.resolve(workspaceRoot));
+  const rootEntry = await fs6.stat(root);
   if (!rootEntry.isDirectory()) throw new Error("Workspace root must be a directory.");
-  const dir = path6.join(root, WORKSPACE_DIR_NAME);
+  const dir = path7.join(root, WORKSPACE_DIR_NAME);
   try {
-    const entry2 = await fs5.lstat(dir);
+    const entry2 = await fs6.lstat(dir);
     if (!entry2.isDirectory() || entry2.isSymbolicLink()) {
       throw new Error(`Refusing an unsafe Memlin workspace directory at ${dir}`);
     }
   } catch (error40) {
     if (!isFileNotFound(error40)) throw error40;
-    await fs5.mkdir(dir, { mode: 448, recursive: true });
-    const entry2 = await fs5.lstat(dir);
+    await fs6.mkdir(dir, { mode: 448, recursive: true });
+    const entry2 = await fs6.lstat(dir);
     if (!entry2.isDirectory() || entry2.isSymbolicLink()) {
       throw new Error(`Refusing an unsafe Memlin workspace directory at ${dir}`);
     }
   }
-  const file3 = path6.join(dir, WORKSPACE_BINDING_FILE);
+  const file3 = path7.join(dir, WORKSPACE_BINDING_FILE);
   try {
-    const existing = await fs5.lstat(file3);
+    const existing = await fs6.lstat(file3);
     if (!existing.isFile() || existing.isSymbolicLink()) {
       throw new Error(`Refusing to replace an unsafe workspace binding at ${file3}`);
     }
@@ -31895,16 +31895,16 @@ async function writeWorkspaceBinding(workspaceRoot, binding) {
     null,
     2
   );
-  const temporary = path6.join(dir, `.config.${randomUUID3()}.tmp`);
+  const temporary = path7.join(dir, `.config.${randomUUID3()}.tmp`);
   let handle;
   try {
-    handle = await fs5.open(temporary, "wx", 384);
+    handle = await fs6.open(temporary, "wx", 384);
     await handle.writeFile(body + "\n", "utf8");
     await handle.sync();
     await handle.close();
     handle = void 0;
     await atomicRename(temporary, file3);
-    const installed = await fs5.lstat(file3);
+    const installed = await fs6.lstat(file3);
     if (!installed.isFile() || installed.isSymbolicLink()) {
       throw new Error(`Workspace binding verification failed at ${file3}`);
     }
@@ -31912,16 +31912,16 @@ async function writeWorkspaceBinding(workspaceRoot, binding) {
     return file3;
   } finally {
     await handle?.close().catch(() => void 0);
-    await fs5.unlink(temporary).catch(() => void 0);
+    await fs6.unlink(temporary).catch(() => void 0);
   }
 }
 async function clearWorkspaceBinding(workspaceRoot) {
-  const root = await fs5.realpath(path6.resolve(workspaceRoot));
-  const rootEntry = await fs5.stat(root);
+  const root = await fs6.realpath(path7.resolve(workspaceRoot));
+  const rootEntry = await fs6.stat(root);
   if (!rootEntry.isDirectory()) throw new Error("Workspace root must be a directory.");
-  const dir = path6.join(root, WORKSPACE_DIR_NAME);
+  const dir = path7.join(root, WORKSPACE_DIR_NAME);
   try {
-    const entry2 = await fs5.lstat(dir);
+    const entry2 = await fs6.lstat(dir);
     if (!entry2.isDirectory() || entry2.isSymbolicLink()) {
       throw new Error(`Refusing an unsafe Memlin workspace directory at ${dir}`);
     }
@@ -31929,13 +31929,13 @@ async function clearWorkspaceBinding(workspaceRoot) {
     if (isFileNotFound(error40)) return false;
     throw error40;
   }
-  const file3 = path6.join(dir, WORKSPACE_BINDING_FILE);
+  const file3 = path7.join(dir, WORKSPACE_BINDING_FILE);
   try {
-    const entry2 = await fs5.lstat(file3);
+    const entry2 = await fs6.lstat(file3);
     if (!entry2.isFile() || entry2.isSymbolicLink()) {
       throw new Error(`Refusing to remove an unsafe workspace binding at ${file3}`);
     }
-    await fs5.unlink(file3);
+    await fs6.unlink(file3);
     await clearAllAuthRefusals();
     return true;
   } catch (error40) {
@@ -31962,9 +31962,9 @@ var init_workspace_binding = __esm({
 import { execSync as execSync3 } from "node:child_process";
 import { randomUUID as randomUUID6 } from "node:crypto";
 import { existsSync as existsSync5, readFileSync as readFileSync7 } from "node:fs";
-import path20, { dirname as dirname2, join as join2 } from "node:path";
+import path21, { dirname as dirname2, join as join2 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
-import os13 from "node:os";
+import os14 from "node:os";
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -32444,8 +32444,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path21, errorMaps, issueData } = params;
-  const fullPath = [...path21, ...issueData.path || []];
+  const { data, path: path22, errorMaps, issueData } = params;
+  const fullPath = [...path22, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -32561,11 +32561,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path21, key2) {
+  constructor(parent, value, path22, key2) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path21;
+    this._path = path22;
     this._key = key2;
   }
   get path() {
@@ -36447,10 +36447,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path21) {
-  if (!path21)
+function getElementAtPath(obj, path22) {
+  if (!path22)
     return obj;
-  return path21.reduce((acc, key2) => acc?.[key2], obj);
+  return path22.reduce((acc, key2) => acc?.[key2], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -36770,11 +36770,11 @@ function aborted(x2, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path21, issues) {
+function prefixIssues(path22, issues) {
   return issues.map((iss) => {
     var _a2;
     (_a2 = iss).path ?? (_a2.path = []);
-    iss.path.unshift(path21);
+    iss.path.unshift(path22);
     return iss;
   });
 }
@@ -36911,7 +36911,7 @@ function treeifyError(error40, _mapper) {
     return issue2.message;
   };
   const result = { errors: [] };
-  const processError = (error41, path21 = []) => {
+  const processError = (error41, path22 = []) => {
     var _a2, _b;
     for (const issue2 of error41.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
@@ -36921,7 +36921,7 @@ function treeifyError(error40, _mapper) {
       } else if (issue2.code === "invalid_element") {
         processError({ issues: issue2.issues }, issue2.path);
       } else {
-        const fullpath = [...path21, ...issue2.path];
+        const fullpath = [...path22, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -36951,9 +36951,9 @@ function treeifyError(error40, _mapper) {
   processError(error40);
   return result;
 }
-function toDotPath(path21) {
+function toDotPath(path22) {
   const segs = [];
-  for (const seg of path21) {
+  for (const seg of path22) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -55487,8 +55487,8 @@ var IcebergError = class extends Error {
     return this.status === 419;
   }
 };
-function buildUrl(baseUrl, path21, query) {
-  const url2 = new URL(path21, baseUrl);
+function buildUrl(baseUrl, path22, query) {
+  const url2 = new URL(path22, baseUrl);
   if (query) {
     for (const [key2, value] of Object.entries(query)) {
       if (value !== void 0) {
@@ -55518,12 +55518,12 @@ function createFetchClient(options2) {
   return {
     async request({
       method,
-      path: path21,
+      path: path22,
       query,
       body,
       headers
     }) {
-      const url2 = buildUrl(options2.baseUrl, path21, query);
+      const url2 = buildUrl(options2.baseUrl, path22, query);
       const authHeaders2 = await buildAuthHeaders(options2.auth);
       const res = await fetchFn(url2, {
         method,
@@ -56371,7 +56371,7 @@ var StorageFileApi = class extends BaseApiClient {
   * @param path The relative file path. Should be of the format `folder/subfolder/filename.png`. The bucket must already exist before attempting to upload.
   * @param fileBody The body of the file to be stored in the bucket.
   */
-  async uploadOrUpdate(method, path21, fileBody, fileOptions) {
+  async uploadOrUpdate(method, path22, fileBody, fileOptions) {
     var _this = this;
     return _this.handleOperation(async () => {
       let body;
@@ -56395,7 +56395,7 @@ var StorageFileApi = class extends BaseApiClient {
         if ((typeof ReadableStream !== "undefined" && body instanceof ReadableStream || body && typeof body === "object" && "pipe" in body && typeof body.pipe === "function") && !options2.duplex) options2.duplex = "half";
       }
       if (fileOptions === null || fileOptions === void 0 ? void 0 : fileOptions.headers) for (const [key2, value] of Object.entries(fileOptions.headers)) headers = setHeader(headers, key2, value);
-      const cleanPath = _this._removeEmptyFolders(path21);
+      const cleanPath = _this._removeEmptyFolders(path22);
       const _path = _this._getFinalPath(cleanPath);
       const data = await (method == "PUT" ? put : post)(_this.fetch, `${_this.url}/object/${_path}`, body, _objectSpread22({ headers }, (options2 === null || options2 === void 0 ? void 0 : options2.duplex) ? { duplex: options2.duplex } : {}));
       return {
@@ -56457,8 +56457,8 @@ var StorageFileApi = class extends BaseApiClient {
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   * - For React Native, using either `Blob`, `File` or `FormData` does not work as intended. Upload file using `ArrayBuffer` from base64 file data instead, see example below.
   */
-  async upload(path21, fileBody, fileOptions) {
-    return this.uploadOrUpdate("POST", path21, fileBody, fileOptions);
+  async upload(path22, fileBody, fileOptions) {
+    return this.uploadOrUpdate("POST", path22, fileBody, fileOptions);
   }
   /**
   * Upload a file with a token generated from `createSignedUploadUrl`.
@@ -56498,9 +56498,9 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: none
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async uploadToSignedUrl(path21, token, fileBody, fileOptions) {
+  async uploadToSignedUrl(path22, token, fileBody, fileOptions) {
     var _this3 = this;
-    const cleanPath = _this3._removeEmptyFolders(path21);
+    const cleanPath = _this3._removeEmptyFolders(path22);
     const _path = _this3._getFinalPath(cleanPath);
     const url2 = new URL(_this3.url + `/object/upload/sign/${_path}`);
     url2.searchParams.set("token", token);
@@ -56569,10 +56569,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `insert`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async createSignedUploadUrl(path21, options2) {
+  async createSignedUploadUrl(path22, options2) {
     var _this4 = this;
     return _this4.handleOperation(async () => {
-      let _path = _this4._getFinalPath(path21);
+      let _path = _this4._getFinalPath(path22);
       const headers = _objectSpread22({}, _this4.headers);
       if (options2 === null || options2 === void 0 ? void 0 : options2.upsert) headers["x-upsert"] = "true";
       const data = await post(_this4.fetch, `${_this4.url}/object/upload/sign/${_path}`, {}, { headers });
@@ -56581,7 +56581,7 @@ var StorageFileApi = class extends BaseApiClient {
       if (!token) throw new StorageError("No token returned by API");
       return {
         signedUrl: url2.toString(),
-        path: path21,
+        path: path22,
         token
       };
     });
@@ -56641,8 +56641,8 @@ var StorageFileApi = class extends BaseApiClient {
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   * - For React Native, using either `Blob`, `File` or `FormData` does not work as intended. Update file using `ArrayBuffer` from base64 file data instead, see example below.
   */
-  async update(path21, fileBody, fileOptions) {
-    return this.uploadOrUpdate("PUT", path21, fileBody, fileOptions);
+  async update(path22, fileBody, fileOptions) {
+    return this.uploadOrUpdate("PUT", path22, fileBody, fileOptions);
   }
   /**
   * Moves an existing file to a new path in the same bucket.
@@ -56793,10 +56793,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async createSignedUrl(path21, expiresIn, options2) {
+  async createSignedUrl(path22, expiresIn, options2) {
     var _this8 = this;
     return _this8.handleOperation(async () => {
-      let _path = _this8._getFinalPath(path21);
+      let _path = _this8._getFinalPath(path22);
       const hasTransform = typeof (options2 === null || options2 === void 0 ? void 0 : options2.transform) === "object" && options2.transform !== null && Object.keys(options2.transform).length > 0;
       let data = await post(_this8.fetch, `${_this8.url}/object/sign/${_path}`, _objectSpread22({ expiresIn }, hasTransform ? { transform: options2.transform } : {}), { headers: _this8.headers });
       const query = new URLSearchParams();
@@ -56932,13 +56932,13 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  download(path21, options2, parameters) {
+  download(path22, options2, parameters) {
     const renderPath = typeof (options2 === null || options2 === void 0 ? void 0 : options2.transform) === "object" && options2.transform !== null && Object.keys(options2.transform).length > 0 ? "render/image/authenticated" : "object";
     const query = new URLSearchParams();
     if (options2 === null || options2 === void 0 ? void 0 : options2.transform) this.applyTransformOptsToQuery(query, options2.transform);
     if ((options2 === null || options2 === void 0 ? void 0 : options2.cacheNonce) != null) query.set("cacheNonce", String(options2.cacheNonce));
     const queryString = query.toString();
-    const _path = this._getFinalPath(path21);
+    const _path = this._getFinalPath(path22);
     const downloadFn = () => get(this.fetch, `${this.url}/${renderPath}/${_path}${queryString ? `?${queryString}` : ""}`, {
       headers: this.headers,
       noResolveJson: true
@@ -56969,9 +56969,9 @@ var StorageFileApi = class extends BaseApiClient {
   * }
   * ```
   */
-  async info(path21) {
+  async info(path22) {
     var _this10 = this;
-    const _path = _this10._getFinalPath(path21);
+    const _path = _this10._getFinalPath(path22);
     return _this10.handleOperation(async () => {
       return recursiveToCamel(await get(_this10.fetch, `${_this10.url}/object/info/${_path}`, { headers: _this10.headers }));
     });
@@ -56992,9 +56992,9 @@ var StorageFileApi = class extends BaseApiClient {
   *   .exists('folder/avatar1.png')
   * ```
   */
-  async exists(path21) {
+  async exists(path22) {
     var _this11 = this;
-    const _path = _this11._getFinalPath(path21);
+    const _path = _this11._getFinalPath(path22);
     try {
       await head(_this11.fetch, `${_this11.url}/object/${_path}`, { headers: _this11.headers });
       return {
@@ -57073,8 +57073,8 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: none
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  getPublicUrl(path21, options2) {
-    const _path = this._getFinalPath(path21);
+  getPublicUrl(path22, options2) {
+    const _path = this._getFinalPath(path22);
     const query = new URLSearchParams();
     if (options2 === null || options2 === void 0 ? void 0 : options2.download) query.set("download", options2.download === true ? "" : options2.download);
     if (options2 === null || options2 === void 0 ? void 0 : options2.transform) this.applyTransformOptsToQuery(query, options2.transform);
@@ -57213,10 +57213,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async list(path21, options2, parameters) {
+  async list(path22, options2, parameters) {
     var _this13 = this;
     return _this13.handleOperation(async () => {
-      const body = _objectSpread22(_objectSpread22(_objectSpread22({}, DEFAULT_SEARCH_OPTIONS), options2), {}, { prefix: path21 || "" });
+      const body = _objectSpread22(_objectSpread22(_objectSpread22({}, DEFAULT_SEARCH_OPTIONS), options2), {}, { prefix: path22 || "" });
       return await post(_this13.fetch, `${_this13.url}/object/list/${_this13.bucketId}`, body, { headers: _this13.headers }, parameters);
     });
   }
@@ -57281,11 +57281,11 @@ var StorageFileApi = class extends BaseApiClient {
     if (typeof Buffer !== "undefined") return Buffer.from(data).toString("base64");
     return btoa(data);
   }
-  _getFinalPath(path21) {
-    return `${this.bucketId}/${path21.replace(/^\/+/, "")}`;
+  _getFinalPath(path22) {
+    return `${this.bucketId}/${path22.replace(/^\/+/, "")}`;
   }
-  _removeEmptyFolders(path21) {
-    return path21.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
+  _removeEmptyFolders(path22) {
+    return path22.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
   }
   /** Modifies the `query`, appending values the from `transform` */
   applyTransformOptsToQuery(query, transform2) {
@@ -60361,20 +60361,20 @@ var ActionMetadataSchema = external_exports.object({
 });
 var LEGACY_RAW_HTTP_MIGRATION_MESSAGE = "Raw HTTP actions are disabled. Migrate this Action to a statically registered connector/Action Adapter and select an opaque provider credential binding.";
 var AMBIENT_CREDENTIAL_KEY = /(^|[_.-])(token|secret|password|credential|api[_-]?key)[_.-]?env($|[_.-])/i;
-function findAmbientCredentialSelectorPath(value, path21 = "config") {
+function findAmbientCredentialSelectorPath(value, path22 = "config") {
   if (!value || typeof value !== "object") return null;
   if (Array.isArray(value)) {
     for (let index = 0; index < value.length; index += 1) {
-      const found = findAmbientCredentialSelectorPath(value[index], `${path21}.${index}`);
+      const found = findAmbientCredentialSelectorPath(value[index], `${path22}.${index}`);
       if (found) return found;
     }
     return null;
   }
   for (const [key2, entry2] of Object.entries(value)) {
     if (AMBIENT_CREDENTIAL_KEY.test(key2) || key2.toLowerCase() === "token_env") {
-      return `${path21}.${key2}`;
+      return `${path22}.${key2}`;
     }
-    const found = findAmbientCredentialSelectorPath(entry2, `${path21}.${key2}`);
+    const found = findAmbientCredentialSelectorPath(entry2, `${path22}.${key2}`);
     if (found) return found;
   }
   return null;
@@ -60435,8 +60435,8 @@ function validateActionInput(input, schema) {
   return { valid: errors.length === 0, errors };
 }
 function renderPromptTemplate(template, input) {
-  return template.replace(/\{\{\s*input\.([a-zA-Z0-9_.]+)\s*\}\}/g, (_match, path21) => {
-    const parts = String(path21).split(".");
+  return template.replace(/\{\{\s*input\.([a-zA-Z0-9_.]+)\s*\}\}/g, (_match, path22) => {
+    const parts = String(path22).split(".");
     let cur = input;
     for (const p2 of parts) {
       if (cur && typeof cur === "object" && p2 in cur) {
@@ -61630,19 +61630,19 @@ var ContextManifestV1Schema = external_exports.object({
       location: `linked_contexts.${index}`
     }))
   ];
-  references.forEach(({ ref, path: path21, location: location2 }) => {
+  references.forEach(({ ref, path: path22, location: location2 }) => {
     const identity = contextReferenceIdentityKey(ref);
     const prior = seen.get(identity);
     if (prior && prior.revision !== ref.revision) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path21,
+        path: path22,
         message: `context ${identity} has conflicting revisions in ${prior.location} and ${location2}`
       });
     } else if (prior && location2.startsWith("linked_contexts.")) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path21,
+        path: path22,
         message: `duplicate linked context ${identity}`
       });
     }
@@ -61956,11 +61956,11 @@ var ContextBundleV1Schema = external_exports.object({
         path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
       }))
     ];
-    for (const { ref, path: path21 } of references) {
+    for (const { ref, path: path22 } of references) {
       if (!contextKeys.has(contextReferenceKey(ref))) {
         ctx.addIssue({
           code: external_exports.ZodIssueCode.custom,
-          path: path21,
+          path: path22,
           message: "provider coverage is outside the exact manifest contexts"
         });
       }
@@ -65890,10 +65890,10 @@ function validateFlowDefinitionSemantics(flow) {
       ],
       ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, path: `stages.${stageIndex}.bypass_target` }]
     ];
-    targets.forEach(({ target, path: path21 }) => {
+    targets.forEach(({ target, path: path22 }) => {
       if (!isReservedTarget(target) && !stageById.has(target)) {
         issues.push({
-          path: path21,
+          path: path22,
           code: "missing_transition_target",
           message: `transition target ${JSON.stringify(target)} does not exist`
         });
@@ -65923,7 +65923,7 @@ function validateFlowDefinitionSemantics(flow) {
   const visiting = /* @__PURE__ */ new Set();
   const visited = /* @__PURE__ */ new Set();
   let hasReachableEnd = false;
-  const visit = (stageId, path21, pathBounds) => {
+  const visit = (stageId, path22, pathBounds) => {
     reachable.add(stageId);
     if (visited.has(stageId)) return;
     visiting.add(stageId);
@@ -65939,7 +65939,7 @@ function validateFlowDefinitionSemantics(flow) {
         ...stage.default_transition === null ? [] : [{ target: stage.default_transition, bounded: false }],
         ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, bounded: false }]
       ];
-      const currentPath = [...path21, stageId];
+      const currentPath = [...path22, stageId];
       for (const edge of edges) {
         const { target } = edge;
         if (target === "$end") {
@@ -66047,18 +66047,18 @@ var FlowPackManifestBaseSchema = external_exports2.object({
   evals: external_exports2.array(ManifestEvalSchema).max(256),
   model_roles: external_exports2.array(ManifestModelRoleSchema).max(64)
 }).strict();
-function validateRelativePackPath(path21) {
-  if (path21.startsWith("/") || path21.startsWith("\\")) return "path must be relative";
-  if (/^[A-Za-z]:/.test(path21) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path21)) {
+function validateRelativePackPath(path22) {
+  if (path22.startsWith("/") || path22.startsWith("\\")) return "path must be relative";
+  if (/^[A-Za-z]:/.test(path22) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path22)) {
     return "drive-qualified paths and URI schemes are not allowed";
   }
-  if (/[\u0000-\u001f\u007f]/.test(path21)) return "control characters are not allowed";
-  if (/%(?:2e|2f|5c)/i.test(path21)) return "encoded path traversal is not allowed";
-  if (path21.includes("\\")) return "path must use forward slashes";
-  if (path21.split("/").some((segment) => segment === ".." || segment === ".")) {
+  if (/[\u0000-\u001f\u007f]/.test(path22)) return "control characters are not allowed";
+  if (/%(?:2e|2f|5c)/i.test(path22)) return "encoded path traversal is not allowed";
+  if (path22.includes("\\")) return "path must use forward slashes";
+  if (path22.split("/").some((segment) => segment === ".." || segment === ".")) {
     return "path traversal and dot segments are not allowed";
   }
-  if (path21.split("/").some((segment) => segment.length === 0)) {
+  if (path22.split("/").some((segment) => segment.length === 0)) {
     return "path cannot contain empty segments";
   }
   return null;
@@ -66105,22 +66105,22 @@ function validateFlowPackManifestSemantics(manifest) {
       issues
     );
     role2.independence.compare_against_roles.forEach((comparedRole, comparedIndex) => {
-      const path21 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
+      const path22 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
       if (comparedRole === role2.id) {
         issues.push({
-          path: path21,
+          path: path22,
           code: "self_referential_model_independence",
           message: "a model role cannot require independence from itself"
         });
       } else if (!modelRolesById.has(comparedRole)) {
         issues.push({
-          path: path21,
+          path: path22,
           code: "missing_independence_model_role",
           message: `independence policy references undeclared model role ${JSON.stringify(comparedRole)}`
         });
       } else if (modelRolesById.get(comparedRole)?.independence !== null) {
         issues.push({
-          path: path21,
+          path: path22,
           code: "independence_reference_not_author",
           message: `independence policy must compare against an author role; ${JSON.stringify(comparedRole)} declares its own independence policy`
         });
@@ -67468,13 +67468,13 @@ var MultipartBody = class {
 // node_modules/.pnpm/openai@4.104.0_ws@8.20.1_zod@3.25.76/node_modules/openai/_shims/node-runtime.mjs
 import { ReadableStream as ReadableStream4 } from "node:stream/web";
 var fileFromPathWarned = false;
-async function fileFromPath3(path21, ...args) {
+async function fileFromPath3(path22, ...args) {
   const { fileFromPath: _fileFromPath } = await Promise.resolve().then(() => (init_fileFromPath(), fileFromPath_exports));
   if (!fileFromPathWarned) {
-    console.warn(`fileFromPath is deprecated; use fs.createReadStream(${JSON.stringify(path21)}) instead`);
+    console.warn(`fileFromPath is deprecated; use fs.createReadStream(${JSON.stringify(path22)}) instead`);
     fileFromPathWarned = true;
   }
-  return await _fileFromPath(path21, ...args);
+  return await _fileFromPath(path22, ...args);
 }
 var defaultHttpAgent = new import_agentkeepalive.default({ keepAlive: true, timeout: 5 * 60 * 1e3 });
 var defaultHttpsAgent = new import_agentkeepalive.default.HttpsAgent({ keepAlive: true, timeout: 5 * 60 * 1e3 });
@@ -68258,29 +68258,29 @@ var APIClient = class {
   defaultIdempotencyKey() {
     return `stainless-node-retry-${uuid42()}`;
   }
-  get(path21, opts) {
-    return this.methodRequest("get", path21, opts);
+  get(path22, opts) {
+    return this.methodRequest("get", path22, opts);
   }
-  post(path21, opts) {
-    return this.methodRequest("post", path21, opts);
+  post(path22, opts) {
+    return this.methodRequest("post", path22, opts);
   }
-  patch(path21, opts) {
-    return this.methodRequest("patch", path21, opts);
+  patch(path22, opts) {
+    return this.methodRequest("patch", path22, opts);
   }
-  put(path21, opts) {
-    return this.methodRequest("put", path21, opts);
+  put(path22, opts) {
+    return this.methodRequest("put", path22, opts);
   }
-  delete(path21, opts) {
-    return this.methodRequest("delete", path21, opts);
+  delete(path22, opts) {
+    return this.methodRequest("delete", path22, opts);
   }
-  methodRequest(method, path21, opts) {
+  methodRequest(method, path22, opts) {
     return this.request(Promise.resolve(opts).then(async (opts2) => {
       const body = opts2 && isBlobLike(opts2?.body) ? new DataView(await opts2.body.arrayBuffer()) : opts2?.body instanceof DataView ? opts2.body : opts2?.body instanceof ArrayBuffer ? new DataView(opts2.body) : opts2 && ArrayBuffer.isView(opts2?.body) ? new DataView(opts2.body.buffer) : opts2?.body;
-      return { method, path: path21, ...opts2, body };
+      return { method, path: path22, ...opts2, body };
     }));
   }
-  getAPIList(path21, Page2, opts) {
-    return this.requestAPIList(Page2, { method: "get", path: path21, ...opts });
+  getAPIList(path22, Page2, opts) {
+    return this.requestAPIList(Page2, { method: "get", path: path22, ...opts });
   }
   calculateContentLength(body) {
     if (typeof body === "string") {
@@ -68299,10 +68299,10 @@ var APIClient = class {
   }
   buildRequest(inputOptions, { retryCount = 0 } = {}) {
     const options2 = { ...inputOptions };
-    const { method, path: path21, query, headers = {} } = options2;
+    const { method, path: path22, query, headers = {} } = options2;
     const body = ArrayBuffer.isView(options2.body) || options2.__binaryRequest && typeof options2.body === "string" ? options2.body : isMultipartBody(options2.body) ? options2.body.body : options2.body ? JSON.stringify(options2.body, null, 2) : null;
     const contentLength = this.calculateContentLength(body);
-    const url2 = this.buildURL(path21, query);
+    const url2 = this.buildURL(path22, query);
     if ("timeout" in options2)
       validatePositiveInteger("timeout", options2.timeout);
     options2.timeout = options2.timeout ?? this.timeout;
@@ -68418,8 +68418,8 @@ var APIClient = class {
     const request2 = this.makeRequest(options2, null);
     return new PagePromise(this, request2, Page2);
   }
-  buildURL(path21, query) {
-    const url2 = isAbsoluteURL(path21) ? new URL(path21) : new URL(this.baseURL + (this.baseURL.endsWith("/") && path21.startsWith("/") ? path21.slice(1) : path21));
+  buildURL(path22, query) {
+    const url2 = isAbsoluteURL(path22) ? new URL(path22) : new URL(this.baseURL + (this.baseURL.endsWith("/") && path22.startsWith("/") ? path22.slice(1) : path22));
     const defaultQuery = this.defaultQuery();
     if (!isEmptyObj(defaultQuery)) {
       query = { ...defaultQuery, ...query };
@@ -78064,8 +78064,8 @@ async function dispatchConnector(impl, input) {
     throw new ActionExecuteError(msg, "provider_error");
   }
 }
-function assertNoAmbientCredentialSelection(value, path21 = "config") {
-  const selectorPath = findAmbientCredentialSelectorPath(value, path21);
+function assertNoAmbientCredentialSelection(value, path22 = "config") {
+  const selectorPath = findAmbientCredentialSelectorPath(value, path22);
   if (selectorPath) {
     throw new ActionExecuteError(
       `${selectorPath} is disabled. Use an opaque provider credential_binding_id; Action metadata cannot select environment variables.`,
@@ -80687,7 +80687,7 @@ async function assembleDocsAuthoredBy(ctx, projectId, members, excludeIds, appli
     const authorName = attributedTo ? nameByUserId.get(attributedTo) : void 0;
     if (!attributedTo || !authorName) continue;
     const title = typeof raw.title === "string" ? raw.title : "";
-    const path21 = typeof raw.path === "string" ? raw.path : null;
+    const path22 = typeof raw.path === "string" ? raw.path : null;
     if (kind2 === "skill" && !isSkillTargetedToAgent(metadata, applicability.agentKind)) {
       applicability.onOmitted?.({
         id: id4,
@@ -80696,7 +80696,7 @@ async function assembleDocsAuthoredBy(ctx, projectId, members, excludeIds, appli
         similarity: 0,
         reason: "agent_target_mismatch",
         detail: `author-attributed skill targets [${skillTargetAgents(metadata).join(", ")}], not agent ${applicability.agentKind}`,
-        path: path21
+        path: path22
       });
       continue;
     }
@@ -80709,7 +80709,7 @@ async function assembleDocsAuthoredBy(ctx, projectId, members, excludeIds, appli
         similarity: 0,
         reason: "anti_example_match",
         detail: `author-attributed task high-precision matched skill anti-example: ${antiExample.slice(0, 240)}`,
-        path: path21
+        path: path22
       });
       continue;
     }
@@ -80722,7 +80722,7 @@ async function assembleDocsAuthoredBy(ctx, projectId, members, excludeIds, appli
 \u2026 (truncated \u2014 author-attributed doc)` : rawBody,
       similarity: 0,
       citation: {
-        path: path21,
+        path: path22,
         version_number: version5?.version_number ?? 1,
         updated_at: typeof raw.updated_at === "string" ? raw.updated_at : "",
         // The citation reports the version's true author (possibly null on
@@ -81580,16 +81580,14 @@ function decayMultiplierForKind(kind2, updated_at, now = Date.now()) {
 function boundedMemoryDecayMultiplier(created_at, now = Date.now()) {
   return applyProfile(BOUNDED_MEMORY_DECAY_PROFILE, created_at, now);
 }
-async function loadFitnessMultipliers(ctx, candidateIds, resolveTaskCategory) {
-  const multipliers = /* @__PURE__ */ new Map();
-  if (candidateIds.length === 0) return multipliers;
+async function loadFitnessCounts(ctx, resolveTaskCategory) {
   try {
     const { data: outcomes, error: outErr } = await ctx.supabase.from("usage_events").select("metadata, created_at").eq("account_id", ctx.accountId).eq("event_type", "resolve.outcome").order("created_at", { ascending: false }).limit(100);
-    if (outErr || !outcomes || outcomes.length === 0) return multipliers;
+    if (outErr || !outcomes || outcomes.length === 0) return null;
     const auditIds = outcomes.map((o2) => o2.metadata?.audit_id).filter((id4) => typeof id4 === "string" && /^[0-9a-f-]{36}$/i.test(id4));
-    if (auditIds.length === 0) return multipliers;
+    if (auditIds.length === 0) return null;
     const { data: invocations, error: invErr } = await ctx.supabase.from("usage_events").select("id, metadata").in("id", auditIds);
-    if (invErr || !invocations || invocations.length === 0) return multipliers;
+    if (invErr || !invocations || invocations.length === 0) return null;
     const auditToItems = /* @__PURE__ */ new Map();
     for (const inv of invocations) {
       const meta = inv.metadata;
@@ -81637,17 +81635,53 @@ async function loadFitnessMultipliers(ctx, candidateIds, resolveTaskCategory) {
       });
       accumulateWeightedOutcomeCounts(meta, credits, resolveTaskCategory, posCounts, negCounts);
     }
-    for (const cid of candidateIds) {
-      multipliers.set(cid, fitnessFromCounts(posCounts.get(cid) ?? 0, negCounts.get(cid) ?? 0));
-    }
+    return { posCounts, negCounts };
   } catch (err) {
     console.warn(
       `[resolver] loadFitnessMultipliers failed: ${err instanceof Error ? err.message : String(err)}`
     );
+    return null;
+  }
+}
+function fitnessMultipliersFor(counts, candidateIds) {
+  const multipliers = /* @__PURE__ */ new Map();
+  if (!counts) return multipliers;
+  for (const cid of candidateIds) {
+    multipliers.set(
+      cid,
+      fitnessFromCounts(counts.posCounts.get(cid) ?? 0, counts.negCounts.get(cid) ?? 0)
+    );
   }
   return multipliers;
 }
-async function hydrateCandidateBodies(ctx, candidateIds, externalBodyById, externalComponentById) {
+async function readCandidateDocuments(ctx, documentIds) {
+  const { data: docRows, error: docErr } = await ctx.supabase.from("documents").select(
+    `id, current_version_id, component_id, metadata,
+         document_versions!documents_current_version_fk ( content )`
+  ).eq("account_id", ctx.accountId).eq("locked_to_owners", false).in("id", documentIds);
+  if (docErr) return { docRows: [], docError: docErr.message, canaryRows: [], canaryError: null };
+  const rows = docRows ?? [];
+  const canaryVersionIds = rows.flatMap((r2) => {
+    const id4 = r2.metadata?.canary_version_id;
+    return id4 && typeof id4 === "string" ? [id4] : [];
+  });
+  if (canaryVersionIds.length === 0) {
+    return { docRows: rows, docError: null, canaryRows: [], canaryError: null };
+  }
+  const { data: vRows, error: vErr } = await ctx.supabase.from("document_versions").select("id, content, version_number").in("id", canaryVersionIds);
+  return {
+    docRows: rows,
+    docError: null,
+    canaryRows: vRows ?? [],
+    canaryError: vErr ? vErr.message : null
+  };
+}
+async function reusablePrefetch(prefetch, documentIds) {
+  if (!prefetch || !documentIds.every((id4) => prefetch.ids.has(id4))) return null;
+  const read = await prefetch.read().catch(() => null);
+  return read && !read.docError && !read.canaryError ? read : null;
+}
+async function hydrateCandidateBodies(ctx, candidateIds, externalBodyById, externalComponentById, prefetch) {
   const bodyMap = /* @__PURE__ */ new Map();
   const componentIdByDoc = /* @__PURE__ */ new Map();
   const rolesByDoc = /* @__PURE__ */ new Map();
@@ -81661,17 +81695,14 @@ async function hydrateCandidateBodies(ctx, candidateIds, externalBodyById, exter
   }
   const documentCandidateIds = candidateIds.filter((id4) => !id4.startsWith("provider:"));
   if (documentCandidateIds.length > 0) {
-    const { data: docRows, error: docErr } = await ctx.supabase.from("documents").select(
-      `id, current_version_id, component_id, metadata,
-         document_versions!documents_current_version_fk ( content )`
-    ).eq("account_id", ctx.accountId).eq("locked_to_owners", false).in("id", documentCandidateIds);
-    if (docErr) {
-      console.warn(
-        `[resolver] body fetch failed: ${docErr.message} \u2014 proceeding with empty bodies`
-      );
+    const read = await reusablePrefetch(prefetch, documentCandidateIds) ?? await readCandidateDocuments(ctx, documentCandidateIds);
+    const wanted = new Set(documentCandidateIds);
+    const docRows = read.docRows.filter((r2) => wanted.has(r2.id));
+    if (read.docError) {
+      console.warn(`[resolver] body fetch failed: ${read.docError} \u2014 proceeding with empty bodies`);
     } else {
       const canaryVersionIds = [];
-      for (const row of docRows ?? []) {
+      for (const row of docRows) {
         const r2 = row;
         const v2 = Array.isArray(r2.document_versions) ? r2.document_versions[0] : r2.document_versions;
         bodyMap.set(r2.id, v2?.content ?? "");
@@ -81688,11 +81719,11 @@ async function hydrateCandidateBodies(ctx, candidateIds, externalBodyById, exter
         }
       }
       if (canaryVersionIds.length > 0) {
-        const { data: vRows, error: vErr } = await ctx.supabase.from("document_versions").select("id, content, version_number").in("id", canaryVersionIds);
-        if (vErr) {
-          console.warn(`[resolver] canary version fetch failed: ${vErr.message}`);
+        const wantedVersions = new Set(canaryVersionIds);
+        if (read.canaryError) {
+          console.warn(`[resolver] canary version fetch failed: ${read.canaryError}`);
         } else {
-          for (const v2 of vRows ?? []) {
+          for (const v2 of read.canaryRows.filter((row) => wantedVersions.has(row.id))) {
             canaryContentMap.set(v2.id, {
               content: v2.content,
               version_number: v2.version_number
@@ -81928,11 +81959,26 @@ function isProjectBrainInheritedDoc(projectId, candidate, row) {
   if (candidate.kind !== "memory" && candidate.kind !== "skill") return false;
   return (row?.project_id ?? null) === null && (row?.scope === "team" || row?.scope === "personal");
 }
-async function loadProjectBrainPolicy(ctx, projectId, teamId = null, userId = null, initialErrors = []) {
+async function loadProjectBrainPolicy(ctx, projectId, projectTeam, userId = null) {
+  const optoutsFor = (lvl, ref) => ctx.supabase.from("governance_optouts").select("source_document_id, action, replacement_document_id").eq("account_id", ctx.accountId).eq("scope_level", lvl).eq("scope_ref_id", ref);
+  const legacyRead = projectId ? startEarly(
+    () => ctx.supabase.from("project_brain_overrides").select("source_document_id, action, replacement_document_id").eq("project_id", projectId)
+  ) : null;
+  const membershipRead = userId ? startEarly(() => ctx.supabase.from("team_members").select("team_id").eq("user_id", userId)) : null;
+  const policiesRead = startEarly(
+    () => ctx.supabase.from("governance_policies").select("governed_document_id, level, level_ref_id, requirement").eq("account_id", ctx.accountId).eq("active", true)
+  );
+  const teamOptoutsRead = startEarly(async () => {
+    const { teamId: projectTeamId } = await projectTeam;
+    return projectTeamId ? await optoutsFor("team", projectTeamId) : null;
+  });
+  const projectOptoutsRead = projectId ? startEarly(() => optoutsFor("project", projectId)) : null;
+  const individualOptoutsRead = userId ? startEarly(() => optoutsFor("individual", userId)) : null;
+  const { teamId, error: teamError } = await projectTeam;
   const policy = emptyProjectBrainPolicy();
-  policy.errors.push(...initialErrors);
-  if (projectId) {
-    const { data, error: error40 } = await ctx.supabase.from("project_brain_overrides").select("source_document_id, action, replacement_document_id").eq("project_id", projectId);
+  if (teamError) policy.errors.push(teamError);
+  if (legacyRead) {
+    const { data, error: error40 } = await legacyRead();
     if (error40) {
       policy.errors.push(`project_brain_overrides: ${error40.message}`);
       console.warn(
@@ -81946,15 +81992,15 @@ async function loadProjectBrainPolicy(ctx, projectId, teamId = null, userId = nu
   }
   const teamIds = /* @__PURE__ */ new Set();
   if (teamId) teamIds.add(teamId);
-  if (userId) {
-    const { data: tm, error: tmErr } = await ctx.supabase.from("team_members").select("team_id").eq("user_id", userId);
+  if (membershipRead) {
+    const { data: tm, error: tmErr } = await membershipRead();
     if (tmErr) {
       policy.errors.push(`team_members: ${tmErr.message}`);
     } else {
       for (const r2 of tm ?? []) teamIds.add(r2.team_id);
     }
   }
-  const { data: pols, error: polErr } = await ctx.supabase.from("governance_policies").select("governed_document_id, level, level_ref_id, requirement").eq("account_id", ctx.accountId).eq("active", true);
+  const { data: pols, error: polErr } = await policiesRead();
   if (polErr) {
     policy.errors.push(`governance_policies: ${polErr.message}`);
     if (!/does not exist|relation|PGRST20\d/i.test(polErr.message)) {
@@ -81970,13 +82016,14 @@ async function loadProjectBrainPolicy(ctx, projectId, teamId = null, userId = nu
     for (const id4 of policy.requiredChainIds) policy.optionalChainIds.delete(id4);
   }
   const optoutScopes = [
-    ["team", teamId],
-    ["project", projectId],
-    ["individual", userId]
+    ["team", teamId ? teamOptoutsRead : null],
+    ["project", projectOptoutsRead],
+    ["individual", individualOptoutsRead]
   ];
-  for (const [lvl, ref] of optoutScopes) {
-    if (!ref) continue;
-    const { data, error: error40 } = await ctx.supabase.from("governance_optouts").select("source_document_id, action, replacement_document_id").eq("account_id", ctx.accountId).eq("scope_level", lvl).eq("scope_ref_id", ref);
+  for (const [lvl, read] of optoutScopes) {
+    const result = read ? await read() : null;
+    if (!result) continue;
+    const { data, error: error40 } = result;
     if (error40) {
       policy.errors.push(`governance_optouts.${lvl}: ${error40.message}`);
       if (!/does not exist|relation|PGRST20\d/i.test(error40.message)) {
@@ -82356,8 +82403,28 @@ function makeAwarenessFeed(audit) {
     }
   };
 }
+function startEarly(run) {
+  const settled = (async () => run())().then(
+    (value) => ({ ok: true, value }),
+    (error40) => ({ ok: false, error: error40 })
+  );
+  return async () => {
+    const result = await settled;
+    if (!result.ok) throw result.error;
+    return result.value;
+  };
+}
+async function loadProjectComponents(ctx, projectId) {
+  const components = await ctx.supabase.from("components").select("id, name, slug, path_patterns, repo").eq("project_id", projectId);
+  const repos = /* @__PURE__ */ new Set();
+  if (!components.error) {
+    for (const row of components.data ?? []) if (row.repo) repos.add(row.repo);
+  }
+  const projectRepos = repos.size > 1 ? await ctx.supabase.from("project_github_repos").select("repo_full_name").eq("project_id", projectId) : null;
+  return { components, projectRepos };
+}
 async function assembleBundle(ctx, rawArgs, audit = {}) {
-  const light = audit.providerOnly ? null : await lightResolve(ctx, String(rawArgs?.task ?? ""));
+  const light = audit.providerOnly || audit.lightChecked ? null : await lightResolve(ctx, String(rawArgs?.task ?? ""));
   if (light) return light;
   const bundleStartedAt = Date.now();
   let embeddingMs = 0;
@@ -82395,17 +82462,36 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       "resolver requires server-side embeddings; set OPENAI_API_KEY"
     );
   }
+  const userId = ctx.userId;
+  const projectComponents = projectId && !providerOnly ? startEarly(() => loadProjectComponents(ctx, projectId)) : null;
+  const memberRoles = userId ? startEarly(
+    async () => await ctx.supabase.from("account_members").select("functional_roles, inferred_roles").eq("account_id", ctx.accountId).eq("user_id", userId).maybeSingle()
+  ) : null;
+  const fitnessCounts = providerOnly ? null : startEarly(() => loadFitnessCounts(ctx, classifyTask(args.task)));
+  const pinnedOmissions = [];
+  const pinnedLane = providerOnly || pinnedFromV2Policy(ctx) ? null : startEarly(
+    () => assemblePinned(ctx, projectId, audit.agentKind ?? null, (row, targets) => {
+      pinnedOmissions.push({ row, targets });
+    })
+  );
+  const sessionId = audit.sessionId;
+  const sessionWorking = sessionId && !providerOnly ? startEarly(() => assembleSessionWorking(ctx, sessionId, projectId)) : null;
+  const openThreads = providerOnly ? null : startEarly(
+    async () => await ctx.supabase.rpc("list_open_threads", {
+      p_account_id: ctx.accountId,
+      p_entities: args.entities && args.entities.length > 0 ? args.entities : null,
+      p_status: "open",
+      p_project_id: projectId ?? null,
+      p_limit: 50,
+      // This lane feeds full thread bodies into the bundle for /resolve,
+      // /ask and agent turns. Under a service token the client bypasses
+      // RLS, so the function scopes personal threads by this identity.
+      p_user_id: ctx.userId ?? null
+    })
+  );
   const prefetchedProjectBrain = providerOnly ? null : projectBrainPolicyFromV2(ctx);
   const projectTeamPromise = providerOnly || prefetchedProjectBrain ? Promise.resolve({ teamId: null, error: null }) : getProjectTeamId(ctx, projectId);
-  const projectBrainPolicyPromise = providerOnly ? Promise.resolve(emptyProjectBrainPolicy()) : prefetchedProjectBrain ? Promise.resolve(prefetchedProjectBrain) : projectTeamPromise.then(
-    (projectTeam) => loadProjectBrainPolicy(
-      ctx,
-      projectId,
-      projectTeam.teamId,
-      governanceUserId,
-      projectTeam.error ? [projectTeam.error] : []
-    )
-  );
+  const projectBrainPolicyPromise = providerOnly ? Promise.resolve(emptyProjectBrainPolicy()) : prefetchedProjectBrain ? Promise.resolve(prefetchedProjectBrain) : loadProjectBrainPolicy(ctx, projectId, projectTeamPromise, governanceUserId);
   let customThresholds = null;
   let thresholdsMode = "default";
   let brandContextMode = "always";
@@ -82463,6 +82549,252 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       budgetRpcMs = Date.now() - startedAt;
     });
   })() : null;
+  const requiredCoreLane = providerOnly || requiredCoreFromV2Policy(ctx) ? null : startEarly(
+    () => assembleRequiredCore(
+      ctx,
+      projectBrainPolicy.requiredChainIds,
+      projectId,
+      projectBrainPolicy.errors,
+      audit.agentKind ?? null
+    )
+  );
+  const packKinds = ["skill", "decision", "schema"];
+  const packCandidates = ctx.packCandidates;
+  const packLane = packCandidates && !providerOnly ? startEarly(() => packCandidates(queryVec ?? null, packKinds)) : null;
+  let activeComponentId = null;
+  let activeComponentName = null;
+  let activeComponentSlug = null;
+  let activeComponent = null;
+  const componentNameById = /* @__PURE__ */ new Map();
+  const componentRepoById = /* @__PURE__ */ new Map();
+  const loadedComponents = projectComponents ? await projectComponents() : null;
+  if (loadedComponents) {
+    const { data: compRows, error: compErr } = loadedComponents.components;
+    if (compErr) {
+      console.warn(
+        `[resolver] components lookup failed: ${compErr.message} \u2014 proceeding without component boost`
+      );
+    } else if (compRows && compRows.length > 0) {
+      for (const row of compRows) {
+        componentNameById.set(row.id, { name: row.name, slug: row.slug });
+        componentRepoById.set(row.id, row.repo ?? null);
+      }
+      if (args.cwd) {
+        let bestLen = -1;
+        for (const row of compRows) {
+          const patterns = row.path_patterns ?? [];
+          for (const pat of patterns) {
+            const len = matchPathPattern(args.cwd, pat);
+            if (len !== null && len > bestLen) {
+              bestLen = len;
+              activeComponentId = row.id;
+              activeComponentName = row.name;
+              activeComponentSlug = row.slug;
+            }
+          }
+        }
+      }
+      if (!activeComponentId) {
+        let bestLen = -1;
+        for (const row of compRows) {
+          for (const pat of row.path_patterns ?? []) {
+            const dir = pat === "**" ? "" : pat.replace(/\/\*\*$/, "");
+            if (dir.length === 0) continue;
+            if (dir.length > bestLen && args.task.includes(dir)) {
+              bestLen = dir.length;
+              activeComponentId = row.id;
+              activeComponentName = row.name;
+              activeComponentSlug = row.slug;
+            }
+          }
+        }
+      }
+      if (activeComponentId && activeComponentName) {
+        activeComponent = {
+          id: activeComponentId,
+          name: activeComponentName,
+          slug: activeComponentSlug
+        };
+      }
+    }
+  }
+  let activeRepo = null;
+  {
+    const distinctRepos = /* @__PURE__ */ new Set();
+    for (const r2 of componentRepoById.values()) if (r2) distinctRepos.add(r2);
+    if (projectId && distinctRepos.size > 1 && loadedComponents?.projectRepos) {
+      const { data: repoRows, error: repoErr } = loadedComponents.projectRepos;
+      if (repoErr) {
+        console.warn(
+          `[resolver] project repos lookup failed: ${repoErr.message} \u2014 proceeding repo-neutral`
+        );
+      } else {
+        const repoNames = (repoRows ?? []).map((r2) => r2.repo_full_name).filter((r2) => typeof r2 === "string" && r2.length > 0);
+        activeRepo = inferActiveRepo({
+          gitRemote: args.git_remote ?? null,
+          cwd: args.cwd ?? null,
+          task: args.task,
+          repoNames,
+          activeComponentRepo: activeComponentId ? componentRepoById.get(activeComponentId) ?? null : null
+        });
+      }
+    }
+  }
+  const feed = makeAwarenessFeed(audit);
+  const feedsStartedAt = Date.now();
+  let awarenessFeedsMs = 0;
+  const awarenessFeeds = Promise.all([
+    // Brand-guidelines context. Always-on (not semantic) — fetched directly
+    // from the project's chosen pointer (or the account default) and merged
+    // with any project-level override doc.
+    providerOnly ? Promise.resolve(null) : feed("brand-guidelines fetch", null, async () => {
+      const componentInfoById = /* @__PURE__ */ new Map();
+      for (const [id4, info] of componentNameById) {
+        componentInfoById.set(id4, {
+          repo: componentRepoById.get(id4) ?? null,
+          slug: info.slug
+        });
+      }
+      return assembleBrandGuidelines(ctx, {
+        accountId: ctx.accountId,
+        projectId,
+        activeComponentId,
+        activeRepo,
+        componentInfoById
+      });
+    }),
+    feed(
+      "feature-map fetch",
+      null,
+      () => assembleFeatureMap(ctx, {
+        projectId,
+        queryVec,
+        sessionId: audit.sessionId,
+        gitBranch: args.git_branch,
+        providerOnly
+      })
+    ),
+    !providerOnly && wantsClaimGuardrails(args.task) ? feed(
+      "claim-guardrails assembly",
+      null,
+      () => assembleClaimGuardrails(ctx, projectId)
+    ) : Promise.resolve(null),
+    // Code-graph architecture. When cwd matched a component, fold that
+    // component's functions + cross-component contracts into the bundle.
+    !providerOnly && activeComponent && projectId ? feed(
+      "architecture assembly",
+      null,
+      () => assembleArchitecture(ctx, projectId, activeComponent, componentNameById)
+    ) : Promise.resolve(null),
+    // Concurrent-work awareness — other agents resolving on this project
+    // right now, so the bundle can flag who else is in the room.
+    providerOnly ? Promise.resolve([]) : feed(
+      "concurrent-work assembly",
+      [],
+      () => assembleConcurrentWork(
+        ctx,
+        projectId,
+        audit.sessionId ?? null,
+        componentNameById,
+        queryVec ?? null
+      )
+    ),
+    // Axis C. Durable presence: sessions quiet for hours whose branch has an
+    // OPEN PR. Fetched here, appended to concurrentWork AFTER collision
+    // promotion below — a 6-hour-old session is context, not contention.
+    providerOnly ? Promise.resolve([]) : feed(
+      "open-pr presence assembly",
+      [],
+      () => assembleOpenPrPresence(ctx, projectId, audit.sessionId ?? null, ctx.userId ?? null)
+    ),
+    // File-level activity — what OTHER sessions actually edited recently.
+    // Resolve-level concurrency says "someone's awake"; this says
+    // "resolver.ts was touched 3m ago."
+    providerOnly ? Promise.resolve([]) : feed(
+      "file-activity assembly",
+      [],
+      () => assembleFileActivity(ctx, projectId, audit.sessionId ?? null, ctx.userId ?? null)
+    ),
+    // Transactional ownership involving this session. Unlike the historical
+    // activity feed, these rows remain until yield/handoff/reconciliation.
+    providerOnly ? Promise.resolve([]) : feed(
+      "edit-ownership assembly",
+      [],
+      () => assembleEditOwnership(ctx, projectId, audit.sessionId ?? null)
+    ),
+    // Deploy-in-progress awareness — other agents that look like they're
+    // shipping right now. Distinct, louder signal than file collisions.
+    providerOnly ? Promise.resolve([]) : feed(
+      "deploy-in-progress assembly",
+      [],
+      () => assembleDeployInProgress(ctx, projectId, audit.sessionId ?? null, componentNameById)
+    ),
+    providerOnly ? Promise.resolve({ others: [], own: null }) : feed(
+      "deploy-waiters assembly",
+      { others: [], own: null },
+      () => assembleDeployWaiters(ctx, projectId, audit.sessionId ?? null)
+    ),
+    // Work-ledger awareness — open / recently-merged PRs whose title+body is
+    // semantically close to this task (the work_items ledger).
+    providerOnly ? Promise.resolve([]) : feed(
+      "work-in-flight assembly",
+      [],
+      () => assembleWorkInFlight(ctx, projectId, queryVec ?? null)
+    ),
+    // Axis A input: repo-relative paths THIS session edited recently.
+    providerOnly ? Promise.resolve([]) : feed(
+      "own-edit-paths assembly",
+      [],
+      () => assembleOwnEditPaths(ctx, projectId, audit.sessionId ?? null)
+    ),
+    // Axis A input: leading literal dirs of the active component's
+    // path_patterns.
+    !providerOnly && activeComponentId ? feed("component path-patterns fetch", [], async () => {
+      const { data: compRow } = await ctx.supabase.from("components").select("path_patterns").eq("id", activeComponentId).maybeSingle();
+      return patternPrefixDirs(
+        compRow?.path_patterns ?? []
+      );
+    }) : Promise.resolve([]),
+    // Person-mention input: this account's member roster, so a task naming a
+    // teammate can recall their authored docs (10e-iii-b). Bounded and
+    // indexed; rides the parallel block so it costs no wall-clock.
+    //
+    // Via the account_member_identities RPC (security definer, membership
+    // self-guarded): users RLS is self-read-only, so a direct
+    // account_members→users embed returns TEAMMATES with null identities
+    // under the caller's client — the roster looked fine under service-role
+    // validation and arrived nameless in production (audit df72471c). Falls
+    // back to the direct embed for pre-migration databases, where
+    // service-role callers still see full identities.
+    providerOnly ? Promise.resolve([]) : feed("workspace-members fetch", [], async () => {
+      const { data: rpcRows, error: rpcErr } = await ctx.supabase.rpc(
+        "account_member_identities",
+        {
+          p_account_id: ctx.accountId
+        }
+      );
+      let memberRows;
+      if (!rpcErr && rpcRows) {
+        memberRows = rpcRows.map((r2) => ({
+          user_id: r2.user_id,
+          users: { display_name: r2.display_name, email: r2.email }
+        }));
+      } else {
+        const { data: embedRows } = await ctx.supabase.from("account_members").select("user_id, users!account_members_user_id_fkey ( display_name, email )").eq("account_id", ctx.accountId).limit(500);
+        memberRows = embedRows ?? [];
+      }
+      return memberRows.map((row) => {
+        const user = Array.isArray(row.users) ? row.users[0] : row.users;
+        return {
+          user_id: typeof row.user_id === "string" ? row.user_id : "",
+          display_name: typeof user?.display_name === "string" ? user.display_name : null,
+          email: typeof user?.email === "string" ? user.email : null
+        };
+      }).filter((m2) => m2.user_id.length > 0);
+    })
+  ]).finally(() => {
+    awarenessFeedsMs = Date.now() - feedsStartedAt;
+  });
   const rerankExcerptMode = args.rerank_excerpt_mode ?? "passage";
   const skipRerank = args.skip_rerank === true || args.interactive === true;
   const rerankerConfigured = !!(ctx.hostedRerank || ctx.rerank);
@@ -82525,6 +82857,19 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       }
     }
   }
+  const prefetchIds = /* @__PURE__ */ new Set();
+  if (!usedConsolidatedCandidates) {
+    for (const { rows } of kindResults) for (const row of rows) prefetchIds.add(row.id);
+    for (const id4 of functionBodyById.keys()) prefetchIds.add(id4);
+    for (const override of projectBrainPolicy.overridesBySource.values()) {
+      if (override.replacement_document_id) prefetchIds.add(override.replacement_document_id);
+    }
+  }
+  const prefetchDocumentIds = [...prefetchIds].filter((id4) => !id4.startsWith("provider:"));
+  const candidateDocumentsPrefetch = prefetchDocumentIds.length > 0 ? {
+    ids: prefetchIds,
+    read: startEarly(() => readCandidateDocuments(ctx, prefetchDocumentIds))
+  } : null;
   const candidates = [];
   const omittedCandidates = [];
   const candidateIdsNeedingStatus = [];
@@ -83168,7 +83513,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       // bodies remain part of this fetch for the observed savings baseline.
       [...candidates.map((c2) => c2.id), ...belowThresholdActiveIds],
       functionBodyById,
-      functionComponentById
+      functionComponentById,
+      candidateDocumentsPrefetch
     ));
     hydrationMs += Date.now() - hydrationStartedAt;
   }
@@ -83363,91 +83709,13 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     hydrationMs += Date.now() - hydrationStartedAt;
   }
   const candidateIds = candidates.map((c2) => c2.id);
-  const fitnessMultipliers = providerOnly ? /* @__PURE__ */ new Map() : await loadFitnessMultipliers(ctx, candidateIds, classifyTask(args.task));
+  const fitnessMultipliers = fitnessCounts ? fitnessMultipliersFor(await fitnessCounts(), candidateIds) : /* @__PURE__ */ new Map();
   for (const c2 of candidates) {
     c2.fitnessMultiplier = fitnessMultipliers.get(c2.id) ?? 1;
   }
-  let activeComponentId = null;
-  let activeComponentName = null;
-  let activeComponentSlug = null;
-  let activeComponent = null;
-  const componentNameById = /* @__PURE__ */ new Map();
-  const componentRepoById = /* @__PURE__ */ new Map();
-  if (projectId && !providerOnly) {
-    const { data: compRows, error: compErr } = await ctx.supabase.from("components").select("id, name, slug, path_patterns, repo").eq("project_id", projectId);
-    if (compErr) {
-      console.warn(
-        `[resolver] components lookup failed: ${compErr.message} \u2014 proceeding without component boost`
-      );
-    } else if (compRows && compRows.length > 0) {
-      for (const row of compRows) {
-        componentNameById.set(row.id, { name: row.name, slug: row.slug });
-        componentRepoById.set(row.id, row.repo ?? null);
-      }
-      if (args.cwd) {
-        let bestLen = -1;
-        for (const row of compRows) {
-          const patterns = row.path_patterns ?? [];
-          for (const pat of patterns) {
-            const len = matchPathPattern(args.cwd, pat);
-            if (len !== null && len > bestLen) {
-              bestLen = len;
-              activeComponentId = row.id;
-              activeComponentName = row.name;
-              activeComponentSlug = row.slug;
-            }
-          }
-        }
-      }
-      if (!activeComponentId) {
-        let bestLen = -1;
-        for (const row of compRows) {
-          for (const pat of row.path_patterns ?? []) {
-            const dir = pat === "**" ? "" : pat.replace(/\/\*\*$/, "");
-            if (dir.length === 0) continue;
-            if (dir.length > bestLen && args.task.includes(dir)) {
-              bestLen = dir.length;
-              activeComponentId = row.id;
-              activeComponentName = row.name;
-              activeComponentSlug = row.slug;
-            }
-          }
-        }
-      }
-      if (activeComponentId && activeComponentName) {
-        activeComponent = {
-          id: activeComponentId,
-          name: activeComponentName,
-          slug: activeComponentSlug
-        };
-      }
-    }
-  }
-  let activeRepo = null;
-  {
-    const distinctRepos = /* @__PURE__ */ new Set();
-    for (const r2 of componentRepoById.values()) if (r2) distinctRepos.add(r2);
-    if (projectId && distinctRepos.size > 1) {
-      const { data: repoRows, error: repoErr } = await ctx.supabase.from("project_github_repos").select("repo_full_name").eq("project_id", projectId);
-      if (repoErr) {
-        console.warn(
-          `[resolver] project repos lookup failed: ${repoErr.message} \u2014 proceeding repo-neutral`
-        );
-      } else {
-        const repoNames = (repoRows ?? []).map((r2) => r2.repo_full_name).filter((r2) => typeof r2 === "string" && r2.length > 0);
-        activeRepo = inferActiveRepo({
-          gitRemote: args.git_remote ?? null,
-          cwd: args.cwd ?? null,
-          task: args.task,
-          repoNames,
-          activeComponentRepo: activeComponentId ? componentRepoById.get(activeComponentId) ?? null : null
-        });
-      }
-    }
-  }
   let userRoles = [];
-  if (ctx.userId) {
-    const { data: memberRow, error: memberErr } = await ctx.supabase.from("account_members").select("functional_roles, inferred_roles").eq("account_id", ctx.accountId).eq("user_id", ctx.userId).maybeSingle();
+  if (memberRoles) {
+    const { data: memberRow, error: memberErr } = await memberRoles();
     if (memberErr) {
       console.warn(
         `[resolver] member roles fetch failed: ${memberErr.message} \u2014 proceeding without role boost`
@@ -83517,13 +83785,12 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const pinsAdmittedByV2Policy = prefetchedPins !== null;
   if (prefetchedPins) {
     pinnedItems = prefetchedPins;
-  } else if (!providerOnly) {
+  } else if (pinnedLane) {
     try {
-      pinnedItems = await assemblePinned(
-        ctx,
-        projectId,
-        audit.agentKind ?? null,
-        (row, targets) => {
+      try {
+        pinnedItems = await pinnedLane();
+      } finally {
+        for (const { row, targets } of pinnedOmissions) {
           omittedCandidates.push({
             id: row.id,
             kind: "skill",
@@ -83534,7 +83801,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
             path: row.path ?? null
           });
         }
-      );
+      }
     } catch (e2) {
       console.warn(
         `[resolver] pinned assembly failed: ${e2 instanceof Error ? e2.message : String(e2)} \u2014 proceeding without pins`
@@ -83551,13 +83818,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   };
   if (!providerOnly) {
     try {
-      const required2 = requiredCoreFromV2Policy(ctx) ?? await assembleRequiredCore(
-        ctx,
-        projectBrainPolicy.requiredChainIds,
-        projectId,
-        projectBrainPolicy.errors,
-        audit.agentKind ?? null
-      );
+      const required2 = requiredCoreFromV2Policy(ctx) ?? await requiredCoreLane();
       requiredCoreItems = required2.items;
       requiredCoreStatus = required2.status;
     } catch (e2) {
@@ -83998,8 +84259,6 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     });
     if (lead) included.unshift(lead);
   }
-  const feed = makeAwarenessFeed(audit);
-  const feedsStartedAt = Date.now();
   const [
     brandGuidelinesRaw,
     featureContextRaw,
@@ -84015,157 +84274,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     myEditPaths,
     componentDirs,
     workspaceMembers
-  ] = await Promise.all([
-    // Brand-guidelines context. Always-on (not semantic) — fetched directly
-    // from the project's chosen pointer (or the account default) and merged
-    // with any project-level override doc.
-    providerOnly ? Promise.resolve(null) : feed("brand-guidelines fetch", null, async () => {
-      const componentInfoById = /* @__PURE__ */ new Map();
-      for (const [id4, info] of componentNameById) {
-        componentInfoById.set(id4, {
-          repo: componentRepoById.get(id4) ?? null,
-          slug: info.slug
-        });
-      }
-      return assembleBrandGuidelines(ctx, {
-        accountId: ctx.accountId,
-        projectId,
-        activeComponentId,
-        activeRepo,
-        componentInfoById
-      });
-    }),
-    feed(
-      "feature-map fetch",
-      null,
-      () => assembleFeatureMap(ctx, {
-        projectId,
-        queryVec,
-        sessionId: audit.sessionId,
-        gitBranch: args.git_branch,
-        providerOnly
-      })
-    ),
-    !providerOnly && wantsClaimGuardrails(args.task) ? feed(
-      "claim-guardrails assembly",
-      null,
-      () => assembleClaimGuardrails(ctx, projectId)
-    ) : Promise.resolve(null),
-    // Code-graph architecture. When cwd matched a component, fold that
-    // component's functions + cross-component contracts into the bundle.
-    !providerOnly && activeComponent && projectId ? feed(
-      "architecture assembly",
-      null,
-      () => assembleArchitecture(ctx, projectId, activeComponent, componentNameById)
-    ) : Promise.resolve(null),
-    // Concurrent-work awareness — other agents resolving on this project
-    // right now, so the bundle can flag who else is in the room.
-    providerOnly ? Promise.resolve([]) : feed(
-      "concurrent-work assembly",
-      [],
-      () => assembleConcurrentWork(
-        ctx,
-        projectId,
-        audit.sessionId ?? null,
-        componentNameById,
-        queryVec ?? null
-      )
-    ),
-    // Axis C. Durable presence: sessions quiet for hours whose branch has an
-    // OPEN PR. Fetched here, appended to concurrentWork AFTER collision
-    // promotion below — a 6-hour-old session is context, not contention.
-    providerOnly ? Promise.resolve([]) : feed(
-      "open-pr presence assembly",
-      [],
-      () => assembleOpenPrPresence(ctx, projectId, audit.sessionId ?? null, ctx.userId ?? null)
-    ),
-    // File-level activity — what OTHER sessions actually edited recently.
-    // Resolve-level concurrency says "someone's awake"; this says
-    // "resolver.ts was touched 3m ago."
-    providerOnly ? Promise.resolve([]) : feed(
-      "file-activity assembly",
-      [],
-      () => assembleFileActivity(ctx, projectId, audit.sessionId ?? null, ctx.userId ?? null)
-    ),
-    // Transactional ownership involving this session. Unlike the historical
-    // activity feed, these rows remain until yield/handoff/reconciliation.
-    providerOnly ? Promise.resolve([]) : feed(
-      "edit-ownership assembly",
-      [],
-      () => assembleEditOwnership(ctx, projectId, audit.sessionId ?? null)
-    ),
-    // Deploy-in-progress awareness — other agents that look like they're
-    // shipping right now. Distinct, louder signal than file collisions.
-    providerOnly ? Promise.resolve([]) : feed(
-      "deploy-in-progress assembly",
-      [],
-      () => assembleDeployInProgress(ctx, projectId, audit.sessionId ?? null, componentNameById)
-    ),
-    providerOnly ? Promise.resolve({ others: [], own: null }) : feed(
-      "deploy-waiters assembly",
-      { others: [], own: null },
-      () => assembleDeployWaiters(ctx, projectId, audit.sessionId ?? null)
-    ),
-    // Work-ledger awareness — open / recently-merged PRs whose title+body is
-    // semantically close to this task (the work_items ledger).
-    providerOnly ? Promise.resolve([]) : feed(
-      "work-in-flight assembly",
-      [],
-      () => assembleWorkInFlight(ctx, projectId, queryVec ?? null)
-    ),
-    // Axis A input: repo-relative paths THIS session edited recently.
-    providerOnly ? Promise.resolve([]) : feed(
-      "own-edit-paths assembly",
-      [],
-      () => assembleOwnEditPaths(ctx, projectId, audit.sessionId ?? null)
-    ),
-    // Axis A input: leading literal dirs of the active component's
-    // path_patterns.
-    !providerOnly && activeComponentId ? feed("component path-patterns fetch", [], async () => {
-      const { data: compRow } = await ctx.supabase.from("components").select("path_patterns").eq("id", activeComponentId).maybeSingle();
-      return patternPrefixDirs(
-        compRow?.path_patterns ?? []
-      );
-    }) : Promise.resolve([]),
-    // Person-mention input: this account's member roster, so a task naming a
-    // teammate can recall their authored docs (10e-iii-b). Bounded and
-    // indexed; rides the parallel block so it costs no wall-clock.
-    //
-    // Via the account_member_identities RPC (security definer, membership
-    // self-guarded): users RLS is self-read-only, so a direct
-    // account_members→users embed returns TEAMMATES with null identities
-    // under the caller's client — the roster looked fine under service-role
-    // validation and arrived nameless in production (audit df72471c). Falls
-    // back to the direct embed for pre-migration databases, where
-    // service-role callers still see full identities.
-    providerOnly ? Promise.resolve([]) : feed("workspace-members fetch", [], async () => {
-      const { data: rpcRows, error: rpcErr } = await ctx.supabase.rpc(
-        "account_member_identities",
-        {
-          p_account_id: ctx.accountId
-        }
-      );
-      let memberRows;
-      if (!rpcErr && rpcRows) {
-        memberRows = rpcRows.map((r2) => ({
-          user_id: r2.user_id,
-          users: { display_name: r2.display_name, email: r2.email }
-        }));
-      } else {
-        const { data: embedRows } = await ctx.supabase.from("account_members").select("user_id, users!account_members_user_id_fkey ( display_name, email )").eq("account_id", ctx.accountId).limit(500);
-        memberRows = embedRows ?? [];
-      }
-      return memberRows.map((row) => {
-        const user = Array.isArray(row.users) ? row.users[0] : row.users;
-        return {
-          user_id: typeof row.user_id === "string" ? row.user_id : "",
-          display_name: typeof user?.display_name === "string" ? user.display_name : null,
-          email: typeof user?.email === "string" ? user.email : null
-        };
-      }).filter((m2) => m2.user_id.length > 0);
-    })
-  ]);
-  const awarenessFeedsMs = Date.now() - feedsStartedAt;
+  ] = await awarenessFeeds;
   let brandGuidelines = brandGuidelinesRaw;
   if (brandGuidelines) {
     const demote = brandContextMode === "auto" && !taskLooksBrandRelated(args.task);
@@ -84420,10 +84529,9 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     pack_context: [],
     recent_feedback: []
   };
-  if (ctx.packCandidates && !providerOnly) {
+  if (packLane) {
     try {
-      const packKinds = ["skill", "decision", "schema"];
-      const candidates2 = await ctx.packCandidates(queryVec ?? null, packKinds);
+      const candidates2 = await packLane();
       if (Array.isArray(candidates2) && candidates2.length > 0) {
         const leftover = Math.max(0, maxTokens - used);
         const PACK_MAX_TOKENS = Math.min(1200, Math.floor(maxTokens * 0.25), leftover);
@@ -84468,9 +84576,9 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     } catch {
     }
   }
-  if (audit.sessionId && !providerOnly) {
+  if (sessionWorking) {
     try {
-      const working = await assembleSessionWorking(ctx, audit.sessionId, projectId);
+      const working = await sessionWorking();
       const higherPriorityIds = /* @__PURE__ */ new Set([
         ...bundle.required_core.map((item) => item.id),
         ...bundle.pinned.map((item) => item.id)
@@ -84490,19 +84598,9 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       );
     }
   }
-  if (!providerOnly)
+  if (openThreads)
     try {
-      const { data: threadRows, error: threadErr } = await ctx.supabase.rpc("list_open_threads", {
-        p_account_id: ctx.accountId,
-        p_entities: args.entities && args.entities.length > 0 ? args.entities : null,
-        p_status: "open",
-        p_project_id: projectId ?? null,
-        p_limit: 50,
-        // This lane feeds full thread bodies into the bundle for /resolve,
-        // /ask and agent turns. Under a service token the client bypasses
-        // RLS, so the function scopes personal threads by this identity.
-        p_user_id: ctx.userId ?? null
-      });
+      const { data: threadRows, error: threadErr } = await openThreads();
       if (!threadErr && Array.isArray(threadRows)) {
         const taskLower = ` ${args.task.toLowerCase()} `;
         const higherPriorityIds = /* @__PURE__ */ new Set([
@@ -85265,7 +85363,11 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     );
   }
   const postAssemblyStartedAt = Date.now();
-  await Promise.all(postAssemblyTasks);
+  if (ctx.deferPostAssembly) {
+    ctx.deferPostAssembly(Promise.allSettled(postAssemblyTasks));
+  } else {
+    await Promise.all(postAssemblyTasks);
+  }
   const postAssemblyMs = Date.now() - postAssemblyStartedAt;
   return {
     bundle,
@@ -85417,10 +85519,10 @@ async function assembleBrandGuidelines(ctx, args) {
       ["primary_dark", logos.primary_dark?.storage_path],
       ["favicon", logos.favicon?.storage_path]
     ];
-    for (const [slot, path21] of slots) {
-      if (!path21) continue;
+    for (const [slot, path22] of slots) {
+      if (!path22) continue;
       try {
-        const { data, error: error40 } = await ctx.supabase.storage.from("brand-guidelines-assets").createSignedUrl(path21, BRAND_GUIDELINES_LOGO_SIGNED_URL_TTL_SECONDS);
+        const { data, error: error40 } = await ctx.supabase.storage.from("brand-guidelines-assets").createSignedUrl(path22, BRAND_GUIDELINES_LOGO_SIGNED_URL_TTL_SECONDS);
         if (error40) {
           console.warn(`[resolver] brand-guidelines: sign ${slot} failed: ${error40.message}`);
         } else if (data?.signedUrl) {
@@ -87211,10 +87313,10 @@ function renderBundleText(result, task) {
   return lines.join("\n");
 }
 function renderCitation(it2) {
-  const path21 = it2.citation?.path;
+  const path22 = it2.citation?.path;
   const v2 = it2.citation?.version_number;
-  if (path21 && v2 != null) return `\u2014 \`${path21}\` v${v2}`;
-  if (path21) return `\u2014 \`${path21}\``;
+  if (path22 && v2 != null) return `\u2014 \`${path22}\` v${v2}`;
+  if (path22) return `\u2014 \`${path22}\``;
   return "";
 }
 
@@ -88163,12 +88265,12 @@ async function requireStageLeaseTarget(ctx, operation, stageRunId, requestedProj
   };
 }
 function stageResultSubmissionReceipt(ctx, flowRunId, stageRunId, leaseId, actorKind, budgetReservationId) {
-  const path21 = `/flow-runs/${flowRunId}/stages/${stageRunId}/result`;
+  const path22 = `/flow-runs/${flowRunId}/stages/${stageRunId}/result`;
   const base = (ctx.apiBaseUrl || "https://memlin.ai/api/v1").replace(/\/+$/, "");
   return {
     method: "POST",
-    api_path: path21,
-    url: `${base}${path21}`,
+    api_path: path22,
+    url: `${base}${path22}`,
     required_scope: "flow:run",
     required_lease_id: leaseId,
     required_budget_reservation_id: budgetReservationId,
@@ -88687,8 +88789,8 @@ async function file2(ctx, raw) {
   if (ctx.callerRole === "viewer") throw new Error("memlin_file requires writer access.");
   const args = FileToolArgsSchema.parse(raw);
   const base = (ctx.apiBaseUrl || "https://memlin.ai/api/v1").replace(/\/+$/, "");
-  async function request2(path21, method = "GET", body) {
-    const response = await fetch(`${base}/files${path21}`, {
+  async function request2(path22, method = "GET", body) {
+    const response = await fetch(`${base}/files${path22}`, {
       method,
       headers: {
         Authorization: `Bearer ${ctx.accessToken}`,
@@ -88992,7 +89094,7 @@ async function correctMemoryUndo(ctx, rawArgs) {
 }
 
 // packages/mcp-tools/src/thoughts.ts
-async function request(ctx, path21, body) {
+async function request(ctx, path22, body) {
   if (!ctx.accessToken || ctx.serviceTokenId || ctx.accessToken.startsWith("mlk_"))
     throw Error(
       "Thoughts requires a signed-in user connection. Service credentials cannot act as a person."
@@ -89001,7 +89103,7 @@ async function request(ctx, path21, body) {
   if (base.username || base.password || base.search || base.hash || !/\/api\/v[12]\/?$/.test(base.pathname) || base.protocol !== "https:" && !(base.protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(base.hostname)))
     throw Error("Invalid configured Thoughts API address.");
   base.pathname = base.pathname.replace(/\/v[12]\/?$/, "/v2/");
-  const response = await fetch(new URL(path21, base), {
+  const response = await fetch(new URL(path22, base), {
     method: body === void 0 ? "GET" : "POST",
     redirect: "error",
     cache: "no-store",
@@ -89038,21 +89140,21 @@ async function thoughtHandoff(ctx, raw) {
     external_exports.object({ ...root, action: external_exports.literal("cancel"), handoff_id: external_exports.string().uuid() }).strict(),
     external_exports.object({ ...root, action: external_exports.literal("cancel"), request: ThoughtHandoffRequestV2Schema }).strict()
   ]).parse(raw);
-  const path21 = `thoughts/${input.root_thought_id}/handoffs`;
-  if (input.action === "destinations") return request(ctx, path21);
+  const path22 = `thoughts/${input.root_thought_id}/handoffs`;
+  if (input.action === "destinations") return request(ctx, path22);
   if (input.action === "create")
-    return ThoughtHandoffReceiptV2Schema.parse(await request(ctx, path21, input.request));
+    return ThoughtHandoffReceiptV2Schema.parse(await request(ctx, path22, input.request));
   if (input.action === "read")
     return ThoughtHandoffReceiptV2Schema.parse(
       await request(
         ctx,
-        `${path21}?${"handoff_id" in input ? `receipt_id=${input.handoff_id}` : `request_key=${encodeURIComponent(input.request_key)}`}`
+        `${path22}?${"handoff_id" in input ? `receipt_id=${input.handoff_id}` : `request_key=${encodeURIComponent(input.request_key)}`}`
       )
     );
   return ThoughtHandoffReceiptV2Schema.parse(
     await request(
       ctx,
-      path21,
+      path22,
       "handoff_id" in input ? { version: 2, action: "cancel", handoff_id: input.handoff_id } : { version: 2, action: "cancel_save", request: input.request }
     )
   );
@@ -89388,7 +89490,8 @@ async function dispatchTool(ctx, name, args) {
       return assembleBundle(ctx, withResolverDefaults(ctx, args), {
         agentKind: ctx.agentKind ?? null,
         agentInstallationId: ctx.agentInstallationId ?? null,
-        sessionId: ctx.sessionId ?? null
+        sessionId: ctx.sessionId ?? null,
+        readOnly: ctx.privateSession === true
       });
     case "memlin_feedback_capture":
       return captureFeedback(ctx, args);
@@ -89606,12 +89709,12 @@ var REHOME_INSIGHT_KINDS = [
 
 // packages/plugin-core/dist/pre-tool-use-handler.js
 import { execSync as execSync2 } from "node:child_process";
-import path16 from "node:path";
+import path17 from "node:path";
 
 // packages/plugin-core/dist/client.js
-import { promises as fs6 } from "node:fs";
-import path7 from "node:path";
-import os6 from "node:os";
+import { promises as fs7 } from "node:fs";
+import path8 from "node:path";
+import os7 from "node:os";
 import { randomUUID as randomUUID4 } from "node:crypto";
 
 // packages/plugin-core/dist/auth.js
@@ -89899,7 +90002,7 @@ init_atomic_rename();
 init_auth_refusal();
 import { readFileSync } from "node:fs";
 import crypto4 from "node:crypto";
-import os5 from "node:os";
+import os6 from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -90048,15 +90151,118 @@ function resolveHost() {
   return (make ?? HOSTS2["claude-code"])();
 }
 
+// packages/plugin-core/dist/private-mode.js
+init_atomic_rename();
+import { promises as fs5 } from "node:fs";
+import path6 from "node:path";
+import os5 from "node:os";
+var PRIVATE_HEADER = "Memlin-Private";
+var PRIVATE_UNTIL_HEADER = "Memlin-Private-Until";
+var PRIVATE_TTL_MS = 24 * 60 * 60 * 1e3;
+var PRIVATE_ALLOWED_WRITES = [
+  "POST /resolve",
+  "POST /projects/resolve",
+  "POST /deploy-guard"
+];
+var DENIED_TTL_MS = 10 * 60 * 1e3;
+var FLOOR_TTL_MS = 30 * 24 * 60 * 60 * 1e3;
+function stateFile() {
+  return path6.join(os5.homedir(), ".config", "memlin", "private-sessions.json");
+}
+async function readPrivateState() {
+  try {
+    const parsed = JSON.parse(await fs5.readFile(stateFile(), "utf8"));
+    return { ...parsed, sessions: parsed.sessions ?? {} };
+  } catch {
+    return { sessions: {} };
+  }
+}
+async function writePrivateState(state, now) {
+  for (const [id4, entry2] of Object.entries(state.sessions)) {
+    if (entry2.expires_at <= now) delete state.sessions[id4];
+  }
+  for (const [id4, entry2] of Object.entries(state.denied ?? {})) {
+    if (now - entry2.at > DENIED_TTL_MS) delete state.denied?.[id4];
+  }
+  for (const [id4, entry2] of Object.entries(state.accounts ?? {})) {
+    if (entry2.until !== null && entry2.until <= now) delete state.accounts?.[id4];
+  }
+  for (const [id4, floor] of Object.entries(state.floors ?? {})) {
+    if (now - floor.at > FLOOR_TTL_MS) delete state.floors?.[id4];
+  }
+  const file3 = stateFile();
+  await fs5.mkdir(path6.dirname(file3), { recursive: true });
+  const tmp = `${file3}.${process.pid}.${Date.now()}.tmp`;
+  await fs5.writeFile(tmp, JSON.stringify(state, null, 2), { mode: 384 });
+  await atomicRename(tmp, file3);
+}
+function envPrivate() {
+  const v2 = process.env.MEMLIN_PRIVATE?.trim().toLowerCase();
+  return v2 === "1" || v2 === "true" || v2 === "on";
+}
+function currentSessionId() {
+  return process.env.MEMLIN_SESSION_ID || process.env.CLAUDE_CODE_SESSION_ID || null;
+}
+async function isPrivateSession(sessionId = currentSessionId(), now = Date.now(), accountId = null) {
+  const state = await readPrivateState();
+  if (accountId && accountDenied(state, accountId, now)) return false;
+  if (envPrivate()) return true;
+  if (accountId && accountPrivateActive(state, accountId, now)) return true;
+  if (!sessionId) return false;
+  const entry2 = state.sessions[sessionId];
+  return Boolean(entry2 && entry2.expires_at > now);
+}
+function accountDenied(state, accountId, now) {
+  const entry2 = state.denied?.[accountId];
+  return Boolean(entry2 && now - entry2.at <= DENIED_TTL_MS);
+}
+function accountPrivateActive(state, accountId, now) {
+  const entry2 = state.accounts?.[accountId];
+  return Boolean(entry2 && (entry2.until === null || entry2.until > now));
+}
+async function notePrivateUntil(accountId, header, now = Date.now()) {
+  const state = await readPrivateState();
+  if (header === "denied") {
+    const prev2 = state.denied?.[accountId];
+    if (prev2 && now - prev2.at < 6e4 && !state.accounts?.[accountId]) return;
+    state.denied = { ...state.denied, [accountId]: { at: now } };
+    delete state.accounts?.[accountId];
+    await writePrivateState(state, now);
+    return;
+  }
+  let until;
+  if (!header || header === "off") until = void 0;
+  else if (header === "infinity") until = null;
+  else {
+    const at2 = Date.parse(header);
+    until = Number.isFinite(at2) && at2 > now ? at2 : void 0;
+  }
+  if (until !== void 0 && state.denied?.[accountId]) delete state.denied[accountId];
+  const prev = state.accounts?.[accountId];
+  if (until === void 0) {
+    if (!prev) return;
+    delete state.accounts[accountId];
+  } else {
+    if (prev && prev.until === until) return;
+    state.accounts = { ...state.accounts, [accountId]: { until, seen_at: now } };
+  }
+  await writePrivateState(state, now);
+}
+function isPrivateAllowedWrite(method, pathAndQuery) {
+  if (method === "GET") return true;
+  const pathOnly = pathAndQuery.split("?")[0];
+  return PRIVATE_ALLOWED_WRITES.includes(`${method} ${pathOnly}`);
+}
+
 // packages/plugin-core/dist/memlin-api-client.js
 var DEFAULT_API_URL = "https://memlin.ai/api/v1";
 function agentDevice() {
-  return process.env.MEMLIN_AGENT_DEVICE || os5.hostname() || "unknown";
+  return process.env.MEMLIN_AGENT_DEVICE || os6.hostname() || "unknown";
 }
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.72";
+  cachedAgentVersion = "0.2.73";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -90221,16 +90427,18 @@ var MemlinApiClient = class {
       [AGENT_DEVICE_HEADER]: agentDevice(),
       [AGENT_VERSION_HEADER]: version5,
       [AGENT_CAPABILITIES_HEADER]: (override.agentKind ? AGENT_EXPECTED_CAPABILITIES[kind2] : agentCapabilities()).join(","),
-      [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os5.platform(),
-      [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os5.arch()
+      [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os6.platform(),
+      [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os6.arch()
     };
     if (includeAccount && this.cfg.accountId) {
       h2["Memlin-Account-Id"] = this.cfg.accountId;
     }
+    if (this.cfg.privateSession) h2[PRIVATE_HEADER] = "1";
     return h2;
   }
   async request(method, pathAndQuery, body, opts = {}) {
     const url2 = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
+    this.throwIfPrivateWrite(method, pathAndQuery);
     const refusalAccountId = this.refusalAccountId(opts.includeAccount ?? true, opts.accountId);
     await this.throwIfAuthRefused(method, pathAndQuery, refusalAccountId);
     const baseHeaders = await this.authHeaders(opts.includeAccount ?? true, opts);
@@ -90280,13 +90488,21 @@ var MemlinApiClient = class {
         }
       }
       const refusalCode = await this.noteAuthOutcome(res.status, parsed, refusalAccountId);
+      const privateRefusal = parsed?.code === "private_mode";
+      if (refusalAccountId && (res.ok || privateRefusal)) {
+        await notePrivateUntil(
+          refusalAccountId,
+          res.headers.get(PRIVATE_UNTIL_HEADER) ?? (parsed?.private_until ?? null)
+        ).catch(() => {
+        });
+      }
       if (!res.ok) {
         const serverError = parsed?.error;
         const errMsg = typeof serverError === "string" && serverError ? singleLine(serverError, 300) : describeOpaqueBody(res.status, text);
         throw new MemlinApiError(
           `${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`,
           res.status,
-          refusalCode
+          refusalCode ?? (privateRefusal ? "private_mode" : void 0)
         );
       }
       return parsed;
@@ -90304,6 +90520,17 @@ var MemlinApiClient = class {
     return includeAccount && this.cfg.accountId ? this.cfg.accountId : null;
   }
   /** Zero-network short circuit while a membership refusal is fresh. */
+  throwIfPrivateWrite(method, pathAndQuery) {
+    if (!this.cfg.privateSession || isPrivateAllowedWrite(method, pathAndQuery)) return;
+    if (method === "POST" && pathAndQuery.split("?")[0] === "/resolve/v2") {
+      throw new MemlinApiError("POST /resolve/v2 \u2192 404: progressive resolve unavailable", 404);
+    }
+    throw new MemlinApiError(
+      `${method} ${pathAndQuery}: skipped \u2014 Memlin private mode is on for this session (turn it off with /memlin-private off)`,
+      423,
+      "private_mode"
+    );
+  }
   async throwIfAuthRefused(method, pathAndQuery, accountId) {
     if (!this.cfg.authRefusal || !accountId) return;
     const entry2 = await readAuthRefusal(accountId, this.cfg.authRefusal.binding);
@@ -90344,6 +90571,7 @@ var MemlinApiClient = class {
   }
   async openResolveV2Stream(method, pathAndQuery, body, opts = {}) {
     const url2 = `${this.cfg.baseUrl.replace(/\/+$/, "")}${pathAndQuery}`;
+    this.throwIfPrivateWrite(method, pathAndQuery);
     const refusalAccountId = this.refusalAccountId(true, opts.accountId);
     await this.throwIfAuthRefused(method, pathAndQuery, refusalAccountId);
     const headers = await this.authHeaders(true, opts);
@@ -91032,6 +91260,14 @@ var MemlinApiClient = class {
   async setEnforceDoneDeployed(enabled, opts = {}) {
     return this.request("PUT", "/account/enforce-done-deployed", { enabled }, opts);
   }
+  /** GET /account/private-mode — the caller's own private mode in this account. */
+  async getPrivateMode(opts = {}) {
+    return this.request("GET", "/account/private-mode", void 0, opts);
+  }
+  /** PUT /account/private-mode — until: ISO timestamp, 'infinity', or null (off). */
+  async setPrivateMode(until, opts = {}) {
+    return this.request("PUT", "/account/private-mode", { until }, opts);
+  }
   /**
    * POST /deploy-guard — acquire, release, status, or queue the per-project
    * deploy lease / waiter line.
@@ -91400,13 +91636,13 @@ function resolveApiUrl() {
 init_workspace_binding();
 init_auth_refusal();
 function globalConfigFilePath() {
-  return process.env.MEMLIN_CONFIG_FILE || path7.join(os6.homedir(), ".config", "memlin", "config.json");
+  return process.env.MEMLIN_CONFIG_FILE || path8.join(os7.homedir(), ".config", "memlin", "config.json");
 }
-var CONFIG_DIR = path7.join(os6.homedir(), ".config", "memlin");
-var TOKEN_FILE = path7.join(CONFIG_DIR, "token.json");
+var CONFIG_DIR = path8.join(os7.homedir(), ".config", "memlin");
+var TOKEN_FILE = path8.join(CONFIG_DIR, "token.json");
 async function readConfig() {
   try {
-    const raw = await fs6.readFile(globalConfigFilePath(), "utf8");
+    const raw = await fs7.readFile(globalConfigFilePath(), "utf8");
     const parsed = JSON.parse(raw);
     if (typeof parsed.account_id !== "string" || !parsed.account_id.trim() || typeof parsed.user_id !== "string" || !parsed.user_id.trim() || typeof parsed.auth0_sub !== "string" || !parsed.auth0_sub.trim()) {
       return null;
@@ -91456,13 +91692,15 @@ async function getApi(opts = {}) {
     overlay
   );
   const apiUrl = process.env.MEMLIN_API_URL?.trim() || config2.api_url || resolveApiUrl();
+  const privateSession = await isPrivateSession(void 0, void 0, config2.account_id);
   const api = new MemlinApiClient({
     baseUrl: apiUrl,
     getAccessToken: () => getIdentityBoundAccessToken(config2),
     accountId: config2.account_id,
-    authRefusal: { binding: workspaceRoot, accountName: workspaceAccountName }
+    authRefusal: { binding: workspaceRoot, accountName: workspaceAccountName },
+    privateSession
   });
-  return { api, config: config2, workspaceBound, workspaceRoot, workspaceAccountName };
+  return { api, config: config2, workspaceBound, workspaceRoot, workspaceAccountName, privateSession };
 }
 async function hookAuthRefusal(opts) {
   try {
@@ -91503,10 +91741,10 @@ function log(msg) {
 
 // packages/plugin-core/dist/project-resolver.js
 import { existsSync, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
-import path8 from "node:path";
+import path9 from "node:path";
 init_workspace_binding();
 async function resolveProject(api, cwd, configProjectId) {
-  const absCwd = path8.resolve(cwd);
+  const absCwd = path9.resolve(cwd);
   const remotes = detectGitRemotes(cwd);
   const hasGitRemote = remotes.length > 0;
   let serverFailure;
@@ -91562,9 +91800,9 @@ function readGitRemote(cwd) {
     return readFileSync2(file3, "utf8");
   };
   try {
-    let root = path8.resolve(cwd);
+    let root = path9.resolve(cwd);
     for (; ; ) {
-      const marker = path8.join(root, ".git");
+      const marker = path9.join(root, ".git");
       if (existsSync(marker)) {
         const info = lstatSync(marker);
         if (info.isSymbolicLink()) return null;
@@ -91572,12 +91810,12 @@ function readGitRemote(cwd) {
         if (info.isFile()) {
           const match = /^gitdir:\s*(.+)$/m.exec(read(marker));
           if (!match) return null;
-          directory = path8.resolve(root, match[1].trim());
+          directory = path9.resolve(root, match[1].trim());
         }
-        const common2 = path8.join(directory, "commondir");
-        if (existsSync(common2)) directory = path8.resolve(directory, read(common2).trim());
+        const common2 = path9.join(directory, "commondir");
+        if (existsSync(common2)) directory = path9.resolve(directory, read(common2).trim());
         let origin = false;
-        for (const line of read(path8.join(directory, "config")).split(/\r?\n/)) {
+        for (const line of read(path9.join(directory, "config")).split(/\r?\n/)) {
           if (/^\s*\[/.test(line)) origin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/.test(line);
           else if (origin) {
             const match = /^\s*url\s*=\s*(.*?)\s*$/.exec(line);
@@ -91586,7 +91824,7 @@ function readGitRemote(cwd) {
         }
         return null;
       }
-      const parent = path8.dirname(root);
+      const parent = path9.dirname(root);
       if (parent === root) return null;
       root = parent;
     }
@@ -91607,8 +91845,8 @@ function detectGitRemotes(cwd) {
         continue;
       }
       scanned++;
-      const child = path8.join(cwd, entry2.name);
-      if (!existsSync(path8.join(child, ".git"))) continue;
+      const child = path9.join(cwd, entry2.name);
+      if (!existsSync(path9.join(child, ".git"))) continue;
       const remote = readGitRemote(child);
       if (remote && !out.includes(remote)) out.push(remote);
     }
@@ -91623,8 +91861,8 @@ function isWorkspaceActive(input) {
 // packages/plugin-core/dist/edit-activity.js
 import { execSync } from "node:child_process";
 import { realpathSync as realpathSync2 } from "node:fs";
-import path10 from "node:path";
-import os8 from "node:os";
+import path11 from "node:path";
+import os9 from "node:os";
 
 // packages/plugin-core/dist/edit-broker-local.js
 import crypto5 from "node:crypto";
@@ -91639,8 +91877,8 @@ import {
   rmSync,
   writeFileSync
 } from "node:fs";
-import os7 from "node:os";
-import path9 from "node:path";
+import os8 from "node:os";
+import path10 from "node:path";
 import { execFileSync } from "node:child_process";
 var LOCAL_LEASE_MS = 2e4;
 var LOCK_STALE_MS = 1e4;
@@ -91665,7 +91903,7 @@ function canonical(value) {
   try {
     return realpathSync(value);
   } catch {
-    return path9.resolve(value);
+    return path10.resolve(value);
   }
 }
 function localBrokerIdentity(cwd) {
@@ -91674,9 +91912,9 @@ function localBrokerIdentity(cwd) {
   if (!rootRaw || !commonRaw) return null;
   const root = canonical(rootRaw);
   const commonDir = canonical(
-    path9.isAbsolute(commonRaw) ? commonRaw : path9.resolve(cwd, commonRaw)
+    path10.isAbsolute(commonRaw) ? commonRaw : path10.resolve(cwd, commonRaw)
   );
-  const deviceId = digest(`${os7.hostname()}\0${os7.platform()}\0${os7.arch()}`);
+  const deviceId = digest(`${os8.hostname()}\0${os8.platform()}\0${os8.arch()}`);
   return {
     root,
     commonDir,
@@ -91687,11 +91925,11 @@ function localBrokerIdentity(cwd) {
   };
 }
 function statePaths(identity) {
-  const dir = path9.join(identity.commonDir, "memlin");
+  const dir = path10.join(identity.commonDir, "memlin");
   return {
     dir,
-    state: path9.join(dir, "edit-broker-state.json"),
-    lock: path9.join(dir, "edit-broker.lock")
+    state: path10.join(dir, "edit-broker-state.json"),
+    lock: path10.join(dir, "edit-broker.lock")
   };
 }
 function emptyState() {
@@ -91830,7 +92068,7 @@ function globRegex(glob) {
   return new RegExp(`${source}$`);
 }
 function activeRepositoryClaims(identity, paths, selfAgent = process.env.CLAUDE_AGENT_NAME ?? process.env.MEMLIN_AGENT_NAME ?? "") {
-  const claimsDir = path9.join(identity.root, ".claude-agents");
+  const claimsDir = path10.join(identity.root, ".claude-agents");
   if (!existsSync2(claimsDir)) return [];
   let names = [];
   try {
@@ -91850,7 +92088,7 @@ function activeRepositoryClaims(identity, paths, selfAgent = process.env.CLAUDE_
   const conflicts = [];
   for (const name of names) {
     try {
-      const claim = JSON.parse(readFileSync3(path9.join(claimsDir, name), "utf8"));
+      const claim = JSON.parse(readFileSync3(path10.join(claimsDir, name), "utf8"));
       const agent = typeof claim.agent === "string" ? claim.agent : "";
       if (!agent || agent === selfAgent) continue;
       const started = typeof claim.started_at === "string" ? Date.parse(claim.started_at) : NaN;
@@ -91858,7 +92096,7 @@ function activeRepositoryClaims(identity, paths, selfAgent = process.env.CLAUDE_
       if (!Number.isFinite(started) || ttl <= 0 || started + ttl * 6e4 <= now) continue;
       const patterns = Array.isArray(claim.paths) ? claim.paths.filter((item) => typeof item === "string") : [];
       for (const pattern of patterns) {
-        const matcher = globRegex(pattern.replaceAll(path9.sep, "/"));
+        const matcher = globRegex(pattern.replaceAll(path10.sep, "/"));
         if (!paths.some((candidate) => matcher.test(candidate))) continue;
         conflicts.push({
           agent,
@@ -91929,23 +92167,23 @@ function repoPathOrNull(absPath, cwd) {
   if (top) {
     const canonicalWithMissingTail = (candidate) => {
       const tail = [];
-      let cursor = path10.resolve(candidate);
+      let cursor = path11.resolve(candidate);
       while (true) {
         try {
-          return path10.join(realpathSync2(cursor), ...tail.reverse());
+          return path11.join(realpathSync2(cursor), ...tail.reverse());
         } catch {
-          const parent = path10.dirname(cursor);
-          if (parent === cursor) return path10.resolve(candidate);
-          tail.push(path10.basename(cursor));
+          const parent = path11.dirname(cursor);
+          if (parent === cursor) return path11.resolve(candidate);
+          tail.push(path11.basename(cursor));
           cursor = parent;
         }
       }
     };
-    const rel = path10.relative(
+    const rel = path11.relative(
       canonicalWithMissingTail(top),
       canonicalWithMissingTail(absPath)
     );
-    if (rel && !rel.startsWith("..") && !path10.isAbsolute(rel)) return rel;
+    if (rel && !rel.startsWith("..") && !path11.isAbsolute(rel)) return rel;
   }
   return null;
 }
@@ -91971,14 +92209,14 @@ import {
   rmSync as rmSync2,
   writeFileSync as writeFileSync2
 } from "node:fs";
-import os9 from "node:os";
-import path12 from "node:path";
+import os10 from "node:os";
+import path13 from "node:path";
 import { execFileSync as execFileSync2, spawnSync } from "node:child_process";
 
 // packages/plugin-core/dist/edit-intent.js
 import crypto6 from "node:crypto";
 import { readFileSync as readFileSync4 } from "node:fs";
-import path11 from "node:path";
+import path12 from "node:path";
 var WHOLE_FILE_END = 2147483647;
 var PATCH_TOOLS = /* @__PURE__ */ new Set(["edit", "multiedit"]);
 var WRITE_TOOLS = /* @__PURE__ */ new Set(["write"]);
@@ -92147,7 +92385,7 @@ function occurrences(content, needle) {
   return result;
 }
 function materializeMutation(mutation, cwd) {
-  const absolutePath = path11.resolve(cwd, mutation.path);
+  const absolutePath = path12.resolve(cwd, mutation.path);
   const repoPath = repoPathOrNull(absolutePath, cwd);
   if (repoPath === null) return null;
   let baseContent = "";
@@ -92156,7 +92394,7 @@ function materializeMutation(mutation, cwd) {
   } catch {
     baseContent = "";
   }
-  const relPath = repoPath.replaceAll(path11.sep, "/");
+  const relPath = repoPath.replaceAll(path12.sep, "/");
   let proposedContent = mutation.kind === "whole_file" ? mutation.content === void 0 ? null : mutation.content : baseContent;
   let fresh = true;
   let staleReason = null;
@@ -92239,7 +92477,7 @@ function buildEditIntents(toolName, toolInput, cwd) {
       if (match?.[2]) {
         try {
           mutations = parseApplyPatch(
-            readFileSync4(path11.resolve(cwd, match[2]), "utf8"),
+            readFileSync4(path12.resolve(cwd, match[2]), "utf8"),
             "shell_patch"
           );
         } catch {
@@ -92323,7 +92561,7 @@ function dryMergeWorktreeIntent(intent, identity, holder, holderRoot) {
   if (intent.proposedContent === null || !identity.head || !holder.head_sha) return "unknown";
   let holderContent;
   try {
-    holderContent = readFileSync5(path12.join(holderRoot, intent.path), "utf8");
+    holderContent = readFileSync5(path13.join(holderRoot, intent.path), "utf8");
   } catch {
     return "unknown";
   }
@@ -92336,10 +92574,10 @@ function dryMergeWorktreeIntent(intent, identity, holder, holderRoot) {
   if (!mergeBase) return "unknown";
   const baseContent = gitOutput(identity.root, ["show", `${mergeBase}:${intent.path}`]);
   if (baseContent === null) return "unknown";
-  const dir = mkdtempSync(path12.join(os9.tmpdir(), "memlin-edit-broker-"));
-  const ours = path12.join(dir, "ours");
-  const base = path12.join(dir, "base");
-  const theirs = path12.join(dir, "theirs");
+  const dir = mkdtempSync(path13.join(os10.tmpdir(), "memlin-edit-broker-"));
+  const ours = path13.join(dir, "ours");
+  const base = path13.join(dir, "base");
+  const theirs = path13.join(dir, "theirs");
   try {
     writeFileSync2(ours, intent.proposedContent, "utf8");
     writeFileSync2(base, baseContent, "utf8");
@@ -92534,10 +92772,10 @@ async function prepareEditBroker(ctx, payload2, projectId, projectAccountId) {
 }
 
 // packages/plugin-core/dist/edit-collision-report.js
-import path13 from "node:path";
+import path14 from "node:path";
 function classifyCollision(c2, local) {
   if (c2.holder_root && local.root) {
-    return path13.resolve(c2.holder_root) === path13.resolve(local.root) ? "same-worktree" : "other-worktree";
+    return path14.resolve(c2.holder_root) === path14.resolve(local.root) ? "same-worktree" : "other-worktree";
   }
   if (c2.holder_branch && local.branch) {
     return c2.holder_branch === local.branch ? "same-worktree" : "other-worktree";
@@ -92631,9 +92869,9 @@ function shouldInterrupt(kind2) {
 }
 
 // packages/plugin-core/dist/trigger-memories.js
-import { promises as fs7 } from "node:fs";
-import os10 from "node:os";
-import path14 from "node:path";
+import { promises as fs8 } from "node:fs";
+import os11 from "node:os";
+import path15 from "node:path";
 init_atomic_rename();
 init_workspace_binding();
 var WORKSPACE_TRIGGERS_FILE = "triggers.json";
@@ -92733,7 +92971,7 @@ function commandPathCandidates(command, cwd, root) {
       if (eq > 0 && eq < token.length - 1) candidates.push(token.slice(eq + 1));
       for (const cand of candidates) {
         if (!cand || cand.startsWith("-") || cand.includes("$")) continue;
-        const rel = toRootRelative(path14.resolve(cwd, cand), root);
+        const rel = toRootRelative(path15.resolve(cwd, cand), root);
         if (rel !== null) out.push(rel);
       }
     }
@@ -92741,10 +92979,10 @@ function commandPathCandidates(command, cwd, root) {
   return out;
 }
 function toRootRelative(absPath, root) {
-  const rel = path14.relative(root, absPath);
+  const rel = path15.relative(root, absPath);
   if (!rel) return "";
-  if (rel === ".." || rel.startsWith(`..${path14.sep}`) || path14.isAbsolute(rel)) return null;
-  return rel.split(path14.sep).join("/");
+  if (rel === ".." || rel.startsWith(`..${path15.sep}`) || path15.isAbsolute(rel)) return null;
+  return rel.split(path15.sep).join("/");
 }
 function entryMatches(entry2, input) {
   const { command_pattern: pattern, path_prefix: prefix } = entry2;
@@ -92774,7 +93012,7 @@ function evaluateTriggerEntries(entries, input, source) {
   return hits;
 }
 function compiledTriggersPath() {
-  return path14.join(os10.homedir(), ".config", "memlin", "triggers.json");
+  return path15.join(os11.homedir(), ".config", "memlin", "triggers.json");
 }
 function decodeStoredEntry(raw, fallbackId) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -92802,7 +93040,7 @@ async function readCompiledTriggers(file3 = compiledTriggersPath()) {
   const empty = { version: 1, workspaces: {} };
   let raw;
   try {
-    raw = await fs7.readFile(file3, "utf8");
+    raw = await fs8.readFile(file3, "utf8");
   } catch {
     return empty;
   }
@@ -92830,9 +93068,9 @@ async function readCompiledTriggers(file3 = compiledTriggersPath()) {
   }
 }
 async function canonicalRoot(dir) {
-  const resolved = path14.resolve(dir);
+  const resolved = path15.resolve(dir);
   try {
-    return await fs7.realpath(resolved);
+    return await fs8.realpath(resolved);
   } catch {
     return resolved;
   }
@@ -92840,12 +93078,12 @@ async function canonicalRoot(dir) {
 var WORKSPACE_FILE_MAX_ENTRIES = 200;
 var WALK_CAP = 64;
 async function readWorkspaceTriggersFile(startDir) {
-  let dir = path14.resolve(startDir);
+  let dir = path15.resolve(startDir);
   for (let i2 = 0; i2 < WALK_CAP; i2++) {
-    const candidate = path14.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_TRIGGERS_FILE);
+    const candidate = path15.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_TRIGGERS_FILE);
     let raw = null;
     try {
-      raw = await fs7.readFile(candidate, "utf8");
+      raw = await fs8.readFile(candidate, "utf8");
     } catch {
       raw = null;
     }
@@ -92859,7 +93097,7 @@ async function readWorkspaceTriggersFile(startDir) {
         return { root: await canonicalRoot(dir), entries: [] };
       }
     }
-    const parent = path14.dirname(dir);
+    const parent = path15.dirname(dir);
     if (parent === dir) return null;
     dir = parent;
   }
@@ -92867,13 +93105,13 @@ async function readWorkspaceTriggersFile(startDir) {
 }
 function buildMatchInput(payload2, root) {
   const command = payload2.tool_name === "Bash" && typeof payload2.tool_input?.command === "string" ? payload2.tool_input.command : null;
-  const edited = editedPathsFromHook(payload2.tool_name, payload2.tool_input).map((p2) => toRootRelative(path14.resolve(payload2.cwd, p2), root)).filter((p2) => p2 !== null);
+  const edited = editedPathsFromHook(payload2.tool_name, payload2.tool_input).map((p2) => toRootRelative(path15.resolve(payload2.cwd, p2), root)).filter((p2) => p2 !== null);
   return {
     tool_name: payload2.tool_name,
     command,
     edited_paths: edited,
     command_paths: command ? commandPathCandidates(command, payload2.cwd, root) : [],
-    cwd_relative: toRootRelative(path14.resolve(payload2.cwd), root)
+    cwd_relative: toRootRelative(path15.resolve(payload2.cwd), root)
   };
 }
 var REASON_MESSAGE_MAX = 700;
@@ -92943,16 +93181,16 @@ async function evaluateTriggerMemories(payload2, opts = {}) {
 
 // packages/plugin-core/dist/deploy-broker.js
 import { existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync6, unlinkSync, writeFileSync as writeFileSync3 } from "node:fs";
-import os11 from "node:os";
-import path15 from "node:path";
+import os12 from "node:os";
+import path16 from "node:path";
 function deployWaiterDir() {
   const override = process.env.MEMLIN_DEPLOY_WAITER_DIR?.trim();
   if (override) return override;
-  return path15.join(os11.homedir(), ".config", "memlin", "deploy-waiters");
+  return path16.join(os12.homedir(), ".config", "memlin", "deploy-waiters");
 }
 function waiterPath(sessionId) {
   const safe = sessionId.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 180);
-  return path15.join(deployWaiterDir(), `${safe}.json`);
+  return path16.join(deployWaiterDir(), `${safe}.json`);
 }
 function recordLocalDeployWaiter(record2) {
   const dir = deployWaiterDir();
@@ -93068,7 +93306,7 @@ async function loadEnforcementDecisions(ctx, projectId, accountId) {
 async function recordGuardrailEvent(ctx, args) {
   const metadata = {
     tool: args.payload.tool_name,
-    cwd: path16.resolve(args.payload.cwd ?? process.cwd()),
+    cwd: path17.resolve(args.payload.cwd ?? process.cwd()),
     project_id: args.projectId,
     session_id: args.payload.session_id ?? null,
     enforcement_on: args.enforcementOn,
@@ -93227,6 +93465,7 @@ var EDIT_GUARD_TIMEOUT_MS = 2500;
 async function evaluateEditCollision(ctx, payload2, projectId, projectAccountId) {
   if (editGuardMode() === "off") return null;
   if (!projectId || !payload2.session_id) return null;
+  if (ctx.privateSession) return null;
   const broker = await prepareEditBroker(ctx, payload2, projectId, projectAccountId);
   if (broker?.decision === "block") {
     return {
@@ -93241,7 +93480,7 @@ async function evaluateEditCollision(ctx, payload2, projectId, projectAccountId)
   const cwd = payload2.cwd ?? process.cwd();
   const relPaths = [
     ...new Set(
-      rawPaths.map((p2) => repoPathOrNull(path16.resolve(cwd, p2), cwd)).filter((relPath) => relPath !== null)
+      rawPaths.map((p2) => repoPathOrNull(path17.resolve(cwd, p2), cwd)).filter((relPath) => relPath !== null)
     )
   ];
   if (relPaths.length === 0) return null;
@@ -93317,7 +93556,7 @@ async function recordTriggerGuardrailEvent(payload2, verdict) {
         event_type: "tool.guardrail",
         metadata: {
           tool: payload2.tool_name,
-          cwd: path16.resolve(payload2.cwd ?? process.cwd()),
+          cwd: path17.resolve(payload2.cwd ?? process.cwd()),
           session_id: payload2.session_id ?? null,
           trigger_memory: true,
           outcome: verdict.decision === "block" ? "blocked" : "asked",
@@ -93349,6 +93588,9 @@ async function runPreToolUseHandler(payload2) {
   }
   if ((await hookAuthRefusal({ cwd: payload2.cwd ?? process.cwd() })).refused) {
     return { decision: "allow", reason: null, matched_decisions: [] };
+  }
+  if (payload2.session_id && !process.env.MEMLIN_SESSION_ID) {
+    process.env.MEMLIN_SESSION_ID = payload2.session_id;
   }
   let ctx;
   try {
@@ -93451,7 +93693,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION2 = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code"]);
 function ownVersion() {
-  const version5 = "0.2.72";
+  const version5 = "0.2.73";
   return typeof version5 === "string" && VERSION2.test(version5) ? version5 : null;
 }
 async function reportPluginRuntime(report) {
@@ -93502,25 +93744,25 @@ function startPluginRuntimeHeartbeat(host2) {
 
 // packages/plugin-core/dist/state.js
 init_atomic_rename();
-import { promises as fs8 } from "node:fs";
-import path17 from "node:path";
-import os12 from "node:os";
+import { promises as fs9 } from "node:fs";
+import path18 from "node:path";
+import os13 from "node:os";
 import crypto7 from "node:crypto";
-var STATE_FILE = path17.join(os12.homedir(), ".config", "memlin", "state.json");
+var STATE_FILE = path18.join(os13.homedir(), ".config", "memlin", "state.json");
 var MAX_LAST_RESOLVE_SESSIONS = 32;
 var EMPTY = { documents: {} };
 async function readState2() {
   try {
-    const raw = await fs8.readFile(STATE_FILE, "utf8");
+    const raw = await fs9.readFile(STATE_FILE, "utf8");
     return JSON.parse(raw);
   } catch {
     return { ...EMPTY };
   }
 }
 async function writeState2(state) {
-  await fs8.mkdir(path17.dirname(STATE_FILE), { recursive: true });
+  await fs9.mkdir(path18.dirname(STATE_FILE), { recursive: true });
   const tmp = `${STATE_FILE}.${process.pid}.tmp`;
-  await fs8.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
+  await fs9.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
   await atomicRename(tmp, STATE_FILE);
 }
 var LOCK_DIR = `${STATE_FILE}.lock`;
@@ -93529,17 +93771,17 @@ var LOCK_WAIT_MS = 2e3;
 var LOCK_RETRY_MS = 50;
 async function acquireStateLock() {
   const deadline = Date.now() + LOCK_WAIT_MS;
-  await fs8.mkdir(path17.dirname(LOCK_DIR), { recursive: true }).catch(() => {
+  await fs9.mkdir(path18.dirname(LOCK_DIR), { recursive: true }).catch(() => {
   });
   for (; ; ) {
     try {
-      await fs8.mkdir(LOCK_DIR);
+      await fs9.mkdir(LOCK_DIR);
       return true;
     } catch {
       try {
-        const stat = await fs8.stat(LOCK_DIR);
+        const stat = await fs9.stat(LOCK_DIR);
         if (Date.now() - stat.mtimeMs > LOCK_STALE_MS2) {
-          await fs8.rmdir(LOCK_DIR).catch(() => {
+          await fs9.rmdir(LOCK_DIR).catch(() => {
           });
           continue;
         }
@@ -93552,7 +93794,7 @@ async function acquireStateLock() {
   }
 }
 async function releaseStateLock() {
-  await fs8.rmdir(LOCK_DIR).catch(() => {
+  await fs9.rmdir(LOCK_DIR).catch(() => {
   });
 }
 async function updateState(mutate) {
@@ -93613,18 +93855,18 @@ function bundleHasContinuityContent(bundle) {
 }
 
 // packages/plugin-core/dist/local-scan.js
-import { promises as fs9 } from "node:fs";
+import { promises as fs10 } from "node:fs";
 import { existsSync as existsSync4 } from "node:fs";
-import path18 from "node:path";
+import path19 from "node:path";
 async function scanLocal(opts = {}) {
   const out = [];
   const root = opts.rootOverride ?? resolveHost().homeDir();
-  const memDir = path18.join(root, "memory");
+  const memDir = path19.join(root, "memory");
   if (existsSync4(memDir)) {
-    for (const file3 of await fs9.readdir(memDir)) {
+    for (const file3 of await fs10.readdir(memDir)) {
       if (!file3.endsWith(".md") || file3 === "MEMORY.md") continue;
-      const abs = path18.join(memDir, file3);
-      const content = await fs9.readFile(abs, "utf8");
+      const abs = path19.join(memDir, file3);
+      const content = await fs10.readFile(abs, "utf8");
       out.push({
         path: `memory/${file3}`,
         abs_path: abs,
@@ -93634,14 +93876,14 @@ async function scanLocal(opts = {}) {
       });
     }
   }
-  const skillsDir = path18.join(root, "skills");
+  const skillsDir = path19.join(root, "skills");
   if (existsSync4(skillsDir)) {
-    const entries = await fs9.readdir(skillsDir, { withFileTypes: true });
+    const entries = await fs10.readdir(skillsDir, { withFileTypes: true });
     for (const e2 of entries) {
       if (!e2.isDirectory()) continue;
-      const skillMd = path18.join(skillsDir, e2.name, "SKILL.md");
+      const skillMd = path19.join(skillsDir, e2.name, "SKILL.md");
       if (!existsSync4(skillMd)) continue;
-      const content = await fs9.readFile(skillMd, "utf8");
+      const content = await fs10.readFile(skillMd, "utf8");
       out.push({
         path: `skills/${e2.name}/SKILL.md`,
         abs_path: skillMd,
@@ -93651,12 +93893,12 @@ async function scanLocal(opts = {}) {
       });
     }
   }
-  const goalsDir = path18.join(root, "goals");
+  const goalsDir = path19.join(root, "goals");
   if (existsSync4(goalsDir)) {
-    for (const file3 of await fs9.readdir(goalsDir)) {
+    for (const file3 of await fs10.readdir(goalsDir)) {
       if (!file3.endsWith(".md")) continue;
-      const abs = path18.join(goalsDir, file3);
-      const content = await fs9.readFile(abs, "utf8");
+      const abs = path19.join(goalsDir, file3);
+      const content = await fs10.readFile(abs, "utf8");
       out.push({
         path: `goals/${file3}`,
         abs_path: abs,
@@ -93666,12 +93908,12 @@ async function scanLocal(opts = {}) {
       });
     }
   }
-  const schemasDir = path18.join(root, "schemas");
+  const schemasDir = path19.join(root, "schemas");
   if (existsSync4(schemasDir)) {
-    for (const file3 of await fs9.readdir(schemasDir)) {
+    for (const file3 of await fs10.readdir(schemasDir)) {
       if (!file3.endsWith(".json")) continue;
-      const abs = path18.join(schemasDir, file3);
-      const content = await fs9.readFile(abs, "utf8");
+      const abs = path19.join(schemasDir, file3);
+      const content = await fs10.readFile(abs, "utf8");
       out.push({
         path: `schemas/${file3}`,
         abs_path: abs,
@@ -93684,10 +93926,10 @@ async function scanLocal(opts = {}) {
   if (opts.includePlans) {
     const plansDir = resolveHost().plansDir();
     if (existsSync4(plansDir)) {
-      for (const file3 of await fs9.readdir(plansDir)) {
+      for (const file3 of await fs10.readdir(plansDir)) {
         if (!file3.endsWith(".md")) continue;
-        const abs = path18.join(plansDir, file3);
-        const content = await fs9.readFile(abs, "utf8");
+        const abs = path19.join(plansDir, file3);
+        const content = await fs10.readFile(abs, "utf8");
         out.push({
           path: `plans/${file3}`,
           abs_path: abs,
@@ -93703,9 +93945,9 @@ async function scanLocal(opts = {}) {
     for (const [relPath, meta] of Object.entries(opts.trackedDocs)) {
       if (seen.has(relPath)) continue;
       if (relPath.startsWith("plans/")) continue;
-      const abs = path18.join(root, relPath);
+      const abs = path19.join(root, relPath);
       if (!existsSync4(abs)) continue;
-      const content = await fs9.readFile(abs, "utf8");
+      const content = await fs10.readFile(abs, "utf8");
       out.push({
         path: relPath,
         abs_path: abs,
@@ -93719,7 +93961,7 @@ async function scanLocal(opts = {}) {
 }
 function filterAbsentOnDisk(paths, rootOverride) {
   const root = rootOverride ?? resolveHost().homeDir();
-  return paths.filter((p2) => !existsSync4(path18.join(root, p2)));
+  return paths.filter((p2) => !existsSync4(path19.join(root, p2)));
 }
 
 // apps/mcp-server/src/index.ts
@@ -93727,7 +93969,7 @@ init_workspace_binding();
 init_companion_client();
 
 // apps/mcp-server/src/request-routing.ts
-import path19 from "node:path";
+import path20 from "node:path";
 function hasOwn2(input, key2) {
   return Object.prototype.hasOwnProperty.call(input, key2);
 }
@@ -93741,8 +93983,8 @@ function explicitProjectId(value) {
 }
 async function resolveRequestRouting(args, config2, deps) {
   const explicitCwd = nonEmptyString(args.cwd);
-  const startupCwd = path19.resolve(config2.cwd);
-  const cwd = explicitCwd ? path19.resolve(startupCwd, explicitCwd) : startupCwd;
+  const startupCwd = path20.resolve(config2.cwd);
+  const cwd = explicitCwd ? path20.resolve(startupCwd, explicitCwd) : startupCwd;
   const cwdChanged = cwd !== startupCwd;
   const projectIdWasExplicit = hasOwn2(args, "project_id");
   const requestedProjectId = projectIdWasExplicit ? explicitProjectId(args.project_id) : null;
@@ -93874,22 +94116,22 @@ function runtimeCwd() {
     "INIT_CWD"
   ]) {
     const value = process.env[key2]?.trim();
-    if (value && path20.isAbsolute(value)) return path20.resolve(value);
+    if (value && path21.isAbsolute(value)) return path21.resolve(value);
   }
   const pwd = process.env.PWD?.trim();
-  if (pwd && path20.isAbsolute(pwd) && pwd !== "/") {
-    return path20.resolve(pwd);
+  if (pwd && path21.isAbsolute(pwd) && pwd !== "/") {
+    return path21.resolve(pwd);
   }
   const curr = process.cwd();
   if (curr && curr !== "/") {
     return curr;
   }
   try {
-    const raw = readFileSync7(path20.join(os13.homedir(), ".config", "memlin", "state.json"), "utf8");
+    const raw = readFileSync7(path21.join(os14.homedir(), ".config", "memlin", "state.json"), "utf8");
     const s2 = JSON.parse(raw);
     const candidate = s2?.last_resolve?.cwd;
-    if (candidate && typeof candidate === "string" && path20.isAbsolute(candidate) && existsSync5(candidate)) {
-      return path20.resolve(candidate);
+    if (candidate && typeof candidate === "string" && path21.isAbsolute(candidate) && existsSync5(candidate)) {
+      return path21.resolve(candidate);
     }
   } catch {
   }
@@ -93996,7 +94238,7 @@ function agentCapabilities2() {
   return process.env.MEMLIN_AGENT_CAPABILITIES || "mcp,cli,hooks,rules,scribe,resolve";
 }
 function agentDevice2() {
-  return process.env.MEMLIN_AGENT_DEVICE || os13.hostname() || "unknown device";
+  return process.env.MEMLIN_AGENT_DEVICE || os14.hostname() || "unknown device";
 }
 function readNearestPackageVersion() {
   try {
@@ -94018,7 +94260,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.72"?.trim();
+  const env = "0.2.73"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }
@@ -94314,8 +94556,8 @@ async function createToolContext(accessToken, requestCfg, requireInstallation = 
       // change" (never blanks a known version) and
       // its semver-gated propagation only moves a
       // sibling row UP, so a floor can't smear.
-      p_platform: os13.platform(),
-      p_arch: os13.arch(),
+      p_platform: os14.platform(),
+      p_arch: os14.arch(),
       p_capabilities: {
         items: agentCapabilities2().split(",").map((s2) => s2.trim()).filter(Boolean)
       }
@@ -94538,8 +94780,8 @@ async function refreshClientWorkspace() {
     ({ roots } = await server.listRoots(void 0, { timeout: 1500 }));
   } catch {
     const explicit = process.env.CURSOR_WORKSPACE_ROOT?.trim();
-    if (explicit && path20.isAbsolute(explicit) && !explicit.includes("${")) {
-      const next2 = path20.resolve(explicit);
+    if (explicit && path21.isAbsolute(explicit) && !explicit.includes("${")) {
+      const next2 = path21.resolve(explicit);
       if (next2 !== clientWorkspaceRoot) cfg = null;
       clientWorkspaceRoot = next2;
       return;
@@ -94556,7 +94798,7 @@ async function refreshClientWorkspace() {
         try {
           const url2 = new URL(root.uri);
           if (url2.protocol !== "file:") return [];
-          return [path20.resolve(fileURLToPath2(url2))];
+          return [path21.resolve(fileURLToPath2(url2))];
         } catch {
           return [];
         }
@@ -94564,8 +94806,8 @@ async function refreshClientWorkspace() {
     )
   ];
   const matching = paths.filter((root) => {
-    const relative = path20.relative(root, process.cwd());
-    return relative === "" || !relative.startsWith(".." + path20.sep) && relative !== ".." && !path20.isAbsolute(relative);
+    const relative = path21.relative(root, process.cwd());
+    return relative === "" || !relative.startsWith(".." + path21.sep) && relative !== ".." && !path21.isAbsolute(relative);
   });
   const next = paths.length === 1 ? paths[0] : matching.length === 1 ? matching[0] : void 0;
   if (!next) {

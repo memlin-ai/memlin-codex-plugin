@@ -166,3 +166,11 @@ Readers can list and inspect. Changes require current writer access and enabled 
 Use `memlin features pin <feature-id>` on the working branch. When `MEMLIN_SESSION_ID` is available, the pin also follows that session. Use `memlin features pin --clear` to remove that pin. Default branches are rejected. Session notes, proposed memories, commit notes and new plans carry the binding as a hint; the server checks current access and project tracking before filing anything.
 
 Pins, accepted handoffs and branch bindings can be cached locally for the exact account, project and session. Semantic suggestions are temporary. Automatically captured associations remain server-resolved through the session or branch and are not promoted into a local explicit feature hint.
+
+## Private mode
+
+The user can send `memlin private` (on), `memlin private off` or `memlin private status` as a
+whole prompt (`$memlin-private` works too). The Memlin prompt hook applies it and adds a one-line
+notice; relay that notice. While private mode is on, Memlin context still loads but nothing from
+the session is saved, so do not call Memlin write tools unless the user explicitly asks. The
+account-wide switch lives in Memlin Settings → Private mode and the Companion tray.

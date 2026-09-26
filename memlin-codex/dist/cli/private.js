@@ -41,6 +41,401 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
+// packages/plugin-core/src/atomic-rename.ts
+import { promises as fs } from "node:fs";
+import path from "node:path";
+async function renameWithRetry(from, to, rename) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await rename(from, to);
+      return;
+    } catch (error40) {
+      const code = error40.code;
+      if (attempt >= MAX_ATTEMPTS || !code || !RETRYABLE_CODES.has(code)) throw error40;
+      const cap = Math.min(BASE_DELAY_MS * 2 ** (attempt - 1), MAX_DELAY_MS);
+      const delay2 = cap / 2 + Math.random() * (cap / 2);
+      await new Promise((resolve) => setTimeout(resolve, delay2));
+    }
+  }
+}
+async function atomicRename(from, to, dependencies = {}) {
+  const rename = dependencies.rename ?? fs.rename;
+  const queueKey = path.resolve(to);
+  const previous = renameQueues.get(queueKey) ?? Promise.resolve();
+  const run = previous.catch(() => void 0).then(() => renameWithRetry(from, to, rename));
+  renameQueues.set(queueKey, run);
+  try {
+    await run;
+  } finally {
+    if (renameQueues.get(queueKey) === run) renameQueues.delete(queueKey);
+  }
+}
+var RETRYABLE_CODES, MAX_ATTEMPTS, BASE_DELAY_MS, MAX_DELAY_MS, renameQueues;
+var init_atomic_rename = __esm({
+  "packages/plugin-core/src/atomic-rename.ts"() {
+    "use strict";
+    RETRYABLE_CODES = /* @__PURE__ */ new Set(["EPERM", "EACCES", "EBUSY"]);
+    MAX_ATTEMPTS = 10;
+    BASE_DELAY_MS = 10;
+    MAX_DELAY_MS = 100;
+    renameQueues = /* @__PURE__ */ new Map();
+  }
+});
+
+// packages/plugin-core/src/auth-refusal.ts
+import crypto from "node:crypto";
+import { promises as fs3 } from "node:fs";
+import os2 from "node:os";
+import path3 from "node:path";
+function isReason(value) {
+  return value === "not_member" || value === "no_profile";
+}
+function classifyAuthRefusal(status, body) {
+  if (status !== 403 || typeof body !== "object" || body === null) return null;
+  const record2 = body;
+  if (isReason(record2.code)) return record2.code;
+  let message = record2.error;
+  if (typeof record2.error === "object" && record2.error !== null) {
+    const nested = record2.error;
+    if (isReason(nested.code)) return nested.code;
+    message = nested.message;
+  }
+  if (typeof message !== "string") return null;
+  for (const reason of Object.keys(AUTH_REFUSAL_MESSAGES)) {
+    if (message === AUTH_REFUSAL_MESSAGES[reason]) return reason;
+  }
+  return null;
+}
+function authRefusalDir() {
+  return process.env.MEMLIN_AUTH_REFUSAL_DIR ?? path3.join(os2.homedir(), ".config", "memlin", "auth-refusal");
+}
+function sha(value) {
+  return crypto.createHash("sha256").update(value).digest("hex").slice(0, 32);
+}
+function normalizeBinding(binding) {
+  return binding ? path3.resolve(binding) : null;
+}
+function accountDir(accountId) {
+  return path3.join(authRefusalDir(), sha(accountId));
+}
+function entryPath(accountId, binding) {
+  return path3.join(accountDir(accountId), `${sha(binding ?? "(global)")}.json`);
+}
+function isEntry(value) {
+  if (typeof value !== "object" || value === null) return false;
+  const e = value;
+  return typeof e.account_id === "string" && (e.binding === null || typeof e.binding === "string") && isReason(e.reason) && typeof e.expires_at === "number" && Array.isArray(e.notified_sessions);
+}
+async function readRaw(file2) {
+  try {
+    const parsed = JSON.parse(await fs3.readFile(file2, "utf8"));
+    return isEntry(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+async function writeEntry(entry) {
+  const file2 = entryPath(entry.account_id, entry.binding);
+  await fs3.mkdir(path3.dirname(file2), { recursive: true });
+  const tmp = `${file2}.${process.pid}.${crypto.randomUUID()}.tmp`;
+  await fs3.writeFile(tmp, JSON.stringify(entry), { mode: 384 });
+  await atomicRename(tmp, file2);
+}
+async function recordAuthRefusal(input) {
+  const now = input.now ?? Date.now();
+  const binding = normalizeBinding(input.binding);
+  const previous = await readRaw(entryPath(input.accountId, binding));
+  const entry = {
+    account_id: input.accountId,
+    binding,
+    reason: input.reason,
+    account_name: input.accountName ?? previous?.account_name ?? null,
+    refused_at: now,
+    expires_at: now + AUTH_REFUSAL_TTL_MS,
+    notified_sessions: previous?.notified_sessions ?? []
+  };
+  await writeEntry(entry);
+  return entry;
+}
+async function readAuthRefusal(accountId, binding, now = Date.now()) {
+  const file2 = entryPath(accountId, normalizeBinding(binding));
+  const entry = await readRaw(file2);
+  if (!entry) return null;
+  if (now >= entry.expires_at) {
+    await fs3.rm(file2, { force: true }).catch(() => {
+    });
+    return null;
+  }
+  return entry;
+}
+async function clearAuthRefusalsForAccount(accountId) {
+  await fs3.rm(accountDir(accountId), { recursive: true, force: true }).catch(() => {
+  });
+}
+async function clearAllAuthRefusals() {
+  await fs3.rm(authRefusalDir(), { recursive: true, force: true }).catch(() => {
+  });
+}
+function accountIdsChanged(before, after) {
+  const normalize = (value) => Array.isArray(value) ? value.filter((v) => typeof v === "string").sort().join(",") : "";
+  return normalize(before) !== normalize(after);
+}
+var AUTH_REFUSAL_MESSAGES, AUTH_REFUSAL_TTL_MS;
+var init_auth_refusal = __esm({
+  "packages/plugin-core/src/auth-refusal.ts"() {
+    "use strict";
+    init_atomic_rename();
+    AUTH_REFUSAL_MESSAGES = {
+      not_member: "not a member of this account",
+      no_profile: "no Memlin profile for this user \u2014 sign in to the web app first"
+    };
+    AUTH_REFUSAL_TTL_MS = 15 * 60 * 1e3;
+  }
+});
+
+// packages/plugin-core/src/companion-client.ts
+var companion_client_exports = {};
+__export(companion_client_exports, {
+  CODEX_ADDITIONAL_CONTEXT_MAX_BYTES: () => CODEX_ADDITIONAL_CONTEXT_MAX_BYTES,
+  CODEX_HOOK_RESOLVE_PROFILE: () => CODEX_HOOK_RESOLVE_PROFILE,
+  COMPANION_PROTOCOL: () => COMPANION_PROTOCOL,
+  COMPANION_SOCKET_ENV: () => COMPANION_SOCKET_ENV,
+  IS_COMPANION_ENV: () => IS_COMPANION_ENV,
+  MAX_COMPANION_PROTOCOL: () => MAX_COMPANION_PROTOCOL,
+  MIN_COMPANION_PROTOCOL: () => MIN_COMPANION_PROTOCOL,
+  NO_COMPANION_ENV: () => NO_COMPANION_ENV,
+  USE_COMPANION_ENV: () => USE_COMPANION_ENV,
+  companionCommitResolveDelivery: () => companionCommitResolveDelivery,
+  companionDelegationEnabled: () => companionDelegationEnabled,
+  companionForDelegation: () => companionForDelegation,
+  companionGetToken: () => companionGetToken,
+  companionReadLocal: () => companionReadLocal,
+  companionReleaseResolveDelivery: () => companionReleaseResolveDelivery,
+  companionReportResolveDelivery: () => companionReportResolveDelivery,
+  companionReportSession: () => companionReportSession,
+  companionRequest: () => companionRequest,
+  companionReserveLateResolveDelivery: () => companionReserveLateResolveDelivery,
+  companionReserveResolveDelivery: () => companionReserveResolveDelivery,
+  companionResolveJoin: () => companionResolveJoin,
+  companionResolveReuse: () => companionResolveReuse,
+  companionResolveStart: () => companionResolveStart,
+  companionResolveTake: () => companionResolveTake,
+  companionResolveWorkspace: () => companionResolveWorkspace,
+  companionRunDir: () => companionRunDir,
+  companionSearchLocal: () => companionSearchLocal,
+  companionSocketPath: () => companionSocketPath,
+  companionStatus: () => companionStatus,
+  companionSyncNow: () => companionSyncNow,
+  deriveResolveId: () => deriveResolveId,
+  isCompanionHealthyForDelegation: () => isCompanionHealthyForDelegation,
+  resetCompanionClientCache: () => resetCompanionClientCache
+});
+import http from "node:http";
+import crypto2 from "node:crypto";
+import os3 from "node:os";
+import path4 from "node:path";
+function companionSocketPath(env = process.env) {
+  const override = env[COMPANION_SOCKET_ENV];
+  if (override) return override;
+  if (process.platform === "win32") {
+    return `\\\\.\\pipe\\memlin-companion-${os3.userInfo().username}`;
+  }
+  return path4.join(os3.homedir(), ".config", "memlin", "run", "companion.sock");
+}
+function companionRunDir() {
+  return path4.join(os3.homedir(), ".config", "memlin", "run");
+}
+function deriveResolveId(input) {
+  const digest = crypto2.createHash("sha256").update("memlin.resolve.v2\0").update(JSON.stringify([input.accountId, input.host, input.sessionId ?? null, input.turnId])).digest().subarray(0, 16);
+  digest[6] = digest[6] & 15 | 80;
+  digest[8] = digest[8] & 63 | 128;
+  const hex = digest.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+function companionDisabled(env = process.env) {
+  const off = env[NO_COMPANION_ENV];
+  if (off === "1" || off === "true" || off === "yes") return true;
+  return env[IS_COMPANION_ENV] === "1";
+}
+async function companionRequest(method, body, opts = {}) {
+  const env = opts.env ?? process.env;
+  if (companionDisabled(env)) return null;
+  if (Date.now() < socketDeadUntil) return null;
+  const timeoutMs = opts.timeoutMs ?? CALL_TIMEOUTS[method] ?? DEFAULT_CALL_TIMEOUT_MS;
+  const payload = JSON.stringify(body ?? {});
+  return new Promise((resolve) => {
+    let settled = false;
+    const fail = (markDead) => {
+      if (settled) return;
+      settled = true;
+      if (markDead) socketDeadUntil = Date.now() + SOCKET_DEAD_TTL_MS;
+      resolve(null);
+    };
+    const req = http.request(
+      {
+        socketPath: companionSocketPath(env),
+        path: `/v1/${method}`,
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "content-length": Buffer.byteLength(payload),
+          "memlin-client-protocol": String(COMPANION_PROTOCOL)
+        },
+        // Overall call budget; the connect phase gets its own tighter cap
+        // below via the socket timeout before the connection exists.
+        timeout: timeoutMs
+      },
+      (res) => {
+        const chunks = [];
+        res.on("data", (c) => chunks.push(c));
+        res.on("end", () => {
+          if (settled) return;
+          settled = true;
+          if (res.statusCode !== 200) return resolve(null);
+          try {
+            resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+          } catch {
+            resolve(null);
+          }
+        });
+        res.on("error", () => fail(false));
+      }
+    );
+    const connectTimer = setTimeout(() => {
+      req.destroy();
+      fail(true);
+    }, CONNECT_TIMEOUT_MS);
+    connectTimer.unref?.();
+    req.on("socket", (socket) => {
+      if (!socket.connecting) clearTimeout(connectTimer);
+      else socket.once("connect", () => clearTimeout(connectTimer));
+    });
+    req.once("close", () => clearTimeout(connectTimer));
+    req.on("timeout", () => {
+      req.destroy();
+      fail(false);
+    });
+    req.on("error", () => fail(true));
+    req.end(payload);
+  });
+}
+async function companionStatus(opts = {}) {
+  const status = await companionRequest("status.get", {}, opts);
+  if (!status) return null;
+  if (status.protocol < MIN_COMPANION_PROTOCOL || status.protocol > MAX_COMPANION_PROTOCOL) {
+    return null;
+  }
+  return status;
+}
+async function companionGetToken() {
+  const token = await companionRequest("token.get", {});
+  if (!token || token.expires_at <= Date.now() + 6e4) return null;
+  return token;
+}
+async function companionResolveWorkspace(cwd) {
+  return companionRequest("workspace.resolve", { cwd });
+}
+async function companionSyncNow(req) {
+  return companionRequest("sync.now", req);
+}
+async function companionSearchLocal(req) {
+  return companionRequest("memory.search", req);
+}
+async function companionReadLocal(req) {
+  return companionRequest("memory.read", req);
+}
+async function companionResolveStart(req, opts = {}) {
+  return companionRequest("resolve.start", req, opts);
+}
+async function companionResolveTake(req) {
+  return companionRequest("resolve.take", req, {
+    timeoutMs: Math.max(250, req.wait_ms + 250)
+  });
+}
+async function companionResolveJoin(req) {
+  return companionRequest("resolve.join", req, {
+    timeoutMs: Math.max(250, req.wait_ms + 250)
+  });
+}
+async function companionResolveReuse(req) {
+  return companionRequest("resolve.reuse", req, {
+    timeoutMs: Math.max(250, Math.min(4500, req.wait_ms + 500))
+  });
+}
+async function companionReserveResolveDelivery(req, opts = {}) {
+  return companionRequest("resolve.reserve", req, opts);
+}
+async function companionReserveLateResolveDelivery(req, opts = {}) {
+  return companionRequest("resolve.reserve-late", req, opts);
+}
+async function companionCommitResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.commit", req, opts))?.accepted ?? null;
+}
+async function companionReleaseResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.release", req, opts))?.released ?? null;
+}
+async function companionReportResolveDelivery(req, opts = {}) {
+  return (await companionRequest("resolve.report", req, opts))?.accepted ?? null;
+}
+async function companionReportSession(req) {
+  return (await companionRequest("session.report", req))?.registered ?? false;
+}
+function isCompanionHealthyForDelegation(status) {
+  if (!status) return false;
+  if (status.auth.state !== "ok") return false;
+  if (status.sync.mode === "realtime") return true;
+  if (status.sync.mode !== "polling") return false;
+  if (!status.sync.last_delta_at) return false;
+  const age = Date.now() - Date.parse(status.sync.last_delta_at);
+  return Number.isFinite(age) && age < 5 * 6e4;
+}
+function companionDelegationEnabled(env = process.env) {
+  const v = env[USE_COMPANION_ENV];
+  return v === "1" || v === "true" || v === "yes";
+}
+async function companionForDelegation() {
+  if (!companionDelegationEnabled()) return null;
+  const status = await companionStatus();
+  return isCompanionHealthyForDelegation(status) ? status : null;
+}
+function resetCompanionClientCache() {
+  socketDeadUntil = 0;
+}
+var COMPANION_PROTOCOL, MIN_COMPANION_PROTOCOL, MAX_COMPANION_PROTOCOL, NO_COMPANION_ENV, IS_COMPANION_ENV, COMPANION_SOCKET_ENV, CODEX_HOOK_RESOLVE_PROFILE, CODEX_ADDITIONAL_CONTEXT_MAX_BYTES, CONNECT_TIMEOUT_MS, DEFAULT_CALL_TIMEOUT_MS, CALL_TIMEOUTS, socketDeadUntil, SOCKET_DEAD_TTL_MS, USE_COMPANION_ENV;
+var init_companion_client = __esm({
+  "packages/plugin-core/src/companion-client.ts"() {
+    "use strict";
+    COMPANION_PROTOCOL = 1;
+    MIN_COMPANION_PROTOCOL = 1;
+    MAX_COMPANION_PROTOCOL = 1;
+    NO_COMPANION_ENV = "MEMLIN_NO_DAEMON";
+    IS_COMPANION_ENV = "MEMLIN_DAEMON";
+    COMPANION_SOCKET_ENV = "MEMLIN_COMPANION_SOCKET";
+    CODEX_HOOK_RESOLVE_PROFILE = "codex-hook-v1:tokens=2200";
+    CODEX_ADDITIONAL_CONTEXT_MAX_BYTES = 2200;
+    CONNECT_TIMEOUT_MS = 150;
+    DEFAULT_CALL_TIMEOUT_MS = 1e3;
+    CALL_TIMEOUTS = {
+      "workspace.resolve": 2e3,
+      "resolve.start": 750,
+      "resolve.reuse": 4500,
+      "resolve.reserve": 750,
+      "resolve.reserve-late": 750,
+      "resolve.commit": 750,
+      "resolve.release": 500,
+      "resolve.report": 500,
+      "sync.now": 5e3,
+      "login.start": 1e4,
+      // Local-store reads walk the materialized doc tree on disk.
+      "memory.search": 2e3,
+      "memory.read": 2e3
+    };
+    socketDeadUntil = 0;
+    SOCKET_DEAD_TTL_MS = 5e3;
+    USE_COMPANION_ENV = "MEMLIN_USE_DAEMON";
+  }
+});
+
 // node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js
 var require_kind_of = __commonJS({
   "node_modules/.pnpm/kind-of@6.0.3/node_modules/kind-of/index.js"(exports2, module2) {
@@ -3412,7 +3807,7 @@ var require_parse = __commonJS({
 var require_gray_matter = __commonJS({
   "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
-    var fs8 = __require("fs");
+    var fs7 = __require("fs");
     var sections = require_section_matter();
     var defaults = require_defaults();
     var stringify = require_stringify();
@@ -3496,7 +3891,7 @@ var require_gray_matter = __commonJS({
       return stringify(file2, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str2 = fs8.readFileSync(filepath, "utf8");
+      const str2 = fs7.readFileSync(filepath, "utf8");
       const file2 = matter3(str2, options2);
       file2.path = filepath;
       return file2;
@@ -3521,401 +3916,6 @@ var require_gray_matter = __commonJS({
       matter3.cache = {};
     };
     module2.exports = matter3;
-  }
-});
-
-// packages/plugin-core/src/atomic-rename.ts
-import { promises as fs } from "node:fs";
-import path from "node:path";
-async function renameWithRetry(from, to, rename) {
-  for (let attempt = 1; ; attempt++) {
-    try {
-      await rename(from, to);
-      return;
-    } catch (error40) {
-      const code = error40.code;
-      if (attempt >= MAX_ATTEMPTS || !code || !RETRYABLE_CODES.has(code)) throw error40;
-      const cap = Math.min(BASE_DELAY_MS * 2 ** (attempt - 1), MAX_DELAY_MS);
-      const delay2 = cap / 2 + Math.random() * (cap / 2);
-      await new Promise((resolve) => setTimeout(resolve, delay2));
-    }
-  }
-}
-async function atomicRename(from, to, dependencies = {}) {
-  const rename = dependencies.rename ?? fs.rename;
-  const queueKey = path.resolve(to);
-  const previous = renameQueues.get(queueKey) ?? Promise.resolve();
-  const run = previous.catch(() => void 0).then(() => renameWithRetry(from, to, rename));
-  renameQueues.set(queueKey, run);
-  try {
-    await run;
-  } finally {
-    if (renameQueues.get(queueKey) === run) renameQueues.delete(queueKey);
-  }
-}
-var RETRYABLE_CODES, MAX_ATTEMPTS, BASE_DELAY_MS, MAX_DELAY_MS, renameQueues;
-var init_atomic_rename = __esm({
-  "packages/plugin-core/src/atomic-rename.ts"() {
-    "use strict";
-    RETRYABLE_CODES = /* @__PURE__ */ new Set(["EPERM", "EACCES", "EBUSY"]);
-    MAX_ATTEMPTS = 10;
-    BASE_DELAY_MS = 10;
-    MAX_DELAY_MS = 100;
-    renameQueues = /* @__PURE__ */ new Map();
-  }
-});
-
-// packages/plugin-core/src/auth-refusal.ts
-import crypto from "node:crypto";
-import { promises as fs2 } from "node:fs";
-import os from "node:os";
-import path2 from "node:path";
-function isReason(value) {
-  return value === "not_member" || value === "no_profile";
-}
-function classifyAuthRefusal(status, body) {
-  if (status !== 403 || typeof body !== "object" || body === null) return null;
-  const record2 = body;
-  if (isReason(record2.code)) return record2.code;
-  let message = record2.error;
-  if (typeof record2.error === "object" && record2.error !== null) {
-    const nested = record2.error;
-    if (isReason(nested.code)) return nested.code;
-    message = nested.message;
-  }
-  if (typeof message !== "string") return null;
-  for (const reason of Object.keys(AUTH_REFUSAL_MESSAGES)) {
-    if (message === AUTH_REFUSAL_MESSAGES[reason]) return reason;
-  }
-  return null;
-}
-function authRefusalDir() {
-  return process.env.MEMLIN_AUTH_REFUSAL_DIR ?? path2.join(os.homedir(), ".config", "memlin", "auth-refusal");
-}
-function sha(value) {
-  return crypto.createHash("sha256").update(value).digest("hex").slice(0, 32);
-}
-function normalizeBinding(binding) {
-  return binding ? path2.resolve(binding) : null;
-}
-function accountDir(accountId) {
-  return path2.join(authRefusalDir(), sha(accountId));
-}
-function entryPath(accountId, binding) {
-  return path2.join(accountDir(accountId), `${sha(binding ?? "(global)")}.json`);
-}
-function isEntry(value) {
-  if (typeof value !== "object" || value === null) return false;
-  const e = value;
-  return typeof e.account_id === "string" && (e.binding === null || typeof e.binding === "string") && isReason(e.reason) && typeof e.expires_at === "number" && Array.isArray(e.notified_sessions);
-}
-async function readRaw(file2) {
-  try {
-    const parsed = JSON.parse(await fs2.readFile(file2, "utf8"));
-    return isEntry(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-async function writeEntry(entry) {
-  const file2 = entryPath(entry.account_id, entry.binding);
-  await fs2.mkdir(path2.dirname(file2), { recursive: true });
-  const tmp = `${file2}.${process.pid}.${crypto.randomUUID()}.tmp`;
-  await fs2.writeFile(tmp, JSON.stringify(entry), { mode: 384 });
-  await atomicRename(tmp, file2);
-}
-async function recordAuthRefusal(input) {
-  const now = input.now ?? Date.now();
-  const binding = normalizeBinding(input.binding);
-  const previous = await readRaw(entryPath(input.accountId, binding));
-  const entry = {
-    account_id: input.accountId,
-    binding,
-    reason: input.reason,
-    account_name: input.accountName ?? previous?.account_name ?? null,
-    refused_at: now,
-    expires_at: now + AUTH_REFUSAL_TTL_MS,
-    notified_sessions: previous?.notified_sessions ?? []
-  };
-  await writeEntry(entry);
-  return entry;
-}
-async function readAuthRefusal(accountId, binding, now = Date.now()) {
-  const file2 = entryPath(accountId, normalizeBinding(binding));
-  const entry = await readRaw(file2);
-  if (!entry) return null;
-  if (now >= entry.expires_at) {
-    await fs2.rm(file2, { force: true }).catch(() => {
-    });
-    return null;
-  }
-  return entry;
-}
-async function clearAuthRefusalsForAccount(accountId) {
-  await fs2.rm(accountDir(accountId), { recursive: true, force: true }).catch(() => {
-  });
-}
-async function clearAllAuthRefusals() {
-  await fs2.rm(authRefusalDir(), { recursive: true, force: true }).catch(() => {
-  });
-}
-function accountIdsChanged(before, after) {
-  const normalize = (value) => Array.isArray(value) ? value.filter((v) => typeof v === "string").sort().join(",") : "";
-  return normalize(before) !== normalize(after);
-}
-var AUTH_REFUSAL_MESSAGES, AUTH_REFUSAL_TTL_MS;
-var init_auth_refusal = __esm({
-  "packages/plugin-core/src/auth-refusal.ts"() {
-    "use strict";
-    init_atomic_rename();
-    AUTH_REFUSAL_MESSAGES = {
-      not_member: "not a member of this account",
-      no_profile: "no Memlin profile for this user \u2014 sign in to the web app first"
-    };
-    AUTH_REFUSAL_TTL_MS = 15 * 60 * 1e3;
-  }
-});
-
-// packages/plugin-core/src/companion-client.ts
-var companion_client_exports = {};
-__export(companion_client_exports, {
-  CODEX_ADDITIONAL_CONTEXT_MAX_BYTES: () => CODEX_ADDITIONAL_CONTEXT_MAX_BYTES,
-  CODEX_HOOK_RESOLVE_PROFILE: () => CODEX_HOOK_RESOLVE_PROFILE,
-  COMPANION_PROTOCOL: () => COMPANION_PROTOCOL,
-  COMPANION_SOCKET_ENV: () => COMPANION_SOCKET_ENV,
-  IS_COMPANION_ENV: () => IS_COMPANION_ENV,
-  MAX_COMPANION_PROTOCOL: () => MAX_COMPANION_PROTOCOL,
-  MIN_COMPANION_PROTOCOL: () => MIN_COMPANION_PROTOCOL,
-  NO_COMPANION_ENV: () => NO_COMPANION_ENV,
-  USE_COMPANION_ENV: () => USE_COMPANION_ENV,
-  companionCommitResolveDelivery: () => companionCommitResolveDelivery,
-  companionDelegationEnabled: () => companionDelegationEnabled,
-  companionForDelegation: () => companionForDelegation,
-  companionGetToken: () => companionGetToken,
-  companionReadLocal: () => companionReadLocal,
-  companionReleaseResolveDelivery: () => companionReleaseResolveDelivery,
-  companionReportResolveDelivery: () => companionReportResolveDelivery,
-  companionReportSession: () => companionReportSession,
-  companionRequest: () => companionRequest,
-  companionReserveLateResolveDelivery: () => companionReserveLateResolveDelivery,
-  companionReserveResolveDelivery: () => companionReserveResolveDelivery,
-  companionResolveJoin: () => companionResolveJoin,
-  companionResolveReuse: () => companionResolveReuse,
-  companionResolveStart: () => companionResolveStart,
-  companionResolveTake: () => companionResolveTake,
-  companionResolveWorkspace: () => companionResolveWorkspace,
-  companionRunDir: () => companionRunDir,
-  companionSearchLocal: () => companionSearchLocal,
-  companionSocketPath: () => companionSocketPath,
-  companionStatus: () => companionStatus,
-  companionSyncNow: () => companionSyncNow,
-  deriveResolveId: () => deriveResolveId,
-  isCompanionHealthyForDelegation: () => isCompanionHealthyForDelegation,
-  resetCompanionClientCache: () => resetCompanionClientCache
-});
-import http from "node:http";
-import crypto2 from "node:crypto";
-import os2 from "node:os";
-import path3 from "node:path";
-function companionSocketPath(env = process.env) {
-  const override = env[COMPANION_SOCKET_ENV];
-  if (override) return override;
-  if (process.platform === "win32") {
-    return `\\\\.\\pipe\\memlin-companion-${os2.userInfo().username}`;
-  }
-  return path3.join(os2.homedir(), ".config", "memlin", "run", "companion.sock");
-}
-function companionRunDir() {
-  return path3.join(os2.homedir(), ".config", "memlin", "run");
-}
-function deriveResolveId(input) {
-  const digest = crypto2.createHash("sha256").update("memlin.resolve.v2\0").update(JSON.stringify([input.accountId, input.host, input.sessionId ?? null, input.turnId])).digest().subarray(0, 16);
-  digest[6] = digest[6] & 15 | 80;
-  digest[8] = digest[8] & 63 | 128;
-  const hex = digest.toString("hex");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
-function companionDisabled(env = process.env) {
-  const off = env[NO_COMPANION_ENV];
-  if (off === "1" || off === "true" || off === "yes") return true;
-  return env[IS_COMPANION_ENV] === "1";
-}
-async function companionRequest(method, body, opts = {}) {
-  const env = opts.env ?? process.env;
-  if (companionDisabled(env)) return null;
-  if (Date.now() < socketDeadUntil) return null;
-  const timeoutMs = opts.timeoutMs ?? CALL_TIMEOUTS[method] ?? DEFAULT_CALL_TIMEOUT_MS;
-  const payload = JSON.stringify(body ?? {});
-  return new Promise((resolve) => {
-    let settled = false;
-    const fail = (markDead) => {
-      if (settled) return;
-      settled = true;
-      if (markDead) socketDeadUntil = Date.now() + SOCKET_DEAD_TTL_MS;
-      resolve(null);
-    };
-    const req = http.request(
-      {
-        socketPath: companionSocketPath(env),
-        path: `/v1/${method}`,
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "content-length": Buffer.byteLength(payload),
-          "memlin-client-protocol": String(COMPANION_PROTOCOL)
-        },
-        // Overall call budget; the connect phase gets its own tighter cap
-        // below via the socket timeout before the connection exists.
-        timeout: timeoutMs
-      },
-      (res) => {
-        const chunks = [];
-        res.on("data", (c) => chunks.push(c));
-        res.on("end", () => {
-          if (settled) return;
-          settled = true;
-          if (res.statusCode !== 200) return resolve(null);
-          try {
-            resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
-          } catch {
-            resolve(null);
-          }
-        });
-        res.on("error", () => fail(false));
-      }
-    );
-    const connectTimer = setTimeout(() => {
-      req.destroy();
-      fail(true);
-    }, CONNECT_TIMEOUT_MS);
-    connectTimer.unref?.();
-    req.on("socket", (socket) => {
-      if (!socket.connecting) clearTimeout(connectTimer);
-      else socket.once("connect", () => clearTimeout(connectTimer));
-    });
-    req.once("close", () => clearTimeout(connectTimer));
-    req.on("timeout", () => {
-      req.destroy();
-      fail(false);
-    });
-    req.on("error", () => fail(true));
-    req.end(payload);
-  });
-}
-async function companionStatus(opts = {}) {
-  const status = await companionRequest("status.get", {}, opts);
-  if (!status) return null;
-  if (status.protocol < MIN_COMPANION_PROTOCOL || status.protocol > MAX_COMPANION_PROTOCOL) {
-    return null;
-  }
-  return status;
-}
-async function companionGetToken() {
-  const token = await companionRequest("token.get", {});
-  if (!token || token.expires_at <= Date.now() + 6e4) return null;
-  return token;
-}
-async function companionResolveWorkspace(cwd) {
-  return companionRequest("workspace.resolve", { cwd });
-}
-async function companionSyncNow(req) {
-  return companionRequest("sync.now", req);
-}
-async function companionSearchLocal(req) {
-  return companionRequest("memory.search", req);
-}
-async function companionReadLocal(req) {
-  return companionRequest("memory.read", req);
-}
-async function companionResolveStart(req, opts = {}) {
-  return companionRequest("resolve.start", req, opts);
-}
-async function companionResolveTake(req) {
-  return companionRequest("resolve.take", req, {
-    timeoutMs: Math.max(250, req.wait_ms + 250)
-  });
-}
-async function companionResolveJoin(req) {
-  return companionRequest("resolve.join", req, {
-    timeoutMs: Math.max(250, req.wait_ms + 250)
-  });
-}
-async function companionResolveReuse(req) {
-  return companionRequest("resolve.reuse", req, {
-    timeoutMs: Math.max(250, Math.min(4500, req.wait_ms + 500))
-  });
-}
-async function companionReserveResolveDelivery(req, opts = {}) {
-  return companionRequest("resolve.reserve", req, opts);
-}
-async function companionReserveLateResolveDelivery(req, opts = {}) {
-  return companionRequest("resolve.reserve-late", req, opts);
-}
-async function companionCommitResolveDelivery(req, opts = {}) {
-  return (await companionRequest("resolve.commit", req, opts))?.accepted ?? null;
-}
-async function companionReleaseResolveDelivery(req, opts = {}) {
-  return (await companionRequest("resolve.release", req, opts))?.released ?? null;
-}
-async function companionReportResolveDelivery(req, opts = {}) {
-  return (await companionRequest("resolve.report", req, opts))?.accepted ?? null;
-}
-async function companionReportSession(req) {
-  return (await companionRequest("session.report", req))?.registered ?? false;
-}
-function isCompanionHealthyForDelegation(status) {
-  if (!status) return false;
-  if (status.auth.state !== "ok") return false;
-  if (status.sync.mode === "realtime") return true;
-  if (status.sync.mode !== "polling") return false;
-  if (!status.sync.last_delta_at) return false;
-  const age = Date.now() - Date.parse(status.sync.last_delta_at);
-  return Number.isFinite(age) && age < 5 * 6e4;
-}
-function companionDelegationEnabled(env = process.env) {
-  const v = env[USE_COMPANION_ENV];
-  return v === "1" || v === "true" || v === "yes";
-}
-async function companionForDelegation() {
-  if (!companionDelegationEnabled()) return null;
-  const status = await companionStatus();
-  return isCompanionHealthyForDelegation(status) ? status : null;
-}
-function resetCompanionClientCache() {
-  socketDeadUntil = 0;
-}
-var COMPANION_PROTOCOL, MIN_COMPANION_PROTOCOL, MAX_COMPANION_PROTOCOL, NO_COMPANION_ENV, IS_COMPANION_ENV, COMPANION_SOCKET_ENV, CODEX_HOOK_RESOLVE_PROFILE, CODEX_ADDITIONAL_CONTEXT_MAX_BYTES, CONNECT_TIMEOUT_MS, DEFAULT_CALL_TIMEOUT_MS, CALL_TIMEOUTS, socketDeadUntil, SOCKET_DEAD_TTL_MS, USE_COMPANION_ENV;
-var init_companion_client = __esm({
-  "packages/plugin-core/src/companion-client.ts"() {
-    "use strict";
-    COMPANION_PROTOCOL = 1;
-    MIN_COMPANION_PROTOCOL = 1;
-    MAX_COMPANION_PROTOCOL = 1;
-    NO_COMPANION_ENV = "MEMLIN_NO_DAEMON";
-    IS_COMPANION_ENV = "MEMLIN_DAEMON";
-    COMPANION_SOCKET_ENV = "MEMLIN_COMPANION_SOCKET";
-    CODEX_HOOK_RESOLVE_PROFILE = "codex-hook-v1:tokens=2200";
-    CODEX_ADDITIONAL_CONTEXT_MAX_BYTES = 2200;
-    CONNECT_TIMEOUT_MS = 150;
-    DEFAULT_CALL_TIMEOUT_MS = 1e3;
-    CALL_TIMEOUTS = {
-      "workspace.resolve": 2e3,
-      "resolve.start": 750,
-      "resolve.reuse": 4500,
-      "resolve.reserve": 750,
-      "resolve.reserve-late": 750,
-      "resolve.commit": 750,
-      "resolve.release": 500,
-      "resolve.report": 500,
-      "sync.now": 5e3,
-      "login.start": 1e4,
-      // Local-store reads walk the materialized doc tree on disk.
-      "memory.search": 2e3,
-      "memory.read": 2e3
-    };
-    socketDeadUntil = 0;
-    SOCKET_DEAD_TTL_MS = 5e3;
-    USE_COMPANION_ENV = "MEMLIN_USE_DAEMON";
   }
 });
 
@@ -4222,9 +4222,418 @@ var init_workspace_binding = __esm({
   }
 });
 
-// packages/plugin-core/src/cli/diff.ts
-import { promises as fs7 } from "node:fs";
-import { pathToFileURL } from "node:url";
+// packages/plugin-core/src/private-mode.ts
+init_atomic_rename();
+import { promises as fs2 } from "node:fs";
+import path2 from "node:path";
+import os from "node:os";
+var PRIVATE_HEADER = "Memlin-Private";
+var PRIVATE_UNTIL_HEADER = "Memlin-Private-Until";
+var PRIVATE_TTL_MS = 24 * 60 * 60 * 1e3;
+var PRIVATE_ALLOWED_WRITES = [
+  "POST /resolve",
+  "POST /projects/resolve",
+  "POST /deploy-guard"
+];
+var DENIED_TTL_MS = 10 * 60 * 1e3;
+var FLOOR_TTL_MS = 30 * 24 * 60 * 60 * 1e3;
+function stateFile() {
+  return path2.join(os.homedir(), ".config", "memlin", "private-sessions.json");
+}
+async function readPrivateState() {
+  try {
+    const parsed = JSON.parse(await fs2.readFile(stateFile(), "utf8"));
+    return { ...parsed, sessions: parsed.sessions ?? {} };
+  } catch {
+    return { sessions: {} };
+  }
+}
+async function writePrivateState(state, now) {
+  for (const [id, entry] of Object.entries(state.sessions)) {
+    if (entry.expires_at <= now) delete state.sessions[id];
+  }
+  for (const [id, entry] of Object.entries(state.denied ?? {})) {
+    if (now - entry.at > DENIED_TTL_MS) delete state.denied?.[id];
+  }
+  for (const [id, entry] of Object.entries(state.accounts ?? {})) {
+    if (entry.until !== null && entry.until <= now) delete state.accounts?.[id];
+  }
+  for (const [id, floor] of Object.entries(state.floors ?? {})) {
+    if (now - floor.at > FLOOR_TTL_MS) delete state.floors?.[id];
+  }
+  const file2 = stateFile();
+  await fs2.mkdir(path2.dirname(file2), { recursive: true });
+  const tmp = `${file2}.${process.pid}.${Date.now()}.tmp`;
+  await fs2.writeFile(tmp, JSON.stringify(state, null, 2), { mode: 384 });
+  await atomicRename(tmp, file2);
+}
+function envPrivate() {
+  const v = process.env.MEMLIN_PRIVATE?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "on";
+}
+function currentSessionId() {
+  return process.env.MEMLIN_SESSION_ID || process.env.CLAUDE_CODE_SESSION_ID || null;
+}
+async function isPrivateSession(sessionId = currentSessionId(), now = Date.now(), accountId = null) {
+  const state = await readPrivateState();
+  if (accountId && accountDenied(state, accountId, now)) return false;
+  if (envPrivate()) return true;
+  if (accountId && accountPrivateActive(state, accountId, now)) return true;
+  if (!sessionId) return false;
+  const entry = state.sessions[sessionId];
+  return Boolean(entry && entry.expires_at > now);
+}
+function accountDenied(state, accountId, now) {
+  const entry = state.denied?.[accountId];
+  return Boolean(entry && now - entry.at <= DENIED_TTL_MS);
+}
+function accountPrivateActive(state, accountId, now) {
+  const entry = state.accounts?.[accountId];
+  return Boolean(entry && (entry.until === null || entry.until > now));
+}
+async function notePrivateUntil(accountId, header, now = Date.now()) {
+  const state = await readPrivateState();
+  if (header === "denied") {
+    const prev2 = state.denied?.[accountId];
+    if (prev2 && now - prev2.at < 6e4 && !state.accounts?.[accountId]) return;
+    state.denied = { ...state.denied, [accountId]: { at: now } };
+    delete state.accounts?.[accountId];
+    await writePrivateState(state, now);
+    return;
+  }
+  let until;
+  if (!header || header === "off") until = void 0;
+  else if (header === "infinity") until = null;
+  else {
+    const at = Date.parse(header);
+    until = Number.isFinite(at) && at > now ? at : void 0;
+  }
+  if (until !== void 0 && state.denied?.[accountId]) delete state.denied[accountId];
+  const prev = state.accounts?.[accountId];
+  if (until === void 0) {
+    if (!prev) return;
+    delete state.accounts[accountId];
+  } else {
+    if (prev && prev.until === until) return;
+    state.accounts = { ...state.accounts, [accountId]: { until, seen_at: now } };
+  }
+  await writePrivateState(state, now);
+}
+async function setPrivateSession(sessionId, on, opts = {}) {
+  const now = opts.now ?? Date.now();
+  const state = await readPrivateState();
+  if (!on && state.sessions[sessionId]) {
+    await raiseFloor(state, sessionId, opts.transcriptPath ?? null, now);
+  }
+  if (on) {
+    state.sessions[sessionId] = {
+      started_at: state.sessions[sessionId]?.started_at ?? now,
+      expires_at: now + PRIVATE_TTL_MS,
+      cwd: opts.cwd ?? null
+    };
+  } else {
+    delete state.sessions[sessionId];
+  }
+  state.last_toggled = { session_id: sessionId, on, at: now };
+  await writePrivateState(state, now);
+}
+async function privateStatus(sessionId = currentSessionId(), now = Date.now(), accountId = null) {
+  const state = await readPrivateState();
+  if (accountId && accountDenied(state, accountId, now)) {
+    return { on: false, source: "denied", expiresAt: null };
+  }
+  if (envPrivate()) return { on: true, source: "env", expiresAt: null };
+  if (accountId && accountPrivateActive(state, accountId, now)) {
+    return { on: true, source: "account", expiresAt: state.accounts[accountId].until };
+  }
+  const id = sessionId ?? state.last_toggled?.session_id ?? null;
+  const entry = id ? state.sessions[id] : void 0;
+  if (entry && entry.expires_at > now) {
+    return { on: true, source: "session", expiresAt: entry.expires_at };
+  }
+  return { on: false, source: "off", expiresAt: null };
+}
+async function raiseFloor(state, sessionId, transcriptPath, now) {
+  let chars = null;
+  if (transcriptPath) {
+    try {
+      chars = (await fs2.readFile(transcriptPath, "utf8")).length;
+    } catch {
+    }
+  }
+  const prev = state.floors?.[sessionId];
+  if (prev && (prev.chars === null || chars === null)) chars = null;
+  else if (prev && chars !== null) chars = Math.max(prev.chars, chars);
+  state.floors = { ...state.floors, [sessionId]: { chars, at: now } };
+}
+async function checkPrivateAllowed(api, accountId, timeoutMs = 3e3) {
+  try {
+    const res = await Promise.race([
+      api.getPrivateMode({ accountId }),
+      new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs).unref())
+    ]);
+    if (!res || typeof res.allowed !== "boolean") return null;
+    if (!res.allowed) await notePrivateUntil(accountId, "denied");
+    return res.allowed;
+  } catch {
+    return null;
+  }
+}
+function isPrivateAllowedWrite(method, pathAndQuery) {
+  if (method === "GET") return true;
+  const pathOnly = pathAndQuery.split("?")[0];
+  return PRIVATE_ALLOWED_WRITES.includes(`${method} ${pathOnly}`);
+}
+var PRIVATE_ON_NOTICE = "Memlin private mode is ON for this session. Memlin context still loads, but nothing from this session is saved: no scribe capture, no plan sync, no activity, no audit. Turn it off with /memlin-private off. It ends with the session.";
+var PRIVATE_DENIED_NOTICE = "Memlin private mode is not available to you in this workspace \u2014 its owners or admins limit who can use it (Settings \u2192 Private mode). This session is captured normally.";
+var PRIVATE_OFF_NOTICE = "Memlin private mode is OFF. This session is captured normally from here on; the private stretch before it was not saved.";
+
+// packages/plugin-core/src/client.ts
+import { promises as fs6 } from "node:fs";
+import path8 from "node:path";
+import os7 from "node:os";
+import { randomUUID as randomUUID3 } from "node:crypto";
+
+// packages/plugin-core/src/auth.ts
+init_atomic_rename();
+import { promises as fs4 } from "node:fs";
+import path5 from "node:path";
+import os4 from "node:os";
+import { randomUUID } from "node:crypto";
+
+// packages/plugin-core/src/backend-error.ts
+var MemlinApiError = class extends Error {
+  constructor(message, status, code) {
+    super(message);
+    this.status = status;
+    this.code = code;
+    this.name = "MemlinApiError";
+  }
+  status;
+  code;
+};
+function looksLikeHtml(text) {
+  const head = text.slice(0, 512).trimStart().toLowerCase();
+  return head.startsWith("<!doctype html") || head.startsWith("<html") || head.includes("<html") || head.startsWith("<") && /<\/(head|body|title|div|p)>/i.test(text);
+}
+function singleLine(text, max = 200) {
+  const collapsed = text.replace(/\s+/g, " ").trim();
+  return collapsed.length <= max ? collapsed : `${collapsed.slice(0, max - 1)}\u2026`;
+}
+function describeOpaqueBody(status, text) {
+  const trimmed = text.trim();
+  if (!trimmed) return `HTTP ${status}`;
+  if (looksLikeHtml(trimmed)) {
+    const via = /cloudflare/i.test(trimmed) ? "Cloudflare " : "";
+    return `HTTP ${status} (${via}HTML error page suppressed, ${trimmed.length} chars)`;
+  }
+  return `HTTP ${status}: ${singleLine(trimmed)}`;
+}
+
+// packages/plugin-core/src/auth.ts
+init_auth_refusal();
+var MEMLIN_PROD_AUTH0_DOMAIN = "memlin.us.auth0.com";
+var MEMLIN_PROD_AUTH0_CLIENT_ID = "fyYMQ4Cxc6Nu5juVwL8Ihqq4fgAFecG9";
+var AUTH0_DOMAIN = process.env.MEMLIN_AUTH0_DOMAIN || MEMLIN_PROD_AUTH0_DOMAIN;
+var AUTH0_CLIENT_ID = process.env.MEMLIN_AUTH0_CLIENT_ID || MEMLIN_PROD_AUTH0_CLIENT_ID;
+var AUTH0_AUDIENCE = process.env.MEMLIN_AUTH0_AUDIENCE ?? "https://api.memlin.ai";
+function persistedTokenFilePath() {
+  return process.env.MEMLIN_TOKEN_FILE || path5.join(os4.homedir(), ".config", "memlin", "token.json");
+}
+var AUTH_FILE_LOCK_TIMEOUT_MS = 15e3;
+var AUTH_FILE_LOCK_STALE_MS = 2 * 6e4;
+var AUTH_FILE_LOCK_RETRY_MS = 50;
+function authFileLockPath() {
+  return `${persistedTokenFilePath()}.auth.lock`;
+}
+async function acquireAuthFileLock() {
+  const file2 = authFileLockPath();
+  const owner = `${process.pid}:${randomUUID()}`;
+  await fs4.mkdir(path5.dirname(file2), { recursive: true });
+  const deadline = Date.now() + AUTH_FILE_LOCK_TIMEOUT_MS;
+  while (true) {
+    try {
+      const handle = await fs4.open(file2, "wx", 384);
+      try {
+        await handle.writeFile(owner, "utf8");
+        await handle.sync();
+      } catch (error40) {
+        await handle.close().catch(() => {
+        });
+        await fs4.rm(file2, { force: true }).catch(() => {
+        });
+        throw error40;
+      }
+      let released = false;
+      return async () => {
+        if (released) return;
+        released = true;
+        await handle.close().catch(() => {
+        });
+        const currentOwner = await fs4.readFile(file2, "utf8").catch(() => null);
+        if (currentOwner === owner) await fs4.rm(file2, { force: true }).catch(() => {
+        });
+      };
+    } catch (error40) {
+      if (error40.code !== "EEXIST") throw error40;
+      try {
+        const stat = await fs4.stat(file2);
+        if (Date.now() - stat.mtimeMs > AUTH_FILE_LOCK_STALE_MS) {
+          await fs4.rm(file2, { force: true });
+          continue;
+        }
+      } catch (statError) {
+        if (statError.code === "ENOENT") continue;
+        throw statError;
+      }
+      if (Date.now() >= deadline) {
+        throw new Error("another Memlin sign-in or token refresh is still being saved");
+      }
+      await new Promise((resolve) => setTimeout(resolve, AUTH_FILE_LOCK_RETRY_MS));
+    }
+  }
+}
+async function withAuthFileLock(operation) {
+  const release = await acquireAuthFileLock();
+  try {
+    return await operation();
+  } finally {
+    await release();
+  }
+}
+async function readPersistedToken() {
+  try {
+    const raw = await fs4.readFile(persistedTokenFilePath(), "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+async function writePersistedToken(t) {
+  const file2 = persistedTokenFilePath();
+  await fs4.mkdir(path5.dirname(file2), { recursive: true });
+  const tmp = path5.join(
+    path5.dirname(file2),
+    `${path5.basename(file2)}.tmp-${process.pid}-${randomUUID()}`
+  );
+  const previous = await readPersistedToken().catch(() => null);
+  await fs4.writeFile(tmp, JSON.stringify(t, null, 2), { mode: 384 });
+  await fs4.chmod(tmp, 384).catch(() => {
+  });
+  await atomicRename(tmp, file2);
+  await clearRefusalsIfAccountsChanged(previous?.access_token ?? null, t.access_token);
+}
+async function clearRefusalsIfAccountsChanged(before, after) {
+  try {
+    const claimIds = (jwt2) => {
+      if (!jwt2) return void 0;
+      try {
+        return decodeJwtPayload(jwt2).memlin_account_ids;
+      } catch {
+        return void 0;
+      }
+    };
+    if (accountIdsChanged(claimIds(before), claimIds(after))) {
+      await clearAllAuthRefusals();
+    }
+  } catch {
+  }
+}
+async function refreshAccessToken(refreshToken, options2 = {}) {
+  requireClientId();
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: refreshToken,
+    client_id: AUTH0_CLIENT_ID
+  });
+  const res = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+    signal: AbortSignal.timeout(Math.max(1, options2.timeoutMs ?? 15e3))
+  });
+  if (!res.ok) {
+    throw new Error(`refresh: ${describeOpaqueBody(res.status, await res.text())}`);
+  }
+  const json2 = await res.json();
+  return toPersisted(json2, refreshToken);
+}
+var refreshInFlight = null;
+var DEFAULT_FRESHNESS_MARGIN_MS = 6e4;
+async function getValidAccessToken() {
+  return ensureFreshToken(DEFAULT_FRESHNESS_MARGIN_MS);
+}
+async function ensureFreshToken(marginMs = DEFAULT_FRESHNESS_MARGIN_MS, options2 = {}) {
+  const persisted = await readPersistedToken();
+  if (!persisted) throw new Error("not signed in \u2014 run `memlin login`");
+  if (Date.now() < persisted.expires_at - marginMs) return persisted.access_token;
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = doRefresh(persisted, marginMs, options2).finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}
+async function doRefresh(stale, marginMs, options2) {
+  const latest = await readPersistedToken();
+  if (latest && Date.now() < latest.expires_at - marginMs) return latest.access_token;
+  try {
+    const { companionGetToken: companionGetToken2 } = await Promise.resolve().then(() => (init_companion_client(), companion_client_exports));
+    const fromDaemon = await companionGetToken2();
+    if (fromDaemon && Date.now() < fromDaemon.expires_at - marginMs) {
+      return fromDaemon.access_token;
+    }
+  } catch {
+  }
+  const refreshSource = latest ?? stale;
+  const refreshToken = refreshSource.refresh_token;
+  if (!refreshToken) {
+    throw new Error("access token expired and no refresh token saved \u2014 run `memlin login`");
+  }
+  try {
+    const fresh = await refreshAccessToken(refreshToken, options2);
+    return await withAuthFileLock(async () => {
+      const beforeWrite = await readPersistedToken();
+      if (!beforeWrite || beforeWrite.access_token !== refreshSource.access_token) {
+        if (beforeWrite && Date.now() < beforeWrite.expires_at - marginMs) {
+          return beforeWrite.access_token;
+        }
+        throw new Error("saved Memlin credentials changed while the token was refreshing");
+      }
+      await writePersistedToken(fresh);
+      return fresh.access_token;
+    });
+  } catch (err) {
+    const after = await readPersistedToken();
+    if (after && after.access_token !== refreshSource.access_token && Date.now() < after.expires_at - 6e4) {
+      return after.access_token;
+    }
+    throw new Error(
+      `access token refresh failed (${err instanceof Error ? err.message : String(err)}) \u2014 run \`memlin login\``
+    );
+  }
+}
+function toPersisted(json2, fallbackRefresh) {
+  return {
+    access_token: json2.access_token,
+    refresh_token: json2.refresh_token ?? fallbackRefresh,
+    expires_at: Date.now() + json2.expires_in * 1e3
+  };
+}
+function requireClientId() {
+  if (!AUTH0_CLIENT_ID) {
+    throw new Error(
+      "Auth0 client id not configured. Set MEMLIN_AUTH0_CLIENT_ID env var (and optionally MEMLIN_AUTH0_DOMAIN / MEMLIN_AUTH0_AUDIENCE for self-hosted setups)."
+    );
+  }
+}
+function decodeJwtPayload(jwt2) {
+  const parts = jwt2.split(".");
+  if (parts.length !== 3) throw new Error("not a JWT");
+  return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+}
+
+// packages/plugin-core/src/client.ts
+init_atomic_rename();
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4704,8 +5113,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path9, errorMaps, issueData } = params;
-  const fullPath = [...path9, ...issueData.path || []];
+  const { data, path: path10, errorMaps, issueData } = params;
+  const fullPath = [...path10, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -4821,11 +5230,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path9, key) {
+  constructor(parent, value, path10, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path9;
+    this._path = path10;
     this._key = key;
   }
   get path() {
@@ -8922,31 +9331,6 @@ function estCostUsd(inputTokens, usdPerMTok) {
 var SONNET_BLENDED_USD_PER_MTOK = SONNET_INPUT_USD_PER_MTOK + OUTPUT_MULTIPLIER * SONNET_OUTPUT_USD_PER_MTOK;
 var SAVINGS_USD_PER_TOKEN = estCostUsd(1);
 
-// packages/shared/dist/memlin-contract.js
-var FENCE = /```memlin-contract\s*\n([\s\S]*?)\n```/g;
-function extractMemlinContract(body) {
-  const re = new RegExp(FENCE.source, "g");
-  const merged = {};
-  let found = false;
-  let m;
-  while (m = re.exec(body)) {
-    found = true;
-    let parsed;
-    try {
-      parsed = JSON.parse(m[1]);
-    } catch (e) {
-      throw new Error(
-        `contract block is not valid JSON: ${e instanceof Error ? e.message : e}`
-      );
-    }
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new Error("contract block must be a JSON object at the top level");
-    }
-    Object.assign(merged, parsed);
-  }
-  return found ? merged : null;
-}
-
 // packages/shared/dist/feature-discovery.js
 function featureDiscoverySystem({
   projectKind = "code",
@@ -9418,19 +9802,19 @@ var ContextManifestV1Schema = external_exports.object({
       location: `linked_contexts.${index}`
     }))
   ];
-  references.forEach(({ ref, path: path9, location }) => {
+  references.forEach(({ ref, path: path10, location }) => {
     const identity = contextReferenceIdentityKey(ref);
     const prior = seen.get(identity);
     if (prior && prior.revision !== ref.revision) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path9,
+        path: path10,
         message: `context ${identity} has conflicting revisions in ${prior.location} and ${location}`
       });
     } else if (prior && location.startsWith("linked_contexts.")) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path9,
+        path: path10,
         message: `duplicate linked context ${identity}`
       });
     }
@@ -9744,11 +10128,11 @@ var ContextBundleV1Schema = external_exports.object({
         path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
       }))
     ];
-    for (const { ref, path: path9 } of references) {
+    for (const { ref, path: path10 } of references) {
       if (!contextKeys.has(contextReferenceKey(ref))) {
         ctx.addIssue({
           code: external_exports.ZodIssueCode.custom,
-          path: path9,
+          path: path10,
           message: "provider coverage is outside the exact manifest contexts"
         });
       }
@@ -12631,10 +13015,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path9) {
-  if (!path9)
+function getElementAtPath(obj, path10) {
+  if (!path10)
     return obj;
-  return path9.reduce((acc, key) => acc?.[key], obj);
+  return path10.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -12954,11 +13338,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path9, issues) {
+function prefixIssues(path10, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path9);
+    iss.path.unshift(path10);
     return iss;
   });
 }
@@ -13095,7 +13479,7 @@ function treeifyError(error40, _mapper) {
     return issue2.message;
   };
   const result = { errors: [] };
-  const processError = (error41, path9 = []) => {
+  const processError = (error41, path10 = []) => {
     var _a, _b;
     for (const issue2 of error41.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
@@ -13105,7 +13489,7 @@ function treeifyError(error40, _mapper) {
       } else if (issue2.code === "invalid_element") {
         processError({ issues: issue2.issues }, issue2.path);
       } else {
-        const fullpath = [...path9, ...issue2.path];
+        const fullpath = [...path10, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -13135,9 +13519,9 @@ function treeifyError(error40, _mapper) {
   processError(error40);
   return result;
 }
-function toDotPath(path9) {
+function toDotPath(path10) {
   const segs = [];
-  for (const seg of path9) {
+  for (const seg of path10) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -23795,10 +24179,10 @@ function validateFlowDefinitionSemantics(flow) {
       ],
       ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, path: `stages.${stageIndex}.bypass_target` }]
     ];
-    targets.forEach(({ target, path: path9 }) => {
+    targets.forEach(({ target, path: path10 }) => {
       if (!isReservedTarget(target) && !stageById.has(target)) {
         issues.push({
-          path: path9,
+          path: path10,
           code: "missing_transition_target",
           message: `transition target ${JSON.stringify(target)} does not exist`
         });
@@ -23828,7 +24212,7 @@ function validateFlowDefinitionSemantics(flow) {
   const visiting = /* @__PURE__ */ new Set();
   const visited = /* @__PURE__ */ new Set();
   let hasReachableEnd = false;
-  const visit = (stageId, path9, pathBounds) => {
+  const visit = (stageId, path10, pathBounds) => {
     reachable.add(stageId);
     if (visited.has(stageId)) return;
     visiting.add(stageId);
@@ -23844,7 +24228,7 @@ function validateFlowDefinitionSemantics(flow) {
         ...stage.default_transition === null ? [] : [{ target: stage.default_transition, bounded: false }],
         ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, bounded: false }]
       ];
-      const currentPath = [...path9, stageId];
+      const currentPath = [...path10, stageId];
       for (const edge of edges) {
         const { target } = edge;
         if (target === "$end") {
@@ -23952,18 +24336,18 @@ var FlowPackManifestBaseSchema = external_exports2.object({
   evals: external_exports2.array(ManifestEvalSchema).max(256),
   model_roles: external_exports2.array(ManifestModelRoleSchema).max(64)
 }).strict();
-function validateRelativePackPath(path9) {
-  if (path9.startsWith("/") || path9.startsWith("\\")) return "path must be relative";
-  if (/^[A-Za-z]:/.test(path9) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path9)) {
+function validateRelativePackPath(path10) {
+  if (path10.startsWith("/") || path10.startsWith("\\")) return "path must be relative";
+  if (/^[A-Za-z]:/.test(path10) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path10)) {
     return "drive-qualified paths and URI schemes are not allowed";
   }
-  if (/[\u0000-\u001f\u007f]/.test(path9)) return "control characters are not allowed";
-  if (/%(?:2e|2f|5c)/i.test(path9)) return "encoded path traversal is not allowed";
-  if (path9.includes("\\")) return "path must use forward slashes";
-  if (path9.split("/").some((segment) => segment === ".." || segment === ".")) {
+  if (/[\u0000-\u001f\u007f]/.test(path10)) return "control characters are not allowed";
+  if (/%(?:2e|2f|5c)/i.test(path10)) return "encoded path traversal is not allowed";
+  if (path10.includes("\\")) return "path must use forward slashes";
+  if (path10.split("/").some((segment) => segment === ".." || segment === ".")) {
     return "path traversal and dot segments are not allowed";
   }
-  if (path9.split("/").some((segment) => segment.length === 0)) {
+  if (path10.split("/").some((segment) => segment.length === 0)) {
     return "path cannot contain empty segments";
   }
   return null;
@@ -24010,22 +24394,22 @@ function validateFlowPackManifestSemantics(manifest) {
       issues
     );
     role.independence.compare_against_roles.forEach((comparedRole, comparedIndex) => {
-      const path9 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
+      const path10 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
       if (comparedRole === role.id) {
         issues.push({
-          path: path9,
+          path: path10,
           code: "self_referential_model_independence",
           message: "a model role cannot require independence from itself"
         });
       } else if (!modelRolesById.has(comparedRole)) {
         issues.push({
-          path: path9,
+          path: path10,
           code: "missing_independence_model_role",
           message: `independence policy references undeclared model role ${JSON.stringify(comparedRole)}`
         });
       } else if (modelRolesById.get(comparedRole)?.independence !== null) {
         issues.push({
-          path: path9,
+          path: path10,
           code: "independence_reference_not_author",
           message: `independence policy must compare against an author role; ${JSON.stringify(comparedRole)} declares its own independence policy`
         });
@@ -24287,253 +24671,6 @@ var Receipt = external_exports.object({
   reason: external_exports.string().optional()
 });
 
-// packages/plugin-core/src/client.ts
-import { promises as fs6 } from "node:fs";
-import path8 from "node:path";
-import os7 from "node:os";
-import { randomUUID as randomUUID3 } from "node:crypto";
-
-// packages/plugin-core/src/auth.ts
-init_atomic_rename();
-import { promises as fs3 } from "node:fs";
-import path4 from "node:path";
-import os3 from "node:os";
-import { randomUUID } from "node:crypto";
-
-// packages/plugin-core/src/backend-error.ts
-var MemlinApiError = class extends Error {
-  constructor(message, status, code) {
-    super(message);
-    this.status = status;
-    this.code = code;
-    this.name = "MemlinApiError";
-  }
-  status;
-  code;
-};
-function looksLikeHtml(text) {
-  const head = text.slice(0, 512).trimStart().toLowerCase();
-  return head.startsWith("<!doctype html") || head.startsWith("<html") || head.includes("<html") || head.startsWith("<") && /<\/(head|body|title|div|p)>/i.test(text);
-}
-function singleLine(text, max = 200) {
-  const collapsed = text.replace(/\s+/g, " ").trim();
-  return collapsed.length <= max ? collapsed : `${collapsed.slice(0, max - 1)}\u2026`;
-}
-function describeOpaqueBody(status, text) {
-  const trimmed = text.trim();
-  if (!trimmed) return `HTTP ${status}`;
-  if (looksLikeHtml(trimmed)) {
-    const via = /cloudflare/i.test(trimmed) ? "Cloudflare " : "";
-    return `HTTP ${status} (${via}HTML error page suppressed, ${trimmed.length} chars)`;
-  }
-  return `HTTP ${status}: ${singleLine(trimmed)}`;
-}
-
-// packages/plugin-core/src/auth.ts
-init_auth_refusal();
-var MEMLIN_PROD_AUTH0_DOMAIN = "memlin.us.auth0.com";
-var MEMLIN_PROD_AUTH0_CLIENT_ID = "fyYMQ4Cxc6Nu5juVwL8Ihqq4fgAFecG9";
-var AUTH0_DOMAIN = process.env.MEMLIN_AUTH0_DOMAIN || MEMLIN_PROD_AUTH0_DOMAIN;
-var AUTH0_CLIENT_ID = process.env.MEMLIN_AUTH0_CLIENT_ID || MEMLIN_PROD_AUTH0_CLIENT_ID;
-var AUTH0_AUDIENCE = process.env.MEMLIN_AUTH0_AUDIENCE ?? "https://api.memlin.ai";
-function persistedTokenFilePath() {
-  return process.env.MEMLIN_TOKEN_FILE || path4.join(os3.homedir(), ".config", "memlin", "token.json");
-}
-var AUTH_FILE_LOCK_TIMEOUT_MS = 15e3;
-var AUTH_FILE_LOCK_STALE_MS = 2 * 6e4;
-var AUTH_FILE_LOCK_RETRY_MS = 50;
-function authFileLockPath() {
-  return `${persistedTokenFilePath()}.auth.lock`;
-}
-async function acquireAuthFileLock() {
-  const file2 = authFileLockPath();
-  const owner = `${process.pid}:${randomUUID()}`;
-  await fs3.mkdir(path4.dirname(file2), { recursive: true });
-  const deadline = Date.now() + AUTH_FILE_LOCK_TIMEOUT_MS;
-  while (true) {
-    try {
-      const handle = await fs3.open(file2, "wx", 384);
-      try {
-        await handle.writeFile(owner, "utf8");
-        await handle.sync();
-      } catch (error40) {
-        await handle.close().catch(() => {
-        });
-        await fs3.rm(file2, { force: true }).catch(() => {
-        });
-        throw error40;
-      }
-      let released = false;
-      return async () => {
-        if (released) return;
-        released = true;
-        await handle.close().catch(() => {
-        });
-        const currentOwner = await fs3.readFile(file2, "utf8").catch(() => null);
-        if (currentOwner === owner) await fs3.rm(file2, { force: true }).catch(() => {
-        });
-      };
-    } catch (error40) {
-      if (error40.code !== "EEXIST") throw error40;
-      try {
-        const stat = await fs3.stat(file2);
-        if (Date.now() - stat.mtimeMs > AUTH_FILE_LOCK_STALE_MS) {
-          await fs3.rm(file2, { force: true });
-          continue;
-        }
-      } catch (statError) {
-        if (statError.code === "ENOENT") continue;
-        throw statError;
-      }
-      if (Date.now() >= deadline) {
-        throw new Error("another Memlin sign-in or token refresh is still being saved");
-      }
-      await new Promise((resolve) => setTimeout(resolve, AUTH_FILE_LOCK_RETRY_MS));
-    }
-  }
-}
-async function withAuthFileLock(operation) {
-  const release = await acquireAuthFileLock();
-  try {
-    return await operation();
-  } finally {
-    await release();
-  }
-}
-async function readPersistedToken() {
-  try {
-    const raw = await fs3.readFile(persistedTokenFilePath(), "utf8");
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-async function writePersistedToken(t) {
-  const file2 = persistedTokenFilePath();
-  await fs3.mkdir(path4.dirname(file2), { recursive: true });
-  const tmp = path4.join(
-    path4.dirname(file2),
-    `${path4.basename(file2)}.tmp-${process.pid}-${randomUUID()}`
-  );
-  const previous = await readPersistedToken().catch(() => null);
-  await fs3.writeFile(tmp, JSON.stringify(t, null, 2), { mode: 384 });
-  await fs3.chmod(tmp, 384).catch(() => {
-  });
-  await atomicRename(tmp, file2);
-  await clearRefusalsIfAccountsChanged(previous?.access_token ?? null, t.access_token);
-}
-async function clearRefusalsIfAccountsChanged(before, after) {
-  try {
-    const claimIds = (jwt2) => {
-      if (!jwt2) return void 0;
-      try {
-        return decodeJwtPayload(jwt2).memlin_account_ids;
-      } catch {
-        return void 0;
-      }
-    };
-    if (accountIdsChanged(claimIds(before), claimIds(after))) {
-      await clearAllAuthRefusals();
-    }
-  } catch {
-  }
-}
-async function refreshAccessToken(refreshToken, options2 = {}) {
-  requireClientId();
-  const body = new URLSearchParams({
-    grant_type: "refresh_token",
-    refresh_token: refreshToken,
-    client_id: AUTH0_CLIENT_ID
-  });
-  const res = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-    signal: AbortSignal.timeout(Math.max(1, options2.timeoutMs ?? 15e3))
-  });
-  if (!res.ok) {
-    throw new Error(`refresh: ${describeOpaqueBody(res.status, await res.text())}`);
-  }
-  const json2 = await res.json();
-  return toPersisted(json2, refreshToken);
-}
-var refreshInFlight = null;
-var DEFAULT_FRESHNESS_MARGIN_MS = 6e4;
-async function getValidAccessToken() {
-  return ensureFreshToken(DEFAULT_FRESHNESS_MARGIN_MS);
-}
-async function ensureFreshToken(marginMs = DEFAULT_FRESHNESS_MARGIN_MS, options2 = {}) {
-  const persisted = await readPersistedToken();
-  if (!persisted) throw new Error("not signed in \u2014 run `memlin login`");
-  if (Date.now() < persisted.expires_at - marginMs) return persisted.access_token;
-  if (refreshInFlight) return refreshInFlight;
-  refreshInFlight = doRefresh(persisted, marginMs, options2).finally(() => {
-    refreshInFlight = null;
-  });
-  return refreshInFlight;
-}
-async function doRefresh(stale, marginMs, options2) {
-  const latest = await readPersistedToken();
-  if (latest && Date.now() < latest.expires_at - marginMs) return latest.access_token;
-  try {
-    const { companionGetToken: companionGetToken2 } = await Promise.resolve().then(() => (init_companion_client(), companion_client_exports));
-    const fromDaemon = await companionGetToken2();
-    if (fromDaemon && Date.now() < fromDaemon.expires_at - marginMs) {
-      return fromDaemon.access_token;
-    }
-  } catch {
-  }
-  const refreshSource = latest ?? stale;
-  const refreshToken = refreshSource.refresh_token;
-  if (!refreshToken) {
-    throw new Error("access token expired and no refresh token saved \u2014 run `memlin login`");
-  }
-  try {
-    const fresh = await refreshAccessToken(refreshToken, options2);
-    return await withAuthFileLock(async () => {
-      const beforeWrite = await readPersistedToken();
-      if (!beforeWrite || beforeWrite.access_token !== refreshSource.access_token) {
-        if (beforeWrite && Date.now() < beforeWrite.expires_at - marginMs) {
-          return beforeWrite.access_token;
-        }
-        throw new Error("saved Memlin credentials changed while the token was refreshing");
-      }
-      await writePersistedToken(fresh);
-      return fresh.access_token;
-    });
-  } catch (err) {
-    const after = await readPersistedToken();
-    if (after && after.access_token !== refreshSource.access_token && Date.now() < after.expires_at - 6e4) {
-      return after.access_token;
-    }
-    throw new Error(
-      `access token refresh failed (${err instanceof Error ? err.message : String(err)}) \u2014 run \`memlin login\``
-    );
-  }
-}
-function toPersisted(json2, fallbackRefresh) {
-  return {
-    access_token: json2.access_token,
-    refresh_token: json2.refresh_token ?? fallbackRefresh,
-    expires_at: Date.now() + json2.expires_in * 1e3
-  };
-}
-function requireClientId() {
-  if (!AUTH0_CLIENT_ID) {
-    throw new Error(
-      "Auth0 client id not configured. Set MEMLIN_AUTH0_CLIENT_ID env var (and optionally MEMLIN_AUTH0_DOMAIN / MEMLIN_AUTH0_AUDIENCE for self-hosted setups)."
-    );
-  }
-}
-function decodeJwtPayload(jwt2) {
-  const parts = jwt2.split(".");
-  if (parts.length !== 3) throw new Error("not a JWT");
-  return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
-}
-
-// packages/plugin-core/src/client.ts
-init_atomic_rename();
-
 // packages/plugin-core/src/memlin-api-client.ts
 init_auth_refusal();
 import { readFileSync } from "node:fs";
@@ -24589,8 +24726,8 @@ async function closeHttpSockets() {
 }
 
 // packages/plugin-core/src/host.ts
-import os4 from "node:os";
-import path5 from "node:path";
+import os5 from "node:os";
+import path6 from "node:path";
 var BaseHost = class {
   constructor(kind, home) {
     this.kind = kind;
@@ -24602,42 +24739,42 @@ var BaseHost = class {
     return this.home;
   }
   plansDir() {
-    return path5.join(this.home, "plans");
+    return path6.join(this.home, "plans");
   }
 };
 var ClaudeCodeHost = class extends BaseHost {
   constructor() {
-    super("claude-code", path5.join(os4.homedir(), ".claude"));
+    super("claude-code", path6.join(os5.homedir(), ".claude"));
   }
 };
 var CursorHost = class extends BaseHost {
   constructor() {
-    super("cursor", path5.join(os4.homedir(), ".config", "memlin"));
+    super("cursor", path6.join(os5.homedir(), ".config", "memlin"));
   }
 };
 var CodexHost = class extends BaseHost {
   constructor() {
-    super("codex", path5.join(os4.homedir(), ".config", "memlin"));
+    super("codex", path6.join(os5.homedir(), ".config", "memlin"));
   }
 };
 var WindsurfHost = class extends BaseHost {
   constructor() {
-    super("windsurf", path5.join(os4.homedir(), ".config", "memlin"));
+    super("windsurf", path6.join(os5.homedir(), ".config", "memlin"));
   }
 };
 var AntigravityHost = class extends BaseHost {
   constructor() {
-    super("antigravity", path5.join(os4.homedir(), ".config", "memlin"));
+    super("antigravity", path6.join(os5.homedir(), ".config", "memlin"));
   }
 };
 var VSCodeHost = class extends BaseHost {
   constructor() {
-    super("vscode", path5.join(os4.homedir(), ".config", "memlin"));
+    super("vscode", path6.join(os5.homedir(), ".config", "memlin"));
   }
 };
 var CompanionHost = class extends BaseHost {
   constructor() {
-    super("companion", path5.join(os4.homedir(), ".config", "memlin"));
+    super("companion", path6.join(os5.homedir(), ".config", "memlin"));
   }
 };
 var HOSTS2 = {
@@ -24653,109 +24790,6 @@ function resolveHost() {
   const envHost = "codex";
   const make = HOSTS2[envHost];
   return (make ?? HOSTS2["claude-code"])();
-}
-
-// packages/plugin-core/src/private-mode.ts
-init_atomic_rename();
-import { promises as fs4 } from "node:fs";
-import path6 from "node:path";
-import os5 from "node:os";
-var PRIVATE_HEADER = "Memlin-Private";
-var PRIVATE_UNTIL_HEADER = "Memlin-Private-Until";
-var PRIVATE_TTL_MS = 24 * 60 * 60 * 1e3;
-var PRIVATE_ALLOWED_WRITES = [
-  "POST /resolve",
-  "POST /projects/resolve",
-  "POST /deploy-guard"
-];
-var DENIED_TTL_MS = 10 * 60 * 1e3;
-var FLOOR_TTL_MS = 30 * 24 * 60 * 60 * 1e3;
-function stateFile() {
-  return path6.join(os5.homedir(), ".config", "memlin", "private-sessions.json");
-}
-async function readPrivateState() {
-  try {
-    const parsed = JSON.parse(await fs4.readFile(stateFile(), "utf8"));
-    return { ...parsed, sessions: parsed.sessions ?? {} };
-  } catch {
-    return { sessions: {} };
-  }
-}
-async function writePrivateState(state, now) {
-  for (const [id, entry] of Object.entries(state.sessions)) {
-    if (entry.expires_at <= now) delete state.sessions[id];
-  }
-  for (const [id, entry] of Object.entries(state.denied ?? {})) {
-    if (now - entry.at > DENIED_TTL_MS) delete state.denied?.[id];
-  }
-  for (const [id, entry] of Object.entries(state.accounts ?? {})) {
-    if (entry.until !== null && entry.until <= now) delete state.accounts?.[id];
-  }
-  for (const [id, floor] of Object.entries(state.floors ?? {})) {
-    if (now - floor.at > FLOOR_TTL_MS) delete state.floors?.[id];
-  }
-  const file2 = stateFile();
-  await fs4.mkdir(path6.dirname(file2), { recursive: true });
-  const tmp = `${file2}.${process.pid}.${Date.now()}.tmp`;
-  await fs4.writeFile(tmp, JSON.stringify(state, null, 2), { mode: 384 });
-  await atomicRename(tmp, file2);
-}
-function envPrivate() {
-  const v = process.env.MEMLIN_PRIVATE?.trim().toLowerCase();
-  return v === "1" || v === "true" || v === "on";
-}
-function currentSessionId() {
-  return process.env.MEMLIN_SESSION_ID || process.env.CLAUDE_CODE_SESSION_ID || null;
-}
-async function isPrivateSession(sessionId = currentSessionId(), now = Date.now(), accountId = null) {
-  const state = await readPrivateState();
-  if (accountId && accountDenied(state, accountId, now)) return false;
-  if (envPrivate()) return true;
-  if (accountId && accountPrivateActive(state, accountId, now)) return true;
-  if (!sessionId) return false;
-  const entry = state.sessions[sessionId];
-  return Boolean(entry && entry.expires_at > now);
-}
-function accountDenied(state, accountId, now) {
-  const entry = state.denied?.[accountId];
-  return Boolean(entry && now - entry.at <= DENIED_TTL_MS);
-}
-function accountPrivateActive(state, accountId, now) {
-  const entry = state.accounts?.[accountId];
-  return Boolean(entry && (entry.until === null || entry.until > now));
-}
-async function notePrivateUntil(accountId, header, now = Date.now()) {
-  const state = await readPrivateState();
-  if (header === "denied") {
-    const prev2 = state.denied?.[accountId];
-    if (prev2 && now - prev2.at < 6e4 && !state.accounts?.[accountId]) return;
-    state.denied = { ...state.denied, [accountId]: { at: now } };
-    delete state.accounts?.[accountId];
-    await writePrivateState(state, now);
-    return;
-  }
-  let until;
-  if (!header || header === "off") until = void 0;
-  else if (header === "infinity") until = null;
-  else {
-    const at = Date.parse(header);
-    until = Number.isFinite(at) && at > now ? at : void 0;
-  }
-  if (until !== void 0 && state.denied?.[accountId]) delete state.denied[accountId];
-  const prev = state.accounts?.[accountId];
-  if (until === void 0) {
-    if (!prev) return;
-    delete state.accounts[accountId];
-  } else {
-    if (prev && prev.until === until) return;
-    state.accounts = { ...state.accounts, [accountId]: { until, seen_at: now } };
-  }
-  await writePrivateState(state, now);
-}
-function isPrivateAllowedWrite(method, pathAndQuery) {
-  if (method === "GET") return true;
-  const pathOnly = pathAndQuery.split("?")[0];
-  return PRIVATE_ALLOWED_WRITES.includes(`${method} ${pathOnly}`);
 }
 
 // packages/plugin-core/src/memlin-api-client.ts
@@ -26219,6 +26253,28 @@ function applyWorkspaceOverlay(config2, overlay) {
   };
 }
 
+// packages/plugin-core/src/project-resolver.ts
+import { existsSync, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
+import path9 from "node:path";
+init_workspace_binding();
+var WORKSPACE_ENV_VARS = [
+  // Claude Code exposes the original project dir to hooks/plugin commands.
+  "CLAUDE_PROJECT_DIR",
+  // Cursor/plugin shims and local tests can set this explicitly.
+  "CURSOR_WORKSPACE_ROOT",
+  "CURSOR_PROJECT_ROOT",
+  "MEMLIN_WORKSPACE_ROOT",
+  // npm/pnpm set INIT_CWD to the directory where the user invoked a script.
+  "INIT_CWD"
+];
+function runtimeCwd(fallback = process.cwd()) {
+  for (const name of WORKSPACE_ENV_VARS) {
+    const raw = process.env[name]?.trim();
+    if (raw && path9.isAbsolute(raw)) return path9.resolve(raw);
+  }
+  return path9.resolve(fallback);
+}
+
 // packages/plugin-core/src/cli/cli-runner.ts
 var WATCHDOG_MS = 2e3;
 var CliExit = class extends Error {
@@ -26229,9 +26285,6 @@ var CliExit = class extends Error {
   }
   code;
 };
-function exitCli(code) {
-  throw new CliExit(code);
-}
 function scheduleProcessExit(code) {
   process.exitCode = code;
   void closeHttpSockets();
@@ -26261,239 +26314,56 @@ function runCliMain(main2, onError) {
   );
 }
 
-// packages/plugin-core/src/cli/diff.ts
-function parseDiffArgs(argv) {
-  const out = {
-    documentId: null,
-    localFile: null,
-    mode: "subset",
-    json: false,
-    record: false,
-    groundTruthKind: "file",
-    revision: null,
-    agentLabel: null
-  };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === "--strict") {
-      out.mode = "strict";
-    } else if (a === "--subset") {
-      out.mode = "subset";
-    } else if (a === "--json") {
-      out.json = true;
-    } else if (a === "--record") {
-      out.record = true;
-    } else if (a === "--kind") {
-      const v = argv[++i];
-      if (!v) return { error: "--kind needs a value" };
-      out.groundTruthKind = v;
-    } else if (a === "--revision") {
-      const v = argv[++i];
-      if (!v) return { error: "--revision needs a value" };
-      out.revision = v;
-    } else if (a === "--agent") {
-      const v = argv[++i];
-      if (!v) return { error: "--agent needs a value" };
-      out.agentLabel = v;
-    } else if (a === "--help" || a === "-h") {
-      return { error: "help" };
-    } else if (a.startsWith("--")) {
-      return { error: `unknown flag: ${a}` };
-    } else if (out.documentId === null) {
-      out.documentId = a;
-    } else if (out.localFile === null) {
-      out.localFile = a;
-    } else {
-      return { error: `unexpected positional: ${a}` };
-    }
-  }
-  if (!out.documentId) return { error: "document id is required" };
-  if (!out.localFile) return { error: "local file path is required" };
-  return out;
-}
-var extractContract = extractMemlinContract;
-function diffContract(contract, local, mode = "subset") {
-  const drift = [];
-  function walk(c, l, path9) {
-    if (c === null || typeof c !== "object" || Array.isArray(c)) {
-      if (!deepEq(c, l)) drift.push({ path: path9, contract: c, local: l, reason: "mismatch" });
-      return;
-    }
-    const lObj = l && typeof l === "object" && !Array.isArray(l) ? l : null;
-    for (const [k, cv] of Object.entries(c)) {
-      const nextPath = path9 ? `${path9}.${k}` : k;
-      if (!lObj || !(k in lObj)) {
-        drift.push({ path: nextPath, contract: cv, local: void 0, reason: "missing" });
-        continue;
-      }
-      walk(cv, lObj[k], nextPath);
-    }
-    if (mode === "strict" && lObj) {
-      for (const k of Object.keys(lObj)) {
-        if (!(k in c)) {
-          drift.push({
-            path: path9 ? `${path9}.${k}` : k,
-            contract: void 0,
-            local: lObj[k],
-            reason: "extra"
-          });
-        }
-      }
-    }
-  }
-  walk(contract, local, "");
-  return drift;
-}
-function deepEq(a, b) {
-  if (a === b) return true;
-  if (a === null || b === null || typeof a !== typeof b) return false;
-  if (Array.isArray(a)) {
-    if (!Array.isArray(b) || a.length !== b.length) return false;
-    return a.every((v, i) => deepEq(v, b[i]));
-  }
-  if (typeof a === "object") {
-    const ak = Object.keys(a);
-    const bk = Object.keys(b);
-    if (ak.length !== bk.length) return false;
-    return ak.every(
-      (k) => deepEq(
-        a[k],
-        b[k]
-      )
-    );
-  }
-  return false;
-}
+// packages/plugin-core/src/cli/private.ts
 async function main() {
-  const parsed = parseDiffArgs(process.argv.slice(2));
-  if ("error" in parsed) {
-    if (parsed.error === "help") {
-      console.log("memlin diff <document-id> <local-file> [--strict|--subset] [--json]");
-      console.log("");
-      console.log("Diff a fenced `memlin-contract` JSON block in a Memlin doc against");
-      console.log("a local JSON file. Exit 0 on match, 1 on drift, 2 on error.");
-      exitCli(0);
-    }
-    console.error(`memlin diff: ${parsed.error}`);
-    exitCli(2);
-  }
-  const documentId = parsed.documentId;
-  const localFile = parsed.localFile;
-  let localRaw;
-  try {
-    localRaw = await fs7.readFile(localFile, "utf8");
-  } catch (e) {
-    console.error(`memlin diff: cannot read ${localFile}: ${e instanceof Error ? e.message : e}`);
-    exitCli(2);
-  }
-  let local;
-  try {
-    local = JSON.parse(localRaw);
-  } catch (e) {
-    console.error(`memlin diff: ${localFile} is not valid JSON: ${e instanceof Error ? e.message : e}`);
-    exitCli(2);
-  }
-  if (!local || typeof local !== "object" || Array.isArray(local)) {
-    console.error(`memlin diff: ${localFile} must be a JSON object at the top level`);
-    exitCli(2);
-  }
-  const apiCtx = await getApi();
-  if (!apiCtx) {
-    console.error(`memlin diff: not signed in (run \`memlin login\`)`);
-    exitCli(2);
-  }
-  const { api } = apiCtx;
-  let doc;
-  try {
-    doc = await api.getDocument(documentId);
-  } catch (e) {
-    console.error(`memlin diff: fetch document ${documentId} failed: ${e instanceof Error ? e.message : e}`);
-    exitCli(2);
-  }
-  const docContent = typeof doc.content === "string" ? doc.content : "";
-  let contract;
-  try {
-    contract = extractContract(docContent);
-  } catch (e) {
-    console.error(`memlin diff: ${e instanceof Error ? e.message : e}`);
-    exitCli(2);
-  }
-  if (!contract) {
-    console.error(
-      `memlin diff: no \`memlin-contract\` fenced block found in document ${documentId}`
-    );
-    exitCli(2);
-  }
-  const drift = diffContract(contract, local, parsed.mode);
-  if (parsed.json) {
-    process.stdout.write(
-      JSON.stringify(
-        {
-          document_id: documentId,
-          local_file: localFile,
-          mode: parsed.mode,
-          ok: drift.length === 0,
-          drift
-        },
-        null,
-        2
-      ) + "\n"
-    );
-  } else if (drift.length === 0) {
-    console.log(`\u2713 ${localFile} matches contract in ${doc.title ?? documentId}`);
-  } else {
-    console.error(`\u2717 ${localFile} drifts from contract in ${doc.title ?? documentId}:`);
-    for (const d of drift) {
-      if (d.reason === "missing") {
-        console.error(`  - ${d.path}: missing in local (contract has ${JSON.stringify(d.contract)})`);
-      } else if (d.reason === "extra") {
-        console.error(`  - ${d.path}: extra in local (${JSON.stringify(d.local)})`);
-      } else {
-        console.error(
-          `  - ${d.path}: contract=${JSON.stringify(d.contract)} local=${JSON.stringify(d.local)}`
-        );
-      }
-    }
-  }
-  if (parsed.record) {
-    const status = drift.length === 0 ? "verified" : "drifted";
-    const payload = {
-      status,
-      document_version: doc.version_number,
-      ground_truth: {
-        kind: parsed.groundTruthKind,
-        ref: localFile,
-        ...parsed.revision ? { revision: parsed.revision } : {}
-      },
-      ...status === "drifted" ? { drift } : {},
-      ...parsed.agentLabel ? { agent_attribution: { label: parsed.agentLabel } } : {}
-    };
-    try {
-      await api.recordContractVerification(documentId, payload);
-      if (!parsed.json) {
-        process.stderr.write(`  \u2192 recorded ${status} on document ${documentId}
-`);
-      }
-    } catch (e) {
-      process.stderr.write(
-        `  \u26A0 recorded the diff but Memlin didn't accept it: ${e instanceof Error ? e.message : e}
-`
-      );
-    }
-  }
-  return drift.length === 0 ? 0 : 1;
-}
-if (import.meta.url === (process.argv[1] ? pathToFileURL(process.argv[1]).href : void 0)) {
-  runCliMain(main, (err) => {
-    console.error(`memlin diff: ${err instanceof Error ? err.message : err}`);
+  const arg = (process.argv[2] ?? "on").toLowerCase();
+  const command = arg === "on" || arg === "start" || arg === "enable" ? "on" : arg === "off" || arg === "stop" || arg === "end" || arg === "disable" ? "off" : arg === "status" ? "status" : null;
+  if (!command) {
+    process.stderr.write("usage: memlin private [on|off|status]\n");
     return 2;
-  });
+  }
+  const ctx = await getApi().catch(() => null);
+  const accountId = ctx?.config.account_id ?? null;
+  if (command === "on" && ctx && await checkPrivateAllowed(ctx.api, ctx.config.account_id) === false) {
+    console.log(PRIVATE_DENIED_NOTICE);
+    return 0;
+  }
+  const sessionId = currentSessionId();
+  if (sessionId && command !== "status") {
+    await setPrivateSession(sessionId, command === "on", { cwd: runtimeCwd() });
+  }
+  const status = await privateStatus(sessionId, Date.now(), accountId);
+  if (status.source === "account") {
+    console.log(
+      "Memlin private mode is ON for your whole account (set in Memlin Settings or Companion)" + (status.expiresAt ? ` until ${new Date(status.expiresAt).toLocaleString()}` : "") + ". Nothing from your sessions is saved. Turn it off in Settings \u2192 Private mode or Companion."
+    );
+    return 0;
+  }
+  if (status.source === "denied") {
+    console.log(PRIVATE_DENIED_NOTICE);
+    return 0;
+  }
+  if (status.source === "env") {
+    console.log(
+      "Memlin private mode is ON for this whole process (MEMLIN_PRIVATE is set). Unset it and restart the agent to turn it off."
+    );
+    return 0;
+  }
+  console.log(status.on ? PRIVATE_ON_NOTICE : PRIVATE_OFF_NOTICE);
+  if (status.on && status.expiresAt) {
+    console.log(`Expires ${new Date(status.expiresAt).toLocaleString()} at the latest.`);
+  }
+  if (!sessionId && command === "on" && !status.on) {
+    console.log(
+      "This host did not identify the session, so nothing was changed. Start the agent with MEMLIN_PRIVATE=1 for a private session."
+    );
+  }
+  return 0;
 }
-export {
-  diffContract,
-  extractContract,
-  parseDiffArgs
-};
+runCliMain(main, (err) => {
+  console.error("memlin private failed:", err instanceof Error ? err.message : err);
+  return 1;
+});
 /*! Bundled license information:
 
 is-extendable/index.js:
