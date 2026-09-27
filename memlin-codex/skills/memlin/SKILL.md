@@ -167,10 +167,12 @@ Use `memlin features pin <feature-id>` on the working branch. When `MEMLIN_SESSI
 
 Pins, accepted handoffs and branch bindings can be cached locally for the exact account, project and session. Semantic suggestions are temporary. Automatically captured associations remain server-resolved through the session or branch and are not promoted into a local explicit feature hint.
 
-## Private mode
+## Private and read-only mode
 
-The user can send `memlin private` (on), `memlin private off` or `memlin private status` as a
-whole prompt (`$memlin-private` works too). The Memlin prompt hook applies it and adds a one-line
-notice; relay that notice. While private mode is on, Memlin context still loads but nothing from
-the session is saved, so do not call Memlin write tools unless the user explicitly asks. The
+The user can send `memlin private` (on), `memlin read-only`, `memlin private off` or
+`memlin private status` as a whole prompt (`$memlin-private` / `$memlin-read-only` work too). The
+Memlin prompt hook applies it and adds a one-line notice; relay that notice. Private: Memlin
+context still loads but nothing from the session is saved, so do not call Memlin write tools.
+Read-only: context loads and the team still sees the work, but nothing changes team memory, so do
+not call tools that change memory (`memlin_write_memory`, `memlin_capture_session`, …). The
 account-wide switch lives in Memlin Settings → Private mode and the Companion tray.
