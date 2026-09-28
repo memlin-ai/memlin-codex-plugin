@@ -3,8 +3,8 @@
   "artifact": "memlin-codex-plugin-tree",
   "repository": "memlin-ai/memlin-codex-plugin",
   "source_repository": "memlin-ai/memlin",
-  "source_commit": "be67c892d42df605277e03920746c1f27f6a7dd7",
-  "plugin_version": "0.2.76",
+  "source_commit": "93fa6745db50f0f7cedfe3b2b1acc02830eedca2",
+  "plugin_version": "0.2.77",
   "plugin_directory": "memlin-codex",
   "manifest_path": "codex-plugin-tree.json",
   "entries": [
@@ -30,13 +30,13 @@
       "path": "memlin-codex/.codex-plugin/plugin.json",
       "mode": "100644",
       "size": 1312,
-      "sha256": "7a1fa5ef6545582c0f0ca5f8edcab05dbd2931872bd3f30e0aed548a7556d442"
+      "sha256": "5ddeaf685973077ab694893e0a7f2b4623391cfe49f55a00adc3ec5bea8c78b2"
     },
     {
       "path": "memlin-codex/.mcp.json",
       "mode": "100644",
       "size": 567,
-      "sha256": "cee1e35e59b57aac9b7ce8a082990a509ac1db4e37957613e54881895df1524d"
+      "sha256": "cf375c4c40fe3f152130eaea1a3df7321da0d0975ad1c46db834f962ba6c7f5b"
     },
     {
       "path": "memlin-codex/AGENTS.md",
@@ -60,25 +60,31 @@
       "path": "memlin-codex/config.toml",
       "mode": "100644",
       "size": 1257,
-      "sha256": "69e6e6ef57b6143ecbeb40c49036c28ff8dbfc3d3a717e9b54b67c2c5ef1d657"
+      "sha256": "dc018e0892e02b5cbf365dd9e0759667be13d8a8c402d0c79dee1054d47177c9"
     },
     {
       "path": "memlin-codex/dist/cli/actions-execute.js",
       "mode": "100755",
-      "size": 981041,
-      "sha256": "bbfa130ed852bb0062e3f14909bb745626dcd1a61ee7ccec2fc9740d0b678aae"
+      "size": 989185,
+      "sha256": "78dfe3613e9e3548227c140267bb9fcc02ca024e8495fb8c2e32cbedb2c91a07"
     },
     {
       "path": "memlin-codex/dist/cli/actions-list.js",
       "mode": "100755",
-      "size": 980083,
-      "sha256": "50ee3f7463b71faa749c9ede34c852cf551d5c0bc6c9482efb3d226ec71ed211"
+      "size": 988227,
+      "sha256": "1cca838bef2dc876575149b2990710470146612bd919cf9f0e17209edff563f0"
     },
     {
       "path": "memlin-codex/dist/cli/add-project.js",
       "mode": "100755",
-      "size": 994200,
-      "sha256": "048004ebfc053e181c06b08f274d98ab96b7c0943644eacdef45356b688ab7e4"
+      "size": 1002346,
+      "sha256": "0138c6737167cb48244789a9b823a333ae8e8bec2d1e3acfec4b7eb654efd9f5"
+    },
+    {
+      "path": "memlin-codex/dist/cli/agent.js",
+      "mode": "100755",
+      "size": 16784,
+      "sha256": "8fc70d0fb5fb6fb8ef342fa8634a464e2c168542589a468ac01c23488f11e66a"
     },
     {
       "path": "memlin-codex/dist/cli/archive-plans.js",
@@ -95,32 +101,32 @@
     {
       "path": "memlin-codex/dist/cli/ask.js",
       "mode": "100755",
-      "size": 987021,
-      "sha256": "ef1c7144b237ad0198c4b7fb6a6b4d19f33e449f0b2799a7aac1477d28a89c04"
+      "size": 995167,
+      "sha256": "afc677029c0bad15011de55e0b6b058690624564c1ec3b9f56f7f72d0409f6df"
     },
     {
       "path": "memlin-codex/dist/cli/attach-path.js",
       "mode": "100755",
-      "size": 983865,
-      "sha256": "966a7d2c720c4d88ce30f200ade218b48a1ea85db58d6dcda6255519c42c199b"
+      "size": 992011,
+      "sha256": "55b0b2c7f2ea29cb8fb723018c7978e19e176bc4b9ef8988d1f15fec37ade156"
     },
     {
       "path": "memlin-codex/dist/cli/audit-explain.js",
       "mode": "100755",
-      "size": 982103,
-      "sha256": "9bf92cb2f1e2fd75a59324cc97b402c5afe3362d5eea5af178207755fed5d523"
+      "size": 990247,
+      "sha256": "c98ba75fc93d46acff83b1640a9777b715572878324c0af3ca65db7d5be353ae"
     },
     {
       "path": "memlin-codex/dist/cli/audit-replay.js",
       "mode": "100755",
-      "size": 985637,
-      "sha256": "2e292da23b6101e08b96e803afc450b0ac9e4bbea092f364eb1efa7042f4c185"
+      "size": 993781,
+      "sha256": "8fab04dc66a1b257ce8b18a3b4632492af5952b3e92222d4e9e8bc0f429c9029"
     },
     {
       "path": "memlin-codex/dist/cli/bind-plans.js",
       "mode": "100755",
-      "size": 998405,
-      "sha256": "664168d343b3ff4cb9bc409c54a94e6022cb8d90f2ea3ca425fe0f8ab9f0c785"
+      "size": 1006551,
+      "sha256": "ea2d69d801960c3a38b830022c1630c3cebcf3fd7b56763e485c05eae5077ed1"
     },
     {
       "path": "memlin-codex/dist/cli/cli-runner.js",
@@ -131,14 +137,14 @@
     {
       "path": "memlin-codex/dist/cli/command-guide.js",
       "mode": "100644",
-      "size": 880998,
-      "sha256": "b6e7a8af65fe7efeab40eab1bdab42a1c51794ffe1749d996e5ba8c9dc8dfa00"
+      "size": 888322,
+      "sha256": "83433c9dc1fea878dc605015dc244cbbc43d0c9464805d80abaa14ff3b32cba6"
     },
     {
       "path": "memlin-codex/dist/cli/compile-bundle.js",
       "mode": "100644",
-      "size": 911027,
-      "sha256": "dafffe022a84eb40ca1f62b6e1df8942e66b28fb2154fff88fbd1b9ba2191e97"
+      "size": 917894,
+      "sha256": "f240b1a00f2c18c763bd72b367380f1acfb7507b2af0ef281d91fe6508c21474"
     },
     {
       "path": "memlin-codex/dist/cli/decide-args.js",
@@ -149,50 +155,50 @@
     {
       "path": "memlin-codex/dist/cli/decide.js",
       "mode": "100755",
-      "size": 980385,
-      "sha256": "c2bb6a5dbc4a86155dda4b8b85e92f0fe8059d6cd3679ad78f173d45e0eb035d"
+      "size": 988529,
+      "sha256": "23498ad9708815631078511f6dba05e22a76da1329e078d36e343d48e44557ee"
     },
     {
       "path": "memlin-codex/dist/cli/decisions-view.js",
       "mode": "100644",
-      "size": 874920,
-      "sha256": "3c5ec7106ab1e9fe4d25b9d6e3f23566680b869985b904d4dab287a971bf655c"
+      "size": 881787,
+      "sha256": "1c978a6c371348ae14647663d08e9f4b5c7001b1ac4f66a90288225101c8e664"
     },
     {
       "path": "memlin-codex/dist/cli/decisions.js",
       "mode": "100755",
-      "size": 988703,
-      "sha256": "c2f1788a433304951a5a78a4fafd7d1d3089081c8a6e27d642f2cd5b586eb684"
+      "size": 996847,
+      "sha256": "cd9a63085ac7bff1604fe4209a79f043b76826a739554a496a937eba0729f385"
     },
     {
       "path": "memlin-codex/dist/cli/diff.js",
       "mode": "100755",
-      "size": 983568,
-      "sha256": "8528217b909d58a1f4293c7850d996fe2b7236b7f5bf7082ddc6b2f3e4858cd9"
+      "size": 991712,
+      "sha256": "932c0cec9082a278cbf9fdbc4c4f26353edb4300fc16158c14adc6312f971e57"
     },
     {
       "path": "memlin-codex/dist/cli/doctor.js",
       "mode": "100755",
-      "size": 998489,
-      "sha256": "8f5218a452fc2b57d545a8597bd1808751d765b955b6d18edbc7ba9084421815"
+      "size": 1006635,
+      "sha256": "58fb10334c930e2fc84292eaf2bc968cb566a21c41ec608c89fb924b78fc3de8"
     },
     {
       "path": "memlin-codex/dist/cli/features-command.js",
       "mode": "100644",
-      "size": 900035,
-      "sha256": "3292cffd2f91b1fb49921181d2de36f31737e90ff1b69cfc19aac7df1895ffdc"
+      "size": 906902,
+      "sha256": "5e7af9ed01ade3c11cf0616b73fc859b391d38f71be727b01641a72d224d2d67"
     },
     {
       "path": "memlin-codex/dist/cli/features.js",
       "mode": "100755",
-      "size": 1019929,
-      "sha256": "0cac47ae0413f54b3064d3dc499c17747a1bc2a35cc1671b3a8de7564a573131"
+      "size": 1028075,
+      "sha256": "993a60db9cd4a649d88edfcd46e768eebef7b6bd939f8d9d9f92214173dbf7a1"
     },
     {
       "path": "memlin-codex/dist/cli/handoffs.js",
       "mode": "100755",
-      "size": 982861,
-      "sha256": "df957a991f27d889f44467a253aacabbdb29c85198af184f6d2596cabe8c1ff5"
+      "size": 991005,
+      "sha256": "586a15504e7c25e164540c7180c096d1dbfd3b0c2fa1faf998658c8a8c9aef2c"
     },
     {
       "path": "memlin-codex/dist/cli/inbox-feature-args.js",
@@ -203,206 +209,212 @@
     {
       "path": "memlin-codex/dist/cli/inbox.js",
       "mode": "100755",
-      "size": 985676,
-      "sha256": "86dbab5cbfba9c587ab8d7fd9f89b72953dd7a4530df6a38e49afd777fbbd7f8"
+      "size": 993820,
+      "sha256": "d2d3bce3cdad5c064a3bd06a06843088eda8b917336e4823ca753e0ffff4d59d"
     },
     {
       "path": "memlin-codex/dist/cli/ingest-native-memory.js",
       "mode": "100755",
-      "size": 989797,
-      "sha256": "f1cd9985e1f291335aad65742b3d6445779708a7f38982552438a8e24dad86b2"
+      "size": 997943,
+      "sha256": "3a9522408db5f0103d985dd518e79bcbbff810a6eabf6cf4f85470dda1d94060"
     },
     {
       "path": "memlin-codex/dist/cli/init.js",
       "mode": "100755",
-      "size": 879453,
-      "sha256": "40a7388625360a9927a2db750a6d1c16179cdbfaa956eabd14df4158a6223512"
+      "size": 886320,
+      "sha256": "8198eb7f21ecb017eac2e5ce7c94a8e4671a72d68428ae831b5955a3d5fd23fb"
     },
     {
       "path": "memlin-codex/dist/cli/light-worker.js",
       "mode": "100644",
-      "size": 1251975,
-      "sha256": "fe1f27d9096b54ff45c8332113a54851819bb75823fb752bcb42ce2b4f2784d3"
+      "size": 1260654,
+      "sha256": "f0bd2b639ff771df1de7fdefa0742a7cbd44fed18d7abe80abe0e3113488b86d"
     },
     {
       "path": "memlin-codex/dist/cli/link.js",
       "mode": "100755",
-      "size": 980765,
-      "sha256": "5d604d84517298d5299f3ebb4cdb8d813fe731fe51875d9044d7c403728f4b78"
+      "size": 988911,
+      "sha256": "1a7383ce09fb56dfa61e081e02ec7f95c3a40796ead560cb36a3d21bf9c7888f"
     },
     {
       "path": "memlin-codex/dist/cli/login.js",
       "mode": "100755",
-      "size": 1003309,
-      "sha256": "21c8f8be0cfb67e7d17f82c5cf6ff76206c8f6f025a97d0939f54e55c1dcc112"
+      "size": 1011912,
+      "sha256": "bf7fdcc8dc8db61ff86543dc5189e3ce9c2d5a8469e3b6ec76f70562da6c7c33"
     },
     {
       "path": "memlin-codex/dist/cli/main.js",
       "mode": "100755",
-      "size": 2681,
-      "sha256": "040809d0fd4793a14d298ae3075775c23ba6cb940e7cad9eb66d1e7fcd8298e3"
+      "size": 2765,
+      "sha256": "357f158d20f39a1388f2f5216950f8815d19c781a2a2d3e9e7788f99e100a80d"
     },
     {
       "path": "memlin-codex/dist/cli/manage-memory.js",
       "mode": "100755",
-      "size": 1011954,
-      "sha256": "71c2d583f9069eaa1baa8c1933f9a3013868a408dc13c37a46f357759e25b628"
+      "size": 1020100,
+      "sha256": "d9e9b42bdb1b30c81a95a76a2b60fed4e9eaf92b5df8e088d1841660212d91ee"
     },
     {
       "path": "memlin-codex/dist/cli/managed-memory.js",
       "mode": "100755",
-      "size": 1012569,
-      "sha256": "2c5edc1f0c7c5398cea2e7db180ba41959d80450d22b8df26577568376bbb298"
+      "size": 1020715,
+      "sha256": "a71f7686d0fcabe301f95fc060e3ce16ba819e198d9d3a7caeba8a4f63414757"
     },
     {
       "path": "memlin-codex/dist/cli/mcp-proxy.js",
       "mode": "100644",
-      "size": 1045641,
-      "sha256": "a058ea01f326a7b452f6e7422b02a67fd829398f7e2d57fbde482602d6b80ea9"
+      "size": 1053787,
+      "sha256": "b792f591a5d86c80ef0e8d4339d3d27d50df86c318ee2e5317fb4b8034a0b30a"
     },
     {
       "path": "memlin-codex/dist/cli/pin.js",
       "mode": "100755",
-      "size": 977081,
-      "sha256": "eb2e4fe3ab078bcb053a0dc29e3be3f6d3178fc1eb0e50fe6b7d47563facf92d"
+      "size": 985225,
+      "sha256": "49efe11d61ceef3ca3c81f59c2c10f5867b6d2157c1f672f8205ff599aca40d2"
     },
     {
       "path": "memlin-codex/dist/cli/private.js",
       "mode": "100755",
-      "size": 982274,
-      "sha256": "f8fdc25204822d696a8d724cb441f6f294d3e6f1c101d794721c5bc19696b991"
+      "size": 990420,
+      "sha256": "68f160b4f69d8c01ccba37fb6c200d34c9ba4456fc3e72a6a7fce63a63cecacf"
     },
     {
       "path": "memlin-codex/dist/cli/prompt-ci.js",
       "mode": "100755",
-      "size": 985568,
-      "sha256": "c90b7931857492598a6c0c16e4d97e827712d3b4bbcff35a2713cdf3091fc954"
+      "size": 993714,
+      "sha256": "9e2c666ba76ca9c0b7d8aeb930be56c77210c66b38cdd9fdbd48379c0b6dccba"
     },
     {
       "path": "memlin-codex/dist/cli/pull-plans.js",
       "mode": "100755",
-      "size": 990957,
-      "sha256": "f354ca07bf08583e4e386206ed5f34f07816d34bcc293896e1ccc80343050deb"
+      "size": 999103,
+      "sha256": "d1cee260ef00680d11b4424bf7ec32c3b4eff2f37746460c5b7a688778cecfa9"
     },
     {
       "path": "memlin-codex/dist/cli/pull.js",
       "mode": "100755",
-      "size": 1010877,
-      "sha256": "70e65722dba86c0a74bae80326b2bee2a98fc70c79fea489bb72e542406b3074"
+      "size": 1019023,
+      "sha256": "3a7c5def2acf250207813ea318e569460b02e22ac29d232a4e61b152b3ec7021"
     },
     {
       "path": "memlin-codex/dist/cli/push-plan.js",
       "mode": "100755",
-      "size": 992475,
-      "sha256": "41cf22674f940bb6e42d1dfc48c727bb5f201216d438a34bd46e5c90d2abe84c"
+      "size": 1000621,
+      "sha256": "f177c31c10cc87f55b5a423185de649dd60984d229828aa225dfd82ac244fcc7"
     },
     {
       "path": "memlin-codex/dist/cli/push.js",
       "mode": "100755",
-      "size": 1000242,
-      "sha256": "891ad1a5a8ae201000875de9d3d9b39050b3696d4f16369158e67b6bd3b3706d"
+      "size": 1008388,
+      "sha256": "a5204aee72ec36c80505504a72b8aa04a5e5148aee5c861024ddc661bc82108c"
+    },
+    {
+      "path": "memlin-codex/dist/cli/read-only.js",
+      "mode": "100755",
+      "size": 1102506,
+      "sha256": "b7172ee5d554aa517e6d4afae83552e79c42663718b6c202d0feeca983452b9f"
     },
     {
       "path": "memlin-codex/dist/cli/remember.js",
       "mode": "100755",
-      "size": 991013,
-      "sha256": "a184c7bc83cc17eab58ef72b6f0531841b2d095a0a7c234f6d936adc31b3d970"
+      "size": 999159,
+      "sha256": "73eca52ff28abc1820ab6fbe3cc4125a4eaaa78793ad3b50cd2346572830306f"
     },
     {
       "path": "memlin-codex/dist/cli/resolve-args.js",
       "mode": "100644",
-      "size": 867072,
-      "sha256": "1fb9f988c692fe9338e1a8b839e2424c510f67efc867caab7423eff77365de5f"
+      "size": 873939,
+      "sha256": "ffc7f83626618eaaafa2a371ac2c70dbf114d7b313750f2400137692b9f0ce09"
     },
     {
       "path": "memlin-codex/dist/cli/resolve.js",
       "mode": "100755",
-      "size": 1053541,
-      "sha256": "55c3bb56db832937f7dbefeeb4dac26090106abf7f4813a8b400eb77a3040f81"
+      "size": 1061687,
+      "sha256": "b06f1e3d446a33bf4f73205be4f42004e2fce7fb0d7df9b43007c03535108e0f"
     },
     {
       "path": "memlin-codex/dist/cli/revert.js",
       "mode": "100755",
-      "size": 978489,
-      "sha256": "9715af7402af13af841f2c5138b396c24d7a8b28fa7637c3f4108565e64c5f6f"
+      "size": 986633,
+      "sha256": "afcc51a7f857190970be07b73595051148287fdb9558f8f57dd307e1b5c4663e"
     },
     {
       "path": "memlin-codex/dist/cli/role.js",
       "mode": "100755",
-      "size": 978343,
-      "sha256": "477ebd04e33ddfb01222249ce1dbae3c0a83c8ecfaaf214628fc9e9788801ea5"
+      "size": 986487,
+      "sha256": "2d518f41ae6141f1c19d884290c37cf9d11908005c19776b99df89036a301a90"
     },
     {
       "path": "memlin-codex/dist/cli/scan.js",
       "mode": "100755",
-      "size": 15429639,
-      "sha256": "53ca14607f9b060f16c40fa54991e894aad59850a3f5b78c83a7880ecb9b7122"
+      "size": 15437796,
+      "sha256": "89482ce58662f45dd22ad42054146feb13e8ce9d852f6f00565849f4691ed35f"
     },
     {
       "path": "memlin-codex/dist/cli/scribe.js",
       "mode": "100755",
-      "size": 983767,
-      "sha256": "5644185fe1db7059d406d97549d0dee7fcc4a1ec5ce7c91959e7a101a0b338dc"
+      "size": 991913,
+      "sha256": "f8c266c27831d59ed2bee213d8008e0d54a17944e3cbe2478569a828aa96fea6"
     },
     {
       "path": "memlin-codex/dist/cli/status.js",
       "mode": "100755",
-      "size": 998994,
-      "sha256": "5affc45759516b286fbc55ee2b22d814fa92e2ff8ace7a21d0b16347ed29b6b9"
+      "size": 1007140,
+      "sha256": "d91baaa1dd699bc108f90a1a7b8534887a42c0f9cd2305b547841c62472d88b1"
     },
     {
       "path": "memlin-codex/dist/cli/sync.js",
       "mode": "100755",
-      "size": 1026292,
-      "sha256": "a0e86e4c4897ac26606ae1dbae61785cbb35443f9b9352e31af37ac78eaea0d5"
+      "size": 1034438,
+      "sha256": "27ef8930e4d6a79b88cbff8c5152895061692921d7265145abe1216f90fc39e2"
     },
     {
       "path": "memlin-codex/dist/cli/upload.js",
       "mode": "100755",
-      "size": 1011026,
-      "sha256": "1c642e74201ecc2a4c2fe65f2db810171b5c8f3a56d918d2303516359728e222"
+      "size": 1019172,
+      "sha256": "42c3faf5cc4181dd453d4e36d69ab2f4727a30b704021e751ed85ac72aaf8df8"
     },
     {
       "path": "memlin-codex/dist/cli/verify.js",
       "mode": "100755",
-      "size": 978586,
-      "sha256": "a35c56972a40cf27819fe68a2c1606a85a50a9c220dd92f53e31329c461bb76b"
+      "size": 986730,
+      "sha256": "88fb176791c6884636312b2c9253e143d1e6bb525d91f3d31339c4792e234ea1"
     },
     {
       "path": "memlin-codex/dist/hooks/post-tool-use.js",
       "mode": "100755",
-      "size": 1021610,
-      "sha256": "9bfd9f4cf5c69b213a5e5cdae45d71a423be4f257f7025f68cdedde4597b0bce"
+      "size": 1029756,
+      "sha256": "4aaca075841276f4d6882e049d4b6a03a3883fcceb3ad8b7d4e3c3bdb49c4f82"
     },
     {
       "path": "memlin-codex/dist/hooks/pre-tool-use.js",
       "mode": "100755",
-      "size": 1067265,
-      "sha256": "e3917f81d84bd18ffdc8b25d17ce6dfb5e46d81f807932ee568b7c44c86416ae"
+      "size": 1075411,
+      "sha256": "f3327e77a018214cfbb229e074015dc35f5bddf5445145f087e80d796623febf"
     },
     {
       "path": "memlin-codex/dist/hooks/session-start.js",
       "mode": "100755",
-      "size": 1000300,
-      "sha256": "ab74638f83bc2f0500f535369061f2bca58fab4dfdbdec6911e010a36889a87e"
+      "size": 1008446,
+      "sha256": "20e7f8c201962f74ea1d30e5eb5da005c4ef4a29bc9cac34634d4b303956ccbc"
     },
     {
       "path": "memlin-codex/dist/hooks/stop.js",
       "mode": "100755",
-      "size": 1076255,
-      "sha256": "b9959f134c3915967c0e1170d0709b641b0d8b55ba3210092a535852dd56cc49"
+      "size": 1084934,
+      "sha256": "a3cc4b94e590cb31603c3d42a60a84b6b814f43bc4e31529f93880ab51517819"
     },
     {
       "path": "memlin-codex/dist/hooks/user-prompt-submit.js",
       "mode": "100755",
-      "size": 1043808,
-      "sha256": "5b57f1e7ff53c7ff166a43169675a270ec4e3c2b36559bf82dc908bace65705f"
+      "size": 1051954,
+      "sha256": "179cce185c0e775235ad3793e6c0638258b7255277e74aa2105f2130d2c68570"
     },
     {
       "path": "memlin-codex/dist/mcp-server.js",
       "mode": "100755",
-      "size": 3953202,
-      "sha256": "81ffcbfda8d877f6a0a3e2d5b7dca32a9f7b1028b397ada51f2e0ebb8f127f37"
+      "size": 3973020,
+      "sha256": "ad9b8ddd20b1eb33d935fc4f8637e670c1f60c8f6f39fd867305bdbba103cfab"
     },
     {
       "path": "memlin-codex/dist/wasm/tree-sitter-c_sharp.wasm",
@@ -432,7 +444,7 @@
       "path": "memlin-codex/package.json",
       "mode": "100644",
       "size": 106,
-      "sha256": "2a9866f2e88afcc1f12a19fef1d5b911f0cdedf3354ac17bd7566b001d2293ce"
+      "sha256": "4cc5eaf41b1eec489be351b077500daa10243609f9da62d3c03d75203bade5db"
     },
     {
       "path": "memlin-codex/skills/memlin/SKILL.md",
@@ -441,5 +453,5 @@
       "sha256": "abcd1027a7a070a916bec321ffb9998495d79227a401165282b1676d0dc9940a"
     }
   ],
-  "tree_digest": "aedb61b1cd0be0895dbda9baebad1540524c57c0402402b364789e7011a173a9"
+  "tree_digest": "55d798f32a46612377ee3184ee950bbb6fefa9d8dae492245fac73746551ac0e"
 }
