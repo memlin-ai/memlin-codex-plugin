@@ -210,6 +210,7 @@ __export(companion_client_exports, {
   companionGetToken: () => companionGetToken,
   companionReadLocal: () => companionReadLocal,
   companionReleaseResolveDelivery: () => companionReleaseResolveDelivery,
+  companionRemoteReporting: () => companionRemoteReporting,
   companionReportResolveDelivery: () => companionReportResolveDelivery,
   companionReportSession: () => companionReportSession,
   companionRequest: () => companionRequest,
@@ -334,6 +335,9 @@ async function companionGetToken() {
 async function companionResolveWorkspace(cwd) {
   return companionRequest("workspace.resolve", { cwd });
 }
+async function companionRemoteReporting(cwd) {
+  return companionRequest("workspace.remote-reporting", { cwd });
+}
 async function companionSyncNow(req) {
   return companionRequest("sync.now", req);
 }
@@ -416,6 +420,9 @@ var init_companion_client = __esm({
     DEFAULT_CALL_TIMEOUT_MS = 1e3;
     CALL_TIMEOUTS = {
       "workspace.resolve": 2e3,
+      // Asked before every prompt and tool call and answered from one small
+      // settings file: a Companion too busy to say so is treated as a refusal.
+      "workspace.remote-reporting": 300,
       "nativeDevices.status": 3e4,
       "nativeDevices.list": 3e4,
       "nativeDevices.pairStart": 3e4,
@@ -3816,7 +3823,7 @@ var require_parse = __commonJS({
 var require_gray_matter = __commonJS({
   "node_modules/.pnpm/gray-matter@4.0.3/node_modules/gray-matter/index.js"(exports2, module2) {
     "use strict";
-    var fs15 = __require("fs");
+    var fs17 = __require("fs");
     var sections = require_section_matter();
     var defaults = require_defaults();
     var stringify = require_stringify();
@@ -3900,7 +3907,7 @@ var require_gray_matter = __commonJS({
       return stringify(file2, data, options2);
     };
     matter3.read = function(filepath, options2) {
-      const str2 = fs15.readFileSync(filepath, "utf8");
+      const str2 = fs17.readFileSync(filepath, "utf8");
       const file2 = matter3(str2, options2);
       file2.path = filepath;
       return file2;
@@ -4280,9 +4287,9 @@ import os12 from "node:os";
 
 // packages/plugin-core/src/heartbeat.ts
 import crypto4 from "node:crypto";
-import { promises as fs7 } from "node:fs";
+import { promises as fs9 } from "node:fs";
 import os9 from "node:os";
-import path10 from "node:path";
+import path11 from "node:path";
 
 // packages/plugin-core/src/client.ts
 import { promises as fs6 } from "node:fs";
@@ -5049,8 +5056,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path26, errorMaps, issueData } = params;
-  const fullPath = [...path26, ...issueData.path || []];
+  const { data, path: path27, errorMaps, issueData } = params;
+  const fullPath = [...path27, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -5166,11 +5173,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path26, key) {
+  constructor(parent, value, path27, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path26;
+    this._path = path27;
     this._key = key;
   }
   get path() {
@@ -9740,4242 +9747,6 @@ function estCostUsd(inputTokens, usdPerMTok) {
 var SONNET_BLENDED_USD_PER_MTOK = SONNET_INPUT_USD_PER_MTOK + OUTPUT_MULTIPLIER * SONNET_OUTPUT_USD_PER_MTOK;
 var SAVINGS_USD_PER_TOKEN = estCostUsd(1);
 
-// packages/shared/dist/update-feed.js
-var FEED_FORMAT = "memlin.feed.v1";
-var FeedSeveritySchema = external_exports.enum(["info", "notable", "action"]);
-var FeedKeySchema = external_exports.string().regex(/^[a-z0-9][a-z0-9-]{1,62}$/);
-var FeedCitationSchema = external_exports.object({
-  url: external_exports.string().url().max(2048).refine((value) => value.startsWith("https://"), "Citations must be https"),
-  title: external_exports.string().trim().min(1).max(300)
-}).strict();
-var modelId = external_exports.string().trim().min(1).max(240);
-var perMTok = external_exports.number().nonnegative().max(1e5);
-var PricesSchema = external_exports.object({
-  input: perMTok.nullable(),
-  output: perMTok.nullable(),
-  cache_read: perMTok.nullable().optional(),
-  cache_write: perMTok.nullable().optional()
-}).strict();
-var AiChangeAuthoritySchema = external_exports.enum(["authoritative", "reported", "community"]);
-var AiChangeDetailsSchema = external_exports.discriminatedUnion("kind", [
-  external_exports.object({
-    kind: external_exports.literal("price_change"),
-    authority: AiChangeAuthoritySchema,
-    vendor: external_exports.string().max(40),
-    model: modelId,
-    before: PricesSchema.nullable(),
-    after: PricesSchema,
-    effective_at: external_exports.string().datetime().nullable()
-  }).strict(),
-  external_exports.object({
-    kind: external_exports.literal("new_model"),
-    authority: AiChangeAuthoritySchema,
-    vendor: external_exports.string().max(40),
-    model: modelId,
-    family: external_exports.string().max(80).nullable(),
-    predecessor: modelId.nullable(),
-    prices: PricesSchema.nullable()
-  }).strict(),
-  external_exports.object({
-    kind: external_exports.enum(["deprecation", "retirement"]),
-    authority: AiChangeAuthoritySchema,
-    vendor: external_exports.string().max(40),
-    model: modelId,
-    retire_at: external_exports.string().datetime().nullable(),
-    replacement: modelId.nullable()
-  }).strict(),
-  external_exports.object({
-    kind: external_exports.enum(["tool_release", "breaking_change"]),
-    authority: AiChangeAuthoritySchema,
-    vendor: external_exports.string().max(40),
-    tool: external_exports.string().regex(/^[a-z0-9][a-z0-9:@/._-]{1,80}$/),
-    version: external_exports.string().max(80),
-    breaking: external_exports.array(external_exports.string().max(300)).max(10)
-  }).strict(),
-  external_exports.object({
-    kind: external_exports.literal("news"),
-    authority: AiChangeAuthoritySchema,
-    vendor: external_exports.string().max(40).nullable()
-  }).strict()
-]);
-var ModelWatchAlertDetailsSchema = external_exports.object({
-  kind: external_exports.enum([
-    "price_change",
-    "new_model",
-    "deprecation",
-    "retirement",
-    "tool_release",
-    "breaking_change",
-    "news"
-  ]),
-  change_entry_id: external_exports.string().uuid(),
-  evidence: external_exports.object({
-    models_used: external_exports.array(external_exports.object({ model: modelId, tokens_30d: external_exports.number().int().nonnegative() }).strict()).max(20),
-    monthly_cost_delta_usd: external_exports.number().nullable(),
-    files: external_exports.array(external_exports.object({ repo: external_exports.string().max(200), path: external_exports.string().max(500) }).strict()).max(50),
-    workflows: external_exports.array(external_exports.object({ id: external_exports.string().uuid(), title: external_exports.string().max(240) }).strict()).max(20),
-    host_versions: external_exports.array(external_exports.object({ tool: external_exports.string().max(80), version: external_exports.string().max(80) }).strict()).max(10)
-  }).strict()
-}).strict();
-var FeedEntryInputSchema = external_exports.object({
-  dedupe_key: external_exports.string().trim().min(1).max(300),
-  kind: external_exports.string().regex(/^[a-z][a-z_]{1,39}$/),
-  severity: FeedSeveritySchema,
-  title: external_exports.string().trim().min(1).max(200),
-  summary: external_exports.string().max(600).default(""),
-  body_md: external_exports.string().max(2e3).default(""),
-  citations: external_exports.array(FeedCitationSchema).min(1).max(20),
-  details: external_exports.record(external_exports.string(), external_exports.unknown()).default({}),
-  subjects: external_exports.record(external_exports.string(), external_exports.unknown()).default({}),
-  project_id: external_exports.string().uuid().nullable().default(null),
-  receipt: external_exports.record(external_exports.string(), external_exports.unknown()).optional()
-}).strict();
-var FeedEntrySchema = external_exports.object({
-  id: external_exports.string().uuid(),
-  kind: external_exports.string(),
-  severity: FeedSeveritySchema,
-  title: external_exports.string(),
-  summary: external_exports.string(),
-  body_md: external_exports.string(),
-  citations: external_exports.array(FeedCitationSchema),
-  details: external_exports.record(external_exports.string(), external_exports.unknown()),
-  subjects: external_exports.record(external_exports.string(), external_exports.unknown()),
-  project_id: external_exports.string().uuid().nullable(),
-  producer: external_exports.enum(["workflow", "lane"]),
-  content_sha256: external_exports.string(),
-  supersedes_id: external_exports.string().uuid().nullable(),
-  published_at: external_exports.string(),
-  unread: external_exports.boolean()
-}).strict();
-var FeedSummarySchema = external_exports.object({
-  key: FeedKeySchema,
-  title: external_exports.string(),
-  audience: external_exports.enum(["global", "account"]),
-  entry_schema: external_exports.string(),
-  manifest_version: external_exports.number().int().positive(),
-  unread: external_exports.number().int().nonnegative()
-}).strict();
-var FeedResponseSchema = external_exports.object({
-  format: external_exports.literal(FEED_FORMAT),
-  feed: FeedSummarySchema,
-  entries: external_exports.array(FeedEntrySchema),
-  next_since: external_exports.string().nullable(),
-  generated_at: external_exports.string()
-}).strict();
-
-// packages/shared/dist/job-dispatch.js
-var JOB_KINDS = ["workflow_run", "model_watch_match", "model_watch_digest"];
-var JobMessageSchema = external_exports.object({
-  version: external_exports.literal(1),
-  kind: external_exports.enum(JOB_KINDS),
-  job_key: external_exports.string().min(1).max(200),
-  account_id: external_exports.string().uuid(),
-  delivery: external_exports.number().int().positive()
-}).strict();
-
-// packages/shared/dist/feature-discovery.js
-function featureDiscoverySystem({
-  projectKind = "code",
-  noun
-} = {}) {
-  const label = featureLabel(projectKind, noun);
-  const inventory = projectKind === "general" ? [
-    "You read a project\u2019s shared thoughts, topics, decisions, goals and plans.",
-    `Group them into ${label.plural.toUpperCase()}: cohesive areas of work the team organizes around.`,
-    "Examples include customer research, event planning, hiring and quarterly priorities."
-  ] : [
-    "You read the inventory of a software project: components, recent pull requests, decisions, goals and plans.",
-    `Group them into ${label.plural.toUpperCase()}: cohesive capabilities the team organizes around.`,
-    "Examples include authentication, billing and capture."
-  ];
-  return [
-    `You are Memlin\u2019s ${label.singular.toLowerCase()} mapper.`,
-    ...inventory,
-    "",
-    "Rules:",
-    `- Propose between 4 and 15 ${label.plural.toLowerCase()}. Fewer is better than padding with noise.`,
-    "- Each group is a cohesive area of work, not one item or a restatement of the whole project.",
-    "- Members must be drawn ONLY from the provided item ids. Never invent ids.",
-    "- Omit items that do not clearly belong to any group.",
-    "- Do NOT duplicate or restate existing or previously rejected groups; propose only missing work.",
-    "- Use short, exact names the team would use in conversation.",
-    "",
-    "Return ONLY a JSON object of the form:",
-    '{ "features": [ { "name": string, "summary": string, "members": string[] } ] }',
-    "Each members entry is an id from the inventory. No prose outside the JSON."
-  ].join("\n");
-}
-var FEATURE_DISCOVERY_SYSTEM = featureDiscoverySystem();
-
-// packages/shared/dist/light-native.js
-var LIGHT_READER_LIMITS = Object.freeze({
-  maxDepth: 3,
-  filesPerHost: 200,
-  memoryFileBytes: 128 * 1024,
-  planFileBytes: 64 * 1024,
-  skillFileBytes: 64 * 1024,
-  hostBytes: 2 * 1024 * 1024,
-  skillFoldersPerHost: 200,
-  resourcesPerSkill: 200,
-  /** Resource files larger than this are listed without a hash. */
-  resourceHashBytes: 16 * 1024 * 1024
-});
-function normalizeLightBody(text) {
-  return text.normalize("NFC").replace(/\r\n?/g, "\n").split("\n").map((line) => line.replace(/[ \t]+$/, "")).join("\n").replace(/\n{3,}/g, "\n\n").trim();
-}
-function lightTokens(text) {
-  const out = /* @__PURE__ */ new Set();
-  for (const m of text.toLowerCase().normalize("NFKD").matchAll(new RegExp("[\\p{L}\\p{N}]{2,}|\\p{N}+", "gu"))) {
-    out.add(m[0]);
-  }
-  return out;
-}
-function jaccard(a, b) {
-  if (a.size === 0 && b.size === 0) return 0;
-  let inter = 0;
-  for (const t of a) if (b.has(t)) inter += 1;
-  return inter / (a.size + b.size - inter);
-}
-function lightKeyHash(text) {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) {
-    h ^= text.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return (h >>> 0).toString(16).padStart(8, "0");
-}
-function lightSlug(text, max = 48) {
-  const slug = text.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, max).replace(/-+$/g, "");
-  return slug || "untitled";
-}
-
-// packages/shared/dist/native-memory-parse.js
-var import_gray_matter2 = __toESM(require_gray_matter(), 1);
-function parseMemoryIndex(raw) {
-  const entries = [];
-  if (!raw) return entries;
-  for (const line of raw.split("\n")) {
-    const m = /^\s*[-*]\s+(.+?)\s*$/.exec(line);
-    if (!m) continue;
-    const text = m[1].trim();
-    if (!text) continue;
-    const link = /\[([^\]]+)\]\(([^)]+)\)/.exec(text);
-    if (link) {
-      const label = link[1].trim();
-      const after = text.slice(link.index + link[0].length).replace(/^\s*[—:-]\s*/, "").trim();
-      entries.push({
-        title: label,
-        body: after ? `${label} \u2014 ${after}` : label,
-        linkTarget: link[2].trim()
-      });
-    } else {
-      const title = text.split(/\s+[—:-]\s+/)[0].trim().slice(0, 120);
-      entries.push({ title, body: text, linkTarget: null });
-    }
-  }
-  return entries;
-}
-function parseMemoryFrontmatter(md) {
-  const m = /^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/.exec(md);
-  if (!m) return { title: null, body: md, description: null, type: null, hasFrontmatter: false };
-  const nameMatch = /(?:^|\n)name:\s*(.+)/.exec(m[1]);
-  const body = (m[2] ?? "").trim();
-  const descriptionMatch = /(?:^|\n)description:\s*(.+)/.exec(m[1]);
-  const typeMatch = /(?:^|\n)type:\s*(.+)/.exec(m[1]);
-  return {
-    title: nameMatch ? nameMatch[1].trim() : null,
-    body: body || md,
-    description: descriptionMatch ? descriptionMatch[1].trim() : null,
-    type: typeMatch ? typeMatch[1].trim() : null,
-    hasFrontmatter: true
-  };
-}
-var yamlEngine = import_gray_matter2.default.engines.yaml;
-function splitYamlFrontmatter(md) {
-  const text = md.replace(/^﻿/, "");
-  const m = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)([\s\S]*)$/.exec(text);
-  if (!m) return { present: false, data: null, invalid: false, body: text };
-  const body = m[2] ?? "";
-  try {
-    const data = yamlEngine.parse(m[1]);
-    if (data === null || data === void 0)
-      return { present: true, data: {}, invalid: false, body };
-    if (typeof data !== "object" || Array.isArray(data)) {
-      return { present: true, data: null, invalid: true, body };
-    }
-    return { present: true, data, invalid: false, body };
-  } catch {
-    return { present: true, data: null, invalid: true, body };
-  }
-}
-function firstMarkdownHeading(md, level = 1) {
-  const re = new RegExp(`^#{${level}}\\s+(.+?)\\s*#*\\s*$`, "m");
-  const m = re.exec(md);
-  return m ? m[1].trim() || null : null;
-}
-function markdownHeadings(md) {
-  const out = [];
-  for (const m of md.matchAll(/^#{2,3}\s+(.+?)\s*#*\s*$/gm)) out.push(m[1].trim());
-  return out;
-}
-function titleFromFileName(name) {
-  const base = name.split(/[\\/]/).pop() ?? name;
-  return base.replace(/(\.plan)?\.(md|mdc|markdown)$/i, "").replace(/[_-]+/g, " ").trim() || base;
-}
-function looksLikeAbsolutePath(value) {
-  return /^(?:\/|~\/|[A-Za-z]:[\\/]|\\\\)/.test(value);
-}
-function parseCodexAppliesTo(line) {
-  if (!line) return { kind: "missing" };
-  const value = line.replace(/^\s*applies_to:\s*/i, "");
-  const at = /(?:^|[\s;])cwd=/.exec(value);
-  if (!at) return { kind: "missing" };
-  const rest = value.slice(at.index + at[0].length);
-  let depth = 0;
-  let end = rest.length;
-  for (let i = 0; i < rest.length; i++) {
-    const ch = rest[i];
-    if (ch === "(") depth += 1;
-    else if (ch === ")") depth = Math.max(0, depth - 1);
-    else if (ch === ";" && depth === 0) {
-      end = i;
-      break;
-    }
-  }
-  let raw = rest.slice(0, end);
-  for (let guard = 0; guard < 8 && /\([^()]*\)/.test(raw); guard++) {
-    raw = raw.replace(/\([^()]*\)/g, " ");
-  }
-  raw = raw.replace(/[()]/g, " ").trim();
-  if (!raw) return { kind: "missing" };
-  const parts = raw.split(/\s+and\s+|\s*,\s*/).map(
-    (p) => p.trim().replace(/^[`'"]|[`'"]$/g, "").replace(/[\\/]+$/, "")
-  ).filter(Boolean);
-  const paths = parts.filter((p) => looksLikeAbsolutePath(p));
-  if (paths.length === 0) return { kind: "non_path", raw };
-  return { kind: "paths", paths };
-}
-function pathWithinRoot(candidate, root) {
-  const norm = (p) => p.replace(/\\/g, "/").replace(/\/+$/, "");
-  const c = norm(candidate);
-  const r = norm(root);
-  if (!r) return false;
-  return c === r || c.startsWith(r + "/");
-}
-var CODEX_STRIPPED_SECTIONS = /^###\s+(rollout_summary_files|keywords)\s*$/i;
-function stripCodexMemoryNoise(text) {
-  const out = [];
-  let skipping = false;
-  for (const line of text.replace(/\r\n?/g, "\n").split("\n")) {
-    if (/^#{1,6}\s/.test(line)) skipping = CODEX_STRIPPED_SECTIONS.test(line.trim());
-    if (skipping) continue;
-    if (/^\s*applies_to:/i.test(line)) continue;
-    out.push(line);
-  }
-  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
-}
-function parseCodexMemoryGroups(raw) {
-  if (!raw) return [];
-  const lines = raw.replace(/\r\n?/g, "\n").split("\n");
-  const groups = [];
-  for (const line of lines) {
-    const m = /^#\s+Task Group:\s*(.+?)\s*$/.exec(line);
-    if (m) {
-      groups.push({ title: m[1], lines: [line] });
-      continue;
-    }
-    groups[groups.length - 1]?.lines.push(line);
-  }
-  return groups.map((g) => {
-    const text = g.lines.join("\n");
-    const appliesLine = g.lines.find((l) => /^\s*applies_to:/i.test(l)) ?? null;
-    return {
-      title: g.title,
-      body: stripCodexMemoryNoise(text),
-      appliesTo: parseCodexAppliesTo(appliesLine),
-      tasks: g.lines.filter((l) => /^##\s+Task\s+\d+/i.test(l)).length
-    };
-  }).filter((g) => g.title.length > 0);
-}
-function parseCodexMemorySummary(raw) {
-  const result = { global: [], repos: [] };
-  if (!raw) return result;
-  const lines = raw.replace(/\r\n?/g, "\n").split("\n");
-  let h2 = null;
-  let inOlder = false;
-  let open = null;
-  const close = () => {
-    if (!open) return;
-    const body = open.lines.join("\n").trim();
-    if (body) {
-      if (open.target === "global") result.global.push({ heading: open.heading, body });
-      else
-        result.repos.push({
-          heading: open.heading,
-          body,
-          path: open.path,
-          older: open.older ?? false
-        });
-    }
-    open = null;
-  };
-  for (const line of lines) {
-    const h = /^(#{1,6})\s+(.+?)\s*$/.exec(line);
-    if (h) {
-      const level = h[1].length;
-      const text = h[2];
-      if (level <= 2) {
-        close();
-        h2 = level === 2 ? text : null;
-        inOlder = false;
-        if (level === 2 && !/^what'?s in memory$/i.test(text)) {
-          open = { target: "global", heading: text, lines: [] };
-        }
-        continue;
-      }
-      const inWhats = h2 !== null && /^what'?s in memory$/i.test(h2);
-      if (inWhats && level === 3) {
-        close();
-        inOlder = /^older memory topics$/i.test(text);
-        if (!inOlder && looksLikeAbsolutePath(text)) {
-          open = {
-            target: "repo",
-            heading: text,
-            path: text.replace(/[\\/]+$/, ""),
-            older: false,
-            lines: []
-          };
-        }
-        continue;
-      }
-      if (inWhats && inOlder && level === 4) {
-        close();
-        if (looksLikeAbsolutePath(text)) {
-          open = {
-            target: "repo",
-            heading: text,
-            path: text.replace(/[\\/]+$/, ""),
-            older: true,
-            lines: []
-          };
-        }
-        continue;
-      }
-    }
-    open?.lines.push(line);
-  }
-  close();
-  return result;
-}
-function parseCodexMemoriesFeature(toml) {
-  if (!toml) return null;
-  let section = "";
-  let value = null;
-  for (const rawLine of toml.replace(/\r\n?/g, "\n").split("\n")) {
-    const line = rawLine.replace(/\s+#.*$/, "").trim();
-    if (!line || line.startsWith("#")) continue;
-    const sec = /^\[\s*([^\]]+?)\s*\]$/.exec(line);
-    if (sec) {
-      section = sec[1];
-      continue;
-    }
-    const kv = /^([A-Za-z0-9_."-]+)\s*=\s*(.+)$/.exec(line);
-    if (!kv) continue;
-    const key = kv[1].replace(/"/g, "");
-    const v = kv[2].trim();
-    const bool = v === "true" ? true : v === "false" ? false : null;
-    if (bool === null) continue;
-    if (section === "features" && key === "memories" || section === "" && key === "features.memories") {
-      value = bool;
-    }
-  }
-  return value;
-}
-function parseAntigravityKnowledgeMetadata(json2) {
-  let data;
-  try {
-    data = JSON.parse(json2);
-  } catch {
-    return null;
-  }
-  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
-  const d = data;
-  const str2 = (v) => typeof v === "string" && v.trim() ? v.trim() : null;
-  const title = str2(d.title) ?? str2(d.name);
-  const summary = str2(d.summary) ?? str2(d.description);
-  if (!title && !summary) return null;
-  const updatedAt = str2(d.updatedAt) ?? str2(d.updated_at) ?? str2(d.lastModified);
-  return { title, summary, updatedAt };
-}
-function parseWindsurfMemory(raw, fileName) {
-  if (!raw || !raw.trim()) return null;
-  const fm = splitYamlFrontmatter(raw);
-  const body = fm.body.trim();
-  if (!body) return null;
-  const fmTitle = fm.data && typeof fm.data.title === "string" ? fm.data.title : fm.data && typeof fm.data.name === "string" ? fm.data.name : null;
-  return {
-    title: (fmTitle ?? firstMarkdownHeading(body) ?? titleFromFileName(fileName)).slice(0, 200),
-    body
-  };
-}
-
-// packages/shared/dist/native-plan-parse.js
-function checklistSummary(md) {
-  let total = 0;
-  let done = 0;
-  for (const m of md.matchAll(/^\s*(?:[-*+]|\d+[.)])\s+\[([ xX/~-])\]/gm)) {
-    total += 1;
-    if (m[1] === "x" || m[1] === "X") done += 1;
-  }
-  return total ? { total, done } : null;
-}
-var CURSOR_TODO_DONE = /* @__PURE__ */ new Set(["completed", "done", "cancelled"]);
-function parseCursorPlan(raw, fileName) {
-  if (!raw || !raw.trim()) return null;
-  const fm = splitYamlFrontmatter(raw);
-  if (fm.invalid) return null;
-  if (!fm.present) return parseMarkdownPlan(raw, fileName);
-  const data = fm.data ?? {};
-  const str2 = (v) => typeof v === "string" && v.trim() ? v.trim() : null;
-  const overview = str2(data.overview);
-  const markdown = fm.body.trim();
-  let todosBlock = "";
-  let checklist = null;
-  if (data.todos !== void 0) {
-    if (!Array.isArray(data.todos)) return null;
-    const todos = data.todos.filter(
-      (t) => !!t && typeof t === "object" && !Array.isArray(t)
-    ).map((t) => ({
-      content: str2(t.content) ?? str2(t.id) ?? "",
-      status: str2(t.status) ?? "pending"
-    })).filter((t) => t.content);
-    if (todos.length) {
-      checklist = {
-        total: todos.length,
-        done: todos.filter((t) => CURSOR_TODO_DONE.has(t.status)).length
-      };
-      todosBlock = "## Todos\n\n" + todos.map((t) => `- [${CURSOR_TODO_DONE.has(t.status) ? "x" : " "}] ${t.content}`).join("\n");
-    }
-  }
-  const body = [overview && !markdown.includes(overview) ? overview : "", markdown, todosBlock].filter(Boolean).join("\n\n").trim();
-  if (!body) return null;
-  const title = (str2(data.name) ?? firstMarkdownHeading(markdown) ?? titleFromFileName(fileName)).slice(0, 200);
-  return {
-    title,
-    body,
-    plan: {
-      checklist: checklist ?? checklistSummary(markdown),
-      overview,
-      headings: markdownHeadings(markdown)
-    },
-    frontmatterKeys: Object.keys(data).sort()
-  };
-}
-function parseMarkdownPlan(raw, fileName, fallbackTitle) {
-  if (!raw || !raw.trim()) return null;
-  const fm = splitYamlFrontmatter(raw);
-  const body = (fm.invalid ? raw : fm.body).trim();
-  if (!body) return null;
-  const fmTitle = fm.data && typeof fm.data.title === "string" ? fm.data.title.trim() : null;
-  const title = (fmTitle || firstMarkdownHeading(body) || firstMarkdownHeading(body, 2) || fallbackTitle || titleFromFileName(fileName)).slice(0, 200);
-  return {
-    title,
-    body,
-    plan: { checklist: checklistSummary(body), overview: null, headings: markdownHeadings(body) },
-    frontmatterKeys: fm.data ? Object.keys(fm.data).sort() : []
-  };
-}
-var ANTIGRAVITY_PLAN_ARTIFACTS = [
-  "implementation_plan",
-  "task",
-  "walkthrough"
-];
-var ANTIGRAVITY_ARTIFACT_TYPES = {
-  implementation_plan: "ARTIFACT_TYPE_IMPLEMENTATION_PLAN",
-  task: "ARTIFACT_TYPE_TASK",
-  walkthrough: "ARTIFACT_TYPE_WALKTHROUGH"
-};
-function parseAntigravityArtifactMetadata(json2, artifact) {
-  let data;
-  try {
-    data = JSON.parse(json2);
-  } catch {
-    return null;
-  }
-  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
-  const d = data;
-  if (d.artifactType !== ANTIGRAVITY_ARTIFACT_TYPES[artifact]) return null;
-  return {
-    artifactType: d.artifactType,
-    summary: typeof d.summary === "string" ? d.summary : null,
-    updatedAt: typeof d.updatedAt === "string" ? d.updatedAt : null
-  };
-}
-function composeAntigravityPlan(parts, conversationId) {
-  const sections = [];
-  const artifacts = [];
-  const impl = parts.implementation_plan?.text.trim();
-  const task = parts.task?.text.trim();
-  const walk = parts.walkthrough?.text.trim();
-  if (impl) {
-    sections.push(impl);
-    artifacts.push("implementation_plan");
-  }
-  if (task) {
-    sections.push(firstMarkdownHeading(task) ? task : `## Task
-
-${task}`);
-    artifacts.push("task");
-  }
-  if (walk) {
-    sections.push(firstMarkdownHeading(walk) ? walk : `## Walkthrough
-
-${walk}`);
-    artifacts.push("walkthrough");
-  }
-  if (!sections.length) return null;
-  const body = sections.join("\n\n");
-  const summary = parts.implementation_plan?.metadata?.summary ?? parts.task?.metadata?.summary ?? parts.walkthrough?.metadata?.summary ?? null;
-  const title = (impl && firstMarkdownHeading(impl) || summary || task && firstMarkdownHeading(task) || `Antigravity plan ${conversationId.slice(0, 8)}`).slice(0, 200);
-  const updated = [parts.implementation_plan, parts.task, parts.walkthrough].map((p) => p?.metadata?.updatedAt).filter((v) => !!v && !Number.isNaN(Date.parse(v))).sort().pop();
-  return {
-    title,
-    body,
-    plan: {
-      checklist: task ? checklistSummary(task) : checklistSummary(body),
-      overview: summary,
-      headings: markdownHeadings(impl ?? body),
-      artifacts
-    },
-    frontmatterKeys: [],
-    updatedAt: updated ?? null
-  };
-}
-function attributePlan(plan, ctx) {
-  const rank = { unscoped: 0, suggested: 1, in_root: 2 };
-  const cap = ctx.maxScope ?? "in_root";
-  const clamp = (s) => rank[s] > rank[cap] ? cap : s;
-  if (plan.inWorkspace) return clamp("in_root");
-  const text = `${plan.title ?? ""}
-${plan.body}`;
-  const root = ctx.lightRoot.replace(/[\\/]+$/, "");
-  if (root.length > 1 && (text.includes(root) || text.includes(root.replace(/\\/g, "/")))) {
-    return clamp("suggested");
-  }
-  const repo = (ctx.repoName ?? root.split(/[\\/]/).pop() ?? "").trim();
-  if (repo.length >= 3) {
-    const escaped = repo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    if (new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`, "i").test(text)) return clamp("suggested");
-  }
-  return "unscoped";
-}
-
-// packages/shared/dist/light.js
-var LIGHT_LIMITS = Object.freeze({
-  users: 1,
-  projects: 1,
-  files: 50,
-  fileBytes: 16 * 1024,
-  /** Active (non-archived) native plans synced as kind='plan'. */
-  plans: 20,
-  planBytes: 64 * 1024,
-  /** Inventoried skills: a read-only SKILL.md backup, kind='skill', always draft. */
-  skills: 50,
-  skillBytes: 64 * 1024,
-  historyVersions: 10,
-  writes: 1e3,
-  captures: 50,
-  accountCostMicros: 1e6,
-  globalCostMicros: 1e8,
-  enrollment: 100,
-  // Recall is budgeted in UTF-8 bytes, which is what it actually bounds; a
-  // byte is never less conservative than a token.
-  recallBytes: 2400,
-  recallExcerptBytes: 360,
-  recallNotes: 3,
-  captureInputTokens: 8e3,
-  captureOutputTokens: 1e3,
-  captureReservationMicros: 2e4,
-  // Memlin-funded QUERY embeddings (search + recall). Past either ceiling the
-  // same search runs without an embedder: title text, still project-scoped.
-  // Enforced by light_reserve_query_embedding (web routes and hosted MCP).
-  queryEmbeddingsPerDay: 2e3,
-  queryEmbeddingsPerMinute: 30,
-  /** Suggestions the Companion may keep open at once (light_upsert_suggestions). */
-  openSuggestions: 500,
-  suggestionsPerRequest: 100
-});
-function validLightPath(value) {
-  return /^memory\/[a-zA-Z0-9][a-zA-Z0-9._-]*\.md$/.test(value) && !value.includes("..") && value.length <= 256;
-}
-function validLightPlanPath(value) {
-  return /^plans\/[a-zA-Z0-9][a-zA-Z0-9._-]*\.md$/.test(value) && !value.includes("..") && value.length <= 256;
-}
-function validLightSkillPath(value) {
-  return /^skills\/[a-zA-Z0-9][a-zA-Z0-9._-]*\/SKILL\.md$/.test(value) && !value.includes("..") && value.length <= 256;
-}
-var LIGHT_HOSTS = [
-  "claude",
-  "codex",
-  "cursor",
-  "antigravity",
-  "windsurf",
-  "devin"
-];
-function boundLightText(text, byteLimit) {
-  const encoder2 = new TextEncoder();
-  const bytes2 = encoder2.encode(text);
-  return bytes2.length <= byteLimit ? text : new TextDecoder("utf-8", { fatal: false }).decode(bytes2.slice(0, byteLimit)).replace(/\uFFFD$/, "");
-}
-function redactLightTranscript(text) {
-  return text.replace(
-    /-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----/g,
-    "[private key removed]"
-  ).replace(
-    /\b(?:sk-[\w-]{12,}|gh[pousr]_[\w]{16,}|github_pat_[\w]{16,}|AKIA[A-Z0-9]{16})\b/g,
-    "[credential removed]"
-  ).replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[token removed]").replace(/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/gi, "$1[removed]").replace(
-    /((?:password|secret|api[_-]?key|access[_-]?token)["']?\s*[=:]\s*)[^\s,;]+/gi,
-    "$1[removed]"
-  );
-}
-function lightCaptureExcluded(text, paths = []) {
-  return /(?:^|[\s/\\"'`])(?:\.env(?:\.[\w-]+)?|id_rsa|id_ed25519|credentials\.json)(?=$|[\s/\\"'`:])/m.test(
-    text
-  ) || paths.some((p) => p.length > 0 && text.includes(p));
-}
-
-// packages/shared/dist/light-consolidate.js
-var LIGHT_MAX_SOURCES = 12;
-var LIGHT_PLAN_CAP = 20;
-var LIGHT_TITLE_JACCARD = 0.8;
-var LIGHT_BODY_JACCARD = 0.5;
-var LIGHT_PLAN_TITLE_JACCARD = 0.5;
-var LIGHT_HEADING_OVERLAP = 0.5;
-var LIGHT_PLAN_TITLE_ONLY_JACCARD = 0.9;
-var SCOPE_RANK = { unscoped: 0, suggested: 1, in_root: 2 };
-function applySuppressions(items, suppressions) {
-  const hashes = new Set(suppressions.map((s) => s.content_hash));
-  const byKey = /* @__PURE__ */ new Map();
-  for (const s of suppressions) {
-    const k = JSON.stringify([s.host, s.item_key]);
-    byKey.set(k, [...byKey.get(k) ?? [], s.content_hash]);
-  }
-  const kept = [];
-  const suppressed = [];
-  const suggestions = [];
-  for (const item of items) {
-    if (hashes.has(item.content_hash)) {
-      suppressed.push({
-        host: item.host,
-        item_key: item.item_key,
-        content_hash: item.content_hash
-      });
-      continue;
-    }
-    const prior = byKey.get(JSON.stringify([item.host, item.item_key]));
-    if (prior) {
-      suggestions.push({
-        host: item.host,
-        item_key: item.item_key,
-        title: item.title,
-        displayPath: item.displayPath,
-        content_hash: item.content_hash,
-        suppressed_hashes: [...new Set(prior)]
-      });
-      continue;
-    }
-    kept.push(item);
-  }
-  return { kept, suppressed, suggestions };
-}
-var UnionFind = class {
-  parent;
-  constructor(n) {
-    this.parent = Array.from({ length: n }, (_, i) => i);
-  }
-  find(i) {
-    while (this.parent[i] !== i) {
-      this.parent[i] = this.parent[this.parent[i]];
-      i = this.parent[i];
-    }
-    return i;
-  }
-  union(a, b) {
-    const ra = this.find(a);
-    const rb = this.find(b);
-    if (ra !== rb) this.parent[Math.max(ra, rb)] = Math.min(ra, rb);
-  }
-};
-function groupsOf(items, uf) {
-  const map2 = /* @__PURE__ */ new Map();
-  items.forEach((item, i) => {
-    const r = uf.find(i);
-    map2.set(r, [...map2.get(r) ?? [], item]);
-  });
-  return [...map2.values()];
-}
-function newer(a, b) {
-  const ta = a ? Date.parse(a) : Number.NaN;
-  const tb = b ? Date.parse(b) : Number.NaN;
-  if (Number.isNaN(ta) && Number.isNaN(tb)) return 0;
-  if (Number.isNaN(ta)) return 1;
-  if (Number.isNaN(tb)) return -1;
-  return tb - ta;
-}
-function mergeGroup(group) {
-  const rep = [...group].sort(
-    (a, b) => newer(a.updated_at, b.updated_at) || b.body.length - a.body.length || a.item_key.localeCompare(b.item_key)
-  )[0];
-  const seen = /* @__PURE__ */ new Set();
-  const sources = [];
-  for (const i of [...group].sort(
-    (a, b) => a.host.localeCompare(b.host) || a.displayPath.localeCompare(b.displayPath)
-  )) {
-    const k = JSON.stringify([i.host, i.displayPath, i.content_hash]);
-    if (seen.has(k)) continue;
-    seen.add(k);
-    sources.push({ h: i.host, p: i.displayPath, c: i.content_hash });
-  }
-  return {
-    title: rep.title,
-    body: rep.body,
-    content_hash: rep.content_hash,
-    updated_at: rep.updated_at,
-    memlin_hosts: [...new Set(group.map((i) => i.host))].sort(),
-    memlin_sources: sources.slice(0, LIGHT_MAX_SOURCES),
-    sources_total: sources.length,
-    item_keys: group.map((i) => i.item_key).sort(),
-    agents_disagree: new Set(group.map((i) => i.content_hash)).size > 1,
-    scope: group.reduce(
-      (best, i) => SCOPE_RANK[i.scope] > SCOPE_RANK[best] ? i.scope : best,
-      "unscoped"
-    )
-  };
-}
-function stableKey(group, previous, make, prefer = /* @__PURE__ */ new Set()) {
-  const prior = group.map((i) => previous[i.item_key]).filter((k) => !!k).sort((a, b) => Number(prefer.has(b)) - Number(prefer.has(a)) || a.localeCompare(b))[0];
-  if (prior) return { key: prior, stored: true };
-  const anchor = [...group].sort((a, b) => a.item_key.localeCompare(b.item_key))[0];
-  return { key: make(anchor), stored: false };
-}
-function uniqueKeys(entries) {
-  const used = /* @__PURE__ */ new Set();
-  for (const e of entries) {
-    let k = e.key;
-    for (let n = 2; used.has(k); n++) k = `${e.key}-${n}`;
-    used.add(k);
-    e.key = k;
-  }
-  return entries;
-}
-function consolidateLightMemory(items, options2 = {}) {
-  const cap = options2.cap ?? LIGHT_LIMITS.files;
-  const previous = options2.previousKeys ?? {};
-  const memories = items.filter((i) => i.kind === "memory");
-  const { kept, suppressed, suggestions } = applySuppressions(memories, options2.suppressions ?? []);
-  const uf = new UnionFind(kept.length);
-  const byHash = /* @__PURE__ */ new Map();
-  const titles = kept.map((i) => lightTokens(i.title));
-  const bodies = kept.map((i) => lightTokens(i.body));
-  const byWords = /* @__PURE__ */ new Map();
-  kept.forEach((item, i) => {
-    const first = byHash.get(item.content_hash);
-    if (first === void 0) byHash.set(item.content_hash, i);
-    else uf.union(first, i);
-    const factWords = new Set(
-      item.body.split("\n").filter((line) => !/^\s*#{1,6}\s/.test(line)).join("\n").toLowerCase().normalize("NFKD").match(/[\p{L}\p{N}]+/gu) ?? []
-    );
-    if (factWords.size < 3) return;
-    const words = [...factWords].sort().join(" ");
-    const same = byWords.get(words);
-    if (same === void 0) byWords.set(words, i);
-    else uf.union(same, i);
-  });
-  for (let i = 0; i < kept.length; i++) {
-    if (titles[i].size < 2) continue;
-    for (let j = i + 1; j < kept.length; j++) {
-      if (titles[j].size < 2) continue;
-      if (jaccard(titles[i], titles[j]) >= LIGHT_TITLE_JACCARD && jaccard(bodies[i], bodies[j]) >= LIGHT_BODY_JACCARD) {
-        uf.union(i, j);
-      }
-    }
-  }
-  const groups = groupsOf(kept, uf);
-  const merged = kept.length - groups.length;
-  const included = new Set(options2.includedItemKeys ?? []);
-  const frozen = new Set(options2.frozenKeys ?? []);
-  const drafts = uniqueKeys(
-    groups.map((group) => {
-      const { key, stored } = stableKey(
-        group,
-        previous,
-        (a) => `${lightSlug(a.title, 40)}-${lightKeyHash(a.item_key)}`,
-        frozen
-      );
-      return { key, stored, base: mergeGroup(group) };
-    })
-  );
-  const tier = (d) => d.base.item_keys.some((k) => included.has(k)) ? 0 : frozen.has(d.key) ? 1 : d.base.agents_disagree ? 2 : 3;
-  const tiers = new Map(drafts.map((d) => [d, tier(d)]));
-  drafts.sort(
-    (a, b) => tiers.get(a) - tiers.get(b) || Number(b.stored) - Number(a.stored) || b.base.memlin_hosts.length - a.base.memlin_hosts.length || newer(a.base.updated_at, b.base.updated_at) || a.base.title.localeCompare(b.base.title) || a.key.localeCompare(b.key)
-  );
-  const notes = drafts.map((d) => ({
-    ...d.base,
-    note_key: d.key,
-    path: `memory/${d.key}.md`
-  }));
-  const pickedKeys = new Set(drafts.filter((d) => tiers.get(d) === 0).map((d) => d.key));
-  const fits = notes.slice(0, cap);
-  const overflow = notes.slice(cap);
-  const entry = (n) => ({
-    key: n.note_key,
-    title: n.title,
-    memlin_hosts: n.memlin_hosts,
-    sources_total: n.sources_total,
-    item_keys: n.item_keys,
-    picked: pickedKeys.has(n.note_key)
-  });
-  return {
-    notes: fits,
-    overflow,
-    overCap: overflow.length ? {
-      cap,
-      total: notes.length,
-      fits: fits.map(entry),
-      overflow: overflow.map(entry),
-      picked: pickedKeys.size,
-      overPicked: pickedKeys.size > cap
-    } : null,
-    suppressed,
-    suggestions,
-    merged
-  };
-}
-function normHeading(h) {
-  return h.toLowerCase().replace(/^[\d.)\s]+/, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-}
-function plansLookAlike(a, b) {
-  if (a.content_hash === b.content_hash) return true;
-  const ta = lightTokens(a.title);
-  const tb = lightTokens(b.title);
-  const tj = jaccard(ta, tb);
-  const ha = new Set(
-    (a.plan?.headings ?? markdownHeadings(a.body)).map(normHeading).filter(Boolean)
-  );
-  const hb = new Set(
-    (b.plan?.headings ?? markdownHeadings(b.body)).map(normHeading).filter(Boolean)
-  );
-  if (ha.size >= 2 && hb.size >= 2) {
-    return tj >= LIGHT_PLAN_TITLE_JACCARD && jaccard(ha, hb) >= LIGHT_HEADING_OVERLAP;
-  }
-  return ta.size >= 2 && tb.size >= 2 && tj >= LIGHT_PLAN_TITLE_ONLY_JACCARD;
-}
-function consolidateLightPlans(items, options2 = {}) {
-  const cap = options2.cap ?? LIGHT_PLAN_CAP;
-  const previous = options2.previousKeys ?? {};
-  const plans = items.filter((i) => i.kind === "plan");
-  const { kept, suppressed, suggestions } = applySuppressions(plans, options2.suppressions ?? []);
-  const uf = new UnionFind(kept.length);
-  for (let i = 0; i < kept.length; i++) {
-    for (let j = i + 1; j < kept.length; j++) {
-      if (plansLookAlike(kept[i], kept[j])) uf.union(i, j);
-    }
-  }
-  const groups = groupsOf(kept, uf);
-  const drafts = uniqueKeys(
-    groups.map((group) => {
-      const { key } = stableKey(group, previous, (a) => `${a.host}-${lightSlug(a.title, 48)}`);
-      const base = mergeGroup(group);
-      const rep = group.find((i) => i.content_hash === base.content_hash) ?? group[0];
-      const copies = [...group].sort((a, b) => newer(a.updated_at, b.updated_at) || a.host.localeCompare(b.host)).map((i) => ({
-        host: i.host,
-        displayPath: i.displayPath,
-        title: i.title,
-        content_hash: i.content_hash,
-        updated_at: i.updated_at
-      }));
-      return { key, base, copies, checklist: rep.plan?.checklist ?? null };
-    })
-  );
-  const all = drafts.map((d) => ({
-    ...d.base,
-    plan_key: d.key,
-    path: `plans/${d.key}.md`,
-    copies: d.copies,
-    checklist: d.checklist
-  })).sort((a, b) => newer(a.updated_at, b.updated_at) || a.plan_key.localeCompare(b.plan_key));
-  return {
-    plans: all.slice(0, cap),
-    archived: all.slice(cap),
-    suppressed,
-    suggestions,
-    merged: kept.length - groups.length
-  };
-}
-
-// packages/shared/dist/skill-inventory.js
-var LIGHT_SKILL_HOSTS = [
-  "claude",
-  "codex",
-  "cursor",
-  "antigravity",
-  "windsurf",
-  "copilot",
-  "gemini_cli"
-];
-var AGENTS_HOSTS = ["codex", "cursor", "windsurf", "copilot", "gemini_cli"];
-var CLAUDE_HOSTS = ["claude", "cursor", "windsurf", "copilot"];
-var SKILL_LOCATIONS = [
-  {
-    id: "agents-project",
-    scope: "project",
-    path: ".agents/skills",
-    hosts: [...AGENTS_HOSTS, "antigravity"],
-    owner: "agents",
-    nested: false
-  },
-  {
-    id: "agents-user",
-    scope: "user",
-    path: "~/.agents/skills",
-    hosts: AGENTS_HOSTS,
-    owner: "agents",
-    nested: false
-  },
-  {
-    id: "claude-project",
-    scope: "project",
-    path: ".claude/skills",
-    hosts: CLAUDE_HOSTS,
-    owner: "claude",
-    nested: true
-  },
-  {
-    id: "claude-user",
-    scope: "user",
-    path: "~/.claude/skills",
-    hosts: CLAUDE_HOSTS,
-    owner: "claude",
-    nested: true
-  },
-  {
-    id: "cursor-project",
-    scope: "project",
-    path: ".cursor/skills",
-    hosts: ["cursor"],
-    owner: "cursor",
-    nested: false
-  },
-  {
-    id: "cursor-user",
-    scope: "user",
-    path: "~/.cursor/skills",
-    hosts: ["cursor"],
-    owner: "cursor",
-    nested: false
-  },
-  {
-    id: "windsurf-project",
-    scope: "project",
-    path: ".windsurf/skills",
-    hosts: ["windsurf"],
-    owner: "windsurf",
-    nested: false
-  },
-  {
-    id: "windsurf-user",
-    scope: "user",
-    path: "~/.codeium/windsurf/skills",
-    hosts: ["windsurf"],
-    owner: "windsurf",
-    nested: false
-  },
-  {
-    id: "antigravity-user",
-    scope: "user",
-    path: "~/.gemini/antigravity/skills",
-    hosts: ["antigravity"],
-    owner: "antigravity",
-    nested: false,
-    unverified: true
-  },
-  {
-    id: "antigravity-config-user",
-    scope: "user",
-    path: "~/.gemini/config/skills",
-    hosts: ["antigravity"],
-    owner: "antigravity",
-    nested: false,
-    unverified: true
-  },
-  {
-    id: "codex-legacy-user",
-    scope: "user",
-    path: "~/.codex/skills",
-    hosts: ["codex"],
-    owner: "codex",
-    nested: false,
-    unverified: true
-  }
-];
-var PLUGIN_SKILL_ROOTS = [
-  { host: "claude", pattern: "~/.claude/plugins/cache/*marketplace/*plugin/*version/skills" },
-  { host: "codex", pattern: "~/.codex/plugins/cache/*marketplace/*plugin/*version/skills" },
-  { host: "cursor", pattern: "~/.cursor/plugins/local/*plugin/skills" },
-  { host: "antigravity", pattern: "~/.gemini/config/plugins/*plugin/skills" }
-];
-function isMemlinOwnSkill(folderName) {
-  return folderName === "memlin" || folderName.startsWith("memlin-");
-}
-function skillLocationById(id) {
-  return SKILL_LOCATIONS.find((l) => l.id === id) ?? null;
-}
-function emptySkillAvailability() {
-  return Object.fromEntries(LIGHT_SKILL_HOSTS.map((h) => [h, false]));
-}
-function skillAvailability(locationIds) {
-  const out = emptySkillAvailability();
-  for (const id of locationIds) {
-    for (const h of skillLocationById(id)?.hosts ?? []) out[h] = true;
-  }
-  return out;
-}
-function dedupeSkillsByHash(copies) {
-  const map2 = /* @__PURE__ */ new Map();
-  for (const c of copies) map2.set(c.content_hash, [...map2.get(c.content_hash) ?? [], c]);
-  return [...map2.entries()].map(([hash2, group]) => {
-    const sorted = [...group].sort((a, b) => a.displayPath.localeCompare(b.displayPath));
-    const availability = skillAvailability(sorted.map((c) => c.locationId));
-    return {
-      content_hash: hash2,
-      name: sorted[0].name,
-      copies: sorted,
-      availability,
-      unavailableIn: LIGHT_SKILL_HOSTS.filter((h) => !availability[h])
-    };
-  }).sort((a, b) => a.name.localeCompare(b.name) || a.content_hash.localeCompare(b.content_hash));
-}
-
-// packages/shared/dist/memory-taxonomy.js
-var MEMORY_TAXONOMY = [
-  // ---------------------------------------------------------------- process --
-  { term: "standup", facet: "process", forms: ["standup", "stand-up", "daily standup", "daily scrum", "daily sync"] },
-  // Bare "retro" survives on the hyphen guard, not on luck: "retro-fit" and
-  // "retro-compatible" are compounds, and nothing else in this corpus is retro.
-  { term: "retro", facet: "process", forms: ["retro", "retrospective", "sprint retro"] },
-  // Bare "planning" is meaningless on its own ("planning to ship"), so only the
-  // ritual names count.
-  { term: "planning", facet: "process", forms: ["sprint planning", "iteration planning", "planning meeting", "refinement session"] },
-  // NOT the verbs "onboard"/"offboard" — "onboard the new repo" is not a hire.
-  { term: "onboarding", facet: "process", forms: ["onboarding", "new hire", "onboarding checklist"] },
-  { term: "offboarding", facet: "process", forms: ["offboarding", "departure checklist"] },
-  // NOT bare "reviewer": this workspace ships a component called Memory
-  // Reviewer, and the word names a person on any kind of review.
-  { term: "code-review", facet: "process", forms: ["code review", "code-review", "pr review", "pull request review", "review checklist"] },
-  // NOT bare "release" — that is the technology axis's deploy/CI territory.
-  { term: "release-process", facet: "process", forms: ["release process", "release checklist", "release cadence", "release train", "cut a release"] },
-  { term: "oncall", facet: "process", forms: ["oncall", "on-call", "on call rotation", "pager rotation"] },
-  { term: "incident", facet: "process", forms: ["incident", "outage", "sev1", "sev-1", "sev2", "sev-2"] },
-  { term: "postmortem", facet: "process", forms: ["postmortem", "post-mortem", "root cause analysis", "rca", "incident review"] },
-  { term: "triage", facet: "process", forms: ["triage", "bug triage", "triage rotation"] },
-  { term: "handoff", facet: "process", forms: ["handoff", "hand-off", "handover", "shift handoff"] },
-  // The largest single class of memory in this corpus: a standing instruction
-  // about how work is done. "User directive:" is the literal title prefix the
-  // /memlin-remember path writes, which is why it is a form rather than a guess.
-  { term: "convention", facet: "process", forms: ["convention", "working agreement", "style guide", "house rule", "ground rule", "user directive", "standing instruction"] },
-  // ------------------------------------------------------------- commercial --
-  { term: "pricing", facet: "commercial", forms: ["pricing", "price list", "pricing tier", "rate card", "list price"] },
-  { term: "billing", facet: "commercial", forms: ["billing", "invoice", "invoicing", "billing cycle"] },
-  // The verb "renew" is out: certificates, tokens and leases all renew.
-  { term: "renewal", facet: "commercial", forms: ["renewal", "renewal date", "contract renewal", "subscription renewal"] },
-  // Bare "contract" is the worst word in this table for THIS repo: it ships
-  // packages/shared/src/memlin-contract.ts, contract tests for the MCP surface,
-  // "Reader contract" memories and component data contracts. Only the
-  // paperwork senses survive.
-  { term: "contract", facet: "commercial", forms: ["msa", "statement of work", "sow", "contract negotiation", "signed contract", "countersigned"] },
-  { term: "procurement", facet: "commercial", forms: ["procurement", "purchase order", "po number"] },
-  // Bare "customer" is engineering vocabulary here — customer-facing copy, the
-  // customer table, "the customer prefers blue" — so the facet needs the noun
-  // phrase that can only mean an account.
-  { term: "customer", facet: "commercial", forms: ["customer account", "customer contact", "customer meeting", "key customer", "enterprise customer"] },
-  // "downgrade" is semver and permissions here; bare "churn" is what tags do on
-  // reclassification; bare "cancellation" is an aborted request.
-  { term: "churn", facet: "commercial", forms: ["churn rate", "customer churn", "churned", "account cancellation", "subscription cancellation"] },
-  // "quota" is deliberately absent: an API quota is not a sales quota.
-  { term: "sales", facet: "commercial", forms: ["sales", "sales cycle", "sales pipeline", "win rate"] },
-  // A PoC or a "proof of concept" is a prototype in an engineering corpus, and
-  // "trial and error" is not a pilot.
-  { term: "trial", facet: "commercial", forms: ["free trial", "trial period", "trial account", "trial conversion", "pilot program"] },
-  { term: "discount", facet: "commercial", forms: ["discount", "promo code", "coupon"] },
-  { term: "competitor", facet: "commercial", forms: ["competitor", "competitive analysis", "competitive landscape"] },
-  { term: "partnership", facet: "commercial", forms: ["partnership", "partner program", "reseller"] },
-  // Bare "support" is the single most over-matching word in an eng corpus
-  // ("we support Node 20"), so only the desk meaning counts.
-  { term: "support", facet: "commercial", forms: ["customer support", "support ticket", "support queue", "help desk"] },
-  // ----------------------------------------------------------------- people --
-  { term: "hiring", facet: "people", forms: ["hiring", "recruiting", "job opening", "headcount"] },
-  // Bare "interview" is a user interview as often as a hiring one, and that is
-  // product research, not this facet.
-  { term: "interview", facet: "people", forms: ["interview loop", "interview panel", "interview debrief", "hiring interview", "take-home exercise"] },
-  // "promotion" is auto-promotion of facts and promoting a staging build here;
-  // "1:1" is a 1:1 mapping far more often than a meeting.
-  { term: "performance-review", facet: "people", forms: ["performance review", "perf review", "career ladder", "one-on-one", "promotion cycle"] },
-  // Bare "ownership" is Rust ownership, data ownership, buffer ownership.
-  { term: "ownership", facet: "people", forms: ["code owner", "code ownership", "owning team", "dri", "accountable for", "raci"] },
-  { term: "escalation", facet: "people", forms: ["escalation", "escalation path"] },
-  { term: "team-structure", facet: "people", forms: ["team structure", "org chart", "reporting line"] },
-  { term: "availability", facet: "people", forms: ["time off", "pto", "vacation", "working hours", "holiday schedule"] },
-  // ---------------------------------------------------------------- product --
-  { term: "roadmap", facet: "product", forms: ["roadmap", "quarterly plan", "product plan"] },
-  { term: "requirement", facet: "product", forms: ["requirement", "acceptance criteria", "user story", "product spec"] },
-  // Bare "decision" would tag most of the corpus — `decision` is a document kind
-  // here. Only the artefact and the act of deciding count.
-  { term: "decision", facet: "product", forms: ["decision record", "architecture decision", "adr", "decision log", "we decided", "decided to"] },
-  { term: "tradeoff", facet: "product", forms: ["tradeoff", "trade-off", "trade off", "pros and cons"] },
-  { term: "deprecation", facet: "product", forms: ["deprecation", "deprecated", "sunset", "end of life", "eol"] },
-  { term: "feedback", facet: "product", forms: ["user feedback", "customer feedback", "feature request"] },
-  // Bare "launch" means starting a process in half this corpus.
-  { term: "launch", facet: "product", forms: ["product launch", "launch plan", "launch date", "go-live", "general availability", "beta program"] },
-  // The verb is out: "prioritize the fast path" is a routing decision.
-  { term: "prioritization", facet: "product", forms: ["prioritization", "priority order", "must-have"] },
-  { term: "backlog", facet: "product", forms: ["backlog", "icebox"] },
-  // ------------------------------------------------------------- operations --
-  // Bare "playbook" is out — a demo playbook is a script for a sales call, not
-  // an operating procedure — but the qualified ops senses stay.
-  { term: "runbook", facet: "operations", forms: ["runbook", "run book", "operating procedure", "ops playbook", "incident playbook"] },
-  { term: "sla", facet: "operations", forms: ["sla", "slo", "uptime target", "service level"] },
-  // Bare "budget" is taken: the resolver has a delivery budget and the insight
-  // scanner an emission budget, neither of which is money.
-  // ...and "spend" is the other half of the same word: the real title "Flat
-  // token_budget is the limit, never the spend" is about a token budget.
-  { term: "budget", facet: "operations", forms: ["annual budget", "budget approval", "budget owner", "cost cap", "burn rate"] },
-  { term: "compliance", facet: "operations", forms: ["compliance", "soc 2", "soc2", "gdpr", "hipaa", "iso 27001"] },
-  // Bare "audit" is taken too — a resolve audit is a debugging trace, not a
-  // control test.
-  { term: "audit", facet: "operations", forms: ["compliance audit", "external audit", "audit finding", "audit evidence", "auditor"] },
-  { term: "security-policy", facet: "operations", forms: ["security policy", "security review", "threat model", "vulnerability disclosure"] },
-  { term: "data-retention", facet: "operations", forms: ["data retention", "retention policy", "purge policy", "right to be forgotten"] },
-  { term: "access-control", facet: "operations", forms: ["access control", "access review", "least privilege", "permissions policy", "rbac"] },
-  // Bare "privacy" is a macOS settings pane and a /privacy route here, so the
-  // policy senses carry the term instead.
-  { term: "privacy", facet: "operations", forms: ["privacy policy", "data privacy", "pii", "personal data", "data processing agreement", "dpa"] },
-  // Bare "legal" is an adjective in this corpus — a legal value, a legal state,
-  // a legal move.
-  { term: "legal", facet: "operations", forms: ["legal review", "legal counsel", "legal team", "terms of service", "nda", "liability"] },
-  { term: "licensing", facet: "operations", forms: ["license", "licence", "licensing", "license compatibility"] },
-  { term: "vendor", facet: "operations", forms: ["vendor", "third-party provider", "subprocessor", "supplier"] },
-  { term: "disaster-recovery", facet: "operations", forms: ["disaster recovery", "backup policy", "business continuity", "rto", "rpo"] },
-  { term: "governance", facet: "operations", forms: ["governance", "approval policy", "change control", "sign-off"] }
-];
-var TAXONOMY_TERMS = new Set(MEMORY_TAXONOMY.map((e) => e.term));
-var TAXONOMY_CANONICAL_BY_FORM = new Map(
-  MEMORY_TAXONOMY.flatMap((e) => e.forms.map((f) => [f, e.term]))
-);
-var FACET_BY_TERM = new Map(
-  MEMORY_TAXONOMY.map((e) => [e.term, e.facet])
-);
-
-// packages/shared/dist/context-engine.js
-var CONTEXT_CONTRACT_VERSION = 1;
-var ContractIdSchema = external_exports.string().min(1).max(256);
-var ContractKeySchema = external_exports.string().min(1).max(128).regex(/^[a-z][a-z0-9._:-]*$/, "must be a lowercase namespaced identifier");
-var Sha256Schema = external_exports.string().regex(/^[a-f0-9]{64}$/, "must be a lowercase SHA-256 digest");
-var IsoDateSchema = external_exports.string().datetime({ offset: true });
-var ContractJsonValueSchema = external_exports.lazy(
-  () => external_exports.union([
-    external_exports.null(),
-    external_exports.boolean(),
-    external_exports.number().finite(),
-    external_exports.string(),
-    external_exports.array(ContractJsonValueSchema),
-    external_exports.record(ContractJsonValueSchema)
-  ])
-);
-var ContextReferenceV1Schema = external_exports.object({
-  type: ContractKeySchema,
-  id: ContractIdSchema,
-  /** Provider namespace for identifiers that are not native Memlin IDs. */
-  provider_id: ContractKeySchema.optional(),
-  /** Source-side revision used to invalidate stale manifests and bundles. */
-  revision: external_exports.string().min(1).max(256).optional()
-}).strict();
-var ContextFocusV1Schema = external_exports.discriminatedUnion("kind", [
-  external_exports.object({
-    kind: external_exports.literal("thought"),
-    thought_id: ContractIdSchema,
-    revision: external_exports.string().min(1).max(256).optional()
-  }).strict(),
-  external_exports.object({
-    kind: external_exports.literal("card"),
-    thought_id: ContractIdSchema,
-    card_id: ContractIdSchema,
-    map_id: ContractIdSchema.optional(),
-    revision: external_exports.string().min(1).max(256).optional()
-  }).strict(),
-  external_exports.object({
-    kind: external_exports.literal("resource"),
-    resource_id: ContractIdSchema,
-    version: external_exports.string().min(1).max(512).optional(),
-    locator: external_exports.string().min(1).max(4096).optional()
-  }).strict(),
-  external_exports.object({
-    kind: external_exports.literal("jira_issue"),
-    provider_binding_id: ContractIdSchema,
-    issue_key: ContractIdSchema,
-    source_revision: external_exports.string().min(1).max(512).optional()
-  }).strict(),
-  external_exports.object({
-    kind: external_exports.literal("conversation"),
-    conversation_id: ContractIdSchema,
-    message_id: ContractIdSchema.optional()
-  }).strict(),
-  external_exports.object({
-    kind: external_exports.literal("action"),
-    action_id: ContractIdSchema,
-    execution_id: ContractIdSchema.optional()
-  }).strict()
-]);
-var CONTEXT_CAPABILITIES = [
-  "explore",
-  "explain",
-  "research",
-  "decide",
-  "plan",
-  "act",
-  "review"
-];
-var ContextCapabilityV1Schema = external_exports.enum(CONTEXT_CAPABILITIES);
-var ContextAudienceV1Schema = external_exports.object({
-  kind: external_exports.enum(["private", "team", "room", "external", "public"]),
-  /** Memlin or mapped external principals allowed to receive this bundle. */
-  participant_ids: external_exports.array(ContractIdSchema).max(500).default([]),
-  /** Exact room or external tenant/channel boundary for scoped audiences. */
-  context_id: ContractIdSchema.optional()
-}).strict().superRefine((audience, ctx) => {
-  if (audience.kind === "public" && audience.participant_ids.length > 0) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["participant_ids"],
-      message: "public audiences cannot name private participants"
-    });
-  }
-  if (audience.kind === "private" && audience.participant_ids.length !== 1) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["participant_ids"],
-      message: "private audiences must name exactly one recipient"
-    });
-  }
-  if ((audience.kind === "room" || audience.kind === "external") && audience.participant_ids.length === 0) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["participant_ids"],
-      message: `${audience.kind} audiences must name every recipient`
-    });
-  }
-  if ((audience.kind === "room" || audience.kind === "external") && !audience.context_id) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["context_id"],
-      message: `${audience.kind} audiences require an exact context boundary`
-    });
-  }
-});
-var ContextManifestV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  account_id: external_exports.string().uuid(),
-  /** The only location that receives saves and navigation by default. */
-  home: ContextReferenceV1Schema,
-  /** The only location whose governance and funding policy controls the run. */
-  policy_anchor: ContextReferenceV1Schema,
-  /** Additional read-only retrieval contexts. */
-  linked_contexts: external_exports.array(ContextReferenceV1Schema).max(64).default([]),
-  /** Current object within the authorized contexts; null means no narrower focus. */
-  focus: ContextFocusV1Schema.nullable(),
-  /** Declared purpose used by providers, policy, safety, and audit layers. */
-  capability: ContextCapabilityV1Schema,
-  audience: ContextAudienceV1Schema,
-  /** ACL/policy snapshot identifier supplied by the authoritative server. */
-  acl_revision: external_exports.string().min(1).max(256)
-}).strict().superRefine((manifest, ctx) => {
-  const seen = /* @__PURE__ */ new Map();
-  const references = [
-    { ref: manifest.home, path: ["home"], location: "home" },
-    {
-      ref: manifest.policy_anchor,
-      path: ["policy_anchor"],
-      location: "policy_anchor"
-    },
-    ...manifest.linked_contexts.map((ref, index) => ({
-      ref,
-      path: ["linked_contexts", index],
-      location: `linked_contexts.${index}`
-    }))
-  ];
-  references.forEach(({ ref, path: path26, location }) => {
-    const identity = contextReferenceIdentityKey(ref);
-    const prior = seen.get(identity);
-    if (prior && prior.revision !== ref.revision) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: path26,
-        message: `context ${identity} has conflicting revisions in ${prior.location} and ${location}`
-      });
-    } else if (prior && location.startsWith("linked_contexts.")) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: path26,
-        message: `duplicate linked context ${identity}`
-      });
-    }
-    if (!prior) seen.set(identity, { revision: ref.revision, location });
-  });
-});
-var ExecutionActorV1Schema = external_exports.object({
-  type: external_exports.enum(["human", "service", "agent", "end_user", "connector"]),
-  id: ContractIdSchema
-}).strict();
-var ExecutionPrincipalV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  account_id: external_exports.string().uuid(),
-  actor: ExecutionActorV1Schema,
-  /** Explicit delegation chain; never collapse this into actor.id. */
-  on_behalf_of: ExecutionActorV1Schema.optional(),
-  credential: external_exports.object({
-    id: ContractIdSchema,
-    scopes: external_exports.array(ContractKeySchema).max(256),
-    expires_at: IsoDateSchema.optional()
-  }).strict(),
-  installation: external_exports.object({
-    id: ContractIdSchema,
-    trust: external_exports.enum(["verified", "reported"])
-  }).strict().optional(),
-  external: external_exports.object({
-    provider: ContractKeySchema,
-    tenant_id: ContractIdSchema,
-    subject_id: ContractIdSchema,
-    mapped_user_id: external_exports.string().uuid().optional()
-  }).strict().optional(),
-  session_id: ContractIdSchema.optional()
-}).strict();
-var EvidenceScoreV1Schema = external_exports.object({
-  semantic: external_exports.number().finite().optional(),
-  lexical: external_exports.number().finite().optional(),
-  provider: external_exports.number().finite().optional(),
-  freshness: external_exports.number().finite().optional(),
-  /** Populated only by the resolver, never trusted from an external source. */
-  final: external_exports.number().finite().optional()
-}).strict();
-var EvidenceProvenanceV1Schema = external_exports.object({
-  canonical_uri: external_exports.string().url().max(4096).optional(),
-  source_version: external_exports.string().min(1).max(512).optional(),
-  author: external_exports.string().min(1).max(512).optional(),
-  occurred_at: IsoDateSchema.optional(),
-  retrieved_at: IsoDateSchema,
-  locator: external_exports.string().min(1).max(4096).optional(),
-  content_hash: Sha256Schema,
-  rights: external_exports.string().min(1).max(512).optional()
-}).strict();
-var EvidenceSecurityV1Schema = external_exports.object({
-  audience: external_exports.enum(["private", "team", "room", "external", "public"]),
-  classification: external_exports.enum(["public", "internal", "confidential", "restricted"]),
-  policy_tags: external_exports.array(ContractKeySchema).max(64).default([]),
-  /** Principals authorized by the provider for this exact evidence revision. */
-  authorized_principal_ids: external_exports.array(ContractIdSchema).max(500).default([]),
-  /** Exact room or external boundary when evidence is scoped below a team. */
-  audience_context_id: ContractIdSchema.optional(),
-  /** Server-observed ACL revision used to reject stale recipient decisions. */
-  acl_revision: external_exports.string().min(1).max(256).optional()
-}).strict().superRefine((security, ctx) => {
-  if (security.audience === "private" && security.authorized_principal_ids.length !== 1) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["authorized_principal_ids"],
-      message: "private evidence must bind exactly one authorized recipient"
-    });
-  }
-  if ((security.audience === "room" || security.audience === "external") && security.authorized_principal_ids.length === 0) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["authorized_principal_ids"],
-      message: `${security.audience} evidence must bind its authorized recipients`
-    });
-  }
-  if ((security.audience === "room" || security.audience === "external") && !security.audience_context_id) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["audience_context_id"],
-      message: `${security.audience} evidence must bind its exact context`
-    });
-  }
-  if (security.audience !== "public" && !security.acl_revision) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["acl_revision"],
-      message: "non-public evidence must bind an exact ACL revision"
-    });
-  }
-});
-var EvidenceCandidateV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  id: ContractIdSchema,
-  provider_id: ContractKeySchema,
-  /** Governing context used for authorization, not merely a display parent. */
-  context_ref: ContextReferenceV1Schema,
-  kind: ContractKeySchema,
-  title: external_exports.string().min(1).max(1024),
-  content: external_exports.string().max(2e6),
-  score: EvidenceScoreV1Schema.default({}),
-  provenance: EvidenceProvenanceV1Schema,
-  security: EvidenceSecurityV1Schema,
-  embedding_profile_id: ContractIdSchema.optional(),
-  estimated_tokens: external_exports.number().int().nonnegative().optional(),
-  metadata: external_exports.record(ContractJsonValueSchema).default({})
-}).strict();
-var OmittedContextV1Schema = external_exports.object({
-  context_ref: ContextReferenceV1Schema,
-  reason_code: ContractKeySchema,
-  reason: external_exports.string().min(1).max(1024).optional()
-}).strict();
-var ProviderCoverageV1Schema = external_exports.object({
-  provider_id: ContractKeySchema,
-  provider_version: external_exports.string().min(1).max(128),
-  status: external_exports.enum(["complete", "partial", "unavailable"]),
-  attempted_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
-  covered_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
-  omitted_contexts: external_exports.array(OmittedContextV1Schema).max(128).default([]),
-  reason_code: ContractKeySchema.optional(),
-  reason: external_exports.string().min(1).max(2048).optional(),
-  truncated: external_exports.boolean().default(false),
-  started_at: IsoDateSchema,
-  completed_at: IsoDateSchema
-}).strict();
-var ProviderReceiptV1Schema = external_exports.object({
-  provider_id: ContractKeySchema,
-  provider_version: external_exports.string().min(1).max(128),
-  request_hash: Sha256Schema,
-  /** Exact policy snapshot returned by provider authorization. */
-  policy_revision: external_exports.string().min(1).max(256),
-  latency_ms: external_exports.number().int().nonnegative(),
-  retrieved_at: IsoDateSchema,
-  source_revision: external_exports.string().min(1).max(512).optional(),
-  credential_binding_id: ContractIdSchema.optional(),
-  cost_microunits: external_exports.number().int().nonnegative().optional()
-}).strict();
-var RequiredCoreLaneStatusV1Schema = external_exports.object({
-  status: external_exports.enum(["not_evaluated", "complete", "partial", "unavailable", "not_applicable"]),
-  expected_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
-  delivered_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
-  missing_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
-  errors: external_exports.array(external_exports.string().min(1).max(2048)).max(256).default([])
-}).strict().superRefine((lane, ctx) => {
-  const delivered = new Set(lane.delivered_ids);
-  const overlap = lane.missing_ids.find((id) => delivered.has(id));
-  if (overlap) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["missing_ids"],
-      message: `required core item ${overlap} cannot be both delivered and missing`
-    });
-  }
-  if (lane.status === "complete" && (lane.missing_ids.length > 0 || lane.errors.length > 0)) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["status"],
-      message: "complete required core status cannot contain missing items or errors"
-    });
-  }
-});
-var RequiredCoreStatusV1Schema = external_exports.object({
-  /** Required documents selected through the policy/governance chain. */
-  governance: RequiredCoreLaneStatusV1Schema,
-  /** The Project Brain overview, when the policy anchor is a Project. */
-  project_overview: RequiredCoreLaneStatusV1Schema
-}).strict();
-var EvidenceReferenceV1Schema = external_exports.object({
-  provider_id: ContractKeySchema,
-  evidence_id: ContractIdSchema,
-  source_version: external_exports.string().min(1).max(512).optional()
-}).strict();
-var ContextConflictV1Schema = external_exports.object({
-  id: ContractIdSchema,
-  kind: ContractKeySchema,
-  summary: external_exports.string().min(1).max(4096),
-  evidence_refs: external_exports.array(EvidenceReferenceV1Schema).min(2).max(64),
-  status: external_exports.enum(["unresolved", "resolved"]),
-  resolution_evidence_ref: EvidenceReferenceV1Schema.optional()
-}).strict();
-var BundleOmissionSubjectV1Schema = external_exports.discriminatedUnion("kind", [
-  external_exports.object({ kind: external_exports.literal("context"), context_ref: ContextReferenceV1Schema }).strict(),
-  external_exports.object({ kind: external_exports.literal("provider"), provider_id: ContractKeySchema }).strict(),
-  external_exports.object({
-    kind: external_exports.literal("evidence"),
-    evidence_ref: EvidenceReferenceV1Schema
-  }).strict(),
-  external_exports.object({
-    kind: external_exports.literal("required_core"),
-    lane: external_exports.enum(["governance", "project_overview"]),
-    item_id: ContractIdSchema.optional()
-  }).strict()
-]);
-var BundleOmissionV1Schema = external_exports.object({
-  subject: BundleOmissionSubjectV1Schema,
-  reason_code: ContractKeySchema,
-  reason: external_exports.string().min(1).max(2048).optional(),
-  estimated_tokens: external_exports.number().int().nonnegative().optional()
-}).strict();
-var EvidenceRetractionV1Schema = external_exports.object({
-  evidence_ref: EvidenceReferenceV1Schema,
-  reason_code: ContractKeySchema,
-  reason: external_exports.string().min(1).max(2048).optional(),
-  retracted_at: IsoDateSchema,
-  replacement_evidence_ref: EvidenceReferenceV1Schema.optional()
-}).strict();
-var ContextSafetyFindingV1Schema = external_exports.object({
-  code: ContractKeySchema,
-  severity: external_exports.enum(["info", "warning", "error"]),
-  message: external_exports.string().min(1).max(2048).optional(),
-  evidence_refs: external_exports.array(EvidenceReferenceV1Schema).max(64).default([])
-}).strict();
-var ContextSafetyStateV1Schema = external_exports.object({
-  status: external_exports.enum(["not_evaluated", "clear", "review_required", "blocked"]),
-  policy_tags: external_exports.array(ContractKeySchema).max(128).default([]),
-  findings: external_exports.array(ContextSafetyFindingV1Schema).max(256).default([]),
-  evaluated_at: IsoDateSchema.optional(),
-  evaluator_id: ContractIdSchema.optional()
-}).strict();
-var ContextTokenAccountingV1Schema = external_exports.object({
-  /** Null means this stage was not given a token limit. */
-  limit: external_exports.number().int().nonnegative().nullable().default(null),
-  used: external_exports.number().int().nonnegative().default(0),
-  reserved: external_exports.number().int().nonnegative().default(0),
-  omitted: external_exports.number().int().nonnegative().default(0),
-  truncated: external_exports.boolean().default(false)
-}).strict();
-var ContextBundleV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  /** Content-addressed ID of this exact retrieval result. */
-  bundle_id: Sha256Schema,
-  stage: external_exports.enum(["retrieved", "resolved"]),
-  manifest: ContextManifestV1Schema,
-  manifest_hash: Sha256Schema,
-  query: external_exports.string().min(1).max(4e3),
-  requested_kinds: external_exports.array(ContractKeySchema).max(128),
-  created_at: IsoDateSchema,
-  evidence: external_exports.array(EvidenceCandidateV1Schema).max(1e4),
-  coverage: external_exports.array(ProviderCoverageV1Schema).max(256),
-  receipts: external_exports.array(ProviderReceiptV1Schema).max(256),
-  required_core_status: RequiredCoreStatusV1Schema.default({
-    governance: {
-      status: "not_evaluated",
-      expected_ids: [],
-      delivered_ids: [],
-      missing_ids: [],
-      errors: []
-    },
-    project_overview: {
-      status: "not_evaluated",
-      expected_ids: [],
-      delivered_ids: [],
-      missing_ids: [],
-      errors: []
-    }
-  }),
-  conflicts: external_exports.array(ContextConflictV1Schema).max(1e3).default([]),
-  omissions: external_exports.array(BundleOmissionV1Schema).max(1e4).default([]),
-  retractions: external_exports.array(EvidenceRetractionV1Schema).max(1e4).default([]),
-  safety: ContextSafetyStateV1Schema.default({
-    status: "not_evaluated",
-    policy_tags: [],
-    findings: []
-  }),
-  token_accounting: ContextTokenAccountingV1Schema.default({
-    limit: null,
-    used: 0,
-    reserved: 0,
-    omitted: 0,
-    truncated: false
-  }),
-  warnings: external_exports.array(external_exports.string().min(1).max(2048)).max(256).default([]),
-  resolver_audit_id: ContractIdSchema.optional()
-}).strict().superRefine((bundle, ctx) => {
-  const contextKeys = new Set(
-    contextReferencesFromManifestV1(bundle.manifest).map(contextReferenceKey)
-  );
-  bundle.evidence.forEach((candidate, index) => {
-    if (!contextKeys.has(contextReferenceKey(candidate.context_ref))) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: ["evidence", index, "context_ref"],
-        message: "bundle evidence is outside the exact manifest contexts"
-      });
-      return;
-    }
-    if (!evidenceCanReachContextAudienceV1(
-      candidate.security,
-      bundle.manifest,
-      candidate.context_ref
-    )) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: ["evidence", index, "security"],
-        message: `bundle evidence is not permitted for the ${bundle.manifest.audience.kind} audience`
-      });
-    }
-  });
-  bundle.coverage.forEach((coverage, coverageIndex) => {
-    const references = [
-      ...coverage.attempted_contexts.map((ref, index) => ({
-        ref,
-        path: ["coverage", coverageIndex, "attempted_contexts", index]
-      })),
-      ...coverage.covered_contexts.map((ref, index) => ({
-        ref,
-        path: ["coverage", coverageIndex, "covered_contexts", index]
-      })),
-      ...coverage.omitted_contexts.map((entry, index) => ({
-        ref: entry.context_ref,
-        path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
-      }))
-    ];
-    for (const { ref, path: path26 } of references) {
-      if (!contextKeys.has(contextReferenceKey(ref))) {
-        ctx.addIssue({
-          code: external_exports.ZodIssueCode.custom,
-          path: path26,
-          message: "provider coverage is outside the exact manifest contexts"
-        });
-      }
-    }
-  });
-  bundle.receipts.forEach((receipt, index) => {
-    if (receipt.policy_revision !== bundle.manifest.acl_revision) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: ["receipts", index, "policy_revision"],
-        message: "provider receipt policy revision must match the bundle ACL revision"
-      });
-    }
-  });
-});
-function contextReferenceKey(ref) {
-  return `${ref.provider_id ?? "memlin"}\0${ref.type}\0${ref.id}\0${ref.revision ?? ""}`;
-}
-function contextReferenceIdentityKey(ref) {
-  return `${ref.provider_id ?? "memlin"}\0${ref.type}\0${ref.id}`;
-}
-function contextReferencesFromManifestV1(manifest) {
-  const byKey = /* @__PURE__ */ new Map();
-  for (const ref of [manifest.home, manifest.policy_anchor, ...manifest.linked_contexts]) {
-    byKey.set(contextReferenceKey(ref), ref);
-  }
-  return [...byKey.values()];
-}
-function evidenceCanReachContextAudienceV1(security, manifest, sourceContext) {
-  const sourceAudience = security.audience;
-  const audience = manifest.audience;
-  if (sourceAudience === "public") return security.classification === "public";
-  if (security.acl_revision !== manifest.acl_revision || audience.kind === "public") return false;
-  const authorizedPrincipals = new Set(security.authorized_principal_ids);
-  const recipientsAreBound = audience.participant_ids.length > 0 && audience.participant_ids.every((participantId) => authorizedPrincipals.has(participantId));
-  const exactAudienceContext = security.audience_context_id === audience.context_id;
-  const exactPrivateSourceContext = Boolean(security.audience_context_id) && sourceContext.id === security.audience_context_id && (sourceAudience === "room" && sourceContext.type === "room" || sourceAudience === "external" && sourceContext.type === "external_collection");
-  const audienceAllowed = audience.kind === "external" ? sourceAudience === "external" && exactAudienceContext && recipientsAreBound : audience.kind === "team" ? sourceAudience === "team" : audience.kind === "room" ? sourceAudience === "room" && exactAudienceContext && recipientsAreBound || sourceAudience === "team" && recipientsAreBound : sourceAudience === "team" || sourceAudience === "private" && recipientsAreBound || (sourceAudience === "room" || sourceAudience === "external") && exactPrivateSourceContext && recipientsAreBound;
-  if (!audienceAllowed) return false;
-  if (security.classification === "restricted") {
-    return (audience.kind === "private" || audience.kind === "room") && recipientsAreBound;
-  }
-  return true;
-}
-
-// packages/shared/dist/context-provider.js
-var ContextProviderManifestV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  id: ContractKeySchema,
-  implementation_version: external_exports.string().min(1).max(128),
-  display_name: external_exports.string().min(1).max(128),
-  supported_context_types: external_exports.array(ContractKeySchema).min(1).max(64),
-  supported_kinds: external_exports.array(ContractKeySchema).min(1).max(128),
-  latency_class: external_exports.enum(["indexed", "local", "live"]),
-  required_scopes: external_exports.array(ContractKeySchema).max(128).default([]),
-  default_timeout_ms: external_exports.number().int().min(10).max(6e4).default(5e3),
-  max_candidates: external_exports.number().int().min(1).max(1e3).default(100)
-}).strict().superRefine((manifest, ctx) => {
-  for (const field of [
-    "supported_context_types",
-    "supported_kinds",
-    "required_scopes"
-  ]) {
-    const values = manifest[field];
-    if (new Set(values).size !== values.length) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: [field],
-        message: `${field} must not contain duplicates`
-      });
-    }
-  }
-});
-var ContextProviderAuthorizationRequestV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  request_id: ContractIdSchema,
-  principal: ExecutionPrincipalV1Schema,
-  manifest: ContextManifestV1Schema,
-  requested_contexts: external_exports.array(ContextReferenceV1Schema).min(1).max(128)
-}).strict();
-var ContextProviderAuthorizationV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  decision: external_exports.enum(["allow", "partial", "deny"]),
-  authorized_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
-  denied_contexts: external_exports.array(
-    external_exports.object({
-      context_ref: ContextReferenceV1Schema,
-      reason_code: ContractKeySchema,
-      reason: external_exports.string().min(1).max(1024).optional()
-    }).strict()
-  ).max(128).default([]),
-  /** Exact manifest ACL/policy revision used for this authorization decision. */
-  policy_revision: external_exports.string().min(1).max(256)
-}).strict().superRefine((authorization, ctx) => {
-  if (authorization.decision === "deny" && authorization.authorized_contexts.length > 0) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["authorized_contexts"],
-      message: "deny decisions cannot authorize contexts"
-    });
-  }
-  if (authorization.decision === "allow" && authorization.authorized_contexts.length === 0) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["authorized_contexts"],
-      message: "allow decisions require at least one authorized context"
-    });
-  }
-  if (authorization.decision === "allow" && authorization.denied_contexts.length > 0) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["denied_contexts"],
-      message: "allow decisions cannot deny contexts"
-    });
-  }
-  if (authorization.decision === "partial" && (authorization.authorized_contexts.length === 0 || authorization.denied_contexts.length === 0)) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["decision"],
-      message: "partial decisions require both authorized and denied contexts"
-    });
-  }
-  if (authorization.decision === "deny" && authorization.denied_contexts.length === 0) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["denied_contexts"],
-      message: "deny decisions must identify every denied context"
-    });
-  }
-});
-var ContextProviderRequestV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  request_id: ContractIdSchema,
-  principal: ExecutionPrincipalV1Schema,
-  manifest: ContextManifestV1Schema,
-  authorized_contexts: external_exports.array(ContextReferenceV1Schema).min(1).max(128),
-  query: external_exports.string().min(1).max(4e3),
-  query_embedding: external_exports.array(external_exports.number().finite()).min(1).max(8192).optional(),
-  requested_kinds: external_exports.array(ContractKeySchema).max(128),
-  max_candidates: external_exports.number().int().min(1).max(1e3),
-  token_budget: external_exports.number().int().min(1).max(1e6).optional(),
-  deadline_at: IsoDateSchema
-}).strict();
-var ContextProviderCoverageClaimV1Schema = external_exports.object({
-  status: external_exports.enum(["complete", "partial", "unavailable"]),
-  covered_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
-  omitted_contexts: external_exports.array(
-    external_exports.object({
-      context_ref: ContextReferenceV1Schema,
-      reason_code: ContractKeySchema,
-      reason: external_exports.string().min(1).max(1024).optional()
-    }).strict()
-  ).max(128).default([]),
-  reason_code: ContractKeySchema.optional(),
-  reason: external_exports.string().min(1).max(2048).optional(),
-  truncated: external_exports.boolean().default(false)
-}).strict().superRefine((coverage, ctx) => {
-  if (coverage.status !== "complete" && !coverage.reason_code) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["reason_code"],
-      message: "partial and unavailable coverage require a reason_code"
-    });
-  }
-  if (coverage.status === "unavailable" && coverage.covered_contexts.length > 0) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["covered_contexts"],
-      message: "unavailable coverage cannot claim covered contexts"
-    });
-  }
-});
-var ContextProviderResultV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  candidates: external_exports.array(EvidenceCandidateV1Schema).max(1e3),
-  coverage: ContextProviderCoverageClaimV1Schema,
-  receipt: external_exports.object({
-    source_revision: external_exports.string().min(1).max(512).optional(),
-    credential_binding_id: ContractIdSchema.optional(),
-    cost_microunits: external_exports.number().int().nonnegative().optional()
-  }).strict().default({})
-}).strict();
-var CredentialBrokerInvocationV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  binding_id: ContractIdSchema,
-  operation_id: ContractKeySchema,
-  input: external_exports.record(ContractJsonValueSchema).default({})
-}).strict();
-var CredentialBrokerResultV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  status: external_exports.number().int().min(100).max(599),
-  content_type: external_exports.string().min(1).max(256).optional(),
-  body: external_exports.string(),
-  truncated: external_exports.boolean().default(false),
-  receipt_id: ContractIdSchema,
-  source_revision: external_exports.string().min(1).max(512).optional()
-}).strict();
-
-// packages/shared/dist/context-harness.js
-var HARNESS_ARTIFACT_KINDS = [
-  "markdown",
-  "document",
-  "skill",
-  "memory",
-  "schema",
-  "prompt",
-  "source",
-  "action",
-  "agent"
-];
-var HarnessArtifactRefV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  kind: external_exports.enum(HARNESS_ARTIFACT_KINDS),
-  id: ContractIdSchema,
-  context_ref: ContextReferenceV1Schema,
-  revision: external_exports.string().min(1).max(512),
-  title: external_exports.string().min(1).max(1024).optional(),
-  provider_id: ContractKeySchema.optional(),
-  canonical_uri: external_exports.string().url().max(4096).optional(),
-  content_hash: Sha256Schema.optional(),
-  media_type: external_exports.string().min(1).max(256).optional()
-}).strict();
-var HarnessGraphNodeV1Schema = external_exports.object({
-  id: ContractIdSchema,
-  artifact: HarnessArtifactRefV1Schema,
-  position: external_exports.object({ x: external_exports.number().finite(), y: external_exports.number().finite() }).strict().optional(),
-  collapsed: external_exports.boolean().default(false),
-  configuration: external_exports.record(ContractJsonValueSchema).default({})
-}).strict();
-var HARNESS_EDGE_TYPES = [
-  "contains",
-  "references",
-  "grounds",
-  "produces",
-  "consumes",
-  "invokes",
-  "delegates_to",
-  "depends_on",
-  "supersedes",
-  "answers",
-  "decides"
-];
-var HarnessGraphEdgeV1Schema = external_exports.object({
-  id: ContractIdSchema,
-  type: external_exports.enum(HARNESS_EDGE_TYPES),
-  from_node_id: ContractIdSchema,
-  to_node_id: ContractIdSchema,
-  label: external_exports.string().min(1).max(256).optional(),
-  configuration: external_exports.record(ContractJsonValueSchema).default({})
-}).strict();
-var HarnessGraphV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  id: ContractIdSchema,
-  revision: external_exports.string().min(1).max(512),
-  manifest: ContextManifestV1Schema,
-  nodes: external_exports.array(HarnessGraphNodeV1Schema).max(1e4),
-  edges: external_exports.array(HarnessGraphEdgeV1Schema).max(5e4),
-  metadata: external_exports.record(ContractJsonValueSchema).default({})
-}).strict().superRefine((graph, ctx) => {
-  const nodeIds = /* @__PURE__ */ new Set();
-  graph.nodes.forEach((node, index) => {
-    if (nodeIds.has(node.id)) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: ["nodes", index, "id"],
-        message: `duplicate graph node id ${node.id}`
-      });
-    }
-    nodeIds.add(node.id);
-  });
-  const edgeIds = /* @__PURE__ */ new Set();
-  graph.edges.forEach((edge, index) => {
-    if (edgeIds.has(edge.id)) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: ["edges", index, "id"],
-        message: `duplicate graph edge id ${edge.id}`
-      });
-    }
-    edgeIds.add(edge.id);
-    if (!nodeIds.has(edge.from_node_id)) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: ["edges", index, "from_node_id"],
-        message: `unknown graph node ${edge.from_node_id}`
-      });
-    }
-    if (!nodeIds.has(edge.to_node_id)) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: ["edges", index, "to_node_id"],
-        message: `unknown graph node ${edge.to_node_id}`
-      });
-    }
-  });
-});
-var HarnessCompileRequestV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  request_id: ContractIdSchema,
-  principal: ExecutionPrincipalV1Schema,
-  graph: HarnessGraphV1Schema,
-  requested_kinds: external_exports.array(ContractKeySchema).max(128).default([]),
-  provider_ids: external_exports.array(ContractKeySchema).max(64).default([]),
-  max_tokens: external_exports.number().int().min(256).max(1e6).optional()
-}).strict();
-var HarnessCompileResultV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  compile_id: Sha256Schema,
-  graph_id: ContractIdSchema,
-  graph_revision: external_exports.string().min(1).max(512),
-  graph_hash: Sha256Schema,
-  manifest_hash: Sha256Schema,
-  compiled_at: IsoDateSchema,
-  artifacts: external_exports.array(
-    external_exports.object({
-      node_id: ContractIdSchema,
-      artifact: HarnessArtifactRefV1Schema,
-      status: external_exports.enum(["ready", "stale", "unavailable", "unauthorized"]),
-      reason: external_exports.string().min(1).max(2048).optional()
-    }).strict()
-  ),
-  warnings: external_exports.array(external_exports.string().min(1).max(2048)).max(256).default([]),
-  bundle: ContextBundleV1Schema.optional()
-}).strict().superRefine((result, ctx) => {
-  if (result.bundle && result.bundle.manifest_hash !== result.manifest_hash) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["bundle", "manifest_hash"],
-      message: "compiled bundle manifest_hash must match compile result"
-    });
-  }
-});
-var HandoffLiveReferenceV1Schema = external_exports.object({
-  context_ref: ContextReferenceV1Schema,
-  permissions: external_exports.array(external_exports.enum(["read", "comment", "write", "execute", "delegate"])).min(1).max(5),
-  refresh_policy: external_exports.enum(["never", "on_open", "on_demand"])
-}).strict();
-var AgentHandoffEnvelopeV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  handoff_id: ContractIdSchema,
-  created_at: IsoDateSchema,
-  expires_at: IsoDateSchema.optional(),
-  from: ExecutionActorV1Schema,
-  to: external_exports.object({
-    agent_id: ContractIdSchema.optional(),
-    agent_kind: ContractKeySchema
-  }).strict(),
-  task: external_exports.string().min(1).max(16e3),
-  /** Immutable evidence delivered to the receiving agent. */
-  frozen_bundle: ContextBundleV1Schema,
-  resolver_audit_id: ContractIdSchema,
-  manifest_hash: Sha256Schema,
-  /** Explicitly refreshable objects; never implied by the frozen bundle. */
-  live_refs: external_exports.array(HandoffLiveReferenceV1Schema).max(128).default([]),
-  permissions: external_exports.object({
-    scopes: external_exports.array(ContractKeySchema).max(256),
-    provider_ids: external_exports.array(ContractKeySchema).max(128).default([]),
-    action_ids: external_exports.array(ContractKeySchema).max(128).default([]),
-    may_refresh_bundle: external_exports.boolean().default(false),
-    may_delegate: external_exports.boolean().default(false)
-  }).strict()
-}).strict().superRefine((handoff, ctx) => {
-  if (handoff.frozen_bundle.manifest_hash !== handoff.manifest_hash) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["manifest_hash"],
-      message: "handoff manifest_hash must match the frozen bundle"
-    });
-  }
-  if (handoff.frozen_bundle.resolver_audit_id && handoff.frozen_bundle.resolver_audit_id !== handoff.resolver_audit_id) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["resolver_audit_id"],
-      message: "handoff audit must match the frozen bundle audit"
-    });
-  }
-  const seen = /* @__PURE__ */ new Set();
-  handoff.live_refs.forEach((entry, index) => {
-    const key = contextReferenceKey(entry.context_ref);
-    if (seen.has(key)) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: ["live_refs", index, "context_ref"],
-        message: `duplicate live reference ${key}`
-      });
-    }
-    seen.add(key);
-  });
-});
-
-// packages/shared/dist/context-ingest.js
-var IngestEnvelopeV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  event_id: ContractIdSchema,
-  idempotency_key: external_exports.string().min(1).max(1024),
-  operation: external_exports.enum(["upsert", "delete"]),
-  source: external_exports.object({
-    provider_id: ContractKeySchema,
-    tenant_id: ContractIdSchema,
-    collection_id: ContractIdSchema,
-    external_id: ContractIdSchema,
-    canonical_uri: external_exports.string().url().max(4096).optional(),
-    source_revision: external_exports.string().min(1).max(512).optional(),
-    occurred_at: IsoDateSchema.optional(),
-    observed_at: IsoDateSchema
-  }).strict(),
-  content: external_exports.object({
-    title: external_exports.string().min(1).max(1024),
-    media_type: external_exports.string().min(1).max(256),
-    body: external_exports.string().max(2e6).optional(),
-    content_hash: Sha256Schema.optional(),
-    language: external_exports.string().min(2).max(64).optional()
-  }).strict(),
-  provenance: external_exports.object({
-    author_external_id: ContractIdSchema.optional(),
-    author_display_name: external_exports.string().min(1).max(512).optional(),
-    locator: external_exports.string().min(1).max(4096).optional(),
-    rights: external_exports.string().min(1).max(512).optional()
-  }).strict().default({}),
-  security: EvidenceSecurityV1Schema,
-  context_refs: external_exports.array(ContextReferenceV1Schema).max(128).default([]),
-  cursor: external_exports.object({
-    stream: ContractIdSchema,
-    value: external_exports.string().min(1).max(4096)
-  }).strict().optional(),
-  attempt: external_exports.number().int().positive().default(1),
-  metadata: external_exports.record(ContractJsonValueSchema).default({})
-}).strict().superRefine((envelope, ctx) => {
-  if (envelope.operation === "upsert") {
-    if (envelope.content.body === void 0) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: ["content", "body"],
-        message: "upsert events require content.body"
-      });
-    }
-    if (!envelope.content.content_hash) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: ["content", "content_hash"],
-        message: "upsert events require content.content_hash"
-      });
-    }
-  }
-});
-var IngestReceiptV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  event_id: ContractIdSchema,
-  idempotency_key: external_exports.string().min(1).max(1024),
-  status: external_exports.enum(["accepted", "duplicate", "indexed", "deleted", "rejected", "retry"]),
-  evidence_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
-  index_job_id: ContractIdSchema.optional(),
-  next_cursor: external_exports.string().min(1).max(4096).optional(),
-  error_code: ContractKeySchema.optional(),
-  error: external_exports.string().min(1).max(4096).optional(),
-  recorded_at: IsoDateSchema
-}).strict().superRefine((receipt, ctx) => {
-  if (["rejected", "retry"].includes(receipt.status) && !receipt.error_code) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["error_code"],
-      message: `${receipt.status} receipts require error_code`
-    });
-  }
-});
-
-// packages/shared/dist/context-action.js
-var ActionOperationV1Schema = external_exports.object({
-  description: external_exports.string().min(1).max(1024),
-  input_schema: external_exports.record(ContractJsonValueSchema),
-  output_schema: external_exports.record(ContractJsonValueSchema),
-  effect: external_exports.enum(["read", "internal_write", "external_write"]),
-  risk: external_exports.enum(["low", "medium", "high"]),
-  required_scopes: external_exports.array(ContractKeySchema).max(128).default([]),
-  approval: external_exports.enum(["none", "user", "admin"]),
-  idempotency: external_exports.enum(["required", "supported", "none"]),
-  allowed_context_types: external_exports.array(ContractKeySchema).min(1).max(64),
-  timeout_ms: external_exports.number().int().min(10).max(3e5).default(3e4),
-  max_cost_microunits: external_exports.number().int().nonnegative().optional()
-}).strict().superRefine((operation, ctx) => {
-  if (operation.effect !== "read" && operation.idempotency === "none") {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["idempotency"],
-      message: "write operations must support idempotency"
-    });
-  }
-});
-var ActionAdapterManifestV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  id: ContractKeySchema,
-  implementation_version: external_exports.string().min(1).max(128),
-  display_name: external_exports.string().min(1).max(128),
-  credential_binding_types: external_exports.array(ContractKeySchema).max(64).default([]),
-  operations: external_exports.record(ContractKeySchema, ActionOperationV1Schema)
-}).strict().refine((manifest) => Object.keys(manifest.operations).length > 0, {
-  path: ["operations"],
-  message: "an action adapter must declare at least one operation"
-});
-var ActionPrepareRequestV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  request_id: ContractIdSchema,
-  principal: ExecutionPrincipalV1Schema,
-  context_manifest: ContextManifestV1Schema,
-  context_manifest_hash: Sha256Schema,
-  action_id: ContractIdSchema,
-  /** Immutable document/version identifier selected during preparation. */
-  action_revision: ContractIdSchema,
-  /** Canonical hash of the validated Action metadata at preparation time. */
-  action_metadata_hash: Sha256Schema,
-  adapter_id: ContractKeySchema,
-  operation: ContractKeySchema,
-  input: ContractJsonValueSchema,
-  idempotency_key: external_exports.string().min(1).max(1024).optional(),
-  credential_binding_id: ContractIdSchema.optional()
-}).strict();
-var PreparedActionV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  plan_id: Sha256Schema,
-  adapter_id: ContractKeySchema,
-  adapter_version: external_exports.string().min(1).max(128),
-  operation: ContractKeySchema,
-  account_id: external_exports.string().uuid(),
-  action_id: ContractIdSchema,
-  action_revision: ContractIdSchema,
-  action_metadata_hash: Sha256Schema,
-  project_id: ContractIdSchema.optional(),
-  thought_id: ContractIdSchema.optional(),
-  context_manifest_hash: Sha256Schema,
-  input: ContractJsonValueSchema,
-  input_hash: Sha256Schema,
-  idempotency_key: external_exports.string().min(1).max(1024).optional(),
-  credential_binding_id: ContractIdSchema.optional(),
-  effect: external_exports.enum(["read", "internal_write", "external_write"]),
-  risk: external_exports.enum(["low", "medium", "high"]),
-  approval: external_exports.object({
-    state: external_exports.enum(["not_required", "required", "approved"]),
-    approved_by: ContractIdSchema.optional(),
-    approved_at: IsoDateSchema.optional(),
-    policy_revision: external_exports.string().min(1).max(256)
-  }).strict(),
-  preview: external_exports.string().min(1).max(16e3),
-  prepared_at: IsoDateSchema,
-  expires_at: IsoDateSchema
-}).strict().superRefine((prepared, ctx) => {
-  if (prepared.approval.state === "approved") {
-    if (!prepared.approval.approved_by || !prepared.approval.approved_at) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: ["approval"],
-        message: "approved actions require approved_by and approved_at"
-      });
-    }
-  }
-});
-var ActionApprovalV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  execution_id: ContractIdSchema,
-  plan_id: Sha256Schema,
-  decision: external_exports.enum(["approved", "rejected"]),
-  approved_by: ContractIdSchema,
-  approved_at: IsoDateSchema,
-  context_manifest_hash: Sha256Schema,
-  action_revision: ContractIdSchema,
-  action_metadata_hash: Sha256Schema,
-  adapter_version: external_exports.string().min(1).max(128),
-  policy_revision: external_exports.string().min(1).max(256)
-}).strict();
-var ActionReceiptV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  execution_id: ContractIdSchema,
-  plan_id: Sha256Schema,
-  adapter_id: ContractKeySchema,
-  adapter_version: external_exports.string().min(1).max(128),
-  operation: ContractKeySchema,
-  status: external_exports.enum(["succeeded", "failed", "indeterminate", "compensated"]),
-  started_at: IsoDateSchema,
-  completed_at: IsoDateSchema,
-  attempts: external_exports.number().int().positive(),
-  /** Durable audit event inserted in the same transaction as reservation. */
-  pre_effect_audit_id: ContractIdSchema,
-  /** True when an idempotent retry returned the stored receipt. */
-  replayed: external_exports.boolean().default(false),
-  output: ContractJsonValueSchema.optional(),
-  output_hash: Sha256Schema.optional(),
-  effects: external_exports.array(
-    external_exports.object({
-      type: ContractKeySchema,
-      external_id: ContractIdSchema.optional(),
-      canonical_uri: external_exports.string().url().max(4096).optional(),
-      reversible: external_exports.boolean()
-    }).strict()
-  ).max(1e3).default([]),
-  evidence_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
-  error_code: ContractKeySchema.optional(),
-  error: external_exports.string().min(1).max(4096).optional()
-}).strict().superRefine((receipt, ctx) => {
-  if (receipt.status !== "succeeded" && receipt.status !== "compensated" && !receipt.error_code) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["error_code"],
-      message: `${receipt.status} receipts require error_code`
-    });
-  }
-});
-
-// packages/shared/dist/context-host.js
-var HostContextV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  host_kind: ContractKeySchema,
-  host_instance_id: ContractIdSchema,
-  client_version: external_exports.string().min(1).max(128).optional(),
-  session_id: ContractIdSchema,
-  cwd: external_exports.string().min(1).max(4096).optional(),
-  git_remote: external_exports.string().min(1).max(1024).optional(),
-  git_branch: external_exports.string().min(1).max(512).optional(),
-  workspace_fingerprint: Sha256Schema.optional(),
-  capabilities: external_exports.array(
-    external_exports.object({
-      name: ContractKeySchema,
-      state: external_exports.enum(["enabled", "limited", "blocked"]),
-      source: external_exports.enum(["enforced", "reported", "derived"]),
-      scope: external_exports.string().min(1).max(512).optional()
-    }).strict()
-  ).max(256).default([])
-}).strict();
-var HostHookEnvelopeV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  event_id: ContractIdSchema,
-  event: external_exports.enum(["session_start", "user_prompt_submit", "pre_tool_use", "post_tool_use", "stop"]),
-  occurred_at: IsoDateSchema,
-  host: HostContextV1Schema,
-  /** Required once a context has been selected; protects late delivery. */
-  context_manifest_hash: Sha256Schema.optional(),
-  payload: external_exports.record(ContractJsonValueSchema).default({})
-}).strict();
-var HostDeliveryCapabilitiesV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  modes: external_exports.array(external_exports.enum(["inline", "bundle_handle", "mcp_resource"])).min(1).max(3),
-  max_inline_bytes: external_exports.number().int().min(1).max(1e7),
-  supports_manifest_invalidation: external_exports.boolean(),
-  supports_structured_citations: external_exports.boolean()
-}).strict();
-var HostContextDeliveryV1Schema = external_exports.object({
-  manifest_hash: Sha256Schema,
-  bundle_id: Sha256Schema.optional(),
-  inline_markdown: external_exports.string().max(1e7).optional(),
-  resource_uri: external_exports.string().min(1).max(4096).optional()
-}).strict();
-
-// packages/shared/dist/context-training.js
-var TrainingConsentV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  id: ContractIdSchema,
-  account_id: external_exports.string().uuid(),
-  user_id: external_exports.string().uuid(),
-  status: external_exports.enum(["granted", "revoked", "expired"]),
-  purposes: external_exports.array(external_exports.enum(["personalization", "evaluation", "personal_fine_tuning"])).min(1).max(3),
-  provider_ids: external_exports.array(ContractKeySchema).max(64).default([]),
-  granted_at: IsoDateSchema,
-  expires_at: IsoDateSchema.optional(),
-  revoked_at: IsoDateSchema.optional()
-}).strict().superRefine((consent, ctx) => {
-  if (consent.status === "revoked" && !consent.revoked_at) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["revoked_at"],
-      message: "revoked consent requires revoked_at"
-    });
-  }
-});
-var TrainingExampleV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  id: ContractIdSchema,
-  account_id: external_exports.string().uuid(),
-  owner_user_id: external_exports.string().uuid(),
-  consent_id: ContractIdSchema,
-  source: external_exports.enum(["explicit_save", "accepted_feedback"]),
-  created_at: IsoDateSchema,
-  input: external_exports.string().min(1).max(2e5),
-  preferred_output: external_exports.string().min(1).max(2e5),
-  context_manifest_hash: Sha256Schema,
-  resolver_audit_id: ContractIdSchema,
-  evidence_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
-  model_id: external_exports.string().min(1).max(256).optional(),
-  presentation_profile_version: external_exports.string().min(1).max(256).optional(),
-  labels: external_exports.array(ContractKeySchema).max(128).default([]),
-  redaction_state: external_exports.enum(["not_needed", "redacted", "review_required"]),
-  metadata: external_exports.record(ContractJsonValueSchema).default({})
-}).strict();
-var TrainingJobRequestV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  id: ContractIdSchema,
-  account_id: external_exports.string().uuid(),
-  owner_user_id: external_exports.string().uuid(),
-  consent_id: ContractIdSchema,
-  purpose: external_exports.enum(["evaluation", "personal_fine_tuning"]),
-  provider_id: ContractKeySchema,
-  base_model_id: external_exports.string().min(1).max(256),
-  example_ids: external_exports.array(ContractIdSchema).min(1).max(1e5),
-  evaluation_suite_id: ContractIdSchema,
-  requested_at: IsoDateSchema
-}).strict();
-var TrainingJobResultV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  job_id: ContractIdSchema,
-  status: external_exports.enum(["queued", "running", "passed", "failed", "cancelled"]),
-  provider_job_id: ContractIdSchema.optional(),
-  model_id: external_exports.string().min(1).max(256).optional(),
-  evaluation_passed: external_exports.boolean().optional(),
-  metrics: external_exports.record(external_exports.number().finite()).default({}),
-  error_code: ContractKeySchema.optional(),
-  error: external_exports.string().min(1).max(4096).optional(),
-  updated_at: IsoDateSchema
-}).strict();
-
-// packages/shared/dist/resource-evidence.js
-var RESOURCE_KINDS = [
-  "markdown",
-  "text",
-  "webpage",
-  "youtube",
-  "pdf",
-  "document",
-  "image",
-  "audio",
-  "video",
-  "jira",
-  "slack",
-  "github",
-  "code",
-  "dataset"
-];
-var ResourceKindV1Schema = external_exports.enum(RESOURCE_KINDS);
-var ResourceEntityMentionV1Schema = external_exports.object({
-  kind: external_exports.enum(["ticket", "url", "named_mention"]),
-  text: external_exports.string().min(2).max(256),
-  // Unicode code-point offsets, matching PostgreSQL substring positions.
-  start_offset: external_exports.number().int().nonnegative().max(32e3),
-  end_offset: external_exports.number().int().positive().max(32e3)
-}).strict().refine((value) => value.end_offset > value.start_offset, {
-  message: "A mention must cover an exact nonempty source span"
-});
-var ResourceEntityChunkWriteV1Schema = external_exports.object({
-  chunk_id: external_exports.string().uuid(),
-  content_sha256: Sha256Schema,
-  mentions: external_exports.array(ResourceEntityMentionV1Schema).max(16)
-}).strict();
-var PublicStudyResourceV2Schema = external_exports.object({
-  provider: external_exports.enum(["pubmed", "clinicaltrials.gov", "crossref", "openalex", "openfda"]),
-  external_id: external_exports.string().min(1).max(512),
-  title: external_exports.string().min(1).max(500),
-  canonical_url: external_exports.string().url().max(4096),
-  retrieval_url: external_exports.string().url().max(4096),
-  coverage: external_exports.enum(["full_text", "abstract", "registry_protocol", "regulatory_record"]),
-  rights_basis: external_exports.enum([
-    "open_access_license",
-    "provider_api_abstract",
-    "public_registry_record",
-    "us_government_public_record"
-  ]),
-  license_label: external_exports.string().max(512).nullable(),
-  license_url: external_exports.string().url().nullable(),
-  content: external_exports.string().min(1).max(5e5),
-  provenance: external_exports.record(ContractJsonValueSchema),
-  passages: external_exports.array(
-    external_exports.object({
-      heading: external_exports.string().max(500),
-      // Includes the retained corpus's existing 6,000-character limit.
-      text: external_exports.string().min(1).max(6e3),
-      locator: external_exports.record(ContractJsonValueSchema)
-    }).strict()
-  ).min(1).max(512)
-}).strict();
-var WholeResourceLocatorV1Schema = external_exports.object({ kind: external_exports.literal("whole") }).strict();
-var LineResourceLocatorV1Schema = external_exports.object({
-  kind: external_exports.literal("line"),
-  start_line: external_exports.number().int().positive(),
-  end_line: external_exports.number().int().positive()
-}).strict().refine((value) => value.end_line >= value.start_line, {
-  message: "end_line must be greater than or equal to start_line",
-  path: ["end_line"]
-});
-var PageResourceLocatorV1Schema = external_exports.object({
-  kind: external_exports.literal("page"),
-  page: external_exports.number().int().positive(),
-  start_offset: external_exports.number().int().nonnegative().optional(),
-  end_offset: external_exports.number().int().nonnegative().optional()
-}).strict().refine(
-  (value) => value.start_offset === void 0 || value.end_offset === void 0 || value.end_offset >= value.start_offset,
-  {
-    message: "end_offset must be greater than or equal to start_offset",
-    path: ["end_offset"]
-  }
-);
-var TimeResourceLocatorV1Schema = external_exports.object({
-  kind: external_exports.literal("time"),
-  start_ms: external_exports.number().int().nonnegative(),
-  end_ms: external_exports.number().int().nonnegative()
-}).strict().refine((value) => value.end_ms >= value.start_ms, {
-  message: "end_ms must be greater than or equal to start_ms",
-  path: ["end_ms"]
-});
-var WebResourceLocatorV1Schema = external_exports.object({
-  kind: external_exports.literal("web"),
-  url: external_exports.string().url().max(4096),
-  selector: external_exports.string().min(1).max(2048).optional(),
-  fragment: external_exports.string().min(1).max(2048).optional(),
-  text_quote: external_exports.string().min(1).max(2048).optional()
-}).strict().refine((value) => Boolean(value.selector || value.fragment || value.text_quote), {
-  message: "web locators require a selector, fragment, or text quote"
-});
-var RegionResourceLocatorV1Schema = external_exports.object({
-  kind: external_exports.literal("region"),
-  page: external_exports.number().int().positive().optional(),
-  x: external_exports.number().finite(),
-  y: external_exports.number().finite(),
-  width: external_exports.number().finite().positive(),
-  height: external_exports.number().finite().positive()
-}).strict();
-var ExternalResourceLocatorV1Schema = external_exports.object({
-  kind: external_exports.literal("external"),
-  provider: ContractKeySchema,
-  item_id: ContractIdSchema,
-  subpath: external_exports.string().min(1).max(2048).optional()
-}).strict();
-var ResourceLocatorV1Schema = external_exports.union([
-  WholeResourceLocatorV1Schema,
-  LineResourceLocatorV1Schema,
-  PageResourceLocatorV1Schema,
-  TimeResourceLocatorV1Schema,
-  WebResourceLocatorV1Schema,
-  RegionResourceLocatorV1Schema,
-  ExternalResourceLocatorV1Schema
-]);
-var ResourceEntityEvidenceV1Schema = external_exports.object({
-  version: external_exports.literal(1),
-  resource_id: external_exports.string().uuid(),
-  resource_version_id: external_exports.string().uuid(),
-  status: external_exports.enum(["queued", "processing", "partial", "unavailable", "failed"]),
-  truncated: external_exports.boolean(),
-  mentions: external_exports.array(
-    external_exports.object({
-      kind: external_exports.enum(["ticket", "url", "named_mention"]),
-      text: external_exports.string().min(2).max(256),
-      chunk_id: external_exports.string().uuid(),
-      locator: ResourceLocatorV1Schema,
-      excerpt: external_exports.string().max(2e3)
-    }).strict()
-  ).max(64)
-}).strict();
-var ResourceIngestChunkV1Schema = external_exports.object({
-  id: external_exports.string().uuid(),
-  ordinal: external_exports.number().int().min(0).max(2047),
-  content: external_exports.string().min(1).max(32e3),
-  excerpt: external_exports.string().min(1).max(2e3),
-  content_sha256: Sha256Schema,
-  locator: ResourceLocatorV1Schema,
-  metadata: external_exports.record(ContractJsonValueSchema).default({})
-}).strict();
-var ResourceIngestManifestV1Schema = external_exports.object({
-  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
-  ingest_id: ContractIdSchema,
-  account_id: external_exports.string().uuid(),
-  project_id: external_exports.string().uuid().nullable(),
-  resource_id: external_exports.string().uuid(),
-  owner_id: external_exports.string().uuid().nullable(),
-  scope: external_exports.enum(["private", "project", "team", "public"]),
-  kind: ResourceKindV1Schema,
-  title: external_exports.string().min(1).max(500),
-  canonical_uri: external_exports.string().url().max(4096).nullable(),
-  source_revision: external_exports.string().min(1).max(512),
-  mime_type: external_exports.string().min(1).max(256),
-  content: external_exports.string().max(2e6),
-  content_sha256: Sha256Schema,
-  byte_size: external_exports.number().int().nonnegative().max(1e8),
-  rights_basis: external_exports.string().min(1).max(512),
-  license: external_exports.string().min(1).max(512).nullable(),
-  provenance: external_exports.record(ContractJsonValueSchema),
-  storage_locator: external_exports.record(ContractJsonValueSchema).default({}),
-  observed_at: IsoDateSchema,
-  occurred_at: IsoDateSchema.nullable().default(null),
-  chunks: external_exports.array(ResourceIngestChunkV1Schema).min(1).max(2048)
-}).strict().superRefine((manifest, ctx) => {
-  if (manifest.scope === "project" && !manifest.project_id) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["project_id"],
-      message: "project-scoped resources require project_id"
-    });
-  }
-  if (manifest.scope === "private" && !manifest.owner_id) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["owner_id"],
-      message: "private resources require owner_id"
-    });
-  }
-  if (manifest.byte_size !== new TextEncoder().encode(manifest.content).byteLength) {
-    ctx.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      path: ["byte_size"],
-      message: "byte_size does not match normalized UTF-8 content"
-    });
-  }
-  const ids = /* @__PURE__ */ new Set();
-  const ordinals = /* @__PURE__ */ new Set();
-  manifest.chunks.forEach((chunk, index) => {
-    if (ids.has(chunk.id)) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: ["chunks", index, "id"],
-        message: "chunk ids must be unique"
-      });
-    }
-    if (ordinals.has(chunk.ordinal) || chunk.ordinal !== index) {
-      ctx.addIssue({
-        code: external_exports.ZodIssueCode.custom,
-        path: ["chunks", index, "ordinal"],
-        message: "chunk ordinals must be unique and contiguous from zero"
-      });
-    }
-    ids.add(chunk.id);
-    ordinals.add(chunk.ordinal);
-  });
-});
-var ResourceEvidenceSearchRowV1Schema = external_exports.object({
-  evidence_id: ContractIdSchema,
-  resource_id: external_exports.string().uuid(),
-  resource_version_id: external_exports.string().uuid(),
-  chunk_id: external_exports.string().uuid(),
-  context_type: external_exports.enum(["account", "project", "thought"]),
-  context_id: ContractIdSchema,
-  kind: ResourceKindV1Schema,
-  title: external_exports.string().min(1).max(1024),
-  content: external_exports.string().min(1).max(2e6),
-  source_revision: external_exports.string().min(1).max(512),
-  content_sha256: Sha256Schema,
-  canonical_uri: external_exports.string().url().max(4096).nullable(),
-  locator: ResourceLocatorV1Schema,
-  rights_basis: external_exports.string().min(1).max(512),
-  license: external_exports.string().min(1).max(512).nullable(),
-  observed_at: IsoDateSchema,
-  occurred_at: IsoDateSchema.nullable(),
-  authority: external_exports.enum(["provisional", "verified"]),
-  resource_status: external_exports.literal("active"),
-  version_status: external_exports.literal("active"),
-  audience: external_exports.enum(["private", "team", "room", "external", "public"]),
-  classification: external_exports.enum(["public", "internal", "confidential", "restricted"]),
-  authorized_principal_ids: external_exports.array(ContractIdSchema).max(500).default([]),
-  audience_context_id: ContractIdSchema.optional(),
-  acl_revision: external_exports.string().min(1).max(256).optional(),
-  embedding_profile_id: ContractIdSchema.optional(),
-  semantic_score: external_exports.number().finite().optional(),
-  lexical_score: external_exports.number().finite().optional(),
-  metadata: external_exports.record(ContractJsonValueSchema).default({})
-}).strict();
-
-// packages/shared/dist/thought-runtime.js
-var Id = external_exports.string().uuid();
-var Revision = external_exports.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
-var Key = external_exports.string().trim().min(1).max(160);
-var Hash = external_exports.string().regex(/^[a-f0-9]{64}$/);
-var Time = external_exports.string().datetime({ offset: true });
-var Position = external_exports.object({ x: external_exports.number().finite().min(-1e6).max(1e6), y: external_exports.number().finite().min(-1e6).max(1e6) }).strict();
-var Size = external_exports.object({
-  width: external_exports.number().finite().min(80).max(4e3),
-  height: external_exports.number().finite().min(40).max(4e3)
-}).strict();
-var ThoughtRelationKindV2Schema = external_exports.enum([
-  "expands",
-  "answers",
-  "supports",
-  "contradicts",
-  "causes",
-  "depends_on",
-  "leads_to",
-  "related",
-  "references",
-  "decided_by",
-  "produces_action"
-]);
-var ThoughtEntityKindV2Schema = external_exports.enum([
-  "thought",
-  "relation",
-  "placement",
-  "resource_placement",
-  "canvas_element",
-  "canvas_connector",
-  "proposal"
-]);
-var ThoughtEntityPreconditionV2Schema = external_exports.object({ kind: ThoughtEntityKindV2Schema, id: Id, revision: Revision }).strict();
-var ThoughtPatch = external_exports.object({
-  title: external_exports.string().trim().min(1).max(240).optional(),
-  body: external_exports.string().max(2e4).optional(),
-  kind: external_exports.string().trim().min(1).max(40).optional(),
-  workflow_status: external_exports.enum(["active", "resolved", "dismissed"]).optional()
-}).strict().refine((p) => Object.keys(p).length > 0, "empty patch");
-var LayoutPatchShape = external_exports.object({
-  position: Position.optional(),
-  size: Size.optional(),
-  parent_id: Id.nullable().optional(),
-  collapsed: external_exports.boolean().optional(),
-  order: external_exports.number().finite().min(-1e9).max(1e9).optional(),
-  z_index: external_exports.number().int().min(-1e5).max(1e5).optional()
-}).strict();
-var LayoutPatch = LayoutPatchShape.refine((p) => Object.keys(p).length > 0, "empty patch");
-var ThoughtReferenceV2Schema = external_exports.union([
-  external_exports.object({ id: Id }).strict(),
-  external_exports.object({ created: Key }).strict()
-]);
-var ThoughtCommandV2Schema = external_exports.discriminatedUnion("type", [
-  external_exports.object({
-    type: external_exports.literal("thought.create"),
-    key: Key,
-    title: external_exports.string().trim().min(1).max(240),
-    body: external_exports.string().max(2e4).default(""),
-    kind: external_exports.string().trim().min(1).max(40).default("thought"),
-    position: Position.optional()
-  }).strict(),
-  external_exports.object({ type: external_exports.literal("thought.update"), id: Id, patch: ThoughtPatch }).strict(),
-  external_exports.object({ type: external_exports.literal("thought.archive"), id: Id }).strict(),
-  external_exports.object({
-    type: external_exports.literal("relation.create"),
-    key: Key,
-    source: ThoughtReferenceV2Schema,
-    target: ThoughtReferenceV2Schema,
-    relation: ThoughtRelationKindV2Schema,
-    label: external_exports.string().max(120).nullable().optional()
-  }).strict(),
-  external_exports.object({ type: external_exports.literal("relation.archive"), id: Id }).strict(),
-  external_exports.object({
-    type: external_exports.literal("placement.create"),
-    key: Key,
-    thought: ThoughtReferenceV2Schema,
-    position: Position
-  }).strict(),
-  external_exports.object({ type: external_exports.literal("placement.update"), id: Id, patch: LayoutPatch }).strict(),
-  external_exports.object({ type: external_exports.literal("placement.archive"), id: Id }).strict(),
-  external_exports.object({
-    type: external_exports.literal("resource.link"),
-    key: Key,
-    resource_id: Id,
-    thought: ThoughtReferenceV2Schema,
-    position: Position.optional()
-  }).strict(),
-  external_exports.object({ type: external_exports.literal("resource.unlink"), id: Id }).strict(),
-  external_exports.object({ type: external_exports.literal("resource_placement.update"), id: Id, patch: LayoutPatch }).strict(),
-  external_exports.object({
-    type: external_exports.literal("canvas_element.create"),
-    key: Key,
-    kind: external_exports.enum(["frame", "group", "text", "shape", "drawing"]),
-    body: external_exports.string().max(2e4).default(""),
-    position: Position,
-    size: Size
-  }).strict(),
-  external_exports.object({
-    type: external_exports.literal("canvas_element.update"),
-    id: Id,
-    patch: LayoutPatchShape,
-    body: external_exports.string().max(2e4).optional()
-  }).strict(),
-  external_exports.object({ type: external_exports.literal("canvas_element.archive"), id: Id }).strict(),
-  external_exports.object({
-    type: external_exports.literal("canvas_connector.create"),
-    key: Key,
-    source_id: Id,
-    target_id: Id,
-    label: external_exports.string().max(120).default("")
-  }).strict(),
-  external_exports.object({ type: external_exports.literal("canvas_connector.archive"), id: Id }).strict(),
-  external_exports.object({ type: external_exports.literal("proposal.accept"), id: Id }).strict(),
-  external_exports.object({ type: external_exports.literal("proposal.reject"), id: Id }).strict()
-]).superRefine((command, context) => {
-  if (command.type === "canvas_element.update" && Object.keys(command.patch).length === 0 && command.body === void 0)
-    context.addIssue({
-      code: external_exports.ZodIssueCode.custom,
-      message: "Canvas content or layout is required",
-      path: ["patch"]
-    });
-});
-var ThoughtCommandBatchV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  root_thought_id: Id,
-  base_cursor: Revision,
-  idempotency_key: Key,
-  preconditions: external_exports.array(ThoughtEntityPreconditionV2Schema).max(200),
-  commands: external_exports.array(ThoughtCommandV2Schema).min(1).max(50)
-}).strict().superRefine((batch, ctx) => {
-  const entities = /* @__PURE__ */ new Set();
-  const keys = /* @__PURE__ */ new Set();
-  for (const p of batch.preconditions) {
-    const key = `${p.kind}:${p.id}`;
-    if (entities.has(key))
-      ctx.addIssue({ code: "custom", message: "duplicate entity precondition" });
-    entities.add(key);
-  }
-  for (const c of batch.commands) {
-    if ("key" in c) {
-      if (keys.has(c.key)) ctx.addIssue({ code: "custom", message: "duplicate creation key" });
-      keys.add(c.key);
-    }
-    if (c.type.startsWith("proposal.") && batch.commands.length !== 1)
-      ctx.addIssue({ code: "custom", message: "proposal review must be its own atomic batch" });
-  }
-});
-var CanonicalThoughtV2Schema = external_exports.object({
-  id: Id,
-  account_id: Id,
-  project_id: Id.nullable(),
-  created_by: Id,
-  scope: external_exports.enum(["personal", "project", "team"]),
-  title: external_exports.string(),
-  body: external_exports.string(),
-  kind: external_exports.string(),
-  workflow_status: external_exports.enum(["active", "resolved", "dismissed"]),
-  authority: external_exports.enum(["authored", "proposed", "verified"]),
-  revision: Revision,
-  current_revision_id: Id,
-  updated_at: Time
-}).strict();
-var Layout = external_exports.object({
-  id: Id,
-  revision: Revision,
-  position: Position,
-  size: Size,
-  parent_id: Id.nullable(),
-  collapsed: external_exports.boolean(),
-  order: external_exports.number(),
-  z_index: external_exports.number()
-});
-var ThoughtWorkspaceSnapshotV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  root: CanonicalThoughtV2Schema,
-  cursor: Revision,
-  revision_token: external_exports.string().min(1),
-  thoughts: external_exports.array(CanonicalThoughtV2Schema),
-  relations: external_exports.array(
-    external_exports.object({
-      id: Id,
-      revision: Revision,
-      source_thought_id: Id,
-      target_thought_id: Id,
-      relation: ThoughtRelationKindV2Schema,
-      label: external_exports.string().nullable()
-    }).strict()
-  ),
-  placements: external_exports.array(Layout.extend({ thought_id: Id }).strict()),
-  resources: external_exports.array(
-    external_exports.object({
-      id: Id,
-      title: external_exports.string(),
-      kind: external_exports.string(),
-      current_version_id: Id.nullable(),
-      canonical_uri: external_exports.string().nullable(),
-      status: external_exports.string(),
-      coverage: external_exports.enum(["pending", "partial", "complete", "unavailable", "failed"])
-    }).strict()
-  ),
-  resource_placements: external_exports.array(Layout.extend({ resource_id: Id, thought_id: Id }).strict()),
-  canvas_elements: external_exports.array(
-    Layout.extend({
-      kind: external_exports.enum(["frame", "group", "text", "shape", "drawing"]),
-      body: external_exports.string()
-    }).strict()
-  ),
-  canvas_connectors: external_exports.array(
-    external_exports.object({ id: Id, revision: Revision, source_id: Id, target_id: Id, label: external_exports.string() }).strict()
-  ),
-  capabilities: external_exports.object({ read: external_exports.literal(true), edit: external_exports.boolean(), comment: external_exports.boolean() }).strict()
-}).strict();
-var ThoughtWorkspaceChangesQueryV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  after_cursor: Revision,
-  thought_ids: external_exports.array(Id).max(128)
-}).strict();
-var ThoughtWorkspaceChangesV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  root_thought_id: Id,
-  cursor: Revision,
-  requires_snapshot: external_exports.boolean(),
-  thoughts: external_exports.array(CanonicalThoughtV2Schema).max(128),
-  missing_thought_ids: external_exports.array(Id).max(128)
-}).strict();
-var ThoughtCommandResultV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  receipt_id: Id,
-  root_thought_id: Id,
-  cursor: Revision,
-  replayed: external_exports.boolean(),
-  created: external_exports.record(external_exports.object({ id: Id, kind: ThoughtEntityKindV2Schema }).strict()),
-  changed: external_exports.array(ThoughtEntityPreconditionV2Schema)
-}).strict();
-var ThoughtCreateV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  idempotency_key: Key,
-  title: external_exports.string().trim().min(1).max(240),
-  body: external_exports.string().max(2e4).default(""),
-  home: external_exports.object({ scope: external_exports.enum(["personal", "project", "team"]), project_id: Id.nullable() }).strict()
-}).strict().refine(
-  (x) => x.home.scope === "project" === (x.home.project_id !== null),
-  "only a project home has a project ID"
-);
-var ThoughtPreferencesV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  thought_id: Id,
-  expected_updated_at: Time,
-  idempotency_key: Key,
-  patch: external_exports.object({
-    importance: external_exports.number().int().min(0).max(5).optional(),
-    scope: external_exports.enum(["personal", "team"]).optional()
-  }).strict().refine((x) => Object.keys(x).length > 0, "empty patch")
-}).strict();
-var ThoughtPreferencesReceiptV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  receipt_id: Id,
-  thought_id: Id,
-  cursor: Revision,
-  updated_at: Time,
-  importance: external_exports.number().int().min(0).max(5),
-  scope: external_exports.enum(["personal", "project", "team"]),
-  replayed: external_exports.boolean()
-}).strict();
-var ThoughtLibraryArchiveV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  thought_id: Id,
-  archived: external_exports.boolean(),
-  idempotency_key: Key
-}).strict();
-var ThoughtLibraryArchiveReceiptV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  receipt_id: Id,
-  thought_id: Id,
-  cursor: Revision,
-  archived: external_exports.boolean(),
-  archived_at: Time.nullable(),
-  replayed: external_exports.boolean()
-}).strict();
-var ThoughtTopicDesignateV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  root_thought_id: Id,
-  designate: external_exports.boolean(),
-  expected_topic_revision: Revision,
-  idempotency_key: Key
-}).strict();
-var ThoughtTopicDesignationReceiptV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  receipt_id: Id,
-  root_thought_id: Id,
-  is_topic: external_exports.boolean(),
-  topic_revision: Revision,
-  /** Members derived on designation that the actor can read. */
-  connected_memberships: external_exports.number().int().nonnegative(),
-  /** Memberships ended by "Stop using as a topic" that the actor can read. */
-  archived_memberships: external_exports.number().int().nonnegative(),
-  changed: external_exports.boolean(),
-  replayed: external_exports.boolean()
-}).strict();
-var ThoughtTopicMembershipV2Schema = external_exports.object({
-  id: Id,
-  topic_root_id: Id,
-  thought_id: Id,
-  parent_thought_id: Id,
-  placement_id: Id,
-  relation_id: Id,
-  revision: Revision
-}).strict();
-var ThoughtGuidanceStageV2Schema = external_exports.enum([
-  "topic",
-  "clarify",
-  "research",
-  "action",
-  "memory",
-  "completed"
-]);
-var ThoughtGuidanceStageStateV2Schema = external_exports.enum(["completed", "skipped", "dismissed"]);
-var GuidanceCardId = external_exports.string().min(1).max(160);
-var ThoughtGuidanceCardV2Schema = external_exports.object({
-  id: GuidanceCardId,
-  kind: external_exports.literal("question"),
-  question: external_exports.string().min(1).max(500),
-  suggested_answers: external_exports.array(external_exports.string().min(1).max(200)).max(4),
-  /** What remains unknown, when research could help. */
-  research_gap: external_exports.string().min(1).max(300).nullable(),
-  status: external_exports.enum(["pending", "answered", "skipped"]),
-  answer: external_exports.string().max(2e3).nullable(),
-  thought_revision: Revision,
-  created_at: Time
-}).strict();
-var ThoughtGuidanceSessionV2Schema = external_exports.object({
-  id: Id,
-  thought_id: Id,
-  context_root_id: Id,
-  stage: ThoughtGuidanceStageV2Schema,
-  stage_states: external_exports.record(ThoughtGuidanceStageStateV2Schema),
-  cards: external_exports.array(ThoughtGuidanceCardV2Schema).max(50),
-  dismissal_count: external_exports.number().int().nonnegative(),
-  offers_paused: external_exports.boolean(),
-  revision: Revision,
-  updated_at: Time
-}).strict();
-var ThoughtGuidanceReadV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  thought_id: Id,
-  context_root_id: Id,
-  thought_revision: Revision,
-  session: ThoughtGuidanceSessionV2Schema.nullable(),
-  /** A pending question was asked about an earlier revision of the Thought. */
-  stale: external_exports.boolean()
-}).strict();
-var GuidanceWriteBase = { version: external_exports.literal(2), context_root_id: Id, idempotency_key: Key };
-var ThoughtGuidanceWriteV2Schema = external_exports.discriminatedUnion("action", [
-  /** Start or resume. An explicit open also lifts a paused session. */
-  external_exports.object({ action: external_exports.literal("open"), ...GuidanceWriteBase }).strict(),
-  external_exports.object({
-    action: external_exports.literal("answer"),
-    ...GuidanceWriteBase,
-    expected_revision: Revision,
-    card_id: GuidanceCardId,
-    answer: external_exports.string().trim().min(1).max(2e3)
-  }).strict(),
-  external_exports.object({
-    action: external_exports.literal("skip"),
-    ...GuidanceWriteBase,
-    expected_revision: Revision,
-    card_id: GuidanceCardId
-  }).strict(),
-  external_exports.object({
-    action: external_exports.literal("stage"),
-    ...GuidanceWriteBase,
-    expected_revision: Revision,
-    stage: ThoughtGuidanceStageV2Schema,
-    completed: external_exports.object({
-      stage: external_exports.enum(["topic", "clarify", "research", "action", "memory"]),
-      state: ThoughtGuidanceStageStateV2Schema
-    }).strict().nullable()
-  }).strict(),
-  /** "Not now". Two dismissals pause offers on this Thought until the person asks. */
-  external_exports.object({ action: external_exports.literal("dismiss"), ...GuidanceWriteBase, expected_revision: Revision }).strict(),
-  external_exports.object({ action: external_exports.literal("reset"), ...GuidanceWriteBase, expected_revision: Revision }).strict()
-]);
-var ThoughtGuidanceQuestionRequestV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  context_root_id: Id,
-  expected_revision: Revision,
-  idempotency_key: Key
-}).strict();
-var ThoughtGuidanceQuestionResultV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  /** Memlin has enough to suggest next steps; no further question was added. */
-  done: external_exports.boolean(),
-  guidance: ThoughtGuidanceReadV2Schema
-}).strict();
-var ThoughtTopicSuggestQueryV2Schema = external_exports.object({
-  thought_id: Id,
-  /** Capture inside a Topic preselects it (and optionally a branch) for confirmation. */
-  context_topic_id: Id.nullable().default(null),
-  context_parent_id: Id.nullable().default(null),
-  query: external_exports.string().trim().max(160).default(""),
-  limit: external_exports.number().int().min(1).max(10).default(3)
-}).strict();
-var ThoughtTopicPathStep = external_exports.object({ thought_id: Id, title: external_exports.string() }).strict();
-var ThoughtTopicSuggestionsV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  thought_id: Id,
-  /** The first suggestion clearly fits: show it preselected with one-tap Add. */
-  strong: external_exports.boolean(),
-  suggestions: external_exports.array(
-    external_exports.object({
-      topic_root_id: Id,
-      topic_title: external_exports.string(),
-      /** Lets one-tap Add connect without first loading the tree. */
-      topic_revision: Revision,
-      parent_thought_id: Id,
-      path: external_exports.array(ThoughtTopicPathStep).max(20),
-      strength: external_exports.number().min(0).max(1),
-      reason: external_exports.enum(["context", "match", "recent", "search"])
-    }).strict()
-  ).max(10)
-}).strict();
-var ThoughtTopicTreeV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  topic_root_id: Id,
-  title: external_exports.string(),
-  topic_revision: Revision,
-  can_edit: external_exports.boolean(),
-  /** Readable members only. A member under a hidden parent is placed under its nearest readable ancestor. */
-  nodes: external_exports.array(
-    external_exports.object({
-      thought_id: Id,
-      parent_thought_id: Id,
-      title: external_exports.string(),
-      kind: external_exports.string(),
-      workflow_status: external_exports.enum(["active", "resolved", "dismissed"]),
-      private_to_you: external_exports.boolean()
-    }).strict()
-  ).max(5e3)
-}).strict();
-var TopicMemberBase = {
-  version: external_exports.literal(2),
-  thought_id: Id,
-  expected_topic_revision: Revision,
-  idempotency_key: Key
-};
-var ThoughtTopicMemberWriteV2Schema = external_exports.discriminatedUnion("action", [
-  external_exports.object({ action: external_exports.literal("connect"), ...TopicMemberBase, parent_thought_id: Id }).strict(),
-  external_exports.object({ action: external_exports.literal("reparent"), ...TopicMemberBase, parent_thought_id: Id }).strict(),
-  external_exports.object({ action: external_exports.literal("remove"), ...TopicMemberBase }).strict(),
-  external_exports.object({
-    action: external_exports.literal("restore"),
-    version: external_exports.literal(2),
-    remove_receipt_id: Id,
-    expected_topic_revision: Revision,
-    idempotency_key: Key
-  }).strict()
-]);
-var ThoughtTopicRemovalPreviewV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  topic_root_id: Id,
-  thought_id: Id,
-  topic_revision: Revision,
-  /** False for a Thought with no readable children: remove immediately with Undo. */
-  requires_confirmation: external_exports.boolean(),
-  nodes: external_exports.array(external_exports.object({ thought_id: Id, parent_thought_id: Id, title: external_exports.string() }).strict()).max(5e3)
-}).strict();
-var ThoughtTopicOperationReceiptV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  receipt_id: Id,
-  operation: external_exports.enum(["connect", "reparent", "remove", "restore"]),
-  topic_root_id: Id,
-  thought_id: Id,
-  parent_thought_id: Id.nullable(),
-  topic_revision: Revision,
-  /** Readable members removed or restored by this operation. */
-  affected_memberships: external_exports.number().int().nonnegative(),
-  /** Connecting a private Thought never shares it; the UI offers Keep private or Share. */
-  private_to_you: external_exports.boolean(),
-  changed: external_exports.boolean(),
-  replayed: external_exports.boolean()
-}).strict();
-var ThoughtListCursorV2Schema = external_exports.object({ updated_at: Time, id: Id }).strict();
-var ThoughtWorkspaceListQueryV2Schema = external_exports.object({
-  query: external_exports.string().trim().max(160).default(""),
-  filter: external_exports.enum(["recent", "personal", "team", "project", "starred", "rooms", "archived"]).default("recent"),
-  limit: external_exports.number().int().min(1).max(100).default(30),
-  cursor: ThoughtListCursorV2Schema.nullable().default(null)
-}).strict();
-var ThoughtWorkspaceListV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  items: external_exports.array(
-    external_exports.object({
-      id: Id,
-      title: external_exports.string().max(500),
-      summary: external_exports.string().max(320),
-      scope: external_exports.enum(["personal", "project", "team"]),
-      project_id: Id.nullable(),
-      created_by: Id,
-      is_room: external_exports.boolean(),
-      importance: external_exports.number().int().min(0).max(5),
-      revision: Revision,
-      updated_at: Time,
-      from_ask: external_exports.boolean(),
-      tags: external_exports.array(external_exports.string().max(40)).max(4),
-      due_dates: external_exports.array(external_exports.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(12),
-      card_count: Revision,
-      connection_count: Revision,
-      can_edit_workspace: external_exports.boolean(),
-      can_edit_thought: external_exports.boolean()
-    }).strict()
-  ).max(100),
-  next_cursor: ThoughtListCursorV2Schema.nullable()
-}).strict();
-var ThoughtWorkspaceCountsV2Schema = external_exports.object({
-  all: Revision,
-  starred: Revision,
-  rooms: Revision,
-  team: Revision,
-  personal: Revision
-}).strict();
-var ThoughtAssistRequestV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  thought_id: Id,
-  focus: external_exports.object({ kind: external_exports.enum(["thought", "resource"]), id: Id }).strict().optional(),
-  context: external_exports.object({
-    scope: external_exports.enum(["selected", "branch", "workspace"]),
-    resource_ids: external_exports.array(Id).max(8).refine((ids) => new Set(ids).size === ids.length, "duplicate resource")
-  }).strict().optional(),
-  capability: external_exports.enum([
-    "explore",
-    "research",
-    "plan",
-    "review",
-    "explain",
-    "decide",
-    "refine",
-    "tag",
-    "branch",
-    "handoff"
-  ]),
-  audience: external_exports.enum(["private", "team", "public"]),
-  message: external_exports.string().trim().min(1).max(2e4),
-  presentation: external_exports.enum([
-    "default",
-    "explain-like-matt",
-    "hope",
-    "simple",
-    "teach",
-    "peer",
-    "expert",
-    "executive",
-    "concise",
-    "challenge"
-  ]).default("default"),
-  expected_context_hash: Hash.optional(),
-  idempotency_key: Key
-}).strict();
-var ThoughtProposalV1Schema = external_exports.object({
-  version: external_exports.literal(1),
-  id: Id,
-  root_thought_id: Id,
-  assist_run_id: Id,
-  revision: Revision,
-  context_bundle_id: Hash,
-  context_bundle_sha256: Hash,
-  preconditions: external_exports.array(ThoughtEntityPreconditionV2Schema),
-  commands: external_exports.array(ThoughtCommandV2Schema).min(1).max(50),
-  citations: external_exports.array(external_exports.string().min(1).max(1024)).max(100),
-  status: external_exports.enum(["pending", "accepted", "rejected", "expired", "stale"]),
-  expires_at: Time,
-  acceptance_receipt_id: Id.nullable()
-}).strict();
-var ResourceUploadRequestV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  upload_id: Id,
-  home: external_exports.object({ account_id: Id, project_id: Id.nullable(), scope: external_exports.enum(["private", "project"]) }).strict(),
-  file_name: external_exports.string().trim().min(1).max(255).refine((x) => !/[\\/\u0000-\u001f\u007f]/u.test(x), "unsupported file name"),
-  mime_type: external_exports.string().trim().max(256).default(""),
-  byte_size: external_exports.number().int().positive().max(25 * 1024 * 1024),
-  sha256: Hash,
-  title: external_exports.string().trim().max(240).default(""),
-  license: external_exports.string().trim().max(512).nullable().default(null),
-  rights_confirmed: external_exports.literal(true)
-}).strict().refine(
-  (x) => x.home.scope === "project" === (x.home.project_id !== null),
-  "only a project home has a project ID"
-);
-var ResourceUploadReceiptV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  upload_id: Id,
-  resource_id: Id,
-  resource_version_id: Id.nullable(),
-  state: external_exports.enum(["prepared", "completed"]),
-  storage_bucket: external_exports.literal("thought-resource-originals"),
-  storage_path: external_exports.string().min(1).max(2048),
-  upload_token: external_exports.string().min(1).nullable(),
-  upload_required: external_exports.boolean(),
-  mime_type: external_exports.string().min(1).max(256)
-}).strict().refine(
-  (x) => x.upload_required === (x.upload_token !== null),
-  "upload token required only for upload"
-).refine(
-  (x) => x.state !== "completed" || x.resource_version_id !== null && !x.upload_required,
-  "completed uploads require a version"
-);
-var ResourceIngestEnvelopeV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  idempotency_key: Key,
-  home: external_exports.object({
-    account_id: Id,
-    project_id: Id.nullable(),
-    scope: external_exports.enum(["private", "project", "team"])
-  }).strict(),
-  source: external_exports.object({
-    kind: external_exports.enum([
-      "text",
-      "markdown",
-      "webpage",
-      "youtube",
-      "pdf",
-      "document",
-      "image",
-      "audio",
-      "video"
-    ]),
-    title: external_exports.string().trim().min(1).max(500),
-    uri: external_exports.string().url().max(4096).optional()
-  }).strict(),
-  original: external_exports.object({
-    upload_id: Id.optional(),
-    content: external_exports.string().max(1e6).optional(),
-    sha256: Hash.optional()
-  }).strict(),
-  rights_basis: external_exports.string().trim().min(1).max(512),
-  license: external_exports.string().trim().max(512).nullable().optional(),
-  extractors: external_exports.array(external_exports.enum(["text", "ocr", "transcript", "keyframes", "structure"])).max(5),
-  thought_id: Id.optional(),
-  root_thought_id: Id.optional(),
-  position: Position.optional()
-}).strict().superRefine((x, ctx) => {
-  const issue2 = (message) => ctx.addIssue({ code: "custom", message });
-  if (!x.original.upload_id && x.original.content === void 0 && !x.source.uri)
-    issue2("original or source URI required");
-  if (x.original.upload_id && x.original.content !== void 0) issue2("choose one original");
-  if (x.original.content !== void 0 && !["text", "markdown"].includes(x.source.kind))
-    issue2("inline originals require text or markdown");
-  if (x.home.scope === "project" !== (x.home.project_id !== null))
-    issue2("only a project home has a project ID");
-  if (x.root_thought_id && !x.thought_id) issue2("workspace requires a selected Thought");
-  if (x.position && !x.thought_id) issue2("position requires a Thought");
-  if (x.source.uri && !["http:", "https:"].includes(new URL(x.source.uri).protocol))
-    issue2("source URI must use HTTP or HTTPS");
-});
-var ResourceIngestReceiptV2Schema = external_exports.object({
-  id: Id,
-  resource_id: Id,
-  status: external_exports.enum(["pending", "processing", "complete", "partial", "unavailable", "failed"]),
-  replayed: external_exports.boolean(),
-  result: external_exports.unknown().optional(),
-  placement_receipt: external_exports.unknown().optional()
-}).strict();
-var ThoughtCollaborationSessionV1Schema = external_exports.object({
-  version: external_exports.literal(1),
-  session_id: Id,
-  root_thought_id: Id,
-  thought_id: Id,
-  canonical_revision: Revision,
-  event_cursor: Revision,
-  document_revision: Revision,
-  document_epoch: Id,
-  update: external_exports.string().max(4e6),
-  state_vector: external_exports.string().max(1e5),
-  body: external_exports.string().max(2e4),
-  dirty: external_exports.boolean(),
-  channel: external_exports.string().min(1),
-  expires_at: Time,
-  capabilities: external_exports.object({ read: external_exports.literal(true), edit: external_exports.boolean() }).strict()
-}).strict();
-var ThoughtWorkspaceEntryV2Schema = external_exports.object({
-  workspace: ThoughtWorkspaceSnapshotV2Schema,
-  focus_thought_id: Id,
-  contexts: external_exports.array(external_exports.object({ root_thought_id: Id, title: external_exports.string() }).strict()).max(101),
-  more_contexts: external_exports.boolean()
-}).strict();
-var ThoughtAssistHistoryV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  history_enabled: external_exports.boolean(),
-  conversation_id: Id.nullable(),
-  context_revision_token: external_exports.string().min(1),
-  messages: external_exports.array(
-    external_exports.object({
-      id: Id,
-      assist_run_id: Id.optional(),
-      feedback_recorded: external_exports.boolean().optional(),
-      coverage: external_exports.enum(["complete", "partial", "unavailable"]).optional(),
-      role: external_exports.enum(["user", "assistant"]),
-      body: external_exports.string().min(1).max(2e4),
-      citations: external_exports.array(external_exports.string().min(1).max(1024)).max(100)
-    }).strict()
-  ).max(12)
-}).strict();
-var ThoughtAssistEvidenceV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  assist_run_id: Id,
-  citation: external_exports.string().min(1).max(1024),
-  resource_id: Id,
-  resource_version_id: Id,
-  title: external_exports.string().min(1).max(500),
-  locator: external_exports.string().max(400),
-  excerpt: external_exports.string().max(2e3),
-  truncated: external_exports.boolean()
-}).strict();
-var ThoughtResourcePreviewV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  root_thought_id: Id,
-  resource_id: Id,
-  resource_version_id: Id.nullable(),
-  title: external_exports.string(),
-  kind: external_exports.string(),
-  coverage: external_exports.enum(["pending", "partial", "complete", "unavailable", "failed"]),
-  excerpts: external_exports.array(
-    external_exports.object({
-      chunk_id: Id,
-      excerpt: external_exports.string().max(2e3),
-      locator: external_exports.string().max(400),
-      truncated: external_exports.boolean()
-    }).strict()
-  ).max(3),
-  more_available: external_exports.boolean()
-}).strict();
-var ThoughtPublicLinkWriteV2Schema = external_exports.discriminatedUnion("action", [
-  external_exports.object({
-    action: external_exports.literal("create"),
-    expires_in_days: external_exports.union([external_exports.literal(1), external_exports.literal(7), external_exports.literal(30)]).default(7),
-    allow_template: external_exports.boolean().optional(),
-    preview_sha256: external_exports.string().regex(/^[0-9a-f]{64}$/).optional()
-  }).strict(),
-  external_exports.object({ action: external_exports.literal("revoke"), id: Id }).strict()
-]);
-var ThoughtPublicLinksV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  root_thought_id: Id,
-  token: external_exports.string().regex(/^[A-Za-z0-9_-]{32,128}$/).nullable(),
-  links: external_exports.array(
-    external_exports.object({
-      id: Id,
-      created_at: Time,
-      expires_at: Time.nullable(),
-      revoked_at: Time.nullable(),
-      allow_template: external_exports.boolean().optional()
-    }).strict()
-  )
-}).strict();
-var ThoughtDocumentCreateV2Schema = external_exports.object({
-  target: external_exports.enum(["todo", "goal"]),
-  expected_revision: Revision,
-  idempotency_key: Key,
-  outcome: external_exports.string().trim().min(1).max(2e3).optional(),
-  completion_criteria: external_exports.array(external_exports.string().trim().min(1).max(500)).min(1).max(20).optional()
-}).strict();
-var ThoughtDocumentLinkV2Schema = external_exports.discriminatedUnion("action", [
-  external_exports.object({ action: external_exports.literal("link"), document_id: Id }).strict(),
-  external_exports.object({ action: external_exports.literal("unlink"), id: Id }).strict()
-]);
-var ThoughtDocumentsV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  root_thought_id: Id,
-  thought_id: Id,
-  can_manage: external_exports.boolean(),
-  can_convert: external_exports.boolean(),
-  links: external_exports.array(
-    external_exports.object({
-      id: Id,
-      document_id: Id,
-      title: external_exports.string(),
-      kind: external_exports.enum(["todo", "goal"]),
-      created_at: Time,
-      reviews: external_exports.array(external_exports.object({ id: Id, created_at: Time }).strict())
-    }).strict()
-  )
-}).strict();
-var ThoughtDocumentCreatedV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  root_thought_id: Id,
-  thought_id: Id,
-  document_id: Id,
-  target: external_exports.enum(["todo", "goal"]),
-  replayed: external_exports.boolean()
-}).strict();
-var ThoughtOutcomeResponseV2Schema = external_exports.object({
-  idempotency_key: Key,
-  verdict: external_exports.enum(["held", "broke", "inconclusive"]),
-  note: external_exports.string().max(4e3).nullable().default(null)
-}).strict();
-var ThoughtOutcomeReceiptV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  review_id: Id,
-  root_thought_id: Id,
-  replayed: external_exports.boolean(),
-  command_receipt_id: Id.nullable(),
-  legacy_receipt: external_exports.literal(true).optional()
-}).strict();
-var ThoughtDocumentSearchV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  root_thought_id: Id,
-  thought_id: Id,
-  items: external_exports.array(
-    external_exports.object({ id: Id, title: external_exports.string(), kind: external_exports.enum(["todo", "goal"]) }).strict()
-  )
-}).strict();
-var ThoughtDecisionAcceptV2Schema = external_exports.object({
-  expected_revision: external_exports.number().int().min(1),
-  idempotency_key: external_exports.string().min(1).max(120),
-  chosen_direction: external_exports.string().trim().min(1).max(2e3).optional(),
-  rationale: external_exports.string().trim().min(1).max(6e3).optional(),
-  supersedes_document_id: Id.optional(),
-  question_id: Id.optional(),
-  question_revision: external_exports.number().int().min(1).optional()
-}).strict().refine(
-  (x) => x.question_id === void 0 === (x.question_revision === void 0),
-  "Question identity and revision are required together"
-);
-var ThoughtDecisionReceiptV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  root_thought_id: Id,
-  thought_id: Id,
-  thought_revision_id: Id,
-  document_id: Id,
-  document_version_id: Id,
-  projection_id: Id,
-  question_id: Id.nullable(),
-  question_revision_id: Id.nullable(),
-  command_receipt_id: Id,
-  cursor: external_exports.number().int().min(1),
-  replayed: external_exports.boolean()
-}).strict();
-
-// packages/shared/dist/thought-presence.js
-var ThoughtPresenceRequestV2Schema = external_exports.object({
-  session_id: external_exports.string().uuid(),
-  action: external_exports.enum(["touch", "leave"]).default("touch"),
-  selected_thought_id: external_exports.string().uuid().nullable().default(null)
-}).strict();
-var ThoughtPresenceV2Schema = external_exports.object({
-  root_thought_id: external_exports.string().uuid(),
-  expires_at: external_exports.string().datetime({ offset: true }).nullable(),
-  participants: external_exports.array(
-    external_exports.object({
-      user_id: external_exports.string().uuid(),
-      name: external_exports.string(),
-      last_seen_at: external_exports.string().datetime({ offset: true })
-    }).strict()
-  ).max(100),
-  more: external_exports.boolean()
-}).strict();
-
-// packages/shared/dist/thought-discussion.js
-var common = {
-  subject_thought_id: external_exports.string().uuid(),
-  idempotency_key: external_exports.string().min(1).max(96)
-};
-var revision = { comment_id: external_exports.string().uuid(), expected_revision: external_exports.number().int().positive() };
-var ThoughtDiscussionWriteV2Schema = external_exports.discriminatedUnion("action", [
-  external_exports.object({
-    ...common,
-    action: external_exports.literal("create"),
-    body: external_exports.string().trim().min(1).max(5e3),
-    parent_comment_id: external_exports.string().uuid().nullable().optional()
-  }).strict(),
-  external_exports.object({
-    ...common,
-    ...revision,
-    action: external_exports.literal("edit"),
-    body: external_exports.string().trim().min(1).max(5e3)
-  }).strict(),
-  external_exports.object({ ...common, ...revision, action: external_exports.literal("archive") }).strict(),
-  external_exports.object({
-    ...common,
-    ...revision,
-    action: external_exports.literal("resolve"),
-    resolved: external_exports.boolean()
-  }).strict()
-]);
-var ThoughtDiscussionReceiptV2Schema = external_exports.object({
-  comment_id: external_exports.string().uuid(),
-  subject_thought_id: external_exports.string().uuid(),
-  revision: external_exports.number().int().positive(),
-  archived: external_exports.boolean(),
-  replayed: external_exports.boolean()
-}).strict();
-var ThoughtDiscussionV2Schema = external_exports.object({
-  root_thought_id: external_exports.string().uuid(),
-  subject_thought_id: external_exports.string().uuid(),
-  subject_title: external_exports.string(),
-  can_comment: external_exports.boolean(),
-  next_cursor: external_exports.string().nullable(),
-  comments: external_exports.array(
-    external_exports.object({
-      id: external_exports.string().uuid(),
-      parent_comment_id: external_exports.string().uuid().nullable(),
-      body: external_exports.string(),
-      revision: external_exports.number().int().positive(),
-      created_by: external_exports.string().uuid(),
-      author_name: external_exports.string(),
-      can_edit: external_exports.boolean(),
-      created_at: external_exports.string(),
-      updated_at: external_exports.string(),
-      edited_at: external_exports.string().nullable(),
-      resolved_at: external_exports.string().nullable(),
-      revisions: external_exports.array(
-        external_exports.object({
-          revision: external_exports.number().int().positive(),
-          body: external_exports.string(),
-          authored_by: external_exports.string().uuid(),
-          author_name: external_exports.string(),
-          created_at: external_exports.string()
-        }).strict()
-      ).max(20)
-    }).strict()
-  ).max(50)
-}).strict();
-
-// packages/shared/dist/thought-sharing.js
-var ThoughtSharingRoleV2Schema = external_exports.enum(["owner", "editor", "commenter", "viewer"]);
-var ThoughtSharingWriteV2Schema = external_exports.discriminatedUnion("action", [
-  external_exports.object({
-    action: external_exports.literal("set"),
-    expected_version: external_exports.string().regex(/^[a-f0-9]{64}$/),
-    user_id: external_exports.string().uuid(),
-    role: ThoughtSharingRoleV2Schema
-  }).strict(),
-  external_exports.object({
-    action: external_exports.literal("remove"),
-    expected_version: external_exports.string().regex(/^[a-f0-9]{64}$/),
-    user_id: external_exports.string().uuid()
-  }).strict(),
-  external_exports.object({ action: external_exports.literal("close"), expected_version: external_exports.string().regex(/^[a-f0-9]{64}$/) }).strict()
-]);
-var ThoughtSharingV2Schema = external_exports.object({
-  thought_id: external_exports.string().uuid(),
-  title: external_exports.string(),
-  scope: external_exports.enum(["personal", "team", "project"]),
-  version: external_exports.string().regex(/^[a-f0-9]{64}$/),
-  is_room: external_exports.boolean(),
-  can_manage: external_exports.boolean(),
-  can_leave: external_exports.boolean(),
-  participants: external_exports.array(
-    external_exports.object({
-      user_id: external_exports.string().uuid(),
-      name: external_exports.string(),
-      role: ThoughtSharingRoleV2Schema,
-      is_creator: external_exports.boolean()
-    })
-  ),
-  candidates: external_exports.array(
-    external_exports.object({
-      user_id: external_exports.string().uuid(),
-      name: external_exports.string(),
-      account_role: external_exports.enum(["owner", "admin", "member", "viewer"])
-    })
-  )
-});
-
-// packages/shared/dist/thought-feedback.js
-var ThoughtFeedbackWriteV2Schema = external_exports.object({
-  run_id: external_exports.string().uuid(),
-  helpful: external_exports.boolean().nullable().optional(),
-  inaccurate: external_exports.boolean().default(false),
-  too_simple: external_exports.boolean().default(false),
-  too_complex: external_exports.boolean().default(false),
-  too_long: external_exports.boolean().default(false),
-  tone_wrong: external_exports.boolean().default(false),
-  missing_context: external_exports.boolean().default(false),
-  note: external_exports.string().trim().min(1).max(4e3).nullable().optional()
-}).strict().refine((value) => !(value.too_simple && value.too_complex), {
-  message: "Feedback cannot be both too simple and too complex"
-}).refine(
-  (value) => typeof value.helpful === "boolean" || value.inaccurate || value.too_simple || value.too_complex || value.too_long || value.tone_wrong || value.missing_context || Boolean(value.note),
-  { message: "Feedback needs at least one signal" }
-);
-var ThoughtFeedbackReceiptV2Schema = external_exports.object({
-  status: external_exports.literal("recorded"),
-  feedback_id: external_exports.string().uuid(),
-  run_id: external_exports.string().uuid(),
-  created_at: external_exports.string(),
-  replayed: external_exports.boolean()
-}).strict();
-
-// packages/shared/dist/experience-harness.js
-var EXPERIENCE_HARNESS_MAX_NODES = 32;
-var EXPERIENCE_HARNESS_MAX_EDGES = 256;
-var WorkflowAssignmentV2Schema = external_exports.object({
-  task: external_exports.string().trim().min(1).max(8192),
-  target_agent_installation_id: external_exports.string().uuid()
-}).strict();
-var WorkflowMemoryQueryV2Schema = external_exports.object({ query: external_exports.string().trim().min(1).max(2e3) }).strict();
-var WorkflowRegisteredActionV2Schema = external_exports.object({
-  action_id: external_exports.string().uuid(),
-  input: external_exports.record(ContractJsonValueSchema)
-}).strict().refine(
-  (value) => JSON.stringify(value.input).length <= 8192,
-  "Action input exceeds the workflow limit"
-);
-var ExperienceHarnessArtifactV2Schema = HarnessArtifactRefV1Schema.extend({
-  kind: external_exports.enum([
-    "thought",
-    "markdown",
-    "document",
-    "prompt",
-    "source",
-    "memory",
-    "memory_query",
-    "skill",
-    "schema",
-    "agent",
-    "decision_gate",
-    "action",
-    "output"
-  ]),
-  content_hash: Sha256Schema,
-  memory_query: WorkflowMemoryQueryV2Schema.optional(),
-  assignment: WorkflowAssignmentV2Schema.optional(),
-  registered_action: WorkflowRegisteredActionV2Schema.optional()
-}).strict();
-var ExperienceHarnessManifestV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  id: external_exports.string().uuid(),
-  revision: external_exports.number().int().positive(),
-  root_thought_id: external_exports.string().uuid(),
-  root_revision_token: external_exports.string().min(1).max(2048),
-  context: ContextManifestV1Schema,
-  harness: external_exports.object({ output_mode: external_exports.enum(["inline", "resource"]) }).strict().optional(),
-  nodes: external_exports.array(
-    external_exports.object({
-      id: external_exports.string().uuid(),
-      artifact: ExperienceHarnessArtifactV2Schema
-    }).strict()
-  ).min(1).max(EXPERIENCE_HARNESS_MAX_NODES),
-  edges: external_exports.array(
-    external_exports.object({
-      id: external_exports.string().uuid(),
-      from_node_id: external_exports.string().uuid(),
-      output: ContractKeySchema,
-      to_node_id: external_exports.string().uuid(),
-      input: ContractKeySchema
-    }).strict()
-  ).max(EXPERIENCE_HARNESS_MAX_EDGES)
-}).strict();
-var ExperienceHarnessSaveV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  root_thought_id: external_exports.string().uuid(),
-  idempotency_key: external_exports.string().min(1).max(160),
-  title: external_exports.string().trim().min(1).max(240),
-  root_revision_token: external_exports.string().min(1).max(2048),
-  harness_id: external_exports.string().uuid().nullable().default(null),
-  expected_revision: external_exports.number().int().positive().nullable().default(null),
-  definition: ExperienceHarnessManifestV2Schema.pick({
-    context: true,
-    nodes: true,
-    edges: true,
-    harness: true
-  })
-}).strict().refine(
-  (input) => input.harness_id === null === (input.expected_revision === null),
-  "Existing harness requires its current revision"
-);
-var ExperienceHarnessArtifactSelectionV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  thought_ids: external_exports.array(external_exports.string().uuid()).max(EXPERIENCE_HARNESS_MAX_NODES).default([]),
-  resource_ids: external_exports.array(external_exports.string().uuid()).max(EXPERIENCE_HARNESS_MAX_NODES).default([]),
-  document_ids: external_exports.array(external_exports.string().uuid()).max(EXPERIENCE_HARNESS_MAX_NODES).default([]),
-  memory_queries: external_exports.array(WorkflowMemoryQueryV2Schema).max(1).default([]),
-  assignments: external_exports.array(WorkflowAssignmentV2Schema).max(8).default([]),
-  actions: external_exports.array(WorkflowRegisteredActionV2Schema).max(8).default([]),
-  tool_ids: external_exports.array(
-    external_exports.enum([
-      "memlin.thought.review",
-      "memlin.thought.plan",
-      "memlin.thought.review-gate",
-      "memlin.thought.output"
-    ])
-  ).max(4).default([])
-}).strict().refine((selection) => {
-  const ids = [
-    ...selection.thought_ids,
-    ...selection.resource_ids,
-    ...selection.document_ids,
-    ...selection.tool_ids,
-    ...selection.memory_queries.map((item) => JSON.stringify(item)),
-    ...selection.assignments.map((item) => JSON.stringify(item)),
-    ...selection.actions.map((item) => JSON.stringify(item))
-  ];
-  return ids.length > 0 && ids.length <= EXPERIENCE_HARNESS_MAX_NODES && new Set(ids).size === ids.length;
-}, "Select between 1 and 32 distinct artifacts");
-var ExperienceHarnessCompileRequestV2Schema = external_exports.object({ version: external_exports.literal(2), revision: external_exports.number().int().positive() }).strict();
-var ExperienceHarnessReceiptV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  harness_id: external_exports.string().uuid(),
-  version_id: external_exports.string().uuid(),
-  revision: external_exports.number().int().positive(),
-  title: external_exports.string().min(1).max(240),
-  manifest: ExperienceHarnessManifestV2Schema,
-  definition_sha256: Sha256Schema,
-  replayed: external_exports.boolean()
-}).strict().refine(
-  (receipt) => receipt.harness_id === receipt.manifest.id && receipt.revision === receipt.manifest.revision,
-  "Harness receipt identity mismatch"
-);
-var ExperienceHarnessListQueryV2Schema = external_exports.object({
-  after: external_exports.string().uuid().optional(),
-  limit: external_exports.coerce.number().int().min(1).max(50).default(20)
-}).strict();
-var ExperienceHarnessListV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  items: external_exports.array(
-    external_exports.object({
-      id: external_exports.string().uuid(),
-      title: external_exports.string().min(1).max(240),
-      current_revision: external_exports.number().int().positive()
-    }).strict()
-  ).max(50),
-  next: external_exports.string().uuid().nullable()
-}).strict();
-var ExperienceHarnessSchemaRefV2Schema = external_exports.object({
-  id: ContractKeySchema,
-  revision: external_exports.string().min(1).max(128),
-  content_hash: Sha256Schema
-}).strict();
-var ExperienceHarnessAdmissionV2Schema = external_exports.object({
-  receipt_id: external_exports.string().uuid(),
-  manifest_hash: Sha256Schema,
-  artifact: ExperienceHarnessArtifactV2Schema,
-  inputs: external_exports.record(
-    ContractKeySchema,
-    external_exports.object({
-      schema: ExperienceHarnessSchemaRefV2Schema,
-      required: external_exports.boolean()
-    }).strict()
-  ),
-  outputs: external_exports.record(ContractKeySchema, ExperienceHarnessSchemaRefV2Schema),
-  model_role: ExperienceHarnessSchemaRefV2Schema.optional(),
-  action: external_exports.object({
-    adapter: ExperienceHarnessSchemaRefV2Schema,
-    operation: ContractKeySchema
-  }).strict().optional()
-}).strict();
-var ExperienceHarnessStageReceiptV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  id: external_exports.string().uuid(),
-  kind: external_exports.enum([
-    "artifact",
-    "resource",
-    "proposal",
-    "handoff",
-    "prepared_action",
-    "executed_action",
-    "approval",
-    "output"
-  ]),
-  data: external_exports.record(ContractJsonValueSchema)
-}).strict();
-var ExperienceHarnessRunStateV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  status: external_exports.enum(["running", "waiting_approval", "completed", "failed", "cancelled"]),
-  stages: external_exports.array(
-    external_exports.object({
-      id: external_exports.string().min(1).max(128),
-      status: external_exports.enum([
-        "pending",
-        "running",
-        "waiting_approval",
-        "completed",
-        "failed",
-        "cancelled"
-      ]),
-      attempt: external_exports.number().int().min(0).max(100),
-      input: external_exports.record(ContractJsonValueSchema).nullable(),
-      input_sha256: Sha256Schema.nullable(),
-      lease_id: external_exports.string().uuid().nullable(),
-      lease_expires_at: external_exports.string().datetime().nullable(),
-      receipt: ExperienceHarnessStageReceiptV2Schema.nullable(),
-      failure: external_exports.string().min(1).max(160).nullable()
-    }).strict()
-  ).min(1).max(EXPERIENCE_HARNESS_MAX_NODES * 3)
-}).strict();
-var ExperienceHarnessRunRequestV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  root_thought_id: external_exports.string().uuid(),
-  revision: external_exports.number().int().positive(),
-  idempotency_key: external_exports.string().min(1).max(160)
-}).strict();
-var ExperienceHarnessRunControlV2Schema = external_exports.discriminatedUnion("action", [
-  external_exports.object({
-    version: external_exports.literal(2),
-    action: external_exports.literal("resume"),
-    expected_revision: external_exports.number().int().positive()
-  }).strict(),
-  external_exports.object({
-    version: external_exports.literal(2),
-    action: external_exports.literal("cancel"),
-    expected_revision: external_exports.number().int().nonnegative()
-  }).strict(),
-  external_exports.object({
-    version: external_exports.literal(2),
-    action: external_exports.enum(["approve", "reject"]),
-    expected_revision: external_exports.number().int().positive(),
-    stage_id: external_exports.string().min(1).max(128),
-    input_sha256: Sha256Schema
-  }).strict()
-]);
-
-// packages/shared/dist/light-provenance.js
-var HOSTS = new Set(LIGHT_HOSTS);
-
-// packages/shared/dist/memory-decisions.js
-var DECISION_KIND_IDS = ["replace", "conflict", "sensitive", "runbook", "goal"];
-var DECISION_KINDS = {
-  replace: {
-    id: "replace",
-    label: "Replace live memory",
-    raisedWhen: "A new capture would retire or rewrite a live doc that governs agents: a decision, a correction, a verified directive, or anything a person wrote.",
-    whyHuman: "Agents follow the existing doc today. Replacing it changes what every agent is told, and the evidence alone cannot say the new version is right.",
-    options: [
-      {
-        id: "replace",
-        label: "Replace",
-        consequence: "The new capture goes live and the existing doc is retired.",
-        reversible: true
-      },
-      {
-        id: "keep_both",
-        label: "Keep both",
-        consequence: "Both stay live. Agents may be given both.",
-        reversible: true
-      },
-      {
-        id: "keep_existing",
-        label: "Keep existing",
-        consequence: "Nothing changes for agents. The new capture stays searchable only.",
-        reversible: true
-      }
-    ],
-    defaultOption: "keep_existing",
-    deadlineDays: 7,
-    urgent: true,
-    aiExplanation: true
-  },
-  conflict: {
-    id: "conflict",
-    label: "Two live docs disagree",
-    raisedWhen: "Two live docs contradict, at least one was served to agents in the last 30 days, and at least one is a decision or was written by a person.",
-    whyHuman: "Agents are being given both answers. Which one is current is a judgement about your project that neither doc settles.",
-    options: [
-      {
-        id: "a_wins",
-        label: "First is current",
-        consequence: "The first doc stays live and the second is retired.",
-        reversible: true
-      },
-      {
-        id: "b_wins",
-        label: "Second is current",
-        consequence: "The second doc stays live and the first is retired.",
-        reversible: true
-      },
-      {
-        id: "both_valid",
-        label: "Both are valid",
-        consequence: "Both stay live; the pair is marked as not a conflict and is not raised again.",
-        reversible: true
-      }
-    ],
-    defaultOption: "both_valid",
-    deadlineDays: 14,
-    urgent: false,
-    aiExplanation: true
-  },
-  sensitive: {
-    id: "sensitive",
-    label: "Sensitive content",
-    raisedWhen: "A capture matches a sensitive topic: compensation, HR, personal data or banking.",
-    whyHuman: "Whether this should be remembered, and who may see it, is not something automation should decide.",
-    options: [
-      {
-        id: "keep",
-        label: "Keep for the team",
-        consequence: "It goes live at its captured scope.",
-        reversible: true
-      },
-      {
-        id: "private",
-        label: "Keep private to me",
-        consequence: "It goes live, visible only to you.",
-        reversible: true
-      },
-      {
-        id: "discard",
-        label: "Discard",
-        consequence: "It is removed and will not be captured again.",
-        reversible: true
-      }
-    ],
-    defaultOption: "discard",
-    deadlineDays: 7,
-    urgent: true,
-    aiExplanation: false
-  },
-  runbook: {
-    id: "runbook",
-    label: "Incident runbook",
-    raisedWhen: "A session that handled an incident produced a runbook.",
-    whyHuman: "A runbook steers future incident response. You were there; you know whether it is what should happen next time.",
-    options: [
-      {
-        id: "keep_live",
-        label: "Keep live",
-        consequence: "Agents are given it for similar incidents.",
-        reversible: true
-      },
-      {
-        id: "searchable_only",
-        label: "Searchable only",
-        consequence: "It is kept and findable, but not given to agents unprompted.",
-        reversible: true
-      },
-      {
-        id: "discard",
-        label: "Discard",
-        consequence: "It is removed.",
-        reversible: true
-      }
-    ],
-    defaultOption: "searchable_only",
-    deadlineDays: 7,
-    urgent: false,
-    aiExplanation: true
-  },
-  goal: {
-    id: "goal",
-    label: "Goal approval",
-    raisedWhen: "A goal was proposed and needs approval before agents work toward it.",
-    whyHuman: "Goals direct what agents optimise for. Only a person can commit the team to one.",
-    options: [
-      {
-        id: "approve",
-        label: "Approve",
-        consequence: "Agents are given the goal.",
-        reversible: true
-      },
-      {
-        id: "not_now",
-        label: "Not now",
-        consequence: "It stays a draft that agents are not given.",
-        reversible: true
-      },
-      {
-        id: "reject",
-        label: "Reject",
-        consequence: "It is closed.",
-        reversible: true
-      }
-    ],
-    defaultOption: "not_now",
-    deadlineDays: 14,
-    urgent: false,
-    aiExplanation: true
-  }
-};
-function isDecisionKind(value) {
-  return typeof value === "string" && DECISION_KIND_IDS.includes(value);
-}
-function escapeRegExp(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-function labelDecisionOptionIds(kind, text) {
-  const spec = DECISION_KINDS[kind];
-  if (!spec || !text) return text;
-  let out = text;
-  const options2 = [...spec.options].sort((a, b) => b.id.length - a.id.length);
-  for (const o of options2) {
-    const id = escapeRegExp(o.id);
-    const bare = o.id.includes("_") ? `|(?<![\\w-])${id}(?![\\w-])` : "";
-    out = out.replace(new RegExp(`\`${id}\`${bare}`, "gi"), o.label);
-  }
-  return out;
-}
-var DECISION_CAPS = {
-  /** Decisions a single capture (one scribe run) may raise. */
-  perCapture: 3,
-  /** Open questions of a session-grouped kind (runbook, sensitive) one agent
-   *  session may hold. Later captures of that kind from the same session are
-   *  attached to the open question instead of raising another. */
-  openPerSession: 1,
-  /** Captures one session-grouped question may cover. Past it the raise is
-   *  capped, like perCapture. */
-  capturesPerDecision: 100,
-  /** Questions injected into one user turn. */
-  perTurn: 1,
-  /** Questions asked in one session before the rest wait for the web list. */
-  perSession: 3,
-  /** Urgent end-of-turn interruptions in one session. */
-  urgentPerSession: 1
-};
-
-// packages/shared/dist/decision-prompt.js
-var encoder = new TextEncoder();
-function utf8Bytes(value) {
-  return encoder.encode(value).length;
-}
-function oneLine(value, max = 400) {
-  const s = value.replace(/\s+/g, " ").trim();
-  return s.length > max ? `${s.slice(0, max - 1).trimEnd()}\u2026` : s;
-}
-function optionLabel(decision, id) {
-  return decision.options.find((o) => o.id === id)?.label ?? DECISION_KINDS[decision.kind]?.options.find((o) => o.id === id)?.label ?? id;
-}
-function describeDeadline(deadlineAt, nowMs = Date.now()) {
-  const t = Date.parse(deadlineAt);
-  if (!Number.isFinite(t)) return "at its deadline";
-  const date5 = new Date(t).toISOString().slice(0, 10);
-  const days = Math.ceil((t - nowMs) / 864e5);
-  if (days <= 0) return `on ${date5} (due now)`;
-  return `on ${date5} (in ${days} day${days === 1 ? "" : "s"})`;
-}
-function askLine(host, decision) {
-  switch (host) {
-    case "claude-code":
-      return `1. Ask with your AskUserQuestion tool: one question, one choice per option (${decision.options.map((o) => `"${o.label}"`).join(", ")}), each choice described by its consequence. Put why a person is needed and the recommendation in the question text.`;
-    case "codex":
-      return "1. The user was shown a one-line notice about this. Ask the question in your reply, in plain language, listing the options.";
-    case "mcp":
-      return "1. Ask me in your reply, in plain language, listing the options.";
-    default:
-      return "1. Ask the question in your reply, in plain language, listing the options.";
-  }
-}
-function renderAt(decision, host, detail, nowMs) {
-  const prose = (text, max) => oneLine(labelDecisionOptionIds(decision.kind, text), max);
-  const lines = [];
-  lines.push(`<memlin-decision id="${decision.id}" kind="${decision.kind}">`);
-  lines.push(
-    "# Memlin needs ONE decision from the user. Finish the user's current request first; do not let this interrupt or change that work."
-  );
-  lines.push(`Question: ${oneLine(decision.question, 300)}`);
-  if (detail !== "minimal") {
-    lines.push(`Why a person is needed: ${oneLine(decision.why_human, 400)}`);
-  }
-  const rec = decision.recommendation;
-  if (rec) {
-    const reason = detail === "minimal" ? "" : ` \u2014 ${prose(rec.rationale, detail === "full" ? 500 : 240)}`;
-    lines.push(`Recommendation: ${optionLabel(decision, rec.option)} (${rec.option})${reason}`);
-  } else if (detail !== "minimal") {
-    lines.push(
-      DECISION_KINDS[decision.kind]?.aiExplanation === false ? "Recommendation: none \u2014 this kind is never sent to an AI model, so present the facts only." : "Recommendation: none yet \u2014 present the options evenly."
-    );
-  }
-  lines.push("Options:");
-  for (const o of decision.options) {
-    if (detail === "minimal") {
-      lines.push(`- ${o.label} (${o.id})`);
-      continue;
-    }
-    lines.push(
-      `- ${o.label} (${o.id}): ${oneLine(o.consequence, 200)}${o.reversible ? " Can be undone." : " Cannot be undone."}`
-    );
-    if (detail === "full") {
-      for (const p of o.pros) lines.push(`  + ${prose(p, 200)}`);
-      for (const c of o.cons) lines.push(`  - ${prose(c, 200)}`);
-    }
-  }
-  lines.push(
-    `If unanswered: ${optionLabel(decision, decision.default_option)} (${decision.default_option}) applies automatically ${describeDeadline(decision.deadline_at, nowMs)}. Ignoring it is safe.`
-  );
-  lines.push("How to ask, after the current request is done:");
-  lines.push(askLine(host, decision));
-  lines.push(
-    "2. Say why a person is needed, the recommendation and its reason, what each option does with its pros and cons, and what happens if they do not answer."
-  );
-  lines.push(
-    `3. Offer to explain more. If they want to know where it came from, what automation already did or the diff, call memlin_explain_decision {"decision_id":"${decision.id}"} and answer from it.`
-  );
-  lines.push(
-    `4. When they choose, call memlin_decide {"decision_id":"${decision.id}","option":"<option id>","note":"<their reason>","user_quote":"<their exact words>"}.`
-  );
-  lines.push(
-    "5. Never choose for them. If they decline, change the subject or do not answer, do nothing: the default applies."
-  );
-  lines.push("</memlin-decision>");
-  return lines.join("\n") + "\n";
-}
-function renderDecisionBlock(decision, opts) {
-  const nowMs = opts.nowMs ?? Date.now();
-  for (const detail of ["full", "compact", "minimal"]) {
-    const block = renderAt(decision, opts.host, detail, nowMs);
-    if (opts.maxBytes === void 0 || utf8Bytes(block) <= opts.maxBytes) return block;
-  }
-  return "";
-}
-
-// packages/shared/dist/thought-handoff-v2.js
-var ThoughtHandoffRequestV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  idempotency_key: external_exports.string().min(1).max(160),
-  task: external_exports.string().trim().min(1).max(8192),
-  target_agent_installation_id: external_exports.string().uuid(),
-  focus_thought_id: external_exports.string().uuid().optional(),
-  context_revision_token: external_exports.string().regex(/^[0-9a-f]{64}$/)
-}).strict();
-var ThoughtHandoffReceiptV2Schema = external_exports.object({
-  version: external_exports.literal(2),
-  kind: external_exports.literal("thought_handoff_v2"),
-  id: external_exports.string().uuid(),
-  root_thought_id: external_exports.string().uuid(),
-  project_id: external_exports.string().uuid().nullable(),
-  target_agent_installation_id: external_exports.string().uuid(),
-  target_agent_kind: external_exports.enum(AGENT_KINDS),
-  task: external_exports.string(),
-  status: external_exports.enum(["preparing", "pending", "accepted", "completed", "cancelled"]),
-  context_bundle_id: external_exports.string().regex(/^[0-9a-f]{64}$/).nullable(),
-  context_revision_token: external_exports.string(),
-  packet_markdown: external_exports.string().nullable(),
-  target_session_id: external_exports.string().nullable(),
-  created_at: external_exports.string(),
-  stale: external_exports.boolean(),
-  replayed: external_exports.boolean().optional()
-}).passthrough();
-
-// packages/shared/dist/ops-watch.js
-var OPS_DIAGNOSE_SEV2_AFTER_MS = 15 * 6e4;
-
-// packages/shared/dist/entitlements.js
-var FREE_KIT = ["thoughts.personal"];
-var COORDINATION_SELF = [
-  "coordination.work_ledger",
-  "coordination.handoffs",
-  "coordination.collision",
-  "coordination.workstreams",
-  "coordination.fleet_dashboard"
-];
-var INDIVIDUAL_KIT = [
-  ...FREE_KIT,
-  "thoughts.maps",
-  ...COORDINATION_SELF,
-  "roles",
-  "connectors",
-  "multi_repo",
-  "governance.audit_replay",
-  "governance.data_control"
-];
-var TEAM_KIT = [
-  ...INDIVIDUAL_KIT,
-  "coordination.shared_people",
-  "governance.audit_export"
-];
-var ENTERPRISE_KIT = [
-  ...TEAM_KIT,
-  "governance.sso_rbac",
-  "governance.compliance",
-  "governance.byoc"
-];
-var ENTITLEMENTS_BY_TIER = {
-  // Free: Thoughts (capped by THOUGHTS_LIMITS_BY_TIER) + memory. AI is funded
-  // separately — see the signup credit grant, not AI_QUOTA_BY_TIER.
-  free: new Set(FREE_KIT),
-  // Starter: low-cost "memory + a little funded AI"; same feature set as Free.
-  starter: new Set(FREE_KIT),
-  // Pro = Personal Pro.
-  pro: new Set(INDIVIDUAL_KIT),
-  team: new Set(TEAM_KIT),
-  enterprise: new Set(ENTERPRISE_KIT)
-};
-
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v4/classic/external.js
 var external_exports2 = {};
 __export(external_exports2, {
@@ -14628,10 +10399,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj2, path26) {
-  if (!path26)
+function getElementAtPath(obj2, path27) {
+  if (!path27)
     return obj2;
-  return path26.reduce((acc, key) => acc?.[key], obj2);
+  return path27.reduce((acc, key) => acc?.[key], obj2);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -14951,11 +10722,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path26, issues) {
+function prefixIssues(path27, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path26);
+    iss.path.unshift(path27);
     return iss;
   });
 }
@@ -15092,7 +10863,7 @@ function treeifyError(error40, _mapper) {
     return issue2.message;
   };
   const result = { errors: [] };
-  const processError = (error41, path26 = []) => {
+  const processError = (error41, path27 = []) => {
     var _a, _b;
     for (const issue2 of error41.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
@@ -15102,7 +10873,7 @@ function treeifyError(error40, _mapper) {
       } else if (issue2.code === "invalid_element") {
         processError({ issues: issue2.issues }, issue2.path);
       } else {
-        const fullpath = [...path26, ...issue2.path];
+        const fullpath = [...path27, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -15132,9 +10903,9 @@ function treeifyError(error40, _mapper) {
   processError(error40);
   return result;
 }
-function toDotPath(path26) {
+function toDotPath(path27) {
   const segs = [];
-  for (const seg of path26) {
+  for (const seg of path27) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -25115,6 +20886,4323 @@ function date4(params) {
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v4/classic/external.js
 config(en_default2());
 
+// packages/shared/dist/design-research.js
+var DESIGN_STANDARD_PLATFORMS = [
+  "web",
+  "mobile-web",
+  "ios-iphone",
+  "ios-ipad",
+  "android"
+];
+var DESIGN_RESEARCH_SOURCES = [
+  {
+    label: "Apple Human Interface Guidelines",
+    url: "https://developer.apple.com/tutorials/data/design/human-interface-guidelines.json",
+    platforms: ["ios-iphone", "ios-ipad"],
+    kind: "page"
+  },
+  {
+    label: "Android accessibility",
+    url: "https://developer.android.com/design/ui/mobile/guides/foundations/accessibility",
+    platforms: ["android"],
+    kind: "page"
+  },
+  {
+    label: "Material Components Android releases",
+    url: "https://github.com/material-components/material-components-android/releases.atom",
+    platforms: ["android"],
+    kind: "github_releases",
+    citationPrefix: "https://github.com/material-components/material-components-android/releases/tag/"
+  },
+  {
+    label: "WCAG 2.2",
+    url: "https://www.w3.org/TR/WCAG22/",
+    platforms: ["web", "mobile-web"],
+    kind: "page"
+  },
+  {
+    label: "Web platform updates",
+    url: "https://web.dev/feed.xml",
+    canonicalUrl: "https://web.dev/static/blog/feed.xml",
+    platforms: ["web", "mobile-web"],
+    kind: "rss",
+    citationPrefix: "https://web.dev/blog/"
+  }
+];
+function configuredDesignSource(value, platform) {
+  try {
+    const url2 = new URL(value);
+    if (url2.protocol !== "https:" || url2.username || url2.password || url2.search) return false;
+    url2.hash = "";
+    return DESIGN_RESEARCH_SOURCES.some(
+      (source) => (!platform || source.platforms.includes(platform)) && (url2.href === source.url || "canonicalUrl" in source && url2.href === source.canonicalUrl || "citationPrefix" in source && url2.href.startsWith(source.citationPrefix))
+    );
+  } catch {
+    return false;
+  }
+}
+var DesignStandardValueSchema = external_exports2.object({
+  type: external_exports2.enum(["number", "token", "boolean"]),
+  number: external_exports2.number().finite().min(0).max(1e5).nullable(),
+  unit: external_exports2.enum(["px", "pt", "dp", "sp", "ratio", "ms", "percent"]).nullable(),
+  token: external_exports2.string().regex(/^[a-zA-Z0-9#_.:+-]{1,80}$/).nullable()
+}).strict().superRefine((v, c) => {
+  if (v.type === "number" ? v.number === null || v.unit === null || v.token !== null : v.number !== null || v.unit !== null || v.token === null || v.type === "boolean" && !["true", "false"].includes(v.token))
+    c.addIssue({ code: "custom", message: "Supply only the chosen value type." });
+});
+var DesignStandardDetailsSchema = external_exports2.object({
+  kind: external_exports2.enum(["standard_change", "component_change", "pattern_change"]),
+  platform: external_exports2.enum(DESIGN_STANDARD_PLATFORMS),
+  component: external_exports2.string().regex(/^[a-z][a-z0-9-]{1,63}$/),
+  value: DesignStandardValueSchema,
+  spec_version: external_exports2.string().trim().min(1).max(80)
+}).strict();
+var DesignResearchEntrySchema = DesignStandardDetailsSchema.extend({
+  id: external_exports2.string().uuid(),
+  summary: external_exports2.string().max(280),
+  published_at: external_exports2.string(),
+  citations: external_exports2.array(external_exports2.object({ url: external_exports2.string().url(), title: external_exports2.string().max(300) }).strict()).min(1).max(4)
+}).refine(
+  (v) => v.citations.every((c) => configuredDesignSource(c.url, v.platform)),
+  "Use configured official sources only."
+);
+
+// packages/shared/dist/update-feed.js
+var FEED_FORMAT = "memlin.feed.v1";
+var FeedSeveritySchema = external_exports.enum(["info", "notable", "action"]);
+var FeedKeySchema = external_exports.string().regex(/^[a-z0-9][a-z0-9-]{1,62}$/);
+var FeedCitationSchema = external_exports.object({
+  url: external_exports.string().url().max(2048).refine((value) => value.startsWith("https://"), "Citations must be https"),
+  title: external_exports.string().trim().min(1).max(300)
+}).strict();
+var modelId = external_exports.string().trim().min(1).max(240);
+var perMTok = external_exports.number().nonnegative().max(1e5);
+var PricesSchema = external_exports.object({
+  input: perMTok.nullable(),
+  output: perMTok.nullable(),
+  cache_read: perMTok.nullable().optional(),
+  cache_write: perMTok.nullable().optional()
+}).strict();
+var AiChangeAuthoritySchema = external_exports.enum(["authoritative", "reported", "community"]);
+var AiChangeDetailsSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({
+    kind: external_exports.literal("price_change"),
+    authority: AiChangeAuthoritySchema,
+    vendor: external_exports.string().max(40),
+    model: modelId,
+    before: PricesSchema.nullable(),
+    after: PricesSchema,
+    effective_at: external_exports.string().datetime().nullable()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("new_model"),
+    authority: AiChangeAuthoritySchema,
+    vendor: external_exports.string().max(40),
+    model: modelId,
+    family: external_exports.string().max(80).nullable(),
+    predecessor: modelId.nullable(),
+    prices: PricesSchema.nullable()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.enum(["deprecation", "retirement"]),
+    authority: AiChangeAuthoritySchema,
+    vendor: external_exports.string().max(40),
+    model: modelId,
+    retire_at: external_exports.string().datetime().nullable(),
+    replacement: modelId.nullable()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.enum(["tool_release", "breaking_change"]),
+    authority: AiChangeAuthoritySchema,
+    vendor: external_exports.string().max(40),
+    tool: external_exports.string().regex(/^[a-z0-9][a-z0-9:@/._-]{1,80}$/),
+    version: external_exports.string().max(80),
+    breaking: external_exports.array(external_exports.string().max(300)).max(10)
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("news"),
+    authority: AiChangeAuthoritySchema,
+    vendor: external_exports.string().max(40).nullable()
+  }).strict()
+]);
+var ModelWatchAlertDetailsSchema = external_exports.object({
+  kind: external_exports.enum([
+    "price_change",
+    "new_model",
+    "deprecation",
+    "retirement",
+    "tool_release",
+    "breaking_change",
+    "news"
+  ]),
+  change_entry_id: external_exports.string().uuid(),
+  evidence: external_exports.object({
+    models_used: external_exports.array(external_exports.object({ model: modelId, tokens_30d: external_exports.number().int().nonnegative() }).strict()).max(20),
+    monthly_cost_delta_usd: external_exports.number().nullable(),
+    files: external_exports.array(external_exports.object({ repo: external_exports.string().max(200), path: external_exports.string().max(500) }).strict()).max(50),
+    workflows: external_exports.array(external_exports.object({ id: external_exports.string().uuid(), title: external_exports.string().max(240) }).strict()).max(20),
+    host_versions: external_exports.array(external_exports.object({ tool: external_exports.string().max(80), version: external_exports.string().max(80) }).strict()).max(10)
+  }).strict()
+}).strict();
+var FeedEntryInputSchema = external_exports.object({
+  dedupe_key: external_exports.string().trim().min(1).max(300),
+  kind: external_exports.string().regex(/^[a-z][a-z_]{1,39}$/),
+  severity: FeedSeveritySchema,
+  title: external_exports.string().trim().min(1).max(200),
+  summary: external_exports.string().max(600).default(""),
+  body_md: external_exports.string().max(2e3).default(""),
+  citations: external_exports.array(FeedCitationSchema).min(1).max(20),
+  details: external_exports.record(external_exports.string(), external_exports.unknown()).default({}),
+  subjects: external_exports.record(external_exports.string(), external_exports.unknown()).default({}),
+  project_id: external_exports.string().uuid().nullable().default(null),
+  receipt: external_exports.record(external_exports.string(), external_exports.unknown()).optional()
+}).strict();
+var FeedEntrySchema = external_exports.object({
+  id: external_exports.string().uuid(),
+  kind: external_exports.string(),
+  severity: FeedSeveritySchema,
+  title: external_exports.string(),
+  summary: external_exports.string(),
+  body_md: external_exports.string(),
+  citations: external_exports.array(FeedCitationSchema),
+  details: external_exports.record(external_exports.string(), external_exports.unknown()),
+  subjects: external_exports.record(external_exports.string(), external_exports.unknown()),
+  project_id: external_exports.string().uuid().nullable(),
+  producer: external_exports.enum(["workflow", "lane"]),
+  content_sha256: external_exports.string(),
+  supersedes_id: external_exports.string().uuid().nullable(),
+  published_at: external_exports.string(),
+  unread: external_exports.boolean()
+}).strict();
+var FeedSummarySchema = external_exports.object({
+  key: FeedKeySchema,
+  title: external_exports.string(),
+  audience: external_exports.enum(["global", "account"]),
+  entry_schema: external_exports.string(),
+  manifest_version: external_exports.number().int().positive(),
+  unread: external_exports.number().int().nonnegative()
+}).strict();
+var FeedResponseSchema = external_exports.object({
+  format: external_exports.literal(FEED_FORMAT),
+  feed: FeedSummarySchema,
+  entries: external_exports.array(FeedEntrySchema),
+  next_since: external_exports.string().nullable(),
+  generated_at: external_exports.string()
+}).strict();
+
+// packages/shared/dist/job-dispatch.js
+var JOB_KINDS = ["workflow_run", "model_watch_match", "model_watch_digest"];
+var JobMessageSchema = external_exports.object({
+  version: external_exports.literal(1),
+  kind: external_exports.enum(JOB_KINDS),
+  job_key: external_exports.string().min(1).max(200),
+  account_id: external_exports.string().uuid(),
+  delivery: external_exports.number().int().positive()
+}).strict();
+
+// packages/shared/dist/feature-discovery.js
+function featureDiscoverySystem({
+  projectKind = "code",
+  noun
+} = {}) {
+  const label = featureLabel(projectKind, noun);
+  const inventory = projectKind === "general" ? [
+    "You read a project\u2019s shared thoughts, topics, decisions, goals and plans.",
+    `Group them into ${label.plural.toUpperCase()}: cohesive areas of work the team organizes around.`,
+    "Examples include customer research, event planning, hiring and quarterly priorities."
+  ] : [
+    "You read the inventory of a software project: components, recent pull requests, decisions, goals and plans.",
+    `Group them into ${label.plural.toUpperCase()}: cohesive capabilities the team organizes around.`,
+    "Examples include authentication, billing and capture."
+  ];
+  return [
+    `You are Memlin\u2019s ${label.singular.toLowerCase()} mapper.`,
+    ...inventory,
+    "",
+    "Rules:",
+    `- Propose between 4 and 15 ${label.plural.toLowerCase()}. Fewer is better than padding with noise.`,
+    "- Each group is a cohesive area of work, not one item or a restatement of the whole project.",
+    "- Members must be drawn ONLY from the provided item ids. Never invent ids.",
+    "- Omit items that do not clearly belong to any group.",
+    "- Do NOT duplicate or restate existing or previously rejected groups; propose only missing work.",
+    "- Use short, exact names the team would use in conversation.",
+    "",
+    "Return ONLY a JSON object of the form:",
+    '{ "features": [ { "name": string, "summary": string, "members": string[] } ] }',
+    "Each members entry is an id from the inventory. No prose outside the JSON."
+  ].join("\n");
+}
+var FEATURE_DISCOVERY_SYSTEM = featureDiscoverySystem();
+
+// packages/shared/dist/light-native.js
+var LIGHT_READER_LIMITS = Object.freeze({
+  maxDepth: 3,
+  filesPerHost: 200,
+  memoryFileBytes: 128 * 1024,
+  planFileBytes: 64 * 1024,
+  skillFileBytes: 64 * 1024,
+  hostBytes: 2 * 1024 * 1024,
+  skillFoldersPerHost: 200,
+  resourcesPerSkill: 200,
+  /** Resource files larger than this are listed without a hash. */
+  resourceHashBytes: 16 * 1024 * 1024
+});
+function normalizeLightBody(text) {
+  return text.normalize("NFC").replace(/\r\n?/g, "\n").split("\n").map((line) => line.replace(/[ \t]+$/, "")).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+function lightTokens(text) {
+  const out = /* @__PURE__ */ new Set();
+  for (const m of text.toLowerCase().normalize("NFKD").matchAll(new RegExp("[\\p{L}\\p{N}]{2,}|\\p{N}+", "gu"))) {
+    out.add(m[0]);
+  }
+  return out;
+}
+function jaccard(a, b) {
+  if (a.size === 0 && b.size === 0) return 0;
+  let inter = 0;
+  for (const t of a) if (b.has(t)) inter += 1;
+  return inter / (a.size + b.size - inter);
+}
+function lightKeyHash(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+function lightSlug(text, max = 48) {
+  const slug = text.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, max).replace(/-+$/g, "");
+  return slug || "untitled";
+}
+
+// packages/shared/dist/native-memory-parse.js
+var import_gray_matter2 = __toESM(require_gray_matter(), 1);
+function parseMemoryIndex(raw) {
+  const entries = [];
+  if (!raw) return entries;
+  for (const line of raw.split("\n")) {
+    const m = /^\s*[-*]\s+(.+?)\s*$/.exec(line);
+    if (!m) continue;
+    const text = m[1].trim();
+    if (!text) continue;
+    const link = /\[([^\]]+)\]\(([^)]+)\)/.exec(text);
+    if (link) {
+      const label = link[1].trim();
+      const after = text.slice(link.index + link[0].length).replace(/^\s*[—:-]\s*/, "").trim();
+      entries.push({
+        title: label,
+        body: after ? `${label} \u2014 ${after}` : label,
+        linkTarget: link[2].trim()
+      });
+    } else {
+      const title = text.split(/\s+[—:-]\s+/)[0].trim().slice(0, 120);
+      entries.push({ title, body: text, linkTarget: null });
+    }
+  }
+  return entries;
+}
+function parseMemoryFrontmatter(md) {
+  const m = /^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/.exec(md);
+  if (!m) return { title: null, body: md, description: null, type: null, hasFrontmatter: false };
+  const nameMatch = /(?:^|\n)name:\s*(.+)/.exec(m[1]);
+  const body = (m[2] ?? "").trim();
+  const descriptionMatch = /(?:^|\n)description:\s*(.+)/.exec(m[1]);
+  const typeMatch = /(?:^|\n)type:\s*(.+)/.exec(m[1]);
+  return {
+    title: nameMatch ? nameMatch[1].trim() : null,
+    body: body || md,
+    description: descriptionMatch ? descriptionMatch[1].trim() : null,
+    type: typeMatch ? typeMatch[1].trim() : null,
+    hasFrontmatter: true
+  };
+}
+var yamlEngine = import_gray_matter2.default.engines.yaml;
+function splitYamlFrontmatter(md) {
+  const text = md.replace(/^﻿/, "");
+  const m = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)([\s\S]*)$/.exec(text);
+  if (!m) return { present: false, data: null, invalid: false, body: text };
+  const body = m[2] ?? "";
+  try {
+    const data = yamlEngine.parse(m[1]);
+    if (data === null || data === void 0)
+      return { present: true, data: {}, invalid: false, body };
+    if (typeof data !== "object" || Array.isArray(data)) {
+      return { present: true, data: null, invalid: true, body };
+    }
+    return { present: true, data, invalid: false, body };
+  } catch {
+    return { present: true, data: null, invalid: true, body };
+  }
+}
+function firstMarkdownHeading(md, level = 1) {
+  const re = new RegExp(`^#{${level}}\\s+(.+?)\\s*#*\\s*$`, "m");
+  const m = re.exec(md);
+  return m ? m[1].trim() || null : null;
+}
+function markdownHeadings(md) {
+  const out = [];
+  for (const m of md.matchAll(/^#{2,3}\s+(.+?)\s*#*\s*$/gm)) out.push(m[1].trim());
+  return out;
+}
+function titleFromFileName(name) {
+  const base = name.split(/[\\/]/).pop() ?? name;
+  return base.replace(/(\.plan)?\.(md|mdc|markdown)$/i, "").replace(/[_-]+/g, " ").trim() || base;
+}
+function looksLikeAbsolutePath(value) {
+  return /^(?:\/|~\/|[A-Za-z]:[\\/]|\\\\)/.test(value);
+}
+function parseCodexAppliesTo(line) {
+  if (!line) return { kind: "missing" };
+  const value = line.replace(/^\s*applies_to:\s*/i, "");
+  const at = /(?:^|[\s;])cwd=/.exec(value);
+  if (!at) return { kind: "missing" };
+  const rest = value.slice(at.index + at[0].length);
+  let depth = 0;
+  let end = rest.length;
+  for (let i = 0; i < rest.length; i++) {
+    const ch = rest[i];
+    if (ch === "(") depth += 1;
+    else if (ch === ")") depth = Math.max(0, depth - 1);
+    else if (ch === ";" && depth === 0) {
+      end = i;
+      break;
+    }
+  }
+  let raw = rest.slice(0, end);
+  for (let guard = 0; guard < 8 && /\([^()]*\)/.test(raw); guard++) {
+    raw = raw.replace(/\([^()]*\)/g, " ");
+  }
+  raw = raw.replace(/[()]/g, " ").trim();
+  if (!raw) return { kind: "missing" };
+  const parts = raw.split(/\s+and\s+|\s*,\s*/).map(
+    (p) => p.trim().replace(/^[`'"]|[`'"]$/g, "").replace(/[\\/]+$/, "")
+  ).filter(Boolean);
+  const paths = parts.filter((p) => looksLikeAbsolutePath(p));
+  if (paths.length === 0) return { kind: "non_path", raw };
+  return { kind: "paths", paths };
+}
+function pathWithinRoot(candidate, root) {
+  const norm = (p) => p.replace(/\\/g, "/").replace(/\/+$/, "");
+  const c = norm(candidate);
+  const r = norm(root);
+  if (!r) return false;
+  return c === r || c.startsWith(r + "/");
+}
+var CODEX_STRIPPED_SECTIONS = /^###\s+(rollout_summary_files|keywords)\s*$/i;
+function stripCodexMemoryNoise(text) {
+  const out = [];
+  let skipping = false;
+  for (const line of text.replace(/\r\n?/g, "\n").split("\n")) {
+    if (/^#{1,6}\s/.test(line)) skipping = CODEX_STRIPPED_SECTIONS.test(line.trim());
+    if (skipping) continue;
+    if (/^\s*applies_to:/i.test(line)) continue;
+    out.push(line);
+  }
+  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+function parseCodexMemoryGroups(raw) {
+  if (!raw) return [];
+  const lines = raw.replace(/\r\n?/g, "\n").split("\n");
+  const groups = [];
+  for (const line of lines) {
+    const m = /^#\s+Task Group:\s*(.+?)\s*$/.exec(line);
+    if (m) {
+      groups.push({ title: m[1], lines: [line] });
+      continue;
+    }
+    groups[groups.length - 1]?.lines.push(line);
+  }
+  return groups.map((g) => {
+    const text = g.lines.join("\n");
+    const appliesLine = g.lines.find((l) => /^\s*applies_to:/i.test(l)) ?? null;
+    return {
+      title: g.title,
+      body: stripCodexMemoryNoise(text),
+      appliesTo: parseCodexAppliesTo(appliesLine),
+      tasks: g.lines.filter((l) => /^##\s+Task\s+\d+/i.test(l)).length
+    };
+  }).filter((g) => g.title.length > 0);
+}
+function parseCodexMemorySummary(raw) {
+  const result = { global: [], repos: [] };
+  if (!raw) return result;
+  const lines = raw.replace(/\r\n?/g, "\n").split("\n");
+  let h2 = null;
+  let inOlder = false;
+  let open = null;
+  const close = () => {
+    if (!open) return;
+    const body = open.lines.join("\n").trim();
+    if (body) {
+      if (open.target === "global") result.global.push({ heading: open.heading, body });
+      else
+        result.repos.push({
+          heading: open.heading,
+          body,
+          path: open.path,
+          older: open.older ?? false
+        });
+    }
+    open = null;
+  };
+  for (const line of lines) {
+    const h = /^(#{1,6})\s+(.+?)\s*$/.exec(line);
+    if (h) {
+      const level = h[1].length;
+      const text = h[2];
+      if (level <= 2) {
+        close();
+        h2 = level === 2 ? text : null;
+        inOlder = false;
+        if (level === 2 && !/^what'?s in memory$/i.test(text)) {
+          open = { target: "global", heading: text, lines: [] };
+        }
+        continue;
+      }
+      const inWhats = h2 !== null && /^what'?s in memory$/i.test(h2);
+      if (inWhats && level === 3) {
+        close();
+        inOlder = /^older memory topics$/i.test(text);
+        if (!inOlder && looksLikeAbsolutePath(text)) {
+          open = {
+            target: "repo",
+            heading: text,
+            path: text.replace(/[\\/]+$/, ""),
+            older: false,
+            lines: []
+          };
+        }
+        continue;
+      }
+      if (inWhats && inOlder && level === 4) {
+        close();
+        if (looksLikeAbsolutePath(text)) {
+          open = {
+            target: "repo",
+            heading: text,
+            path: text.replace(/[\\/]+$/, ""),
+            older: true,
+            lines: []
+          };
+        }
+        continue;
+      }
+    }
+    open?.lines.push(line);
+  }
+  close();
+  return result;
+}
+function parseCodexMemoriesFeature(toml) {
+  if (!toml) return null;
+  let section = "";
+  let value = null;
+  for (const rawLine of toml.replace(/\r\n?/g, "\n").split("\n")) {
+    const line = rawLine.replace(/\s+#.*$/, "").trim();
+    if (!line || line.startsWith("#")) continue;
+    const sec = /^\[\s*([^\]]+?)\s*\]$/.exec(line);
+    if (sec) {
+      section = sec[1];
+      continue;
+    }
+    const kv = /^([A-Za-z0-9_."-]+)\s*=\s*(.+)$/.exec(line);
+    if (!kv) continue;
+    const key = kv[1].replace(/"/g, "");
+    const v = kv[2].trim();
+    const bool = v === "true" ? true : v === "false" ? false : null;
+    if (bool === null) continue;
+    if (section === "features" && key === "memories" || section === "" && key === "features.memories") {
+      value = bool;
+    }
+  }
+  return value;
+}
+function parseAntigravityKnowledgeMetadata(json2) {
+  let data;
+  try {
+    data = JSON.parse(json2);
+  } catch {
+    return null;
+  }
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const d = data;
+  const str2 = (v) => typeof v === "string" && v.trim() ? v.trim() : null;
+  const title = str2(d.title) ?? str2(d.name);
+  const summary = str2(d.summary) ?? str2(d.description);
+  if (!title && !summary) return null;
+  const updatedAt = str2(d.updatedAt) ?? str2(d.updated_at) ?? str2(d.lastModified);
+  return { title, summary, updatedAt };
+}
+function parseWindsurfMemory(raw, fileName) {
+  if (!raw || !raw.trim()) return null;
+  const fm = splitYamlFrontmatter(raw);
+  const body = fm.body.trim();
+  if (!body) return null;
+  const fmTitle = fm.data && typeof fm.data.title === "string" ? fm.data.title : fm.data && typeof fm.data.name === "string" ? fm.data.name : null;
+  return {
+    title: (fmTitle ?? firstMarkdownHeading(body) ?? titleFromFileName(fileName)).slice(0, 200),
+    body
+  };
+}
+
+// packages/shared/dist/native-plan-parse.js
+function checklistSummary(md) {
+  let total = 0;
+  let done = 0;
+  for (const m of md.matchAll(/^\s*(?:[-*+]|\d+[.)])\s+\[([ xX/~-])\]/gm)) {
+    total += 1;
+    if (m[1] === "x" || m[1] === "X") done += 1;
+  }
+  return total ? { total, done } : null;
+}
+var CURSOR_TODO_DONE = /* @__PURE__ */ new Set(["completed", "done", "cancelled"]);
+function parseCursorPlan(raw, fileName) {
+  if (!raw || !raw.trim()) return null;
+  const fm = splitYamlFrontmatter(raw);
+  if (fm.invalid) return null;
+  if (!fm.present) return parseMarkdownPlan(raw, fileName);
+  const data = fm.data ?? {};
+  const str2 = (v) => typeof v === "string" && v.trim() ? v.trim() : null;
+  const overview = str2(data.overview);
+  const markdown = fm.body.trim();
+  let todosBlock = "";
+  let checklist = null;
+  if (data.todos !== void 0) {
+    if (!Array.isArray(data.todos)) return null;
+    const todos = data.todos.filter(
+      (t) => !!t && typeof t === "object" && !Array.isArray(t)
+    ).map((t) => ({
+      content: str2(t.content) ?? str2(t.id) ?? "",
+      status: str2(t.status) ?? "pending"
+    })).filter((t) => t.content);
+    if (todos.length) {
+      checklist = {
+        total: todos.length,
+        done: todos.filter((t) => CURSOR_TODO_DONE.has(t.status)).length
+      };
+      todosBlock = "## Todos\n\n" + todos.map((t) => `- [${CURSOR_TODO_DONE.has(t.status) ? "x" : " "}] ${t.content}`).join("\n");
+    }
+  }
+  const body = [overview && !markdown.includes(overview) ? overview : "", markdown, todosBlock].filter(Boolean).join("\n\n").trim();
+  if (!body) return null;
+  const title = (str2(data.name) ?? firstMarkdownHeading(markdown) ?? titleFromFileName(fileName)).slice(0, 200);
+  return {
+    title,
+    body,
+    plan: {
+      checklist: checklist ?? checklistSummary(markdown),
+      overview,
+      headings: markdownHeadings(markdown)
+    },
+    frontmatterKeys: Object.keys(data).sort()
+  };
+}
+function parseMarkdownPlan(raw, fileName, fallbackTitle) {
+  if (!raw || !raw.trim()) return null;
+  const fm = splitYamlFrontmatter(raw);
+  const body = (fm.invalid ? raw : fm.body).trim();
+  if (!body) return null;
+  const fmTitle = fm.data && typeof fm.data.title === "string" ? fm.data.title.trim() : null;
+  const title = (fmTitle || firstMarkdownHeading(body) || firstMarkdownHeading(body, 2) || fallbackTitle || titleFromFileName(fileName)).slice(0, 200);
+  return {
+    title,
+    body,
+    plan: { checklist: checklistSummary(body), overview: null, headings: markdownHeadings(body) },
+    frontmatterKeys: fm.data ? Object.keys(fm.data).sort() : []
+  };
+}
+var ANTIGRAVITY_PLAN_ARTIFACTS = [
+  "implementation_plan",
+  "task",
+  "walkthrough"
+];
+var ANTIGRAVITY_ARTIFACT_TYPES = {
+  implementation_plan: "ARTIFACT_TYPE_IMPLEMENTATION_PLAN",
+  task: "ARTIFACT_TYPE_TASK",
+  walkthrough: "ARTIFACT_TYPE_WALKTHROUGH"
+};
+function parseAntigravityArtifactMetadata(json2, artifact) {
+  let data;
+  try {
+    data = JSON.parse(json2);
+  } catch {
+    return null;
+  }
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const d = data;
+  if (d.artifactType !== ANTIGRAVITY_ARTIFACT_TYPES[artifact]) return null;
+  return {
+    artifactType: d.artifactType,
+    summary: typeof d.summary === "string" ? d.summary : null,
+    updatedAt: typeof d.updatedAt === "string" ? d.updatedAt : null
+  };
+}
+function composeAntigravityPlan(parts, conversationId) {
+  const sections = [];
+  const artifacts = [];
+  const impl = parts.implementation_plan?.text.trim();
+  const task = parts.task?.text.trim();
+  const walk = parts.walkthrough?.text.trim();
+  if (impl) {
+    sections.push(impl);
+    artifacts.push("implementation_plan");
+  }
+  if (task) {
+    sections.push(firstMarkdownHeading(task) ? task : `## Task
+
+${task}`);
+    artifacts.push("task");
+  }
+  if (walk) {
+    sections.push(firstMarkdownHeading(walk) ? walk : `## Walkthrough
+
+${walk}`);
+    artifacts.push("walkthrough");
+  }
+  if (!sections.length) return null;
+  const body = sections.join("\n\n");
+  const summary = parts.implementation_plan?.metadata?.summary ?? parts.task?.metadata?.summary ?? parts.walkthrough?.metadata?.summary ?? null;
+  const title = (impl && firstMarkdownHeading(impl) || summary || task && firstMarkdownHeading(task) || `Antigravity plan ${conversationId.slice(0, 8)}`).slice(0, 200);
+  const updated = [parts.implementation_plan, parts.task, parts.walkthrough].map((p) => p?.metadata?.updatedAt).filter((v) => !!v && !Number.isNaN(Date.parse(v))).sort().pop();
+  return {
+    title,
+    body,
+    plan: {
+      checklist: task ? checklistSummary(task) : checklistSummary(body),
+      overview: summary,
+      headings: markdownHeadings(impl ?? body),
+      artifacts
+    },
+    frontmatterKeys: [],
+    updatedAt: updated ?? null
+  };
+}
+function attributePlan(plan, ctx) {
+  const rank = { unscoped: 0, suggested: 1, in_root: 2 };
+  const cap = ctx.maxScope ?? "in_root";
+  const clamp = (s) => rank[s] > rank[cap] ? cap : s;
+  if (plan.inWorkspace) return clamp("in_root");
+  const text = `${plan.title ?? ""}
+${plan.body}`;
+  const root = ctx.lightRoot.replace(/[\\/]+$/, "");
+  if (root.length > 1 && (text.includes(root) || text.includes(root.replace(/\\/g, "/")))) {
+    return clamp("suggested");
+  }
+  const repo = (ctx.repoName ?? root.split(/[\\/]/).pop() ?? "").trim();
+  if (repo.length >= 3) {
+    const escaped = repo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`, "i").test(text)) return clamp("suggested");
+  }
+  return "unscoped";
+}
+
+// packages/shared/dist/light.js
+var LIGHT_LIMITS = Object.freeze({
+  users: 1,
+  projects: 1,
+  files: 50,
+  fileBytes: 16 * 1024,
+  /** Active (non-archived) native plans synced as kind='plan'. */
+  plans: 20,
+  planBytes: 64 * 1024,
+  /** Inventoried skills: a read-only SKILL.md backup, kind='skill', always draft. */
+  skills: 50,
+  skillBytes: 64 * 1024,
+  historyVersions: 10,
+  writes: 1e3,
+  captures: 50,
+  accountCostMicros: 1e6,
+  globalCostMicros: 1e8,
+  enrollment: 100,
+  // Recall is budgeted in UTF-8 bytes, which is what it actually bounds; a
+  // byte is never less conservative than a token.
+  recallBytes: 2400,
+  recallExcerptBytes: 360,
+  recallNotes: 3,
+  captureInputTokens: 8e3,
+  captureOutputTokens: 1e3,
+  captureReservationMicros: 2e4,
+  // Memlin-funded QUERY embeddings (search + recall). Past either ceiling the
+  // same search runs without an embedder: title text, still project-scoped.
+  // Enforced by light_reserve_query_embedding (web routes and hosted MCP).
+  queryEmbeddingsPerDay: 2e3,
+  queryEmbeddingsPerMinute: 30,
+  /** Suggestions the Companion may keep open at once (light_upsert_suggestions). */
+  openSuggestions: 500,
+  suggestionsPerRequest: 100
+});
+function validLightPath(value) {
+  return /^memory\/[a-zA-Z0-9][a-zA-Z0-9._-]*\.md$/.test(value) && !value.includes("..") && value.length <= 256;
+}
+function validLightPlanPath(value) {
+  return /^plans\/[a-zA-Z0-9][a-zA-Z0-9._-]*\.md$/.test(value) && !value.includes("..") && value.length <= 256;
+}
+function validLightSkillPath(value) {
+  return /^skills\/[a-zA-Z0-9][a-zA-Z0-9._-]*\/SKILL\.md$/.test(value) && !value.includes("..") && value.length <= 256;
+}
+var LIGHT_HOSTS = [
+  "claude",
+  "codex",
+  "cursor",
+  "antigravity",
+  "windsurf",
+  "devin"
+];
+function boundLightText(text, byteLimit) {
+  const encoder2 = new TextEncoder();
+  const bytes2 = encoder2.encode(text);
+  return bytes2.length <= byteLimit ? text : new TextDecoder("utf-8", { fatal: false }).decode(bytes2.slice(0, byteLimit)).replace(/\uFFFD$/, "");
+}
+function redactLightTranscript(text) {
+  return text.replace(
+    /-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----/g,
+    "[private key removed]"
+  ).replace(
+    /\b(?:sk-[\w-]{12,}|gh[pousr]_[\w]{16,}|github_pat_[\w]{16,}|AKIA[A-Z0-9]{16})\b/g,
+    "[credential removed]"
+  ).replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[token removed]").replace(/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/gi, "$1[removed]").replace(
+    /((?:password|secret|api[_-]?key|access[_-]?token)["']?\s*[=:]\s*)[^\s,;]+/gi,
+    "$1[removed]"
+  );
+}
+function lightCaptureExcluded(text, paths = []) {
+  return /(?:^|[\s/\\"'`])(?:\.env(?:\.[\w-]+)?|id_rsa|id_ed25519|credentials\.json)(?=$|[\s/\\"'`:])/m.test(
+    text
+  ) || paths.some((p) => p.length > 0 && text.includes(p));
+}
+
+// packages/shared/dist/light-consolidate.js
+var LIGHT_MAX_SOURCES = 12;
+var LIGHT_PLAN_CAP = 20;
+var LIGHT_TITLE_JACCARD = 0.8;
+var LIGHT_BODY_JACCARD = 0.5;
+var LIGHT_PLAN_TITLE_JACCARD = 0.5;
+var LIGHT_HEADING_OVERLAP = 0.5;
+var LIGHT_PLAN_TITLE_ONLY_JACCARD = 0.9;
+var SCOPE_RANK = { unscoped: 0, suggested: 1, in_root: 2 };
+function applySuppressions(items, suppressions) {
+  const hashes = new Set(suppressions.map((s) => s.content_hash));
+  const byKey = /* @__PURE__ */ new Map();
+  for (const s of suppressions) {
+    const k = JSON.stringify([s.host, s.item_key]);
+    byKey.set(k, [...byKey.get(k) ?? [], s.content_hash]);
+  }
+  const kept = [];
+  const suppressed = [];
+  const suggestions = [];
+  for (const item of items) {
+    if (hashes.has(item.content_hash)) {
+      suppressed.push({
+        host: item.host,
+        item_key: item.item_key,
+        content_hash: item.content_hash
+      });
+      continue;
+    }
+    const prior = byKey.get(JSON.stringify([item.host, item.item_key]));
+    if (prior) {
+      suggestions.push({
+        host: item.host,
+        item_key: item.item_key,
+        title: item.title,
+        displayPath: item.displayPath,
+        content_hash: item.content_hash,
+        suppressed_hashes: [...new Set(prior)]
+      });
+      continue;
+    }
+    kept.push(item);
+  }
+  return { kept, suppressed, suggestions };
+}
+var UnionFind = class {
+  parent;
+  constructor(n) {
+    this.parent = Array.from({ length: n }, (_, i) => i);
+  }
+  find(i) {
+    while (this.parent[i] !== i) {
+      this.parent[i] = this.parent[this.parent[i]];
+      i = this.parent[i];
+    }
+    return i;
+  }
+  union(a, b) {
+    const ra = this.find(a);
+    const rb = this.find(b);
+    if (ra !== rb) this.parent[Math.max(ra, rb)] = Math.min(ra, rb);
+  }
+};
+function groupsOf(items, uf) {
+  const map2 = /* @__PURE__ */ new Map();
+  items.forEach((item, i) => {
+    const r = uf.find(i);
+    map2.set(r, [...map2.get(r) ?? [], item]);
+  });
+  return [...map2.values()];
+}
+function newer(a, b) {
+  const ta = a ? Date.parse(a) : Number.NaN;
+  const tb = b ? Date.parse(b) : Number.NaN;
+  if (Number.isNaN(ta) && Number.isNaN(tb)) return 0;
+  if (Number.isNaN(ta)) return 1;
+  if (Number.isNaN(tb)) return -1;
+  return tb - ta;
+}
+function mergeGroup(group) {
+  const rep = [...group].sort(
+    (a, b) => newer(a.updated_at, b.updated_at) || b.body.length - a.body.length || a.item_key.localeCompare(b.item_key)
+  )[0];
+  const seen = /* @__PURE__ */ new Set();
+  const sources = [];
+  for (const i of [...group].sort(
+    (a, b) => a.host.localeCompare(b.host) || a.displayPath.localeCompare(b.displayPath)
+  )) {
+    const k = JSON.stringify([i.host, i.displayPath, i.content_hash]);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    sources.push({ h: i.host, p: i.displayPath, c: i.content_hash });
+  }
+  return {
+    title: rep.title,
+    body: rep.body,
+    content_hash: rep.content_hash,
+    updated_at: rep.updated_at,
+    memlin_hosts: [...new Set(group.map((i) => i.host))].sort(),
+    memlin_sources: sources.slice(0, LIGHT_MAX_SOURCES),
+    sources_total: sources.length,
+    item_keys: group.map((i) => i.item_key).sort(),
+    agents_disagree: new Set(group.map((i) => i.content_hash)).size > 1,
+    scope: group.reduce(
+      (best, i) => SCOPE_RANK[i.scope] > SCOPE_RANK[best] ? i.scope : best,
+      "unscoped"
+    )
+  };
+}
+function stableKey(group, previous, make, prefer = /* @__PURE__ */ new Set()) {
+  const prior = group.map((i) => previous[i.item_key]).filter((k) => !!k).sort((a, b) => Number(prefer.has(b)) - Number(prefer.has(a)) || a.localeCompare(b))[0];
+  if (prior) return { key: prior, stored: true };
+  const anchor = [...group].sort((a, b) => a.item_key.localeCompare(b.item_key))[0];
+  return { key: make(anchor), stored: false };
+}
+function uniqueKeys(entries) {
+  const used = /* @__PURE__ */ new Set();
+  for (const e of entries) {
+    let k = e.key;
+    for (let n = 2; used.has(k); n++) k = `${e.key}-${n}`;
+    used.add(k);
+    e.key = k;
+  }
+  return entries;
+}
+function consolidateLightMemory(items, options2 = {}) {
+  const cap = options2.cap ?? LIGHT_LIMITS.files;
+  const previous = options2.previousKeys ?? {};
+  const memories = items.filter((i) => i.kind === "memory");
+  const { kept, suppressed, suggestions } = applySuppressions(memories, options2.suppressions ?? []);
+  const uf = new UnionFind(kept.length);
+  const byHash = /* @__PURE__ */ new Map();
+  const titles = kept.map((i) => lightTokens(i.title));
+  const bodies = kept.map((i) => lightTokens(i.body));
+  const byWords = /* @__PURE__ */ new Map();
+  kept.forEach((item, i) => {
+    const first = byHash.get(item.content_hash);
+    if (first === void 0) byHash.set(item.content_hash, i);
+    else uf.union(first, i);
+    const factWords = new Set(
+      item.body.split("\n").filter((line) => !/^\s*#{1,6}\s/.test(line)).join("\n").toLowerCase().normalize("NFKD").match(/[\p{L}\p{N}]+/gu) ?? []
+    );
+    if (factWords.size < 3) return;
+    const words = [...factWords].sort().join(" ");
+    const same = byWords.get(words);
+    if (same === void 0) byWords.set(words, i);
+    else uf.union(same, i);
+  });
+  for (let i = 0; i < kept.length; i++) {
+    if (titles[i].size < 2) continue;
+    for (let j = i + 1; j < kept.length; j++) {
+      if (titles[j].size < 2) continue;
+      if (jaccard(titles[i], titles[j]) >= LIGHT_TITLE_JACCARD && jaccard(bodies[i], bodies[j]) >= LIGHT_BODY_JACCARD) {
+        uf.union(i, j);
+      }
+    }
+  }
+  const groups = groupsOf(kept, uf);
+  const merged = kept.length - groups.length;
+  const included = new Set(options2.includedItemKeys ?? []);
+  const frozen = new Set(options2.frozenKeys ?? []);
+  const drafts = uniqueKeys(
+    groups.map((group) => {
+      const { key, stored } = stableKey(
+        group,
+        previous,
+        (a) => `${lightSlug(a.title, 40)}-${lightKeyHash(a.item_key)}`,
+        frozen
+      );
+      return { key, stored, base: mergeGroup(group) };
+    })
+  );
+  const tier = (d) => d.base.item_keys.some((k) => included.has(k)) ? 0 : frozen.has(d.key) ? 1 : d.base.agents_disagree ? 2 : 3;
+  const tiers = new Map(drafts.map((d) => [d, tier(d)]));
+  drafts.sort(
+    (a, b) => tiers.get(a) - tiers.get(b) || Number(b.stored) - Number(a.stored) || b.base.memlin_hosts.length - a.base.memlin_hosts.length || newer(a.base.updated_at, b.base.updated_at) || a.base.title.localeCompare(b.base.title) || a.key.localeCompare(b.key)
+  );
+  const notes = drafts.map((d) => ({
+    ...d.base,
+    note_key: d.key,
+    path: `memory/${d.key}.md`
+  }));
+  const pickedKeys = new Set(drafts.filter((d) => tiers.get(d) === 0).map((d) => d.key));
+  const fits = notes.slice(0, cap);
+  const overflow = notes.slice(cap);
+  const entry = (n) => ({
+    key: n.note_key,
+    title: n.title,
+    memlin_hosts: n.memlin_hosts,
+    sources_total: n.sources_total,
+    item_keys: n.item_keys,
+    picked: pickedKeys.has(n.note_key)
+  });
+  return {
+    notes: fits,
+    overflow,
+    overCap: overflow.length ? {
+      cap,
+      total: notes.length,
+      fits: fits.map(entry),
+      overflow: overflow.map(entry),
+      picked: pickedKeys.size,
+      overPicked: pickedKeys.size > cap
+    } : null,
+    suppressed,
+    suggestions,
+    merged
+  };
+}
+function normHeading(h) {
+  return h.toLowerCase().replace(/^[\d.)\s]+/, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+function plansLookAlike(a, b) {
+  if (a.content_hash === b.content_hash) return true;
+  const ta = lightTokens(a.title);
+  const tb = lightTokens(b.title);
+  const tj = jaccard(ta, tb);
+  const ha = new Set(
+    (a.plan?.headings ?? markdownHeadings(a.body)).map(normHeading).filter(Boolean)
+  );
+  const hb = new Set(
+    (b.plan?.headings ?? markdownHeadings(b.body)).map(normHeading).filter(Boolean)
+  );
+  if (ha.size >= 2 && hb.size >= 2) {
+    return tj >= LIGHT_PLAN_TITLE_JACCARD && jaccard(ha, hb) >= LIGHT_HEADING_OVERLAP;
+  }
+  return ta.size >= 2 && tb.size >= 2 && tj >= LIGHT_PLAN_TITLE_ONLY_JACCARD;
+}
+function consolidateLightPlans(items, options2 = {}) {
+  const cap = options2.cap ?? LIGHT_PLAN_CAP;
+  const previous = options2.previousKeys ?? {};
+  const plans = items.filter((i) => i.kind === "plan");
+  const { kept, suppressed, suggestions } = applySuppressions(plans, options2.suppressions ?? []);
+  const uf = new UnionFind(kept.length);
+  for (let i = 0; i < kept.length; i++) {
+    for (let j = i + 1; j < kept.length; j++) {
+      if (plansLookAlike(kept[i], kept[j])) uf.union(i, j);
+    }
+  }
+  const groups = groupsOf(kept, uf);
+  const drafts = uniqueKeys(
+    groups.map((group) => {
+      const { key } = stableKey(group, previous, (a) => `${a.host}-${lightSlug(a.title, 48)}`);
+      const base = mergeGroup(group);
+      const rep = group.find((i) => i.content_hash === base.content_hash) ?? group[0];
+      const copies = [...group].sort((a, b) => newer(a.updated_at, b.updated_at) || a.host.localeCompare(b.host)).map((i) => ({
+        host: i.host,
+        displayPath: i.displayPath,
+        title: i.title,
+        content_hash: i.content_hash,
+        updated_at: i.updated_at
+      }));
+      return { key, base, copies, checklist: rep.plan?.checklist ?? null };
+    })
+  );
+  const all = drafts.map((d) => ({
+    ...d.base,
+    plan_key: d.key,
+    path: `plans/${d.key}.md`,
+    copies: d.copies,
+    checklist: d.checklist
+  })).sort((a, b) => newer(a.updated_at, b.updated_at) || a.plan_key.localeCompare(b.plan_key));
+  return {
+    plans: all.slice(0, cap),
+    archived: all.slice(cap),
+    suppressed,
+    suggestions,
+    merged: kept.length - groups.length
+  };
+}
+
+// packages/shared/dist/skill-inventory.js
+var LIGHT_SKILL_HOSTS = [
+  "claude",
+  "codex",
+  "cursor",
+  "antigravity",
+  "windsurf",
+  "copilot",
+  "gemini_cli"
+];
+var AGENTS_HOSTS = ["codex", "cursor", "windsurf", "copilot", "gemini_cli"];
+var CLAUDE_HOSTS = ["claude", "cursor", "windsurf", "copilot"];
+var SKILL_LOCATIONS = [
+  {
+    id: "agents-project",
+    scope: "project",
+    path: ".agents/skills",
+    hosts: [...AGENTS_HOSTS, "antigravity"],
+    owner: "agents",
+    nested: false
+  },
+  {
+    id: "agents-user",
+    scope: "user",
+    path: "~/.agents/skills",
+    hosts: AGENTS_HOSTS,
+    owner: "agents",
+    nested: false
+  },
+  {
+    id: "claude-project",
+    scope: "project",
+    path: ".claude/skills",
+    hosts: CLAUDE_HOSTS,
+    owner: "claude",
+    nested: true
+  },
+  {
+    id: "claude-user",
+    scope: "user",
+    path: "~/.claude/skills",
+    hosts: CLAUDE_HOSTS,
+    owner: "claude",
+    nested: true
+  },
+  {
+    id: "cursor-project",
+    scope: "project",
+    path: ".cursor/skills",
+    hosts: ["cursor"],
+    owner: "cursor",
+    nested: false
+  },
+  {
+    id: "cursor-user",
+    scope: "user",
+    path: "~/.cursor/skills",
+    hosts: ["cursor"],
+    owner: "cursor",
+    nested: false
+  },
+  {
+    id: "windsurf-project",
+    scope: "project",
+    path: ".windsurf/skills",
+    hosts: ["windsurf"],
+    owner: "windsurf",
+    nested: false
+  },
+  {
+    id: "windsurf-user",
+    scope: "user",
+    path: "~/.codeium/windsurf/skills",
+    hosts: ["windsurf"],
+    owner: "windsurf",
+    nested: false
+  },
+  {
+    id: "antigravity-user",
+    scope: "user",
+    path: "~/.gemini/antigravity/skills",
+    hosts: ["antigravity"],
+    owner: "antigravity",
+    nested: false,
+    unverified: true
+  },
+  {
+    id: "antigravity-config-user",
+    scope: "user",
+    path: "~/.gemini/config/skills",
+    hosts: ["antigravity"],
+    owner: "antigravity",
+    nested: false,
+    unverified: true
+  },
+  {
+    id: "codex-legacy-user",
+    scope: "user",
+    path: "~/.codex/skills",
+    hosts: ["codex"],
+    owner: "codex",
+    nested: false,
+    unverified: true
+  }
+];
+var PLUGIN_SKILL_ROOTS = [
+  { host: "claude", pattern: "~/.claude/plugins/cache/*marketplace/*plugin/*version/skills" },
+  { host: "codex", pattern: "~/.codex/plugins/cache/*marketplace/*plugin/*version/skills" },
+  { host: "cursor", pattern: "~/.cursor/plugins/local/*plugin/skills" },
+  { host: "antigravity", pattern: "~/.gemini/config/plugins/*plugin/skills" }
+];
+function isMemlinOwnSkill(folderName) {
+  return folderName === "memlin" || folderName.startsWith("memlin-");
+}
+function skillLocationById(id) {
+  return SKILL_LOCATIONS.find((l) => l.id === id) ?? null;
+}
+function emptySkillAvailability() {
+  return Object.fromEntries(LIGHT_SKILL_HOSTS.map((h) => [h, false]));
+}
+function skillAvailability(locationIds) {
+  const out = emptySkillAvailability();
+  for (const id of locationIds) {
+    for (const h of skillLocationById(id)?.hosts ?? []) out[h] = true;
+  }
+  return out;
+}
+function dedupeSkillsByHash(copies) {
+  const map2 = /* @__PURE__ */ new Map();
+  for (const c of copies) map2.set(c.content_hash, [...map2.get(c.content_hash) ?? [], c]);
+  return [...map2.entries()].map(([hash2, group]) => {
+    const sorted = [...group].sort((a, b) => a.displayPath.localeCompare(b.displayPath));
+    const availability = skillAvailability(sorted.map((c) => c.locationId));
+    return {
+      content_hash: hash2,
+      name: sorted[0].name,
+      copies: sorted,
+      availability,
+      unavailableIn: LIGHT_SKILL_HOSTS.filter((h) => !availability[h])
+    };
+  }).sort((a, b) => a.name.localeCompare(b.name) || a.content_hash.localeCompare(b.content_hash));
+}
+
+// packages/shared/dist/memory-taxonomy.js
+var MEMORY_TAXONOMY = [
+  // ---------------------------------------------------------------- process --
+  { term: "standup", facet: "process", forms: ["standup", "stand-up", "daily standup", "daily scrum", "daily sync"] },
+  // Bare "retro" survives on the hyphen guard, not on luck: "retro-fit" and
+  // "retro-compatible" are compounds, and nothing else in this corpus is retro.
+  { term: "retro", facet: "process", forms: ["retro", "retrospective", "sprint retro"] },
+  // Bare "planning" is meaningless on its own ("planning to ship"), so only the
+  // ritual names count.
+  { term: "planning", facet: "process", forms: ["sprint planning", "iteration planning", "planning meeting", "refinement session"] },
+  // NOT the verbs "onboard"/"offboard" — "onboard the new repo" is not a hire.
+  { term: "onboarding", facet: "process", forms: ["onboarding", "new hire", "onboarding checklist"] },
+  { term: "offboarding", facet: "process", forms: ["offboarding", "departure checklist"] },
+  // NOT bare "reviewer": this workspace ships a component called Memory
+  // Reviewer, and the word names a person on any kind of review.
+  { term: "code-review", facet: "process", forms: ["code review", "code-review", "pr review", "pull request review", "review checklist"] },
+  // NOT bare "release" — that is the technology axis's deploy/CI territory.
+  { term: "release-process", facet: "process", forms: ["release process", "release checklist", "release cadence", "release train", "cut a release"] },
+  { term: "oncall", facet: "process", forms: ["oncall", "on-call", "on call rotation", "pager rotation"] },
+  { term: "incident", facet: "process", forms: ["incident", "outage", "sev1", "sev-1", "sev2", "sev-2"] },
+  { term: "postmortem", facet: "process", forms: ["postmortem", "post-mortem", "root cause analysis", "rca", "incident review"] },
+  { term: "triage", facet: "process", forms: ["triage", "bug triage", "triage rotation"] },
+  { term: "handoff", facet: "process", forms: ["handoff", "hand-off", "handover", "shift handoff"] },
+  // The largest single class of memory in this corpus: a standing instruction
+  // about how work is done. "User directive:" is the literal title prefix the
+  // /memlin-remember path writes, which is why it is a form rather than a guess.
+  { term: "convention", facet: "process", forms: ["convention", "working agreement", "style guide", "house rule", "ground rule", "user directive", "standing instruction"] },
+  // ------------------------------------------------------------- commercial --
+  { term: "pricing", facet: "commercial", forms: ["pricing", "price list", "pricing tier", "rate card", "list price"] },
+  { term: "billing", facet: "commercial", forms: ["billing", "invoice", "invoicing", "billing cycle"] },
+  // The verb "renew" is out: certificates, tokens and leases all renew.
+  { term: "renewal", facet: "commercial", forms: ["renewal", "renewal date", "contract renewal", "subscription renewal"] },
+  // Bare "contract" is the worst word in this table for THIS repo: it ships
+  // packages/shared/src/memlin-contract.ts, contract tests for the MCP surface,
+  // "Reader contract" memories and component data contracts. Only the
+  // paperwork senses survive.
+  { term: "contract", facet: "commercial", forms: ["msa", "statement of work", "sow", "contract negotiation", "signed contract", "countersigned"] },
+  { term: "procurement", facet: "commercial", forms: ["procurement", "purchase order", "po number"] },
+  // Bare "customer" is engineering vocabulary here — customer-facing copy, the
+  // customer table, "the customer prefers blue" — so the facet needs the noun
+  // phrase that can only mean an account.
+  { term: "customer", facet: "commercial", forms: ["customer account", "customer contact", "customer meeting", "key customer", "enterprise customer"] },
+  // "downgrade" is semver and permissions here; bare "churn" is what tags do on
+  // reclassification; bare "cancellation" is an aborted request.
+  { term: "churn", facet: "commercial", forms: ["churn rate", "customer churn", "churned", "account cancellation", "subscription cancellation"] },
+  // "quota" is deliberately absent: an API quota is not a sales quota.
+  { term: "sales", facet: "commercial", forms: ["sales", "sales cycle", "sales pipeline", "win rate"] },
+  // A PoC or a "proof of concept" is a prototype in an engineering corpus, and
+  // "trial and error" is not a pilot.
+  { term: "trial", facet: "commercial", forms: ["free trial", "trial period", "trial account", "trial conversion", "pilot program"] },
+  { term: "discount", facet: "commercial", forms: ["discount", "promo code", "coupon"] },
+  { term: "competitor", facet: "commercial", forms: ["competitor", "competitive analysis", "competitive landscape"] },
+  { term: "partnership", facet: "commercial", forms: ["partnership", "partner program", "reseller"] },
+  // Bare "support" is the single most over-matching word in an eng corpus
+  // ("we support Node 20"), so only the desk meaning counts.
+  { term: "support", facet: "commercial", forms: ["customer support", "support ticket", "support queue", "help desk"] },
+  // ----------------------------------------------------------------- people --
+  { term: "hiring", facet: "people", forms: ["hiring", "recruiting", "job opening", "headcount"] },
+  // Bare "interview" is a user interview as often as a hiring one, and that is
+  // product research, not this facet.
+  { term: "interview", facet: "people", forms: ["interview loop", "interview panel", "interview debrief", "hiring interview", "take-home exercise"] },
+  // "promotion" is auto-promotion of facts and promoting a staging build here;
+  // "1:1" is a 1:1 mapping far more often than a meeting.
+  { term: "performance-review", facet: "people", forms: ["performance review", "perf review", "career ladder", "one-on-one", "promotion cycle"] },
+  // Bare "ownership" is Rust ownership, data ownership, buffer ownership.
+  { term: "ownership", facet: "people", forms: ["code owner", "code ownership", "owning team", "dri", "accountable for", "raci"] },
+  { term: "escalation", facet: "people", forms: ["escalation", "escalation path"] },
+  { term: "team-structure", facet: "people", forms: ["team structure", "org chart", "reporting line"] },
+  { term: "availability", facet: "people", forms: ["time off", "pto", "vacation", "working hours", "holiday schedule"] },
+  // ---------------------------------------------------------------- product --
+  { term: "roadmap", facet: "product", forms: ["roadmap", "quarterly plan", "product plan"] },
+  { term: "requirement", facet: "product", forms: ["requirement", "acceptance criteria", "user story", "product spec"] },
+  // Bare "decision" would tag most of the corpus — `decision` is a document kind
+  // here. Only the artefact and the act of deciding count.
+  { term: "decision", facet: "product", forms: ["decision record", "architecture decision", "adr", "decision log", "we decided", "decided to"] },
+  { term: "tradeoff", facet: "product", forms: ["tradeoff", "trade-off", "trade off", "pros and cons"] },
+  { term: "deprecation", facet: "product", forms: ["deprecation", "deprecated", "sunset", "end of life", "eol"] },
+  { term: "feedback", facet: "product", forms: ["user feedback", "customer feedback", "feature request"] },
+  // Bare "launch" means starting a process in half this corpus.
+  { term: "launch", facet: "product", forms: ["product launch", "launch plan", "launch date", "go-live", "general availability", "beta program"] },
+  // The verb is out: "prioritize the fast path" is a routing decision.
+  { term: "prioritization", facet: "product", forms: ["prioritization", "priority order", "must-have"] },
+  { term: "backlog", facet: "product", forms: ["backlog", "icebox"] },
+  // ------------------------------------------------------------- operations --
+  // Bare "playbook" is out — a demo playbook is a script for a sales call, not
+  // an operating procedure — but the qualified ops senses stay.
+  { term: "runbook", facet: "operations", forms: ["runbook", "run book", "operating procedure", "ops playbook", "incident playbook"] },
+  { term: "sla", facet: "operations", forms: ["sla", "slo", "uptime target", "service level"] },
+  // Bare "budget" is taken: the resolver has a delivery budget and the insight
+  // scanner an emission budget, neither of which is money.
+  // ...and "spend" is the other half of the same word: the real title "Flat
+  // token_budget is the limit, never the spend" is about a token budget.
+  { term: "budget", facet: "operations", forms: ["annual budget", "budget approval", "budget owner", "cost cap", "burn rate"] },
+  { term: "compliance", facet: "operations", forms: ["compliance", "soc 2", "soc2", "gdpr", "hipaa", "iso 27001"] },
+  // Bare "audit" is taken too — a resolve audit is a debugging trace, not a
+  // control test.
+  { term: "audit", facet: "operations", forms: ["compliance audit", "external audit", "audit finding", "audit evidence", "auditor"] },
+  { term: "security-policy", facet: "operations", forms: ["security policy", "security review", "threat model", "vulnerability disclosure"] },
+  { term: "data-retention", facet: "operations", forms: ["data retention", "retention policy", "purge policy", "right to be forgotten"] },
+  { term: "access-control", facet: "operations", forms: ["access control", "access review", "least privilege", "permissions policy", "rbac"] },
+  // Bare "privacy" is a macOS settings pane and a /privacy route here, so the
+  // policy senses carry the term instead.
+  { term: "privacy", facet: "operations", forms: ["privacy policy", "data privacy", "pii", "personal data", "data processing agreement", "dpa"] },
+  // Bare "legal" is an adjective in this corpus — a legal value, a legal state,
+  // a legal move.
+  { term: "legal", facet: "operations", forms: ["legal review", "legal counsel", "legal team", "terms of service", "nda", "liability"] },
+  { term: "licensing", facet: "operations", forms: ["license", "licence", "licensing", "license compatibility"] },
+  { term: "vendor", facet: "operations", forms: ["vendor", "third-party provider", "subprocessor", "supplier"] },
+  { term: "disaster-recovery", facet: "operations", forms: ["disaster recovery", "backup policy", "business continuity", "rto", "rpo"] },
+  { term: "governance", facet: "operations", forms: ["governance", "approval policy", "change control", "sign-off"] }
+];
+var TAXONOMY_TERMS = new Set(MEMORY_TAXONOMY.map((e) => e.term));
+var TAXONOMY_CANONICAL_BY_FORM = new Map(
+  MEMORY_TAXONOMY.flatMap((e) => e.forms.map((f) => [f, e.term]))
+);
+var FACET_BY_TERM = new Map(
+  MEMORY_TAXONOMY.map((e) => [e.term, e.facet])
+);
+
+// packages/shared/dist/context-engine.js
+var CONTEXT_CONTRACT_VERSION = 1;
+var ContractIdSchema = external_exports.string().min(1).max(256);
+var ContractKeySchema = external_exports.string().min(1).max(128).regex(/^[a-z][a-z0-9._:-]*$/, "must be a lowercase namespaced identifier");
+var Sha256Schema = external_exports.string().regex(/^[a-f0-9]{64}$/, "must be a lowercase SHA-256 digest");
+var IsoDateSchema = external_exports.string().datetime({ offset: true });
+var ContractJsonValueSchema = external_exports.lazy(
+  () => external_exports.union([
+    external_exports.null(),
+    external_exports.boolean(),
+    external_exports.number().finite(),
+    external_exports.string(),
+    external_exports.array(ContractJsonValueSchema),
+    external_exports.record(ContractJsonValueSchema)
+  ])
+);
+var ContextReferenceV1Schema = external_exports.object({
+  type: ContractKeySchema,
+  id: ContractIdSchema,
+  /** Provider namespace for identifiers that are not native Memlin IDs. */
+  provider_id: ContractKeySchema.optional(),
+  /** Source-side revision used to invalidate stale manifests and bundles. */
+  revision: external_exports.string().min(1).max(256).optional()
+}).strict();
+var ContextFocusV1Schema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({
+    kind: external_exports.literal("thought"),
+    thought_id: ContractIdSchema,
+    revision: external_exports.string().min(1).max(256).optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("card"),
+    thought_id: ContractIdSchema,
+    card_id: ContractIdSchema,
+    map_id: ContractIdSchema.optional(),
+    revision: external_exports.string().min(1).max(256).optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("resource"),
+    resource_id: ContractIdSchema,
+    version: external_exports.string().min(1).max(512).optional(),
+    locator: external_exports.string().min(1).max(4096).optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("jira_issue"),
+    provider_binding_id: ContractIdSchema,
+    issue_key: ContractIdSchema,
+    source_revision: external_exports.string().min(1).max(512).optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("conversation"),
+    conversation_id: ContractIdSchema,
+    message_id: ContractIdSchema.optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("action"),
+    action_id: ContractIdSchema,
+    execution_id: ContractIdSchema.optional()
+  }).strict()
+]);
+var CONTEXT_CAPABILITIES = [
+  "explore",
+  "explain",
+  "research",
+  "decide",
+  "plan",
+  "act",
+  "review"
+];
+var ContextCapabilityV1Schema = external_exports.enum(CONTEXT_CAPABILITIES);
+var ContextAudienceV1Schema = external_exports.object({
+  kind: external_exports.enum(["private", "team", "room", "external", "public"]),
+  /** Memlin or mapped external principals allowed to receive this bundle. */
+  participant_ids: external_exports.array(ContractIdSchema).max(500).default([]),
+  /** Exact room or external tenant/channel boundary for scoped audiences. */
+  context_id: ContractIdSchema.optional()
+}).strict().superRefine((audience, ctx) => {
+  if (audience.kind === "public" && audience.participant_ids.length > 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["participant_ids"],
+      message: "public audiences cannot name private participants"
+    });
+  }
+  if (audience.kind === "private" && audience.participant_ids.length !== 1) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["participant_ids"],
+      message: "private audiences must name exactly one recipient"
+    });
+  }
+  if ((audience.kind === "room" || audience.kind === "external") && audience.participant_ids.length === 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["participant_ids"],
+      message: `${audience.kind} audiences must name every recipient`
+    });
+  }
+  if ((audience.kind === "room" || audience.kind === "external") && !audience.context_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["context_id"],
+      message: `${audience.kind} audiences require an exact context boundary`
+    });
+  }
+});
+var ContextManifestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  account_id: external_exports.string().uuid(),
+  /** The only location that receives saves and navigation by default. */
+  home: ContextReferenceV1Schema,
+  /** The only location whose governance and funding policy controls the run. */
+  policy_anchor: ContextReferenceV1Schema,
+  /** Additional read-only retrieval contexts. */
+  linked_contexts: external_exports.array(ContextReferenceV1Schema).max(64).default([]),
+  /** Current object within the authorized contexts; null means no narrower focus. */
+  focus: ContextFocusV1Schema.nullable(),
+  /** Declared purpose used by providers, policy, safety, and audit layers. */
+  capability: ContextCapabilityV1Schema,
+  audience: ContextAudienceV1Schema,
+  /** ACL/policy snapshot identifier supplied by the authoritative server. */
+  acl_revision: external_exports.string().min(1).max(256)
+}).strict().superRefine((manifest, ctx) => {
+  const seen = /* @__PURE__ */ new Map();
+  const references = [
+    { ref: manifest.home, path: ["home"], location: "home" },
+    {
+      ref: manifest.policy_anchor,
+      path: ["policy_anchor"],
+      location: "policy_anchor"
+    },
+    ...manifest.linked_contexts.map((ref, index) => ({
+      ref,
+      path: ["linked_contexts", index],
+      location: `linked_contexts.${index}`
+    }))
+  ];
+  references.forEach(({ ref, path: path27, location }) => {
+    const identity = contextReferenceIdentityKey(ref);
+    const prior = seen.get(identity);
+    if (prior && prior.revision !== ref.revision) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: path27,
+        message: `context ${identity} has conflicting revisions in ${prior.location} and ${location}`
+      });
+    } else if (prior && location.startsWith("linked_contexts.")) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: path27,
+        message: `duplicate linked context ${identity}`
+      });
+    }
+    if (!prior) seen.set(identity, { revision: ref.revision, location });
+  });
+});
+var ExecutionActorV1Schema = external_exports.object({
+  type: external_exports.enum(["human", "service", "agent", "end_user", "connector"]),
+  id: ContractIdSchema
+}).strict();
+var ExecutionPrincipalV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  account_id: external_exports.string().uuid(),
+  actor: ExecutionActorV1Schema,
+  /** Explicit delegation chain; never collapse this into actor.id. */
+  on_behalf_of: ExecutionActorV1Schema.optional(),
+  credential: external_exports.object({
+    id: ContractIdSchema,
+    scopes: external_exports.array(ContractKeySchema).max(256),
+    expires_at: IsoDateSchema.optional()
+  }).strict(),
+  installation: external_exports.object({
+    id: ContractIdSchema,
+    trust: external_exports.enum(["verified", "reported"])
+  }).strict().optional(),
+  external: external_exports.object({
+    provider: ContractKeySchema,
+    tenant_id: ContractIdSchema,
+    subject_id: ContractIdSchema,
+    mapped_user_id: external_exports.string().uuid().optional()
+  }).strict().optional(),
+  session_id: ContractIdSchema.optional()
+}).strict();
+var EvidenceScoreV1Schema = external_exports.object({
+  semantic: external_exports.number().finite().optional(),
+  lexical: external_exports.number().finite().optional(),
+  provider: external_exports.number().finite().optional(),
+  freshness: external_exports.number().finite().optional(),
+  /** Populated only by the resolver, never trusted from an external source. */
+  final: external_exports.number().finite().optional()
+}).strict();
+var EvidenceProvenanceV1Schema = external_exports.object({
+  canonical_uri: external_exports.string().url().max(4096).optional(),
+  source_version: external_exports.string().min(1).max(512).optional(),
+  author: external_exports.string().min(1).max(512).optional(),
+  occurred_at: IsoDateSchema.optional(),
+  retrieved_at: IsoDateSchema,
+  locator: external_exports.string().min(1).max(4096).optional(),
+  content_hash: Sha256Schema,
+  rights: external_exports.string().min(1).max(512).optional()
+}).strict();
+var EvidenceSecurityV1Schema = external_exports.object({
+  audience: external_exports.enum(["private", "team", "room", "external", "public"]),
+  classification: external_exports.enum(["public", "internal", "confidential", "restricted"]),
+  policy_tags: external_exports.array(ContractKeySchema).max(64).default([]),
+  /** Principals authorized by the provider for this exact evidence revision. */
+  authorized_principal_ids: external_exports.array(ContractIdSchema).max(500).default([]),
+  /** Exact room or external boundary when evidence is scoped below a team. */
+  audience_context_id: ContractIdSchema.optional(),
+  /** Server-observed ACL revision used to reject stale recipient decisions. */
+  acl_revision: external_exports.string().min(1).max(256).optional()
+}).strict().superRefine((security, ctx) => {
+  if (security.audience === "private" && security.authorized_principal_ids.length !== 1) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["authorized_principal_ids"],
+      message: "private evidence must bind exactly one authorized recipient"
+    });
+  }
+  if ((security.audience === "room" || security.audience === "external") && security.authorized_principal_ids.length === 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["authorized_principal_ids"],
+      message: `${security.audience} evidence must bind its authorized recipients`
+    });
+  }
+  if ((security.audience === "room" || security.audience === "external") && !security.audience_context_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["audience_context_id"],
+      message: `${security.audience} evidence must bind its exact context`
+    });
+  }
+  if (security.audience !== "public" && !security.acl_revision) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["acl_revision"],
+      message: "non-public evidence must bind an exact ACL revision"
+    });
+  }
+});
+var EvidenceCandidateV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  provider_id: ContractKeySchema,
+  /** Governing context used for authorization, not merely a display parent. */
+  context_ref: ContextReferenceV1Schema,
+  kind: ContractKeySchema,
+  title: external_exports.string().min(1).max(1024),
+  content: external_exports.string().max(2e6),
+  score: EvidenceScoreV1Schema.default({}),
+  provenance: EvidenceProvenanceV1Schema,
+  security: EvidenceSecurityV1Schema,
+  embedding_profile_id: ContractIdSchema.optional(),
+  estimated_tokens: external_exports.number().int().nonnegative().optional(),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var OmittedContextV1Schema = external_exports.object({
+  context_ref: ContextReferenceV1Schema,
+  reason_code: ContractKeySchema,
+  reason: external_exports.string().min(1).max(1024).optional()
+}).strict();
+var ProviderCoverageV1Schema = external_exports.object({
+  provider_id: ContractKeySchema,
+  provider_version: external_exports.string().min(1).max(128),
+  status: external_exports.enum(["complete", "partial", "unavailable"]),
+  attempted_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
+  covered_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
+  omitted_contexts: external_exports.array(OmittedContextV1Schema).max(128).default([]),
+  reason_code: ContractKeySchema.optional(),
+  reason: external_exports.string().min(1).max(2048).optional(),
+  truncated: external_exports.boolean().default(false),
+  started_at: IsoDateSchema,
+  completed_at: IsoDateSchema
+}).strict();
+var ProviderReceiptV1Schema = external_exports.object({
+  provider_id: ContractKeySchema,
+  provider_version: external_exports.string().min(1).max(128),
+  request_hash: Sha256Schema,
+  /** Exact policy snapshot returned by provider authorization. */
+  policy_revision: external_exports.string().min(1).max(256),
+  latency_ms: external_exports.number().int().nonnegative(),
+  retrieved_at: IsoDateSchema,
+  source_revision: external_exports.string().min(1).max(512).optional(),
+  credential_binding_id: ContractIdSchema.optional(),
+  cost_microunits: external_exports.number().int().nonnegative().optional()
+}).strict();
+var RequiredCoreLaneStatusV1Schema = external_exports.object({
+  status: external_exports.enum(["not_evaluated", "complete", "partial", "unavailable", "not_applicable"]),
+  expected_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  delivered_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  missing_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  errors: external_exports.array(external_exports.string().min(1).max(2048)).max(256).default([])
+}).strict().superRefine((lane, ctx) => {
+  const delivered = new Set(lane.delivered_ids);
+  const overlap = lane.missing_ids.find((id) => delivered.has(id));
+  if (overlap) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["missing_ids"],
+      message: `required core item ${overlap} cannot be both delivered and missing`
+    });
+  }
+  if (lane.status === "complete" && (lane.missing_ids.length > 0 || lane.errors.length > 0)) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["status"],
+      message: "complete required core status cannot contain missing items or errors"
+    });
+  }
+});
+var RequiredCoreStatusV1Schema = external_exports.object({
+  /** Required documents selected through the policy/governance chain. */
+  governance: RequiredCoreLaneStatusV1Schema,
+  /** The Project Brain overview, when the policy anchor is a Project. */
+  project_overview: RequiredCoreLaneStatusV1Schema
+}).strict();
+var EvidenceReferenceV1Schema = external_exports.object({
+  provider_id: ContractKeySchema,
+  evidence_id: ContractIdSchema,
+  source_version: external_exports.string().min(1).max(512).optional()
+}).strict();
+var ContextConflictV1Schema = external_exports.object({
+  id: ContractIdSchema,
+  kind: ContractKeySchema,
+  summary: external_exports.string().min(1).max(4096),
+  evidence_refs: external_exports.array(EvidenceReferenceV1Schema).min(2).max(64),
+  status: external_exports.enum(["unresolved", "resolved"]),
+  resolution_evidence_ref: EvidenceReferenceV1Schema.optional()
+}).strict();
+var BundleOmissionSubjectV1Schema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({ kind: external_exports.literal("context"), context_ref: ContextReferenceV1Schema }).strict(),
+  external_exports.object({ kind: external_exports.literal("provider"), provider_id: ContractKeySchema }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("evidence"),
+    evidence_ref: EvidenceReferenceV1Schema
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("required_core"),
+    lane: external_exports.enum(["governance", "project_overview"]),
+    item_id: ContractIdSchema.optional()
+  }).strict()
+]);
+var BundleOmissionV1Schema = external_exports.object({
+  subject: BundleOmissionSubjectV1Schema,
+  reason_code: ContractKeySchema,
+  reason: external_exports.string().min(1).max(2048).optional(),
+  estimated_tokens: external_exports.number().int().nonnegative().optional()
+}).strict();
+var EvidenceRetractionV1Schema = external_exports.object({
+  evidence_ref: EvidenceReferenceV1Schema,
+  reason_code: ContractKeySchema,
+  reason: external_exports.string().min(1).max(2048).optional(),
+  retracted_at: IsoDateSchema,
+  replacement_evidence_ref: EvidenceReferenceV1Schema.optional()
+}).strict();
+var ContextSafetyFindingV1Schema = external_exports.object({
+  code: ContractKeySchema,
+  severity: external_exports.enum(["info", "warning", "error"]),
+  message: external_exports.string().min(1).max(2048).optional(),
+  evidence_refs: external_exports.array(EvidenceReferenceV1Schema).max(64).default([])
+}).strict();
+var ContextSafetyStateV1Schema = external_exports.object({
+  status: external_exports.enum(["not_evaluated", "clear", "review_required", "blocked"]),
+  policy_tags: external_exports.array(ContractKeySchema).max(128).default([]),
+  findings: external_exports.array(ContextSafetyFindingV1Schema).max(256).default([]),
+  evaluated_at: IsoDateSchema.optional(),
+  evaluator_id: ContractIdSchema.optional()
+}).strict();
+var ContextTokenAccountingV1Schema = external_exports.object({
+  /** Null means this stage was not given a token limit. */
+  limit: external_exports.number().int().nonnegative().nullable().default(null),
+  used: external_exports.number().int().nonnegative().default(0),
+  reserved: external_exports.number().int().nonnegative().default(0),
+  omitted: external_exports.number().int().nonnegative().default(0),
+  truncated: external_exports.boolean().default(false)
+}).strict();
+var ContextBundleV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  /** Content-addressed ID of this exact retrieval result. */
+  bundle_id: Sha256Schema,
+  stage: external_exports.enum(["retrieved", "resolved"]),
+  manifest: ContextManifestV1Schema,
+  manifest_hash: Sha256Schema,
+  query: external_exports.string().min(1).max(4e3),
+  requested_kinds: external_exports.array(ContractKeySchema).max(128),
+  created_at: IsoDateSchema,
+  evidence: external_exports.array(EvidenceCandidateV1Schema).max(1e4),
+  coverage: external_exports.array(ProviderCoverageV1Schema).max(256),
+  receipts: external_exports.array(ProviderReceiptV1Schema).max(256),
+  required_core_status: RequiredCoreStatusV1Schema.default({
+    governance: {
+      status: "not_evaluated",
+      expected_ids: [],
+      delivered_ids: [],
+      missing_ids: [],
+      errors: []
+    },
+    project_overview: {
+      status: "not_evaluated",
+      expected_ids: [],
+      delivered_ids: [],
+      missing_ids: [],
+      errors: []
+    }
+  }),
+  conflicts: external_exports.array(ContextConflictV1Schema).max(1e3).default([]),
+  omissions: external_exports.array(BundleOmissionV1Schema).max(1e4).default([]),
+  retractions: external_exports.array(EvidenceRetractionV1Schema).max(1e4).default([]),
+  safety: ContextSafetyStateV1Schema.default({
+    status: "not_evaluated",
+    policy_tags: [],
+    findings: []
+  }),
+  token_accounting: ContextTokenAccountingV1Schema.default({
+    limit: null,
+    used: 0,
+    reserved: 0,
+    omitted: 0,
+    truncated: false
+  }),
+  warnings: external_exports.array(external_exports.string().min(1).max(2048)).max(256).default([]),
+  resolver_audit_id: ContractIdSchema.optional()
+}).strict().superRefine((bundle, ctx) => {
+  const contextKeys = new Set(
+    contextReferencesFromManifestV1(bundle.manifest).map(contextReferenceKey)
+  );
+  bundle.evidence.forEach((candidate, index) => {
+    if (!contextKeys.has(contextReferenceKey(candidate.context_ref))) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["evidence", index, "context_ref"],
+        message: "bundle evidence is outside the exact manifest contexts"
+      });
+      return;
+    }
+    if (!evidenceCanReachContextAudienceV1(
+      candidate.security,
+      bundle.manifest,
+      candidate.context_ref
+    )) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["evidence", index, "security"],
+        message: `bundle evidence is not permitted for the ${bundle.manifest.audience.kind} audience`
+      });
+    }
+  });
+  bundle.coverage.forEach((coverage, coverageIndex) => {
+    const references = [
+      ...coverage.attempted_contexts.map((ref, index) => ({
+        ref,
+        path: ["coverage", coverageIndex, "attempted_contexts", index]
+      })),
+      ...coverage.covered_contexts.map((ref, index) => ({
+        ref,
+        path: ["coverage", coverageIndex, "covered_contexts", index]
+      })),
+      ...coverage.omitted_contexts.map((entry, index) => ({
+        ref: entry.context_ref,
+        path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
+      }))
+    ];
+    for (const { ref, path: path27 } of references) {
+      if (!contextKeys.has(contextReferenceKey(ref))) {
+        ctx.addIssue({
+          code: external_exports.ZodIssueCode.custom,
+          path: path27,
+          message: "provider coverage is outside the exact manifest contexts"
+        });
+      }
+    }
+  });
+  bundle.receipts.forEach((receipt, index) => {
+    if (receipt.policy_revision !== bundle.manifest.acl_revision) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["receipts", index, "policy_revision"],
+        message: "provider receipt policy revision must match the bundle ACL revision"
+      });
+    }
+  });
+});
+function contextReferenceKey(ref) {
+  return `${ref.provider_id ?? "memlin"}\0${ref.type}\0${ref.id}\0${ref.revision ?? ""}`;
+}
+function contextReferenceIdentityKey(ref) {
+  return `${ref.provider_id ?? "memlin"}\0${ref.type}\0${ref.id}`;
+}
+function contextReferencesFromManifestV1(manifest) {
+  const byKey = /* @__PURE__ */ new Map();
+  for (const ref of [manifest.home, manifest.policy_anchor, ...manifest.linked_contexts]) {
+    byKey.set(contextReferenceKey(ref), ref);
+  }
+  return [...byKey.values()];
+}
+function evidenceCanReachContextAudienceV1(security, manifest, sourceContext) {
+  const sourceAudience = security.audience;
+  const audience = manifest.audience;
+  if (sourceAudience === "public") return security.classification === "public";
+  if (security.acl_revision !== manifest.acl_revision || audience.kind === "public") return false;
+  const authorizedPrincipals = new Set(security.authorized_principal_ids);
+  const recipientsAreBound = audience.participant_ids.length > 0 && audience.participant_ids.every((participantId) => authorizedPrincipals.has(participantId));
+  const exactAudienceContext = security.audience_context_id === audience.context_id;
+  const exactPrivateSourceContext = Boolean(security.audience_context_id) && sourceContext.id === security.audience_context_id && (sourceAudience === "room" && sourceContext.type === "room" || sourceAudience === "external" && sourceContext.type === "external_collection");
+  const audienceAllowed = audience.kind === "external" ? sourceAudience === "external" && exactAudienceContext && recipientsAreBound : audience.kind === "team" ? sourceAudience === "team" : audience.kind === "room" ? sourceAudience === "room" && exactAudienceContext && recipientsAreBound || sourceAudience === "team" && recipientsAreBound : sourceAudience === "team" || sourceAudience === "private" && recipientsAreBound || (sourceAudience === "room" || sourceAudience === "external") && exactPrivateSourceContext && recipientsAreBound;
+  if (!audienceAllowed) return false;
+  if (security.classification === "restricted") {
+    return (audience.kind === "private" || audience.kind === "room") && recipientsAreBound;
+  }
+  return true;
+}
+
+// packages/shared/dist/context-provider.js
+var ContextProviderManifestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractKeySchema,
+  implementation_version: external_exports.string().min(1).max(128),
+  display_name: external_exports.string().min(1).max(128),
+  supported_context_types: external_exports.array(ContractKeySchema).min(1).max(64),
+  supported_kinds: external_exports.array(ContractKeySchema).min(1).max(128),
+  latency_class: external_exports.enum(["indexed", "local", "live"]),
+  required_scopes: external_exports.array(ContractKeySchema).max(128).default([]),
+  default_timeout_ms: external_exports.number().int().min(10).max(6e4).default(5e3),
+  max_candidates: external_exports.number().int().min(1).max(1e3).default(100)
+}).strict().superRefine((manifest, ctx) => {
+  for (const field of [
+    "supported_context_types",
+    "supported_kinds",
+    "required_scopes"
+  ]) {
+    const values = manifest[field];
+    if (new Set(values).size !== values.length) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: [field],
+        message: `${field} must not contain duplicates`
+      });
+    }
+  }
+});
+var ContextProviderAuthorizationRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  request_id: ContractIdSchema,
+  principal: ExecutionPrincipalV1Schema,
+  manifest: ContextManifestV1Schema,
+  requested_contexts: external_exports.array(ContextReferenceV1Schema).min(1).max(128)
+}).strict();
+var ContextProviderAuthorizationV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  decision: external_exports.enum(["allow", "partial", "deny"]),
+  authorized_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
+  denied_contexts: external_exports.array(
+    external_exports.object({
+      context_ref: ContextReferenceV1Schema,
+      reason_code: ContractKeySchema,
+      reason: external_exports.string().min(1).max(1024).optional()
+    }).strict()
+  ).max(128).default([]),
+  /** Exact manifest ACL/policy revision used for this authorization decision. */
+  policy_revision: external_exports.string().min(1).max(256)
+}).strict().superRefine((authorization, ctx) => {
+  if (authorization.decision === "deny" && authorization.authorized_contexts.length > 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["authorized_contexts"],
+      message: "deny decisions cannot authorize contexts"
+    });
+  }
+  if (authorization.decision === "allow" && authorization.authorized_contexts.length === 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["authorized_contexts"],
+      message: "allow decisions require at least one authorized context"
+    });
+  }
+  if (authorization.decision === "allow" && authorization.denied_contexts.length > 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["denied_contexts"],
+      message: "allow decisions cannot deny contexts"
+    });
+  }
+  if (authorization.decision === "partial" && (authorization.authorized_contexts.length === 0 || authorization.denied_contexts.length === 0)) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["decision"],
+      message: "partial decisions require both authorized and denied contexts"
+    });
+  }
+  if (authorization.decision === "deny" && authorization.denied_contexts.length === 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["denied_contexts"],
+      message: "deny decisions must identify every denied context"
+    });
+  }
+});
+var ContextProviderRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  request_id: ContractIdSchema,
+  principal: ExecutionPrincipalV1Schema,
+  manifest: ContextManifestV1Schema,
+  authorized_contexts: external_exports.array(ContextReferenceV1Schema).min(1).max(128),
+  query: external_exports.string().min(1).max(4e3),
+  query_embedding: external_exports.array(external_exports.number().finite()).min(1).max(8192).optional(),
+  requested_kinds: external_exports.array(ContractKeySchema).max(128),
+  max_candidates: external_exports.number().int().min(1).max(1e3),
+  token_budget: external_exports.number().int().min(1).max(1e6).optional(),
+  deadline_at: IsoDateSchema
+}).strict();
+var ContextProviderCoverageClaimV1Schema = external_exports.object({
+  status: external_exports.enum(["complete", "partial", "unavailable"]),
+  covered_contexts: external_exports.array(ContextReferenceV1Schema).max(128),
+  omitted_contexts: external_exports.array(
+    external_exports.object({
+      context_ref: ContextReferenceV1Schema,
+      reason_code: ContractKeySchema,
+      reason: external_exports.string().min(1).max(1024).optional()
+    }).strict()
+  ).max(128).default([]),
+  reason_code: ContractKeySchema.optional(),
+  reason: external_exports.string().min(1).max(2048).optional(),
+  truncated: external_exports.boolean().default(false)
+}).strict().superRefine((coverage, ctx) => {
+  if (coverage.status !== "complete" && !coverage.reason_code) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["reason_code"],
+      message: "partial and unavailable coverage require a reason_code"
+    });
+  }
+  if (coverage.status === "unavailable" && coverage.covered_contexts.length > 0) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["covered_contexts"],
+      message: "unavailable coverage cannot claim covered contexts"
+    });
+  }
+});
+var ContextProviderResultV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  candidates: external_exports.array(EvidenceCandidateV1Schema).max(1e3),
+  coverage: ContextProviderCoverageClaimV1Schema,
+  receipt: external_exports.object({
+    source_revision: external_exports.string().min(1).max(512).optional(),
+    credential_binding_id: ContractIdSchema.optional(),
+    cost_microunits: external_exports.number().int().nonnegative().optional()
+  }).strict().default({})
+}).strict();
+var CredentialBrokerInvocationV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  binding_id: ContractIdSchema,
+  operation_id: ContractKeySchema,
+  input: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var CredentialBrokerResultV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  status: external_exports.number().int().min(100).max(599),
+  content_type: external_exports.string().min(1).max(256).optional(),
+  body: external_exports.string(),
+  truncated: external_exports.boolean().default(false),
+  receipt_id: ContractIdSchema,
+  source_revision: external_exports.string().min(1).max(512).optional()
+}).strict();
+
+// packages/shared/dist/context-harness.js
+var HARNESS_ARTIFACT_KINDS = [
+  "markdown",
+  "document",
+  "skill",
+  "memory",
+  "schema",
+  "prompt",
+  "source",
+  "action",
+  "agent"
+];
+var HarnessArtifactRefV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  kind: external_exports.enum(HARNESS_ARTIFACT_KINDS),
+  id: ContractIdSchema,
+  context_ref: ContextReferenceV1Schema,
+  revision: external_exports.string().min(1).max(512),
+  title: external_exports.string().min(1).max(1024).optional(),
+  provider_id: ContractKeySchema.optional(),
+  canonical_uri: external_exports.string().url().max(4096).optional(),
+  content_hash: Sha256Schema.optional(),
+  media_type: external_exports.string().min(1).max(256).optional()
+}).strict();
+var HarnessGraphNodeV1Schema = external_exports.object({
+  id: ContractIdSchema,
+  artifact: HarnessArtifactRefV1Schema,
+  position: external_exports.object({ x: external_exports.number().finite(), y: external_exports.number().finite() }).strict().optional(),
+  collapsed: external_exports.boolean().default(false),
+  configuration: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var HARNESS_EDGE_TYPES = [
+  "contains",
+  "references",
+  "grounds",
+  "produces",
+  "consumes",
+  "invokes",
+  "delegates_to",
+  "depends_on",
+  "supersedes",
+  "answers",
+  "decides"
+];
+var HarnessGraphEdgeV1Schema = external_exports.object({
+  id: ContractIdSchema,
+  type: external_exports.enum(HARNESS_EDGE_TYPES),
+  from_node_id: ContractIdSchema,
+  to_node_id: ContractIdSchema,
+  label: external_exports.string().min(1).max(256).optional(),
+  configuration: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var HarnessGraphV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  revision: external_exports.string().min(1).max(512),
+  manifest: ContextManifestV1Schema,
+  nodes: external_exports.array(HarnessGraphNodeV1Schema).max(1e4),
+  edges: external_exports.array(HarnessGraphEdgeV1Schema).max(5e4),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict().superRefine((graph, ctx) => {
+  const nodeIds = /* @__PURE__ */ new Set();
+  graph.nodes.forEach((node, index) => {
+    if (nodeIds.has(node.id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["nodes", index, "id"],
+        message: `duplicate graph node id ${node.id}`
+      });
+    }
+    nodeIds.add(node.id);
+  });
+  const edgeIds = /* @__PURE__ */ new Set();
+  graph.edges.forEach((edge, index) => {
+    if (edgeIds.has(edge.id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["edges", index, "id"],
+        message: `duplicate graph edge id ${edge.id}`
+      });
+    }
+    edgeIds.add(edge.id);
+    if (!nodeIds.has(edge.from_node_id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["edges", index, "from_node_id"],
+        message: `unknown graph node ${edge.from_node_id}`
+      });
+    }
+    if (!nodeIds.has(edge.to_node_id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["edges", index, "to_node_id"],
+        message: `unknown graph node ${edge.to_node_id}`
+      });
+    }
+  });
+});
+var HarnessCompileRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  request_id: ContractIdSchema,
+  principal: ExecutionPrincipalV1Schema,
+  graph: HarnessGraphV1Schema,
+  requested_kinds: external_exports.array(ContractKeySchema).max(128).default([]),
+  provider_ids: external_exports.array(ContractKeySchema).max(64).default([]),
+  max_tokens: external_exports.number().int().min(256).max(1e6).optional()
+}).strict();
+var HarnessCompileResultV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  compile_id: Sha256Schema,
+  graph_id: ContractIdSchema,
+  graph_revision: external_exports.string().min(1).max(512),
+  graph_hash: Sha256Schema,
+  manifest_hash: Sha256Schema,
+  compiled_at: IsoDateSchema,
+  artifacts: external_exports.array(
+    external_exports.object({
+      node_id: ContractIdSchema,
+      artifact: HarnessArtifactRefV1Schema,
+      status: external_exports.enum(["ready", "stale", "unavailable", "unauthorized"]),
+      reason: external_exports.string().min(1).max(2048).optional()
+    }).strict()
+  ),
+  warnings: external_exports.array(external_exports.string().min(1).max(2048)).max(256).default([]),
+  bundle: ContextBundleV1Schema.optional()
+}).strict().superRefine((result, ctx) => {
+  if (result.bundle && result.bundle.manifest_hash !== result.manifest_hash) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["bundle", "manifest_hash"],
+      message: "compiled bundle manifest_hash must match compile result"
+    });
+  }
+});
+var HandoffLiveReferenceV1Schema = external_exports.object({
+  context_ref: ContextReferenceV1Schema,
+  permissions: external_exports.array(external_exports.enum(["read", "comment", "write", "execute", "delegate"])).min(1).max(5),
+  refresh_policy: external_exports.enum(["never", "on_open", "on_demand"])
+}).strict();
+var AgentHandoffEnvelopeV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  handoff_id: ContractIdSchema,
+  created_at: IsoDateSchema,
+  expires_at: IsoDateSchema.optional(),
+  from: ExecutionActorV1Schema,
+  to: external_exports.object({
+    agent_id: ContractIdSchema.optional(),
+    agent_kind: ContractKeySchema
+  }).strict(),
+  task: external_exports.string().min(1).max(16e3),
+  /** Immutable evidence delivered to the receiving agent. */
+  frozen_bundle: ContextBundleV1Schema,
+  resolver_audit_id: ContractIdSchema,
+  manifest_hash: Sha256Schema,
+  /** Explicitly refreshable objects; never implied by the frozen bundle. */
+  live_refs: external_exports.array(HandoffLiveReferenceV1Schema).max(128).default([]),
+  permissions: external_exports.object({
+    scopes: external_exports.array(ContractKeySchema).max(256),
+    provider_ids: external_exports.array(ContractKeySchema).max(128).default([]),
+    action_ids: external_exports.array(ContractKeySchema).max(128).default([]),
+    may_refresh_bundle: external_exports.boolean().default(false),
+    may_delegate: external_exports.boolean().default(false)
+  }).strict()
+}).strict().superRefine((handoff, ctx) => {
+  if (handoff.frozen_bundle.manifest_hash !== handoff.manifest_hash) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["manifest_hash"],
+      message: "handoff manifest_hash must match the frozen bundle"
+    });
+  }
+  if (handoff.frozen_bundle.resolver_audit_id && handoff.frozen_bundle.resolver_audit_id !== handoff.resolver_audit_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["resolver_audit_id"],
+      message: "handoff audit must match the frozen bundle audit"
+    });
+  }
+  const seen = /* @__PURE__ */ new Set();
+  handoff.live_refs.forEach((entry, index) => {
+    const key = contextReferenceKey(entry.context_ref);
+    if (seen.has(key)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["live_refs", index, "context_ref"],
+        message: `duplicate live reference ${key}`
+      });
+    }
+    seen.add(key);
+  });
+});
+
+// packages/shared/dist/context-ingest.js
+var IngestEnvelopeV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  event_id: ContractIdSchema,
+  idempotency_key: external_exports.string().min(1).max(1024),
+  operation: external_exports.enum(["upsert", "delete"]),
+  source: external_exports.object({
+    provider_id: ContractKeySchema,
+    tenant_id: ContractIdSchema,
+    collection_id: ContractIdSchema,
+    external_id: ContractIdSchema,
+    canonical_uri: external_exports.string().url().max(4096).optional(),
+    source_revision: external_exports.string().min(1).max(512).optional(),
+    occurred_at: IsoDateSchema.optional(),
+    observed_at: IsoDateSchema
+  }).strict(),
+  content: external_exports.object({
+    title: external_exports.string().min(1).max(1024),
+    media_type: external_exports.string().min(1).max(256),
+    body: external_exports.string().max(2e6).optional(),
+    content_hash: Sha256Schema.optional(),
+    language: external_exports.string().min(2).max(64).optional()
+  }).strict(),
+  provenance: external_exports.object({
+    author_external_id: ContractIdSchema.optional(),
+    author_display_name: external_exports.string().min(1).max(512).optional(),
+    locator: external_exports.string().min(1).max(4096).optional(),
+    rights: external_exports.string().min(1).max(512).optional()
+  }).strict().default({}),
+  security: EvidenceSecurityV1Schema,
+  context_refs: external_exports.array(ContextReferenceV1Schema).max(128).default([]),
+  cursor: external_exports.object({
+    stream: ContractIdSchema,
+    value: external_exports.string().min(1).max(4096)
+  }).strict().optional(),
+  attempt: external_exports.number().int().positive().default(1),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict().superRefine((envelope, ctx) => {
+  if (envelope.operation === "upsert") {
+    if (envelope.content.body === void 0) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["content", "body"],
+        message: "upsert events require content.body"
+      });
+    }
+    if (!envelope.content.content_hash) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["content", "content_hash"],
+        message: "upsert events require content.content_hash"
+      });
+    }
+  }
+});
+var IngestReceiptV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  event_id: ContractIdSchema,
+  idempotency_key: external_exports.string().min(1).max(1024),
+  status: external_exports.enum(["accepted", "duplicate", "indexed", "deleted", "rejected", "retry"]),
+  evidence_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  index_job_id: ContractIdSchema.optional(),
+  next_cursor: external_exports.string().min(1).max(4096).optional(),
+  error_code: ContractKeySchema.optional(),
+  error: external_exports.string().min(1).max(4096).optional(),
+  recorded_at: IsoDateSchema
+}).strict().superRefine((receipt, ctx) => {
+  if (["rejected", "retry"].includes(receipt.status) && !receipt.error_code) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["error_code"],
+      message: `${receipt.status} receipts require error_code`
+    });
+  }
+});
+
+// packages/shared/dist/context-action.js
+var ActionOperationV1Schema = external_exports.object({
+  description: external_exports.string().min(1).max(1024),
+  input_schema: external_exports.record(ContractJsonValueSchema),
+  output_schema: external_exports.record(ContractJsonValueSchema),
+  effect: external_exports.enum(["read", "internal_write", "external_write"]),
+  risk: external_exports.enum(["low", "medium", "high"]),
+  required_scopes: external_exports.array(ContractKeySchema).max(128).default([]),
+  approval: external_exports.enum(["none", "user", "admin"]),
+  idempotency: external_exports.enum(["required", "supported", "none"]),
+  allowed_context_types: external_exports.array(ContractKeySchema).min(1).max(64),
+  timeout_ms: external_exports.number().int().min(10).max(3e5).default(3e4),
+  max_cost_microunits: external_exports.number().int().nonnegative().optional()
+}).strict().superRefine((operation, ctx) => {
+  if (operation.effect !== "read" && operation.idempotency === "none") {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["idempotency"],
+      message: "write operations must support idempotency"
+    });
+  }
+});
+var ActionAdapterManifestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractKeySchema,
+  implementation_version: external_exports.string().min(1).max(128),
+  display_name: external_exports.string().min(1).max(128),
+  credential_binding_types: external_exports.array(ContractKeySchema).max(64).default([]),
+  operations: external_exports.record(ContractKeySchema, ActionOperationV1Schema)
+}).strict().refine((manifest) => Object.keys(manifest.operations).length > 0, {
+  path: ["operations"],
+  message: "an action adapter must declare at least one operation"
+});
+var ActionPrepareRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  request_id: ContractIdSchema,
+  principal: ExecutionPrincipalV1Schema,
+  context_manifest: ContextManifestV1Schema,
+  context_manifest_hash: Sha256Schema,
+  action_id: ContractIdSchema,
+  /** Immutable document/version identifier selected during preparation. */
+  action_revision: ContractIdSchema,
+  /** Canonical hash of the validated Action metadata at preparation time. */
+  action_metadata_hash: Sha256Schema,
+  adapter_id: ContractKeySchema,
+  operation: ContractKeySchema,
+  input: ContractJsonValueSchema,
+  idempotency_key: external_exports.string().min(1).max(1024).optional(),
+  credential_binding_id: ContractIdSchema.optional()
+}).strict();
+var PreparedActionV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  plan_id: Sha256Schema,
+  adapter_id: ContractKeySchema,
+  adapter_version: external_exports.string().min(1).max(128),
+  operation: ContractKeySchema,
+  account_id: external_exports.string().uuid(),
+  action_id: ContractIdSchema,
+  action_revision: ContractIdSchema,
+  action_metadata_hash: Sha256Schema,
+  project_id: ContractIdSchema.optional(),
+  thought_id: ContractIdSchema.optional(),
+  context_manifest_hash: Sha256Schema,
+  input: ContractJsonValueSchema,
+  input_hash: Sha256Schema,
+  idempotency_key: external_exports.string().min(1).max(1024).optional(),
+  credential_binding_id: ContractIdSchema.optional(),
+  effect: external_exports.enum(["read", "internal_write", "external_write"]),
+  risk: external_exports.enum(["low", "medium", "high"]),
+  approval: external_exports.object({
+    state: external_exports.enum(["not_required", "required", "approved"]),
+    approved_by: ContractIdSchema.optional(),
+    approved_at: IsoDateSchema.optional(),
+    policy_revision: external_exports.string().min(1).max(256)
+  }).strict(),
+  preview: external_exports.string().min(1).max(16e3),
+  prepared_at: IsoDateSchema,
+  expires_at: IsoDateSchema
+}).strict().superRefine((prepared, ctx) => {
+  if (prepared.approval.state === "approved") {
+    if (!prepared.approval.approved_by || !prepared.approval.approved_at) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["approval"],
+        message: "approved actions require approved_by and approved_at"
+      });
+    }
+  }
+});
+var ActionApprovalV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  execution_id: ContractIdSchema,
+  plan_id: Sha256Schema,
+  decision: external_exports.enum(["approved", "rejected"]),
+  approved_by: ContractIdSchema,
+  approved_at: IsoDateSchema,
+  context_manifest_hash: Sha256Schema,
+  action_revision: ContractIdSchema,
+  action_metadata_hash: Sha256Schema,
+  adapter_version: external_exports.string().min(1).max(128),
+  policy_revision: external_exports.string().min(1).max(256)
+}).strict();
+var ActionReceiptV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  execution_id: ContractIdSchema,
+  plan_id: Sha256Schema,
+  adapter_id: ContractKeySchema,
+  adapter_version: external_exports.string().min(1).max(128),
+  operation: ContractKeySchema,
+  status: external_exports.enum(["succeeded", "failed", "indeterminate", "compensated"]),
+  started_at: IsoDateSchema,
+  completed_at: IsoDateSchema,
+  attempts: external_exports.number().int().positive(),
+  /** Durable audit event inserted in the same transaction as reservation. */
+  pre_effect_audit_id: ContractIdSchema,
+  /** True when an idempotent retry returned the stored receipt. */
+  replayed: external_exports.boolean().default(false),
+  output: ContractJsonValueSchema.optional(),
+  output_hash: Sha256Schema.optional(),
+  effects: external_exports.array(
+    external_exports.object({
+      type: ContractKeySchema,
+      external_id: ContractIdSchema.optional(),
+      canonical_uri: external_exports.string().url().max(4096).optional(),
+      reversible: external_exports.boolean()
+    }).strict()
+  ).max(1e3).default([]),
+  evidence_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  error_code: ContractKeySchema.optional(),
+  error: external_exports.string().min(1).max(4096).optional()
+}).strict().superRefine((receipt, ctx) => {
+  if (receipt.status !== "succeeded" && receipt.status !== "compensated" && !receipt.error_code) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["error_code"],
+      message: `${receipt.status} receipts require error_code`
+    });
+  }
+});
+
+// packages/shared/dist/context-host.js
+var HostContextV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  host_kind: ContractKeySchema,
+  host_instance_id: ContractIdSchema,
+  client_version: external_exports.string().min(1).max(128).optional(),
+  session_id: ContractIdSchema,
+  cwd: external_exports.string().min(1).max(4096).optional(),
+  git_remote: external_exports.string().min(1).max(1024).optional(),
+  git_branch: external_exports.string().min(1).max(512).optional(),
+  workspace_fingerprint: Sha256Schema.optional(),
+  capabilities: external_exports.array(
+    external_exports.object({
+      name: ContractKeySchema,
+      state: external_exports.enum(["enabled", "limited", "blocked"]),
+      source: external_exports.enum(["enforced", "reported", "derived"]),
+      scope: external_exports.string().min(1).max(512).optional()
+    }).strict()
+  ).max(256).default([])
+}).strict();
+var HostHookEnvelopeV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  event_id: ContractIdSchema,
+  event: external_exports.enum(["session_start", "user_prompt_submit", "pre_tool_use", "post_tool_use", "stop"]),
+  occurred_at: IsoDateSchema,
+  host: HostContextV1Schema,
+  /** Required once a context has been selected; protects late delivery. */
+  context_manifest_hash: Sha256Schema.optional(),
+  payload: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var HostDeliveryCapabilitiesV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  modes: external_exports.array(external_exports.enum(["inline", "bundle_handle", "mcp_resource"])).min(1).max(3),
+  max_inline_bytes: external_exports.number().int().min(1).max(1e7),
+  supports_manifest_invalidation: external_exports.boolean(),
+  supports_structured_citations: external_exports.boolean()
+}).strict();
+var HostContextDeliveryV1Schema = external_exports.object({
+  manifest_hash: Sha256Schema,
+  bundle_id: Sha256Schema.optional(),
+  inline_markdown: external_exports.string().max(1e7).optional(),
+  resource_uri: external_exports.string().min(1).max(4096).optional()
+}).strict();
+
+// packages/shared/dist/context-training.js
+var TrainingConsentV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  account_id: external_exports.string().uuid(),
+  user_id: external_exports.string().uuid(),
+  status: external_exports.enum(["granted", "revoked", "expired"]),
+  purposes: external_exports.array(external_exports.enum(["personalization", "evaluation", "personal_fine_tuning"])).min(1).max(3),
+  provider_ids: external_exports.array(ContractKeySchema).max(64).default([]),
+  granted_at: IsoDateSchema,
+  expires_at: IsoDateSchema.optional(),
+  revoked_at: IsoDateSchema.optional()
+}).strict().superRefine((consent, ctx) => {
+  if (consent.status === "revoked" && !consent.revoked_at) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["revoked_at"],
+      message: "revoked consent requires revoked_at"
+    });
+  }
+});
+var TrainingExampleV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  account_id: external_exports.string().uuid(),
+  owner_user_id: external_exports.string().uuid(),
+  consent_id: ContractIdSchema,
+  source: external_exports.enum(["explicit_save", "accepted_feedback"]),
+  created_at: IsoDateSchema,
+  input: external_exports.string().min(1).max(2e5),
+  preferred_output: external_exports.string().min(1).max(2e5),
+  context_manifest_hash: Sha256Schema,
+  resolver_audit_id: ContractIdSchema,
+  evidence_ids: external_exports.array(ContractIdSchema).max(1e4).default([]),
+  model_id: external_exports.string().min(1).max(256).optional(),
+  presentation_profile_version: external_exports.string().min(1).max(256).optional(),
+  labels: external_exports.array(ContractKeySchema).max(128).default([]),
+  redaction_state: external_exports.enum(["not_needed", "redacted", "review_required"]),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var TrainingJobRequestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  id: ContractIdSchema,
+  account_id: external_exports.string().uuid(),
+  owner_user_id: external_exports.string().uuid(),
+  consent_id: ContractIdSchema,
+  purpose: external_exports.enum(["evaluation", "personal_fine_tuning"]),
+  provider_id: ContractKeySchema,
+  base_model_id: external_exports.string().min(1).max(256),
+  example_ids: external_exports.array(ContractIdSchema).min(1).max(1e5),
+  evaluation_suite_id: ContractIdSchema,
+  requested_at: IsoDateSchema
+}).strict();
+var TrainingJobResultV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  job_id: ContractIdSchema,
+  status: external_exports.enum(["queued", "running", "passed", "failed", "cancelled"]),
+  provider_job_id: ContractIdSchema.optional(),
+  model_id: external_exports.string().min(1).max(256).optional(),
+  evaluation_passed: external_exports.boolean().optional(),
+  metrics: external_exports.record(external_exports.number().finite()).default({}),
+  error_code: ContractKeySchema.optional(),
+  error: external_exports.string().min(1).max(4096).optional(),
+  updated_at: IsoDateSchema
+}).strict();
+
+// packages/shared/dist/resource-evidence.js
+var RESOURCE_KINDS = [
+  "markdown",
+  "text",
+  "webpage",
+  "youtube",
+  "pdf",
+  "document",
+  "image",
+  "audio",
+  "video",
+  "jira",
+  "slack",
+  "github",
+  "code",
+  "dataset"
+];
+var ResourceKindV1Schema = external_exports.enum(RESOURCE_KINDS);
+var ResourceEntityMentionV1Schema = external_exports.object({
+  kind: external_exports.enum(["ticket", "url", "named_mention"]),
+  text: external_exports.string().min(2).max(256),
+  // Unicode code-point offsets, matching PostgreSQL substring positions.
+  start_offset: external_exports.number().int().nonnegative().max(32e3),
+  end_offset: external_exports.number().int().positive().max(32e3)
+}).strict().refine((value) => value.end_offset > value.start_offset, {
+  message: "A mention must cover an exact nonempty source span"
+});
+var ResourceEntityChunkWriteV1Schema = external_exports.object({
+  chunk_id: external_exports.string().uuid(),
+  content_sha256: Sha256Schema,
+  mentions: external_exports.array(ResourceEntityMentionV1Schema).max(16)
+}).strict();
+var PublicStudyResourceV2Schema = external_exports.object({
+  provider: external_exports.enum(["pubmed", "clinicaltrials.gov", "crossref", "openalex", "openfda"]),
+  external_id: external_exports.string().min(1).max(512),
+  title: external_exports.string().min(1).max(500),
+  canonical_url: external_exports.string().url().max(4096),
+  retrieval_url: external_exports.string().url().max(4096),
+  coverage: external_exports.enum(["full_text", "abstract", "registry_protocol", "regulatory_record"]),
+  rights_basis: external_exports.enum([
+    "open_access_license",
+    "provider_api_abstract",
+    "public_registry_record",
+    "us_government_public_record"
+  ]),
+  license_label: external_exports.string().max(512).nullable(),
+  license_url: external_exports.string().url().nullable(),
+  content: external_exports.string().min(1).max(5e5),
+  provenance: external_exports.record(ContractJsonValueSchema),
+  passages: external_exports.array(
+    external_exports.object({
+      heading: external_exports.string().max(500),
+      // Includes the retained corpus's existing 6,000-character limit.
+      text: external_exports.string().min(1).max(6e3),
+      locator: external_exports.record(ContractJsonValueSchema)
+    }).strict()
+  ).min(1).max(512)
+}).strict();
+var WholeResourceLocatorV1Schema = external_exports.object({ kind: external_exports.literal("whole") }).strict();
+var LineResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("line"),
+  start_line: external_exports.number().int().positive(),
+  end_line: external_exports.number().int().positive()
+}).strict().refine((value) => value.end_line >= value.start_line, {
+  message: "end_line must be greater than or equal to start_line",
+  path: ["end_line"]
+});
+var PageResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("page"),
+  page: external_exports.number().int().positive(),
+  start_offset: external_exports.number().int().nonnegative().optional(),
+  end_offset: external_exports.number().int().nonnegative().optional()
+}).strict().refine(
+  (value) => value.start_offset === void 0 || value.end_offset === void 0 || value.end_offset >= value.start_offset,
+  {
+    message: "end_offset must be greater than or equal to start_offset",
+    path: ["end_offset"]
+  }
+);
+var TimeResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("time"),
+  start_ms: external_exports.number().int().nonnegative(),
+  end_ms: external_exports.number().int().nonnegative()
+}).strict().refine((value) => value.end_ms >= value.start_ms, {
+  message: "end_ms must be greater than or equal to start_ms",
+  path: ["end_ms"]
+});
+var WebResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("web"),
+  url: external_exports.string().url().max(4096),
+  selector: external_exports.string().min(1).max(2048).optional(),
+  fragment: external_exports.string().min(1).max(2048).optional(),
+  text_quote: external_exports.string().min(1).max(2048).optional()
+}).strict().refine((value) => Boolean(value.selector || value.fragment || value.text_quote), {
+  message: "web locators require a selector, fragment, or text quote"
+});
+var RegionResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("region"),
+  page: external_exports.number().int().positive().optional(),
+  x: external_exports.number().finite(),
+  y: external_exports.number().finite(),
+  width: external_exports.number().finite().positive(),
+  height: external_exports.number().finite().positive()
+}).strict();
+var ExternalResourceLocatorV1Schema = external_exports.object({
+  kind: external_exports.literal("external"),
+  provider: ContractKeySchema,
+  item_id: ContractIdSchema,
+  subpath: external_exports.string().min(1).max(2048).optional()
+}).strict();
+var ResourceLocatorV1Schema = external_exports.union([
+  WholeResourceLocatorV1Schema,
+  LineResourceLocatorV1Schema,
+  PageResourceLocatorV1Schema,
+  TimeResourceLocatorV1Schema,
+  WebResourceLocatorV1Schema,
+  RegionResourceLocatorV1Schema,
+  ExternalResourceLocatorV1Schema
+]);
+var ResourceEntityEvidenceV1Schema = external_exports.object({
+  version: external_exports.literal(1),
+  resource_id: external_exports.string().uuid(),
+  resource_version_id: external_exports.string().uuid(),
+  status: external_exports.enum(["queued", "processing", "partial", "unavailable", "failed"]),
+  truncated: external_exports.boolean(),
+  mentions: external_exports.array(
+    external_exports.object({
+      kind: external_exports.enum(["ticket", "url", "named_mention"]),
+      text: external_exports.string().min(2).max(256),
+      chunk_id: external_exports.string().uuid(),
+      locator: ResourceLocatorV1Schema,
+      excerpt: external_exports.string().max(2e3)
+    }).strict()
+  ).max(64)
+}).strict();
+var ResourceIngestChunkV1Schema = external_exports.object({
+  id: external_exports.string().uuid(),
+  ordinal: external_exports.number().int().min(0).max(2047),
+  content: external_exports.string().min(1).max(32e3),
+  excerpt: external_exports.string().min(1).max(2e3),
+  content_sha256: Sha256Schema,
+  locator: ResourceLocatorV1Schema,
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+var ResourceIngestManifestV1Schema = external_exports.object({
+  version: external_exports.literal(CONTEXT_CONTRACT_VERSION),
+  ingest_id: ContractIdSchema,
+  account_id: external_exports.string().uuid(),
+  project_id: external_exports.string().uuid().nullable(),
+  resource_id: external_exports.string().uuid(),
+  owner_id: external_exports.string().uuid().nullable(),
+  scope: external_exports.enum(["private", "project", "team", "public"]),
+  kind: ResourceKindV1Schema,
+  title: external_exports.string().min(1).max(500),
+  canonical_uri: external_exports.string().url().max(4096).nullable(),
+  source_revision: external_exports.string().min(1).max(512),
+  mime_type: external_exports.string().min(1).max(256),
+  content: external_exports.string().max(2e6),
+  content_sha256: Sha256Schema,
+  byte_size: external_exports.number().int().nonnegative().max(1e8),
+  rights_basis: external_exports.string().min(1).max(512),
+  license: external_exports.string().min(1).max(512).nullable(),
+  provenance: external_exports.record(ContractJsonValueSchema),
+  storage_locator: external_exports.record(ContractJsonValueSchema).default({}),
+  observed_at: IsoDateSchema,
+  occurred_at: IsoDateSchema.nullable().default(null),
+  chunks: external_exports.array(ResourceIngestChunkV1Schema).min(1).max(2048)
+}).strict().superRefine((manifest, ctx) => {
+  if (manifest.scope === "project" && !manifest.project_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["project_id"],
+      message: "project-scoped resources require project_id"
+    });
+  }
+  if (manifest.scope === "private" && !manifest.owner_id) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["owner_id"],
+      message: "private resources require owner_id"
+    });
+  }
+  if (manifest.byte_size !== new TextEncoder().encode(manifest.content).byteLength) {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["byte_size"],
+      message: "byte_size does not match normalized UTF-8 content"
+    });
+  }
+  const ids = /* @__PURE__ */ new Set();
+  const ordinals = /* @__PURE__ */ new Set();
+  manifest.chunks.forEach((chunk, index) => {
+    if (ids.has(chunk.id)) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["chunks", index, "id"],
+        message: "chunk ids must be unique"
+      });
+    }
+    if (ordinals.has(chunk.ordinal) || chunk.ordinal !== index) {
+      ctx.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["chunks", index, "ordinal"],
+        message: "chunk ordinals must be unique and contiguous from zero"
+      });
+    }
+    ids.add(chunk.id);
+    ordinals.add(chunk.ordinal);
+  });
+});
+var ResourceEvidenceSearchRowV1Schema = external_exports.object({
+  evidence_id: ContractIdSchema,
+  resource_id: external_exports.string().uuid(),
+  resource_version_id: external_exports.string().uuid(),
+  chunk_id: external_exports.string().uuid(),
+  context_type: external_exports.enum(["account", "project", "thought"]),
+  context_id: ContractIdSchema,
+  kind: ResourceKindV1Schema,
+  title: external_exports.string().min(1).max(1024),
+  content: external_exports.string().min(1).max(2e6),
+  source_revision: external_exports.string().min(1).max(512),
+  content_sha256: Sha256Schema,
+  canonical_uri: external_exports.string().url().max(4096).nullable(),
+  locator: ResourceLocatorV1Schema,
+  rights_basis: external_exports.string().min(1).max(512),
+  license: external_exports.string().min(1).max(512).nullable(),
+  observed_at: IsoDateSchema,
+  occurred_at: IsoDateSchema.nullable(),
+  authority: external_exports.enum(["provisional", "verified"]),
+  resource_status: external_exports.literal("active"),
+  version_status: external_exports.literal("active"),
+  audience: external_exports.enum(["private", "team", "room", "external", "public"]),
+  classification: external_exports.enum(["public", "internal", "confidential", "restricted"]),
+  authorized_principal_ids: external_exports.array(ContractIdSchema).max(500).default([]),
+  audience_context_id: ContractIdSchema.optional(),
+  acl_revision: external_exports.string().min(1).max(256).optional(),
+  embedding_profile_id: ContractIdSchema.optional(),
+  semantic_score: external_exports.number().finite().optional(),
+  lexical_score: external_exports.number().finite().optional(),
+  metadata: external_exports.record(ContractJsonValueSchema).default({})
+}).strict();
+
+// packages/shared/dist/thought-runtime.js
+var Id = external_exports.string().uuid();
+var Revision = external_exports.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
+var Key = external_exports.string().trim().min(1).max(160);
+var Hash = external_exports.string().regex(/^[a-f0-9]{64}$/);
+var Time = external_exports.string().datetime({ offset: true });
+var Position = external_exports.object({ x: external_exports.number().finite().min(-1e6).max(1e6), y: external_exports.number().finite().min(-1e6).max(1e6) }).strict();
+var Size = external_exports.object({
+  width: external_exports.number().finite().min(80).max(4e3),
+  height: external_exports.number().finite().min(40).max(4e3)
+}).strict();
+var ThoughtRelationKindV2Schema = external_exports.enum([
+  "expands",
+  "answers",
+  "supports",
+  "contradicts",
+  "causes",
+  "depends_on",
+  "leads_to",
+  "related",
+  "references",
+  "decided_by",
+  "produces_action"
+]);
+var ThoughtEntityKindV2Schema = external_exports.enum([
+  "thought",
+  "relation",
+  "placement",
+  "resource_placement",
+  "canvas_element",
+  "canvas_connector",
+  "proposal"
+]);
+var ThoughtEntityPreconditionV2Schema = external_exports.object({ kind: ThoughtEntityKindV2Schema, id: Id, revision: Revision }).strict();
+var ThoughtPatch = external_exports.object({
+  title: external_exports.string().trim().min(1).max(240).optional(),
+  body: external_exports.string().max(2e4).optional(),
+  kind: external_exports.string().trim().min(1).max(40).optional(),
+  workflow_status: external_exports.enum(["active", "resolved", "dismissed"]).optional()
+}).strict().refine((p) => Object.keys(p).length > 0, "empty patch");
+var LayoutPatchShape = external_exports.object({
+  position: Position.optional(),
+  size: Size.optional(),
+  parent_id: Id.nullable().optional(),
+  collapsed: external_exports.boolean().optional(),
+  order: external_exports.number().finite().min(-1e9).max(1e9).optional(),
+  z_index: external_exports.number().int().min(-1e5).max(1e5).optional()
+}).strict();
+var LayoutPatch = LayoutPatchShape.refine((p) => Object.keys(p).length > 0, "empty patch");
+var ThoughtReferenceV2Schema = external_exports.union([
+  external_exports.object({ id: Id }).strict(),
+  external_exports.object({ created: Key }).strict()
+]);
+var ThoughtCommandV2Schema = external_exports.discriminatedUnion("type", [
+  external_exports.object({
+    type: external_exports.literal("thought.create"),
+    key: Key,
+    title: external_exports.string().trim().min(1).max(240),
+    body: external_exports.string().max(2e4).default(""),
+    kind: external_exports.string().trim().min(1).max(40).default("thought"),
+    position: Position.optional()
+  }).strict(),
+  external_exports.object({ type: external_exports.literal("thought.update"), id: Id, patch: ThoughtPatch }).strict(),
+  external_exports.object({ type: external_exports.literal("thought.archive"), id: Id }).strict(),
+  external_exports.object({
+    type: external_exports.literal("relation.create"),
+    key: Key,
+    source: ThoughtReferenceV2Schema,
+    target: ThoughtReferenceV2Schema,
+    relation: ThoughtRelationKindV2Schema,
+    label: external_exports.string().max(120).nullable().optional()
+  }).strict(),
+  external_exports.object({ type: external_exports.literal("relation.archive"), id: Id }).strict(),
+  external_exports.object({
+    type: external_exports.literal("placement.create"),
+    key: Key,
+    thought: ThoughtReferenceV2Schema,
+    position: Position
+  }).strict(),
+  external_exports.object({ type: external_exports.literal("placement.update"), id: Id, patch: LayoutPatch }).strict(),
+  external_exports.object({ type: external_exports.literal("placement.archive"), id: Id }).strict(),
+  external_exports.object({
+    type: external_exports.literal("resource.link"),
+    key: Key,
+    resource_id: Id,
+    thought: ThoughtReferenceV2Schema,
+    position: Position.optional()
+  }).strict(),
+  external_exports.object({ type: external_exports.literal("resource.unlink"), id: Id }).strict(),
+  external_exports.object({ type: external_exports.literal("resource_placement.update"), id: Id, patch: LayoutPatch }).strict(),
+  external_exports.object({
+    type: external_exports.literal("canvas_element.create"),
+    key: Key,
+    kind: external_exports.enum(["frame", "group", "text", "shape", "drawing"]),
+    body: external_exports.string().max(2e4).default(""),
+    position: Position,
+    size: Size
+  }).strict(),
+  external_exports.object({
+    type: external_exports.literal("canvas_element.update"),
+    id: Id,
+    patch: LayoutPatchShape,
+    body: external_exports.string().max(2e4).optional()
+  }).strict(),
+  external_exports.object({ type: external_exports.literal("canvas_element.archive"), id: Id }).strict(),
+  external_exports.object({
+    type: external_exports.literal("canvas_connector.create"),
+    key: Key,
+    source_id: Id,
+    target_id: Id,
+    label: external_exports.string().max(120).default("")
+  }).strict(),
+  external_exports.object({ type: external_exports.literal("canvas_connector.archive"), id: Id }).strict(),
+  external_exports.object({ type: external_exports.literal("proposal.accept"), id: Id }).strict(),
+  external_exports.object({ type: external_exports.literal("proposal.reject"), id: Id }).strict()
+]).superRefine((command, context) => {
+  if (command.type === "canvas_element.update" && Object.keys(command.patch).length === 0 && command.body === void 0)
+    context.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      message: "Canvas content or layout is required",
+      path: ["patch"]
+    });
+});
+var ThoughtCommandBatchV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  base_cursor: Revision,
+  idempotency_key: Key,
+  preconditions: external_exports.array(ThoughtEntityPreconditionV2Schema).max(200),
+  commands: external_exports.array(ThoughtCommandV2Schema).min(1).max(50)
+}).strict().superRefine((batch, ctx) => {
+  const entities = /* @__PURE__ */ new Set();
+  const keys = /* @__PURE__ */ new Set();
+  for (const p of batch.preconditions) {
+    const key = `${p.kind}:${p.id}`;
+    if (entities.has(key))
+      ctx.addIssue({ code: "custom", message: "duplicate entity precondition" });
+    entities.add(key);
+  }
+  for (const c of batch.commands) {
+    if ("key" in c) {
+      if (keys.has(c.key)) ctx.addIssue({ code: "custom", message: "duplicate creation key" });
+      keys.add(c.key);
+    }
+    if (c.type.startsWith("proposal.") && batch.commands.length !== 1)
+      ctx.addIssue({ code: "custom", message: "proposal review must be its own atomic batch" });
+  }
+});
+var CanonicalThoughtV2Schema = external_exports.object({
+  id: Id,
+  account_id: Id,
+  project_id: Id.nullable(),
+  created_by: Id,
+  scope: external_exports.enum(["personal", "project", "team"]),
+  title: external_exports.string(),
+  body: external_exports.string(),
+  kind: external_exports.string(),
+  workflow_status: external_exports.enum(["active", "resolved", "dismissed"]),
+  authority: external_exports.enum(["authored", "proposed", "verified"]),
+  revision: Revision,
+  current_revision_id: Id,
+  updated_at: Time
+}).strict();
+var Layout = external_exports.object({
+  id: Id,
+  revision: Revision,
+  position: Position,
+  size: Size,
+  parent_id: Id.nullable(),
+  collapsed: external_exports.boolean(),
+  order: external_exports.number(),
+  z_index: external_exports.number()
+});
+var ThoughtWorkspaceSnapshotV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root: CanonicalThoughtV2Schema,
+  cursor: Revision,
+  revision_token: external_exports.string().min(1),
+  thoughts: external_exports.array(CanonicalThoughtV2Schema),
+  relations: external_exports.array(
+    external_exports.object({
+      id: Id,
+      revision: Revision,
+      source_thought_id: Id,
+      target_thought_id: Id,
+      relation: ThoughtRelationKindV2Schema,
+      label: external_exports.string().nullable()
+    }).strict()
+  ),
+  placements: external_exports.array(Layout.extend({ thought_id: Id }).strict()),
+  resources: external_exports.array(
+    external_exports.object({
+      id: Id,
+      title: external_exports.string(),
+      kind: external_exports.string(),
+      current_version_id: Id.nullable(),
+      canonical_uri: external_exports.string().nullable(),
+      status: external_exports.string(),
+      coverage: external_exports.enum(["pending", "partial", "complete", "unavailable", "failed"])
+    }).strict()
+  ),
+  resource_placements: external_exports.array(Layout.extend({ resource_id: Id, thought_id: Id }).strict()),
+  canvas_elements: external_exports.array(
+    Layout.extend({
+      kind: external_exports.enum(["frame", "group", "text", "shape", "drawing"]),
+      body: external_exports.string()
+    }).strict()
+  ),
+  canvas_connectors: external_exports.array(
+    external_exports.object({ id: Id, revision: Revision, source_id: Id, target_id: Id, label: external_exports.string() }).strict()
+  ),
+  capabilities: external_exports.object({ read: external_exports.literal(true), edit: external_exports.boolean(), comment: external_exports.boolean() }).strict()
+}).strict();
+var ThoughtWorkspaceChangesQueryV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  after_cursor: Revision,
+  thought_ids: external_exports.array(Id).max(128)
+}).strict();
+var ThoughtWorkspaceChangesV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  cursor: Revision,
+  requires_snapshot: external_exports.boolean(),
+  thoughts: external_exports.array(CanonicalThoughtV2Schema).max(128),
+  missing_thought_ids: external_exports.array(Id).max(128)
+}).strict();
+var ThoughtCommandResultV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  receipt_id: Id,
+  root_thought_id: Id,
+  cursor: Revision,
+  replayed: external_exports.boolean(),
+  created: external_exports.record(external_exports.object({ id: Id, kind: ThoughtEntityKindV2Schema }).strict()),
+  changed: external_exports.array(ThoughtEntityPreconditionV2Schema)
+}).strict();
+var ThoughtCreateV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  idempotency_key: Key,
+  title: external_exports.string().trim().min(1).max(240),
+  body: external_exports.string().max(2e4).default(""),
+  home: external_exports.object({ scope: external_exports.enum(["personal", "project", "team"]), project_id: Id.nullable() }).strict()
+}).strict().refine(
+  (x) => x.home.scope === "project" === (x.home.project_id !== null),
+  "only a project home has a project ID"
+);
+var ThoughtPreferencesV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  thought_id: Id,
+  expected_updated_at: Time,
+  idempotency_key: Key,
+  patch: external_exports.object({
+    importance: external_exports.number().int().min(0).max(5).optional(),
+    scope: external_exports.enum(["personal", "team"]).optional()
+  }).strict().refine((x) => Object.keys(x).length > 0, "empty patch")
+}).strict();
+var ThoughtPreferencesReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  receipt_id: Id,
+  thought_id: Id,
+  cursor: Revision,
+  updated_at: Time,
+  importance: external_exports.number().int().min(0).max(5),
+  scope: external_exports.enum(["personal", "project", "team"]),
+  replayed: external_exports.boolean()
+}).strict();
+var ThoughtLibraryArchiveV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  thought_id: Id,
+  archived: external_exports.boolean(),
+  idempotency_key: Key
+}).strict();
+var ThoughtLibraryArchiveReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  receipt_id: Id,
+  thought_id: Id,
+  cursor: Revision,
+  archived: external_exports.boolean(),
+  archived_at: Time.nullable(),
+  replayed: external_exports.boolean()
+}).strict();
+var ThoughtTopicDesignateV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  designate: external_exports.boolean(),
+  expected_topic_revision: Revision,
+  idempotency_key: Key
+}).strict();
+var ThoughtTopicDesignationReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  receipt_id: Id,
+  root_thought_id: Id,
+  is_topic: external_exports.boolean(),
+  topic_revision: Revision,
+  /** Members derived on designation that the actor can read. */
+  connected_memberships: external_exports.number().int().nonnegative(),
+  /** Memberships ended by "Stop using as a topic" that the actor can read. */
+  archived_memberships: external_exports.number().int().nonnegative(),
+  changed: external_exports.boolean(),
+  replayed: external_exports.boolean()
+}).strict();
+var ThoughtTopicMembershipV2Schema = external_exports.object({
+  id: Id,
+  topic_root_id: Id,
+  thought_id: Id,
+  parent_thought_id: Id,
+  placement_id: Id,
+  relation_id: Id,
+  revision: Revision
+}).strict();
+var ThoughtGuidanceStageV2Schema = external_exports.enum([
+  "topic",
+  "clarify",
+  "research",
+  "action",
+  "memory",
+  "completed"
+]);
+var ThoughtGuidanceStageStateV2Schema = external_exports.enum(["completed", "skipped", "dismissed"]);
+var GuidanceCardId = external_exports.string().min(1).max(160);
+var ThoughtGuidanceCardV2Schema = external_exports.object({
+  id: GuidanceCardId,
+  kind: external_exports.literal("question"),
+  question: external_exports.string().min(1).max(500),
+  suggested_answers: external_exports.array(external_exports.string().min(1).max(200)).max(4),
+  /** What remains unknown, when research could help. */
+  research_gap: external_exports.string().min(1).max(300).nullable(),
+  status: external_exports.enum(["pending", "answered", "skipped"]),
+  answer: external_exports.string().max(2e3).nullable(),
+  thought_revision: Revision,
+  created_at: Time
+}).strict();
+var ThoughtGuidanceSessionV2Schema = external_exports.object({
+  id: Id,
+  thought_id: Id,
+  context_root_id: Id,
+  stage: ThoughtGuidanceStageV2Schema,
+  stage_states: external_exports.record(ThoughtGuidanceStageStateV2Schema),
+  cards: external_exports.array(ThoughtGuidanceCardV2Schema).max(50),
+  dismissal_count: external_exports.number().int().nonnegative(),
+  offers_paused: external_exports.boolean(),
+  revision: Revision,
+  updated_at: Time
+}).strict();
+var ThoughtGuidanceReadV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  thought_id: Id,
+  context_root_id: Id,
+  thought_revision: Revision,
+  session: ThoughtGuidanceSessionV2Schema.nullable(),
+  /** A pending question was asked about an earlier revision of the Thought. */
+  stale: external_exports.boolean()
+}).strict();
+var GuidanceWriteBase = { version: external_exports.literal(2), context_root_id: Id, idempotency_key: Key };
+var ThoughtGuidanceWriteV2Schema = external_exports.discriminatedUnion("action", [
+  /** Start or resume. An explicit open also lifts a paused session. */
+  external_exports.object({ action: external_exports.literal("open"), ...GuidanceWriteBase }).strict(),
+  external_exports.object({
+    action: external_exports.literal("answer"),
+    ...GuidanceWriteBase,
+    expected_revision: Revision,
+    card_id: GuidanceCardId,
+    answer: external_exports.string().trim().min(1).max(2e3)
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("skip"),
+    ...GuidanceWriteBase,
+    expected_revision: Revision,
+    card_id: GuidanceCardId
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("stage"),
+    ...GuidanceWriteBase,
+    expected_revision: Revision,
+    stage: ThoughtGuidanceStageV2Schema,
+    completed: external_exports.object({
+      stage: external_exports.enum(["topic", "clarify", "research", "action", "memory"]),
+      state: ThoughtGuidanceStageStateV2Schema
+    }).strict().nullable()
+  }).strict(),
+  /** "Not now". Two dismissals pause offers on this Thought until the person asks. */
+  external_exports.object({ action: external_exports.literal("dismiss"), ...GuidanceWriteBase, expected_revision: Revision }).strict(),
+  external_exports.object({ action: external_exports.literal("reset"), ...GuidanceWriteBase, expected_revision: Revision }).strict()
+]);
+var ThoughtGuidanceQuestionRequestV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  context_root_id: Id,
+  expected_revision: Revision,
+  idempotency_key: Key
+}).strict();
+var ThoughtGuidanceQuestionResultV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  /** Memlin has enough to suggest next steps; no further question was added. */
+  done: external_exports.boolean(),
+  guidance: ThoughtGuidanceReadV2Schema
+}).strict();
+var ThoughtTopicSuggestQueryV2Schema = external_exports.object({
+  thought_id: Id,
+  /** Capture inside a Topic preselects it (and optionally a branch) for confirmation. */
+  context_topic_id: Id.nullable().default(null),
+  context_parent_id: Id.nullable().default(null),
+  query: external_exports.string().trim().max(160).default(""),
+  limit: external_exports.number().int().min(1).max(10).default(3)
+}).strict();
+var ThoughtTopicPathStep = external_exports.object({ thought_id: Id, title: external_exports.string() }).strict();
+var ThoughtTopicSuggestionsV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  thought_id: Id,
+  /** The first suggestion clearly fits: show it preselected with one-tap Add. */
+  strong: external_exports.boolean(),
+  suggestions: external_exports.array(
+    external_exports.object({
+      topic_root_id: Id,
+      topic_title: external_exports.string(),
+      /** Lets one-tap Add connect without first loading the tree. */
+      topic_revision: Revision,
+      parent_thought_id: Id,
+      path: external_exports.array(ThoughtTopicPathStep).max(20),
+      strength: external_exports.number().min(0).max(1),
+      reason: external_exports.enum(["context", "match", "recent", "search"])
+    }).strict()
+  ).max(10)
+}).strict();
+var ThoughtTopicTreeV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  topic_root_id: Id,
+  title: external_exports.string(),
+  topic_revision: Revision,
+  can_edit: external_exports.boolean(),
+  /** Readable members only. A member under a hidden parent is placed under its nearest readable ancestor. */
+  nodes: external_exports.array(
+    external_exports.object({
+      thought_id: Id,
+      parent_thought_id: Id,
+      title: external_exports.string(),
+      kind: external_exports.string(),
+      workflow_status: external_exports.enum(["active", "resolved", "dismissed"]),
+      private_to_you: external_exports.boolean()
+    }).strict()
+  ).max(5e3)
+}).strict();
+var TopicMemberBase = {
+  version: external_exports.literal(2),
+  thought_id: Id,
+  expected_topic_revision: Revision,
+  idempotency_key: Key
+};
+var ThoughtTopicMemberWriteV2Schema = external_exports.discriminatedUnion("action", [
+  external_exports.object({ action: external_exports.literal("connect"), ...TopicMemberBase, parent_thought_id: Id }).strict(),
+  external_exports.object({ action: external_exports.literal("reparent"), ...TopicMemberBase, parent_thought_id: Id }).strict(),
+  external_exports.object({ action: external_exports.literal("remove"), ...TopicMemberBase }).strict(),
+  external_exports.object({
+    action: external_exports.literal("restore"),
+    version: external_exports.literal(2),
+    remove_receipt_id: Id,
+    expected_topic_revision: Revision,
+    idempotency_key: Key
+  }).strict()
+]);
+var ThoughtTopicRemovalPreviewV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  topic_root_id: Id,
+  thought_id: Id,
+  topic_revision: Revision,
+  /** False for a Thought with no readable children: remove immediately with Undo. */
+  requires_confirmation: external_exports.boolean(),
+  nodes: external_exports.array(external_exports.object({ thought_id: Id, parent_thought_id: Id, title: external_exports.string() }).strict()).max(5e3)
+}).strict();
+var ThoughtTopicOperationReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  receipt_id: Id,
+  operation: external_exports.enum(["connect", "reparent", "remove", "restore"]),
+  topic_root_id: Id,
+  thought_id: Id,
+  parent_thought_id: Id.nullable(),
+  topic_revision: Revision,
+  /** Readable members removed or restored by this operation. */
+  affected_memberships: external_exports.number().int().nonnegative(),
+  /** Connecting a private Thought never shares it; the UI offers Keep private or Share. */
+  private_to_you: external_exports.boolean(),
+  changed: external_exports.boolean(),
+  replayed: external_exports.boolean()
+}).strict();
+var ThoughtListCursorV2Schema = external_exports.object({ updated_at: Time, id: Id }).strict();
+var ThoughtWorkspaceListQueryV2Schema = external_exports.object({
+  query: external_exports.string().trim().max(160).default(""),
+  filter: external_exports.enum(["recent", "personal", "team", "project", "starred", "rooms", "archived"]).default("recent"),
+  limit: external_exports.number().int().min(1).max(100).default(30),
+  cursor: ThoughtListCursorV2Schema.nullable().default(null)
+}).strict();
+var ThoughtWorkspaceListV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  items: external_exports.array(
+    external_exports.object({
+      id: Id,
+      title: external_exports.string().max(500),
+      summary: external_exports.string().max(320),
+      scope: external_exports.enum(["personal", "project", "team"]),
+      project_id: Id.nullable(),
+      created_by: Id,
+      is_room: external_exports.boolean(),
+      importance: external_exports.number().int().min(0).max(5),
+      revision: Revision,
+      updated_at: Time,
+      from_ask: external_exports.boolean(),
+      tags: external_exports.array(external_exports.string().max(40)).max(4),
+      due_dates: external_exports.array(external_exports.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(12),
+      card_count: Revision,
+      connection_count: Revision,
+      can_edit_workspace: external_exports.boolean(),
+      can_edit_thought: external_exports.boolean()
+    }).strict()
+  ).max(100),
+  next_cursor: ThoughtListCursorV2Schema.nullable()
+}).strict();
+var ThoughtWorkspaceCountsV2Schema = external_exports.object({
+  all: Revision,
+  starred: Revision,
+  rooms: Revision,
+  team: Revision,
+  personal: Revision
+}).strict();
+var ThoughtAssistRequestV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  thought_id: Id,
+  focus: external_exports.object({ kind: external_exports.enum(["thought", "resource"]), id: Id }).strict().optional(),
+  context: external_exports.object({
+    scope: external_exports.enum(["selected", "branch", "workspace"]),
+    resource_ids: external_exports.array(Id).max(8).refine((ids) => new Set(ids).size === ids.length, "duplicate resource")
+  }).strict().optional(),
+  capability: external_exports.enum([
+    "explore",
+    "research",
+    "plan",
+    "review",
+    "explain",
+    "decide",
+    "refine",
+    "tag",
+    "branch",
+    "handoff"
+  ]),
+  audience: external_exports.enum(["private", "team", "public"]),
+  message: external_exports.string().trim().min(1).max(2e4),
+  presentation: external_exports.enum([
+    "default",
+    "explain-like-matt",
+    "hope",
+    "simple",
+    "teach",
+    "peer",
+    "expert",
+    "executive",
+    "concise",
+    "challenge"
+  ]).default("default"),
+  expected_context_hash: Hash.optional(),
+  idempotency_key: Key
+}).strict();
+var ThoughtProposalV1Schema = external_exports.object({
+  version: external_exports.literal(1),
+  id: Id,
+  root_thought_id: Id,
+  assist_run_id: Id,
+  revision: Revision,
+  context_bundle_id: Hash,
+  context_bundle_sha256: Hash,
+  preconditions: external_exports.array(ThoughtEntityPreconditionV2Schema),
+  commands: external_exports.array(ThoughtCommandV2Schema).min(1).max(50),
+  citations: external_exports.array(external_exports.string().min(1).max(1024)).max(100),
+  status: external_exports.enum(["pending", "accepted", "rejected", "expired", "stale"]),
+  expires_at: Time,
+  acceptance_receipt_id: Id.nullable()
+}).strict();
+var ResourceUploadRequestV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  upload_id: Id,
+  home: external_exports.object({ account_id: Id, project_id: Id.nullable(), scope: external_exports.enum(["private", "project"]) }).strict(),
+  file_name: external_exports.string().trim().min(1).max(255).refine((x) => !/[\\/\u0000-\u001f\u007f]/u.test(x), "unsupported file name"),
+  mime_type: external_exports.string().trim().max(256).default(""),
+  byte_size: external_exports.number().int().positive().max(25 * 1024 * 1024),
+  sha256: Hash,
+  title: external_exports.string().trim().max(240).default(""),
+  license: external_exports.string().trim().max(512).nullable().default(null),
+  rights_confirmed: external_exports.literal(true)
+}).strict().refine(
+  (x) => x.home.scope === "project" === (x.home.project_id !== null),
+  "only a project home has a project ID"
+);
+var ResourceUploadReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  upload_id: Id,
+  resource_id: Id,
+  resource_version_id: Id.nullable(),
+  state: external_exports.enum(["prepared", "completed"]),
+  storage_bucket: external_exports.literal("thought-resource-originals"),
+  storage_path: external_exports.string().min(1).max(2048),
+  upload_token: external_exports.string().min(1).nullable(),
+  upload_required: external_exports.boolean(),
+  mime_type: external_exports.string().min(1).max(256)
+}).strict().refine(
+  (x) => x.upload_required === (x.upload_token !== null),
+  "upload token required only for upload"
+).refine(
+  (x) => x.state !== "completed" || x.resource_version_id !== null && !x.upload_required,
+  "completed uploads require a version"
+);
+var ResourceIngestEnvelopeV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  idempotency_key: Key,
+  home: external_exports.object({
+    account_id: Id,
+    project_id: Id.nullable(),
+    scope: external_exports.enum(["private", "project", "team"])
+  }).strict(),
+  source: external_exports.object({
+    kind: external_exports.enum([
+      "text",
+      "markdown",
+      "webpage",
+      "youtube",
+      "pdf",
+      "document",
+      "image",
+      "audio",
+      "video"
+    ]),
+    title: external_exports.string().trim().min(1).max(500),
+    uri: external_exports.string().url().max(4096).optional()
+  }).strict(),
+  original: external_exports.object({
+    upload_id: Id.optional(),
+    content: external_exports.string().max(1e6).optional(),
+    sha256: Hash.optional()
+  }).strict(),
+  rights_basis: external_exports.string().trim().min(1).max(512),
+  license: external_exports.string().trim().max(512).nullable().optional(),
+  extractors: external_exports.array(external_exports.enum(["text", "ocr", "transcript", "keyframes", "structure"])).max(5),
+  thought_id: Id.optional(),
+  root_thought_id: Id.optional(),
+  position: Position.optional()
+}).strict().superRefine((x, ctx) => {
+  const issue2 = (message) => ctx.addIssue({ code: "custom", message });
+  if (!x.original.upload_id && x.original.content === void 0 && !x.source.uri)
+    issue2("original or source URI required");
+  if (x.original.upload_id && x.original.content !== void 0) issue2("choose one original");
+  if (x.original.content !== void 0 && !["text", "markdown"].includes(x.source.kind))
+    issue2("inline originals require text or markdown");
+  if (x.home.scope === "project" !== (x.home.project_id !== null))
+    issue2("only a project home has a project ID");
+  if (x.root_thought_id && !x.thought_id) issue2("workspace requires a selected Thought");
+  if (x.position && !x.thought_id) issue2("position requires a Thought");
+  if (x.source.uri && !["http:", "https:"].includes(new URL(x.source.uri).protocol))
+    issue2("source URI must use HTTP or HTTPS");
+});
+var ResourceIngestReceiptV2Schema = external_exports.object({
+  id: Id,
+  resource_id: Id,
+  status: external_exports.enum(["pending", "processing", "complete", "partial", "unavailable", "failed"]),
+  replayed: external_exports.boolean(),
+  result: external_exports.unknown().optional(),
+  placement_receipt: external_exports.unknown().optional()
+}).strict();
+var ThoughtCollaborationSessionV1Schema = external_exports.object({
+  version: external_exports.literal(1),
+  session_id: Id,
+  root_thought_id: Id,
+  thought_id: Id,
+  canonical_revision: Revision,
+  event_cursor: Revision,
+  document_revision: Revision,
+  document_epoch: Id,
+  update: external_exports.string().max(4e6),
+  state_vector: external_exports.string().max(1e5),
+  body: external_exports.string().max(2e4),
+  dirty: external_exports.boolean(),
+  channel: external_exports.string().min(1),
+  expires_at: Time,
+  capabilities: external_exports.object({ read: external_exports.literal(true), edit: external_exports.boolean() }).strict()
+}).strict();
+var ThoughtWorkspaceEntryV2Schema = external_exports.object({
+  workspace: ThoughtWorkspaceSnapshotV2Schema,
+  focus_thought_id: Id,
+  contexts: external_exports.array(external_exports.object({ root_thought_id: Id, title: external_exports.string() }).strict()).max(101),
+  more_contexts: external_exports.boolean()
+}).strict();
+var ThoughtAssistHistoryV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  history_enabled: external_exports.boolean(),
+  conversation_id: Id.nullable(),
+  context_revision_token: external_exports.string().min(1),
+  messages: external_exports.array(
+    external_exports.object({
+      id: Id,
+      assist_run_id: Id.optional(),
+      feedback_recorded: external_exports.boolean().optional(),
+      coverage: external_exports.enum(["complete", "partial", "unavailable"]).optional(),
+      role: external_exports.enum(["user", "assistant"]),
+      body: external_exports.string().min(1).max(2e4),
+      citations: external_exports.array(external_exports.string().min(1).max(1024)).max(100)
+    }).strict()
+  ).max(12)
+}).strict();
+var ThoughtAssistEvidenceV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  assist_run_id: Id,
+  citation: external_exports.string().min(1).max(1024),
+  resource_id: Id,
+  resource_version_id: Id,
+  title: external_exports.string().min(1).max(500),
+  locator: external_exports.string().max(400),
+  excerpt: external_exports.string().max(2e3),
+  truncated: external_exports.boolean()
+}).strict();
+var ThoughtResourcePreviewV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  resource_id: Id,
+  resource_version_id: Id.nullable(),
+  title: external_exports.string(),
+  kind: external_exports.string(),
+  coverage: external_exports.enum(["pending", "partial", "complete", "unavailable", "failed"]),
+  excerpts: external_exports.array(
+    external_exports.object({
+      chunk_id: Id,
+      excerpt: external_exports.string().max(2e3),
+      locator: external_exports.string().max(400),
+      truncated: external_exports.boolean()
+    }).strict()
+  ).max(3),
+  more_available: external_exports.boolean()
+}).strict();
+var ThoughtPublicLinkWriteV2Schema = external_exports.discriminatedUnion("action", [
+  external_exports.object({
+    action: external_exports.literal("create"),
+    expires_in_days: external_exports.union([external_exports.literal(1), external_exports.literal(7), external_exports.literal(30)]).default(7),
+    allow_template: external_exports.boolean().optional(),
+    preview_sha256: external_exports.string().regex(/^[0-9a-f]{64}$/).optional()
+  }).strict(),
+  external_exports.object({ action: external_exports.literal("revoke"), id: Id }).strict()
+]);
+var ThoughtPublicLinksV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  token: external_exports.string().regex(/^[A-Za-z0-9_-]{32,128}$/).nullable(),
+  links: external_exports.array(
+    external_exports.object({
+      id: Id,
+      created_at: Time,
+      expires_at: Time.nullable(),
+      revoked_at: Time.nullable(),
+      allow_template: external_exports.boolean().optional()
+    }).strict()
+  )
+}).strict();
+var ThoughtDocumentCreateV2Schema = external_exports.object({
+  target: external_exports.enum(["todo", "goal"]),
+  expected_revision: Revision,
+  idempotency_key: Key,
+  outcome: external_exports.string().trim().min(1).max(2e3).optional(),
+  completion_criteria: external_exports.array(external_exports.string().trim().min(1).max(500)).min(1).max(20).optional()
+}).strict();
+var ThoughtDocumentLinkV2Schema = external_exports.discriminatedUnion("action", [
+  external_exports.object({ action: external_exports.literal("link"), document_id: Id }).strict(),
+  external_exports.object({ action: external_exports.literal("unlink"), id: Id }).strict()
+]);
+var ThoughtDocumentsV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  thought_id: Id,
+  can_manage: external_exports.boolean(),
+  can_convert: external_exports.boolean(),
+  links: external_exports.array(
+    external_exports.object({
+      id: Id,
+      document_id: Id,
+      title: external_exports.string(),
+      kind: external_exports.enum(["todo", "goal"]),
+      created_at: Time,
+      reviews: external_exports.array(external_exports.object({ id: Id, created_at: Time }).strict())
+    }).strict()
+  )
+}).strict();
+var ThoughtDocumentCreatedV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  thought_id: Id,
+  document_id: Id,
+  target: external_exports.enum(["todo", "goal"]),
+  replayed: external_exports.boolean()
+}).strict();
+var ThoughtOutcomeResponseV2Schema = external_exports.object({
+  idempotency_key: Key,
+  verdict: external_exports.enum(["held", "broke", "inconclusive"]),
+  note: external_exports.string().max(4e3).nullable().default(null)
+}).strict();
+var ThoughtOutcomeReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  review_id: Id,
+  root_thought_id: Id,
+  replayed: external_exports.boolean(),
+  command_receipt_id: Id.nullable(),
+  legacy_receipt: external_exports.literal(true).optional()
+}).strict();
+var ThoughtDocumentSearchV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  thought_id: Id,
+  items: external_exports.array(
+    external_exports.object({ id: Id, title: external_exports.string(), kind: external_exports.enum(["todo", "goal"]) }).strict()
+  )
+}).strict();
+var ThoughtDecisionAcceptV2Schema = external_exports.object({
+  expected_revision: external_exports.number().int().min(1),
+  idempotency_key: external_exports.string().min(1).max(120),
+  chosen_direction: external_exports.string().trim().min(1).max(2e3).optional(),
+  rationale: external_exports.string().trim().min(1).max(6e3).optional(),
+  supersedes_document_id: Id.optional(),
+  question_id: Id.optional(),
+  question_revision: external_exports.number().int().min(1).optional()
+}).strict().refine(
+  (x) => x.question_id === void 0 === (x.question_revision === void 0),
+  "Question identity and revision are required together"
+);
+var ThoughtDecisionReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: Id,
+  thought_id: Id,
+  thought_revision_id: Id,
+  document_id: Id,
+  document_version_id: Id,
+  projection_id: Id,
+  question_id: Id.nullable(),
+  question_revision_id: Id.nullable(),
+  command_receipt_id: Id,
+  cursor: external_exports.number().int().min(1),
+  replayed: external_exports.boolean()
+}).strict();
+
+// packages/shared/dist/thought-presence.js
+var ThoughtPresenceRequestV2Schema = external_exports.object({
+  session_id: external_exports.string().uuid(),
+  action: external_exports.enum(["touch", "leave"]).default("touch"),
+  selected_thought_id: external_exports.string().uuid().nullable().default(null)
+}).strict();
+var ThoughtPresenceV2Schema = external_exports.object({
+  root_thought_id: external_exports.string().uuid(),
+  expires_at: external_exports.string().datetime({ offset: true }).nullable(),
+  participants: external_exports.array(
+    external_exports.object({
+      user_id: external_exports.string().uuid(),
+      name: external_exports.string(),
+      last_seen_at: external_exports.string().datetime({ offset: true })
+    }).strict()
+  ).max(100),
+  more: external_exports.boolean()
+}).strict();
+
+// packages/shared/dist/thought-discussion.js
+var common = {
+  subject_thought_id: external_exports.string().uuid(),
+  idempotency_key: external_exports.string().min(1).max(96)
+};
+var revision = { comment_id: external_exports.string().uuid(), expected_revision: external_exports.number().int().positive() };
+var ThoughtDiscussionWriteV2Schema = external_exports.discriminatedUnion("action", [
+  external_exports.object({
+    ...common,
+    action: external_exports.literal("create"),
+    body: external_exports.string().trim().min(1).max(5e3),
+    parent_comment_id: external_exports.string().uuid().nullable().optional()
+  }).strict(),
+  external_exports.object({
+    ...common,
+    ...revision,
+    action: external_exports.literal("edit"),
+    body: external_exports.string().trim().min(1).max(5e3)
+  }).strict(),
+  external_exports.object({ ...common, ...revision, action: external_exports.literal("archive") }).strict(),
+  external_exports.object({
+    ...common,
+    ...revision,
+    action: external_exports.literal("resolve"),
+    resolved: external_exports.boolean()
+  }).strict()
+]);
+var ThoughtDiscussionReceiptV2Schema = external_exports.object({
+  comment_id: external_exports.string().uuid(),
+  subject_thought_id: external_exports.string().uuid(),
+  revision: external_exports.number().int().positive(),
+  archived: external_exports.boolean(),
+  replayed: external_exports.boolean()
+}).strict();
+var ThoughtDiscussionV2Schema = external_exports.object({
+  root_thought_id: external_exports.string().uuid(),
+  subject_thought_id: external_exports.string().uuid(),
+  subject_title: external_exports.string(),
+  can_comment: external_exports.boolean(),
+  next_cursor: external_exports.string().nullable(),
+  comments: external_exports.array(
+    external_exports.object({
+      id: external_exports.string().uuid(),
+      parent_comment_id: external_exports.string().uuid().nullable(),
+      body: external_exports.string(),
+      revision: external_exports.number().int().positive(),
+      created_by: external_exports.string().uuid(),
+      author_name: external_exports.string(),
+      can_edit: external_exports.boolean(),
+      created_at: external_exports.string(),
+      updated_at: external_exports.string(),
+      edited_at: external_exports.string().nullable(),
+      resolved_at: external_exports.string().nullable(),
+      revisions: external_exports.array(
+        external_exports.object({
+          revision: external_exports.number().int().positive(),
+          body: external_exports.string(),
+          authored_by: external_exports.string().uuid(),
+          author_name: external_exports.string(),
+          created_at: external_exports.string()
+        }).strict()
+      ).max(20)
+    }).strict()
+  ).max(50)
+}).strict();
+
+// packages/shared/dist/thought-sharing.js
+var ThoughtSharingRoleV2Schema = external_exports.enum(["owner", "editor", "commenter", "viewer"]);
+var ThoughtSharingWriteV2Schema = external_exports.discriminatedUnion("action", [
+  external_exports.object({
+    action: external_exports.literal("set"),
+    expected_version: external_exports.string().regex(/^[a-f0-9]{64}$/),
+    user_id: external_exports.string().uuid(),
+    role: ThoughtSharingRoleV2Schema
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("remove"),
+    expected_version: external_exports.string().regex(/^[a-f0-9]{64}$/),
+    user_id: external_exports.string().uuid()
+  }).strict(),
+  external_exports.object({ action: external_exports.literal("close"), expected_version: external_exports.string().regex(/^[a-f0-9]{64}$/) }).strict()
+]);
+var ThoughtSharingV2Schema = external_exports.object({
+  thought_id: external_exports.string().uuid(),
+  title: external_exports.string(),
+  scope: external_exports.enum(["personal", "team", "project"]),
+  version: external_exports.string().regex(/^[a-f0-9]{64}$/),
+  is_room: external_exports.boolean(),
+  can_manage: external_exports.boolean(),
+  can_leave: external_exports.boolean(),
+  participants: external_exports.array(
+    external_exports.object({
+      user_id: external_exports.string().uuid(),
+      name: external_exports.string(),
+      role: ThoughtSharingRoleV2Schema,
+      is_creator: external_exports.boolean()
+    })
+  ),
+  candidates: external_exports.array(
+    external_exports.object({
+      user_id: external_exports.string().uuid(),
+      name: external_exports.string(),
+      account_role: external_exports.enum(["owner", "admin", "member", "viewer"])
+    })
+  )
+});
+
+// packages/shared/dist/thought-feedback.js
+var ThoughtFeedbackWriteV2Schema = external_exports.object({
+  run_id: external_exports.string().uuid(),
+  helpful: external_exports.boolean().nullable().optional(),
+  inaccurate: external_exports.boolean().default(false),
+  too_simple: external_exports.boolean().default(false),
+  too_complex: external_exports.boolean().default(false),
+  too_long: external_exports.boolean().default(false),
+  tone_wrong: external_exports.boolean().default(false),
+  missing_context: external_exports.boolean().default(false),
+  note: external_exports.string().trim().min(1).max(4e3).nullable().optional()
+}).strict().refine((value) => !(value.too_simple && value.too_complex), {
+  message: "Feedback cannot be both too simple and too complex"
+}).refine(
+  (value) => typeof value.helpful === "boolean" || value.inaccurate || value.too_simple || value.too_complex || value.too_long || value.tone_wrong || value.missing_context || Boolean(value.note),
+  { message: "Feedback needs at least one signal" }
+);
+var ThoughtFeedbackReceiptV2Schema = external_exports.object({
+  status: external_exports.literal("recorded"),
+  feedback_id: external_exports.string().uuid(),
+  run_id: external_exports.string().uuid(),
+  created_at: external_exports.string(),
+  replayed: external_exports.boolean()
+}).strict();
+
+// packages/shared/dist/experience-harness.js
+var EXPERIENCE_HARNESS_MAX_NODES = 32;
+var EXPERIENCE_HARNESS_MAX_EDGES = 256;
+var WorkflowAssignmentV2Schema = external_exports.object({
+  task: external_exports.string().trim().min(1).max(8192),
+  target_agent_installation_id: external_exports.string().uuid()
+}).strict();
+var WorkflowMemoryQueryV2Schema = external_exports.object({ query: external_exports.string().trim().min(1).max(2e3) }).strict();
+var WorkflowRegisteredActionV2Schema = external_exports.object({
+  action_id: external_exports.string().uuid(),
+  input: external_exports.record(ContractJsonValueSchema)
+}).strict().refine(
+  (value) => JSON.stringify(value.input).length <= 8192,
+  "Action input exceeds the workflow limit"
+);
+var ExperienceHarnessArtifactV2Schema = HarnessArtifactRefV1Schema.extend({
+  kind: external_exports.enum([
+    "thought",
+    "markdown",
+    "document",
+    "prompt",
+    "source",
+    "memory",
+    "memory_query",
+    "skill",
+    "schema",
+    "agent",
+    "decision_gate",
+    "action",
+    "output"
+  ]),
+  content_hash: Sha256Schema,
+  memory_query: WorkflowMemoryQueryV2Schema.optional(),
+  assignment: WorkflowAssignmentV2Schema.optional(),
+  registered_action: WorkflowRegisteredActionV2Schema.optional()
+}).strict();
+var ExperienceHarnessManifestV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  id: external_exports.string().uuid(),
+  revision: external_exports.number().int().positive(),
+  root_thought_id: external_exports.string().uuid(),
+  root_revision_token: external_exports.string().min(1).max(2048),
+  context: ContextManifestV1Schema,
+  harness: external_exports.object({ output_mode: external_exports.enum(["inline", "resource"]) }).strict().optional(),
+  nodes: external_exports.array(
+    external_exports.object({
+      id: external_exports.string().uuid(),
+      artifact: ExperienceHarnessArtifactV2Schema
+    }).strict()
+  ).min(1).max(EXPERIENCE_HARNESS_MAX_NODES),
+  edges: external_exports.array(
+    external_exports.object({
+      id: external_exports.string().uuid(),
+      from_node_id: external_exports.string().uuid(),
+      output: ContractKeySchema,
+      to_node_id: external_exports.string().uuid(),
+      input: ContractKeySchema
+    }).strict()
+  ).max(EXPERIENCE_HARNESS_MAX_EDGES)
+}).strict();
+var ExperienceHarnessSaveV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: external_exports.string().uuid(),
+  idempotency_key: external_exports.string().min(1).max(160),
+  title: external_exports.string().trim().min(1).max(240),
+  root_revision_token: external_exports.string().min(1).max(2048),
+  harness_id: external_exports.string().uuid().nullable().default(null),
+  expected_revision: external_exports.number().int().positive().nullable().default(null),
+  definition: ExperienceHarnessManifestV2Schema.pick({
+    context: true,
+    nodes: true,
+    edges: true,
+    harness: true
+  })
+}).strict().refine(
+  (input) => input.harness_id === null === (input.expected_revision === null),
+  "Existing harness requires its current revision"
+);
+var ExperienceHarnessArtifactSelectionV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  thought_ids: external_exports.array(external_exports.string().uuid()).max(EXPERIENCE_HARNESS_MAX_NODES).default([]),
+  resource_ids: external_exports.array(external_exports.string().uuid()).max(EXPERIENCE_HARNESS_MAX_NODES).default([]),
+  document_ids: external_exports.array(external_exports.string().uuid()).max(EXPERIENCE_HARNESS_MAX_NODES).default([]),
+  memory_queries: external_exports.array(WorkflowMemoryQueryV2Schema).max(1).default([]),
+  assignments: external_exports.array(WorkflowAssignmentV2Schema).max(8).default([]),
+  actions: external_exports.array(WorkflowRegisteredActionV2Schema).max(8).default([]),
+  tool_ids: external_exports.array(
+    external_exports.enum([
+      "memlin.thought.review",
+      "memlin.thought.plan",
+      "memlin.thought.review-gate",
+      "memlin.thought.output"
+    ])
+  ).max(4).default([])
+}).strict().refine((selection) => {
+  const ids = [
+    ...selection.thought_ids,
+    ...selection.resource_ids,
+    ...selection.document_ids,
+    ...selection.tool_ids,
+    ...selection.memory_queries.map((item) => JSON.stringify(item)),
+    ...selection.assignments.map((item) => JSON.stringify(item)),
+    ...selection.actions.map((item) => JSON.stringify(item))
+  ];
+  return ids.length > 0 && ids.length <= EXPERIENCE_HARNESS_MAX_NODES && new Set(ids).size === ids.length;
+}, "Select between 1 and 32 distinct artifacts");
+var ExperienceHarnessCompileRequestV2Schema = external_exports.object({ version: external_exports.literal(2), revision: external_exports.number().int().positive() }).strict();
+var ExperienceHarnessReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  harness_id: external_exports.string().uuid(),
+  version_id: external_exports.string().uuid(),
+  revision: external_exports.number().int().positive(),
+  title: external_exports.string().min(1).max(240),
+  manifest: ExperienceHarnessManifestV2Schema,
+  definition_sha256: Sha256Schema,
+  replayed: external_exports.boolean()
+}).strict().refine(
+  (receipt) => receipt.harness_id === receipt.manifest.id && receipt.revision === receipt.manifest.revision,
+  "Harness receipt identity mismatch"
+);
+var ExperienceHarnessListQueryV2Schema = external_exports.object({
+  after: external_exports.string().uuid().optional(),
+  limit: external_exports.coerce.number().int().min(1).max(50).default(20)
+}).strict();
+var ExperienceHarnessListV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  items: external_exports.array(
+    external_exports.object({
+      id: external_exports.string().uuid(),
+      title: external_exports.string().min(1).max(240),
+      current_revision: external_exports.number().int().positive()
+    }).strict()
+  ).max(50),
+  next: external_exports.string().uuid().nullable()
+}).strict();
+var ExperienceHarnessSchemaRefV2Schema = external_exports.object({
+  id: ContractKeySchema,
+  revision: external_exports.string().min(1).max(128),
+  content_hash: Sha256Schema
+}).strict();
+var ExperienceHarnessAdmissionV2Schema = external_exports.object({
+  receipt_id: external_exports.string().uuid(),
+  manifest_hash: Sha256Schema,
+  artifact: ExperienceHarnessArtifactV2Schema,
+  inputs: external_exports.record(
+    ContractKeySchema,
+    external_exports.object({
+      schema: ExperienceHarnessSchemaRefV2Schema,
+      required: external_exports.boolean()
+    }).strict()
+  ),
+  outputs: external_exports.record(ContractKeySchema, ExperienceHarnessSchemaRefV2Schema),
+  model_role: ExperienceHarnessSchemaRefV2Schema.optional(),
+  action: external_exports.object({
+    adapter: ExperienceHarnessSchemaRefV2Schema,
+    operation: ContractKeySchema
+  }).strict().optional()
+}).strict();
+var ExperienceHarnessStageReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  id: external_exports.string().uuid(),
+  kind: external_exports.enum([
+    "artifact",
+    "resource",
+    "proposal",
+    "handoff",
+    "prepared_action",
+    "executed_action",
+    "approval",
+    "output"
+  ]),
+  data: external_exports.record(ContractJsonValueSchema)
+}).strict();
+var ExperienceHarnessRunStateV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  status: external_exports.enum(["running", "waiting_approval", "completed", "failed", "cancelled"]),
+  stages: external_exports.array(
+    external_exports.object({
+      id: external_exports.string().min(1).max(128),
+      status: external_exports.enum([
+        "pending",
+        "running",
+        "waiting_approval",
+        "completed",
+        "failed",
+        "cancelled"
+      ]),
+      attempt: external_exports.number().int().min(0).max(100),
+      input: external_exports.record(ContractJsonValueSchema).nullable(),
+      input_sha256: Sha256Schema.nullable(),
+      lease_id: external_exports.string().uuid().nullable(),
+      lease_expires_at: external_exports.string().datetime().nullable(),
+      receipt: ExperienceHarnessStageReceiptV2Schema.nullable(),
+      failure: external_exports.string().min(1).max(160).nullable()
+    }).strict()
+  ).min(1).max(EXPERIENCE_HARNESS_MAX_NODES * 3)
+}).strict();
+var ExperienceHarnessRunRequestV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  root_thought_id: external_exports.string().uuid(),
+  revision: external_exports.number().int().positive(),
+  idempotency_key: external_exports.string().min(1).max(160)
+}).strict();
+var ExperienceHarnessRunControlV2Schema = external_exports.discriminatedUnion("action", [
+  external_exports.object({
+    version: external_exports.literal(2),
+    action: external_exports.literal("resume"),
+    expected_revision: external_exports.number().int().positive()
+  }).strict(),
+  external_exports.object({
+    version: external_exports.literal(2),
+    action: external_exports.literal("cancel"),
+    expected_revision: external_exports.number().int().nonnegative()
+  }).strict(),
+  external_exports.object({
+    version: external_exports.literal(2),
+    action: external_exports.enum(["approve", "reject"]),
+    expected_revision: external_exports.number().int().positive(),
+    stage_id: external_exports.string().min(1).max(128),
+    input_sha256: Sha256Schema
+  }).strict()
+]);
+
+// packages/shared/dist/light-provenance.js
+var HOSTS = new Set(LIGHT_HOSTS);
+
+// packages/shared/dist/memory-decisions.js
+var DECISION_KIND_IDS = ["replace", "conflict", "sensitive", "runbook", "goal"];
+var DECISION_KINDS = {
+  replace: {
+    id: "replace",
+    label: "Replace live memory",
+    raisedWhen: "A new capture would retire or rewrite a live doc that governs agents: a decision, a correction, a verified directive, or anything a person wrote.",
+    whyHuman: "Agents follow the existing doc today. Replacing it changes what every agent is told, and the evidence alone cannot say the new version is right.",
+    options: [
+      {
+        id: "replace",
+        label: "Replace",
+        consequence: "The new capture goes live and the existing doc is retired.",
+        reversible: true
+      },
+      {
+        id: "keep_both",
+        label: "Keep both",
+        consequence: "Both stay live. Agents may be given both.",
+        reversible: true
+      },
+      {
+        id: "keep_existing",
+        label: "Keep existing",
+        consequence: "Nothing changes for agents. The new capture stays searchable only.",
+        reversible: true
+      }
+    ],
+    defaultOption: "keep_existing",
+    deadlineDays: 7,
+    urgent: true,
+    aiExplanation: true
+  },
+  conflict: {
+    id: "conflict",
+    label: "Two live docs disagree",
+    raisedWhen: "Two live docs contradict, at least one was served to agents in the last 30 days, and at least one is a decision or was written by a person.",
+    whyHuman: "Agents are being given both answers. Which one is current is a judgement about your project that neither doc settles.",
+    options: [
+      {
+        id: "a_wins",
+        label: "First is current",
+        consequence: "The first doc stays live and the second is retired.",
+        reversible: true
+      },
+      {
+        id: "b_wins",
+        label: "Second is current",
+        consequence: "The second doc stays live and the first is retired.",
+        reversible: true
+      },
+      {
+        id: "both_valid",
+        label: "Both are valid",
+        consequence: "Both stay live; the pair is marked as not a conflict and is not raised again.",
+        reversible: true
+      }
+    ],
+    defaultOption: "both_valid",
+    deadlineDays: 14,
+    urgent: false,
+    aiExplanation: true
+  },
+  sensitive: {
+    id: "sensitive",
+    label: "Sensitive content",
+    raisedWhen: "A capture matches a sensitive topic: compensation, HR, personal data or banking.",
+    whyHuman: "Whether this should be remembered, and who may see it, is not something automation should decide.",
+    options: [
+      {
+        id: "keep",
+        label: "Keep for the team",
+        consequence: "It goes live at its captured scope.",
+        reversible: true
+      },
+      {
+        id: "private",
+        label: "Keep private to me",
+        consequence: "It goes live, visible only to you.",
+        reversible: true
+      },
+      {
+        id: "discard",
+        label: "Discard",
+        consequence: "It is removed and will not be captured again.",
+        reversible: true
+      }
+    ],
+    defaultOption: "discard",
+    deadlineDays: 7,
+    urgent: true,
+    aiExplanation: false
+  },
+  runbook: {
+    id: "runbook",
+    label: "Incident runbook",
+    raisedWhen: "A session that handled an incident produced a runbook.",
+    whyHuman: "A runbook steers future incident response. You were there; you know whether it is what should happen next time.",
+    options: [
+      {
+        id: "keep_live",
+        label: "Keep live",
+        consequence: "Agents are given it for similar incidents.",
+        reversible: true
+      },
+      {
+        id: "searchable_only",
+        label: "Searchable only",
+        consequence: "It is kept and findable, but not given to agents unprompted.",
+        reversible: true
+      },
+      {
+        id: "discard",
+        label: "Discard",
+        consequence: "It is removed.",
+        reversible: true
+      }
+    ],
+    defaultOption: "searchable_only",
+    deadlineDays: 7,
+    urgent: false,
+    aiExplanation: true
+  },
+  goal: {
+    id: "goal",
+    label: "Goal approval",
+    raisedWhen: "A goal was proposed and needs approval before agents work toward it.",
+    whyHuman: "Goals direct what agents optimise for. Only a person can commit the team to one.",
+    options: [
+      {
+        id: "approve",
+        label: "Approve",
+        consequence: "Agents are given the goal.",
+        reversible: true
+      },
+      {
+        id: "not_now",
+        label: "Not now",
+        consequence: "It stays a draft that agents are not given.",
+        reversible: true
+      },
+      {
+        id: "reject",
+        label: "Reject",
+        consequence: "It is closed.",
+        reversible: true
+      }
+    ],
+    defaultOption: "not_now",
+    deadlineDays: 14,
+    urgent: false,
+    aiExplanation: true
+  }
+};
+function isDecisionKind(value) {
+  return typeof value === "string" && DECISION_KIND_IDS.includes(value);
+}
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function labelDecisionOptionIds(kind, text) {
+  const spec = DECISION_KINDS[kind];
+  if (!spec || !text) return text;
+  let out = text;
+  const options2 = [...spec.options].sort((a, b) => b.id.length - a.id.length);
+  for (const o of options2) {
+    const id = escapeRegExp(o.id);
+    const bare = o.id.includes("_") ? `|(?<![\\w-])${id}(?![\\w-])` : "";
+    out = out.replace(new RegExp(`\`${id}\`${bare}`, "gi"), o.label);
+  }
+  return out;
+}
+var DECISION_CAPS = {
+  /** Decisions a single capture (one scribe run) may raise. */
+  perCapture: 3,
+  /** Open questions of a session-grouped kind (runbook, sensitive) one agent
+   *  session may hold. Later captures of that kind from the same session are
+   *  attached to the open question instead of raising another. */
+  openPerSession: 1,
+  /** Captures one session-grouped question may cover. Past it the raise is
+   *  capped, like perCapture. */
+  capturesPerDecision: 100,
+  /** Questions injected into one user turn. */
+  perTurn: 1,
+  /** Questions asked in one session before the rest wait for the web list. */
+  perSession: 3,
+  /** Urgent end-of-turn interruptions in one session. */
+  urgentPerSession: 1
+};
+
+// packages/shared/dist/decision-prompt.js
+var encoder = new TextEncoder();
+function utf8Bytes(value) {
+  return encoder.encode(value).length;
+}
+function oneLine(value, max = 400) {
+  const s = value.replace(/\s+/g, " ").trim();
+  return s.length > max ? `${s.slice(0, max - 1).trimEnd()}\u2026` : s;
+}
+function optionLabel(decision, id) {
+  return decision.options.find((o) => o.id === id)?.label ?? DECISION_KINDS[decision.kind]?.options.find((o) => o.id === id)?.label ?? id;
+}
+function describeDeadline(deadlineAt, nowMs = Date.now()) {
+  const t = Date.parse(deadlineAt);
+  if (!Number.isFinite(t)) return "at its deadline";
+  const date5 = new Date(t).toISOString().slice(0, 10);
+  const days = Math.ceil((t - nowMs) / 864e5);
+  if (days <= 0) return `on ${date5} (due now)`;
+  return `on ${date5} (in ${days} day${days === 1 ? "" : "s"})`;
+}
+function askLine(host, decision) {
+  switch (host) {
+    case "claude-code":
+      return `1. Ask with your AskUserQuestion tool: one question, one choice per option (${decision.options.map((o) => `"${o.label}"`).join(", ")}), each choice described by its consequence. Put why a person is needed and the recommendation in the question text.`;
+    case "codex":
+      return "1. The user was shown a one-line notice about this. Ask the question in your reply, in plain language, listing the options.";
+    case "mcp":
+      return "1. Ask me in your reply, in plain language, listing the options.";
+    default:
+      return "1. Ask the question in your reply, in plain language, listing the options.";
+  }
+}
+function renderAt(decision, host, detail, nowMs) {
+  const prose = (text, max) => oneLine(labelDecisionOptionIds(decision.kind, text), max);
+  const lines = [];
+  lines.push(`<memlin-decision id="${decision.id}" kind="${decision.kind}">`);
+  lines.push(
+    "# Memlin needs ONE decision from the user. Finish the user's current request first; do not let this interrupt or change that work."
+  );
+  lines.push(`Question: ${oneLine(decision.question, 300)}`);
+  if (detail !== "minimal") {
+    lines.push(`Why a person is needed: ${oneLine(decision.why_human, 400)}`);
+  }
+  const rec = decision.recommendation;
+  if (rec) {
+    const reason = detail === "minimal" ? "" : ` \u2014 ${prose(rec.rationale, detail === "full" ? 500 : 240)}`;
+    lines.push(`Recommendation: ${optionLabel(decision, rec.option)} (${rec.option})${reason}`);
+  } else if (detail !== "minimal") {
+    lines.push(
+      DECISION_KINDS[decision.kind]?.aiExplanation === false ? "Recommendation: none \u2014 this kind is never sent to an AI model, so present the facts only." : "Recommendation: none yet \u2014 present the options evenly."
+    );
+  }
+  lines.push("Options:");
+  for (const o of decision.options) {
+    if (detail === "minimal") {
+      lines.push(`- ${o.label} (${o.id})`);
+      continue;
+    }
+    lines.push(
+      `- ${o.label} (${o.id}): ${oneLine(o.consequence, 200)}${o.reversible ? " Can be undone." : " Cannot be undone."}`
+    );
+    if (detail === "full") {
+      for (const p of o.pros) lines.push(`  + ${prose(p, 200)}`);
+      for (const c of o.cons) lines.push(`  - ${prose(c, 200)}`);
+    }
+  }
+  lines.push(
+    `If unanswered: ${optionLabel(decision, decision.default_option)} (${decision.default_option}) applies automatically ${describeDeadline(decision.deadline_at, nowMs)}. Ignoring it is safe.`
+  );
+  lines.push("How to ask, after the current request is done:");
+  lines.push(askLine(host, decision));
+  lines.push(
+    "2. Say why a person is needed, the recommendation and its reason, what each option does with its pros and cons, and what happens if they do not answer."
+  );
+  lines.push(
+    `3. Offer to explain more. If they want to know where it came from, what automation already did or the diff, call memlin_explain_decision {"decision_id":"${decision.id}"} and answer from it.`
+  );
+  lines.push(
+    `4. When they choose, call memlin_decide {"decision_id":"${decision.id}","option":"<option id>","note":"<their reason>","user_quote":"<their exact words>"}.`
+  );
+  lines.push(
+    "5. Never choose for them. If they decline, change the subject or do not answer, do nothing: the default applies."
+  );
+  lines.push("</memlin-decision>");
+  return lines.join("\n") + "\n";
+}
+function renderDecisionBlock(decision, opts) {
+  const nowMs = opts.nowMs ?? Date.now();
+  for (const detail of ["full", "compact", "minimal"]) {
+    const block = renderAt(decision, opts.host, detail, nowMs);
+    if (opts.maxBytes === void 0 || utf8Bytes(block) <= opts.maxBytes) return block;
+  }
+  return "";
+}
+
+// packages/shared/dist/thought-handoff-v2.js
+var ThoughtHandoffRequestV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  idempotency_key: external_exports.string().min(1).max(160),
+  task: external_exports.string().trim().min(1).max(8192),
+  target_agent_installation_id: external_exports.string().uuid(),
+  focus_thought_id: external_exports.string().uuid().optional(),
+  context_revision_token: external_exports.string().regex(/^[0-9a-f]{64}$/)
+}).strict();
+var ThoughtHandoffReceiptV2Schema = external_exports.object({
+  version: external_exports.literal(2),
+  kind: external_exports.literal("thought_handoff_v2"),
+  id: external_exports.string().uuid(),
+  root_thought_id: external_exports.string().uuid(),
+  project_id: external_exports.string().uuid().nullable(),
+  target_agent_installation_id: external_exports.string().uuid(),
+  target_agent_kind: external_exports.enum(AGENT_KINDS),
+  task: external_exports.string(),
+  status: external_exports.enum(["preparing", "pending", "accepted", "completed", "cancelled"]),
+  context_bundle_id: external_exports.string().regex(/^[0-9a-f]{64}$/).nullable(),
+  context_revision_token: external_exports.string(),
+  packet_markdown: external_exports.string().nullable(),
+  target_session_id: external_exports.string().nullable(),
+  created_at: external_exports.string(),
+  stale: external_exports.boolean(),
+  replayed: external_exports.boolean().optional()
+}).passthrough();
+
+// packages/shared/dist/ops-watch.js
+var OPS_DIAGNOSE_SEV2_AFTER_MS = 15 * 6e4;
+
+// packages/shared/dist/entitlements.js
+var FREE_KIT = ["thoughts.personal"];
+var COORDINATION_SELF = [
+  "coordination.work_ledger",
+  "coordination.handoffs",
+  "coordination.collision",
+  "coordination.workstreams",
+  "coordination.fleet_dashboard"
+];
+var INDIVIDUAL_KIT = [
+  ...FREE_KIT,
+  "thoughts.maps",
+  ...COORDINATION_SELF,
+  "roles",
+  "connectors",
+  "multi_repo",
+  "governance.audit_replay",
+  "governance.data_control"
+];
+var TEAM_KIT = [
+  ...INDIVIDUAL_KIT,
+  "coordination.shared_people",
+  "governance.audit_export"
+];
+var ENTERPRISE_KIT = [
+  ...TEAM_KIT,
+  "governance.sso_rbac",
+  "governance.compliance",
+  "governance.byoc"
+];
+var ENTITLEMENTS_BY_TIER = {
+  // Free: Thoughts (capped by THOUGHTS_LIMITS_BY_TIER) + memory. AI is funded
+  // separately — see the signup credit grant, not AI_QUOTA_BY_TIER.
+  free: new Set(FREE_KIT),
+  // Starter: low-cost "memory + a little funded AI"; same feature set as Free.
+  starter: new Set(FREE_KIT),
+  // Pro = Personal Pro.
+  pro: new Set(INDIVIDUAL_KIT),
+  team: new Set(TEAM_KIT),
+  enterprise: new Set(ENTERPRISE_KIT)
+};
+
 // packages/shared/dist/project-flow-contracts.js
 var PROJECT_FLOW_CONTRACT_VERSION = "v1";
 var PROJECT_FLOW_SCHEMA_BASE_URI = "https://memlin.ai/schemas/project-flows/v1";
@@ -25151,6 +25239,52 @@ var ArtifactRefSchema = external_exports2.object({
   uri: external_exports2.string().min(1).max(2048).nullable(),
   media_type: external_exports2.string().min(1).max(128).nullable(),
   digest: external_exports2.string().regex(SHA256_PATTERN, "digest must be a lowercase sha256 value").nullable()
+}).strict();
+var DesignAlternativesSchema = external_exports2.array(ArtifactRefSchema).min(2).max(12).superRefine((alternatives, ctx) => {
+  if (new Set(alternatives.map((artifact) => `${artifact.artifact_id}:${artifact.version_id}`)).size !== alternatives.length) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Design alternatives must have distinct saved versions."
+    });
+  }
+});
+var HumanDesignReviewSchema = external_exports2.object({
+  alternatives: external_exports2.array(
+    external_exports2.object({
+      artifact: ArtifactRefSchema,
+      notes: external_exports2.string().max(4e3)
+    }).strict()
+  ).min(2).max(12),
+  selected: ArtifactRefSchema,
+  rationale: external_exports2.string().trim().min(1).max(4e3)
+}).strict().superRefine((review, ctx) => {
+  const key = (artifact) => `${artifact.artifact_id}:${artifact.version_id}`;
+  if (new Set(review.alternatives.map(({ artifact }) => key(artifact))).size !== review.alternatives.length) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["alternatives"],
+      message: "Design alternatives must use distinct saved versions."
+    });
+  }
+  const selected = review.alternatives.find(
+    ({ artifact }) => key(artifact) === key(review.selected)
+  );
+  if (!selected || Object.keys(review.selected).some(
+    (field) => selected.artifact[field] !== review.selected[field]
+  )) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["selected"],
+      message: "The selected design must exactly match one reviewed alternative."
+    });
+  }
+});
+var HumanDesignSelectionSchema = external_exports2.object({
+  stage_run_id: external_exports2.string().uuid(),
+  stage_key: external_exports2.string().min(1).max(128),
+  reviewed_by: external_exports2.string().min(1).max(256),
+  reviewed_at: external_exports2.string().datetime(),
+  review: HumanDesignReviewSchema
 }).strict();
 var StageOutcomeSchema = external_exports2.enum(["completed", "waiting", "blocked"]);
 var StageGateResultSchema = external_exports2.enum([
@@ -25192,10 +25326,39 @@ var AgentStageSubmissionV1BaseSchema = external_exports2.object({
   findings: external_exports2.array(FindingSchema).max(100),
   artifacts: external_exports2.array(ArtifactRefSchema).max(100),
   evidence: external_exports2.array(ArtifactRefSchema).max(100),
-  confidence: external_exports2.number().min(0).max(1)
+  confidence: external_exports2.number().min(0).max(1),
+  human_design_review: HumanDesignReviewSchema.optional(),
+  design_alternatives: DesignAlternativesSchema.optional()
 }).strict();
 var AgentStageSubmissionV1Schema = AgentStageSubmissionV1BaseSchema.superRefine(
   (value, ctx) => {
+    if (value.design_alternatives) {
+      const identities = new Set(
+        value.design_alternatives.map(
+          (artifact) => `${artifact.artifact_id}:${artifact.version_id}`
+        )
+      );
+      if (identities.size !== value.design_alternatives.length || value.design_alternatives.some(
+        (artifact) => !value.artifacts.some(
+          (output) => Object.keys(artifact).every(
+            (key) => output[key] === artifact[key]
+          )
+        )
+      )) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["design_alternatives"],
+          message: "Design alternatives must be distinct exact saved output artifacts."
+        });
+      }
+    }
+    if (value.human_design_review && (value.outcome !== "completed" || !["pass", "pass_with_advisories"].includes(value.gate_result))) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["human_design_review"],
+        message: "A design selection requires a completed, accepted human stage."
+      });
+    }
     if (value.outcome !== "completed" && value.gate_result !== "not_applicable") {
       ctx.addIssue({
         code: "custom",
@@ -25477,6 +25640,7 @@ var FlowStageSchema = external_exports2.object({
   retry: RetryPolicySchema,
   approval: StageApprovalSchema.nullable(),
   gate_policy: StageGatePolicySchema.nullable(),
+  design_policy: external_exports2.enum(["produce_alternatives", "select_alternative"]).optional(),
   transitions: external_exports2.array(FlowTransitionSchema).max(64),
   default_transition: TransitionTargetSchema.nullable(),
   bypass_target: TransitionTargetSchema.nullable()
@@ -25706,6 +25870,13 @@ function validateFlowDefinitionSemantics(flow) {
         message: "only agent stages may declare a model role"
       });
     }
+    if (stage.design_policy === "select_alternative" && (stage.mode !== "human" || !stage.gate_policy)) {
+      issues.push({
+        path: `stages.${stageIndex}.design_policy`,
+        code: "design_selection_requires_human_gate",
+        message: "Design selection requires a human stage with an evidence gate."
+      });
+    }
     if (stage.mode !== "agent" && stage.skill !== null) {
       issues.push({
         path: `stages.${stageIndex}.skill`,
@@ -25792,10 +25963,10 @@ function validateFlowDefinitionSemantics(flow) {
       ],
       ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, path: `stages.${stageIndex}.bypass_target` }]
     ];
-    targets.forEach(({ target, path: path26 }) => {
+    targets.forEach(({ target, path: path27 }) => {
       if (!isReservedTarget(target) && !stageById.has(target)) {
         issues.push({
-          path: path26,
+          path: path27,
           code: "missing_transition_target",
           message: `transition target ${JSON.stringify(target)} does not exist`
         });
@@ -25825,7 +25996,7 @@ function validateFlowDefinitionSemantics(flow) {
   const visiting = /* @__PURE__ */ new Set();
   const visited = /* @__PURE__ */ new Set();
   let hasReachableEnd = false;
-  const visit = (stageId, path26, pathBounds) => {
+  const visit = (stageId, path27, pathBounds) => {
     reachable.add(stageId);
     if (visited.has(stageId)) return;
     visiting.add(stageId);
@@ -25841,7 +26012,7 @@ function validateFlowDefinitionSemantics(flow) {
         ...stage.default_transition === null ? [] : [{ target: stage.default_transition, bounded: false }],
         ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, bounded: false }]
       ];
-      const currentPath = [...path26, stageId];
+      const currentPath = [...path27, stageId];
       for (const edge of edges) {
         const { target } = edge;
         if (target === "$end") {
@@ -25949,18 +26120,18 @@ var FlowPackManifestBaseSchema = external_exports2.object({
   evals: external_exports2.array(ManifestEvalSchema).max(256),
   model_roles: external_exports2.array(ManifestModelRoleSchema).max(64)
 }).strict();
-function validateRelativePackPath(path26) {
-  if (path26.startsWith("/") || path26.startsWith("\\")) return "path must be relative";
-  if (/^[A-Za-z]:/.test(path26) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path26)) {
+function validateRelativePackPath(path27) {
+  if (path27.startsWith("/") || path27.startsWith("\\")) return "path must be relative";
+  if (/^[A-Za-z]:/.test(path27) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path27)) {
     return "drive-qualified paths and URI schemes are not allowed";
   }
-  if (/[\u0000-\u001f\u007f]/.test(path26)) return "control characters are not allowed";
-  if (/%(?:2e|2f|5c)/i.test(path26)) return "encoded path traversal is not allowed";
-  if (path26.includes("\\")) return "path must use forward slashes";
-  if (path26.split("/").some((segment) => segment === ".." || segment === ".")) {
+  if (/[\u0000-\u001f\u007f]/.test(path27)) return "control characters are not allowed";
+  if (/%(?:2e|2f|5c)/i.test(path27)) return "encoded path traversal is not allowed";
+  if (path27.includes("\\")) return "path must use forward slashes";
+  if (path27.split("/").some((segment) => segment === ".." || segment === ".")) {
     return "path traversal and dot segments are not allowed";
   }
-  if (path26.split("/").some((segment) => segment.length === 0)) {
+  if (path27.split("/").some((segment) => segment.length === 0)) {
     return "path cannot contain empty segments";
   }
   return null;
@@ -26007,22 +26178,22 @@ function validateFlowPackManifestSemantics(manifest) {
       issues
     );
     role.independence.compare_against_roles.forEach((comparedRole, comparedIndex) => {
-      const path26 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
+      const path27 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
       if (comparedRole === role.id) {
         issues.push({
-          path: path26,
+          path: path27,
           code: "self_referential_model_independence",
           message: "a model role cannot require independence from itself"
         });
       } else if (!modelRolesById.has(comparedRole)) {
         issues.push({
-          path: path26,
+          path: path27,
           code: "missing_independence_model_role",
           message: `independence policy references undeclared model role ${JSON.stringify(comparedRole)}`
         });
       } else if (modelRolesById.get(comparedRole)?.independence !== null) {
         issues.push({
-          path: path26,
+          path: path27,
           code: "independence_reference_not_author",
           message: `independence policy must compare against an author role; ${JSON.stringify(comparedRole)} declares its own independence policy`
         });
@@ -26292,6 +26463,59 @@ var Receipt = external_exports.object({
   next_cursor: external_exports.string().uuid().nullable(),
   reason: external_exports.string().optional()
 });
+
+// packages/shared/dist/native-workflow-task-connection.js
+var uuid3 = external_exports.string().uuid();
+var NativeWorkflowTaskFileSchema = external_exports.object({
+  id: uuid3,
+  name: external_exports.string().min(1).max(120).regex(/^[A-Za-z0-9][A-Za-z0-9._ -]*\.(?:md|txt|json|csv)$/),
+  title: external_exports.string().trim().min(1).max(200),
+  content: external_exports.string().min(1).max(16e3).refine((v) => new TextEncoder().encode(v).length <= 16e3),
+  sha256: external_exports.string().regex(/^[a-f0-9]{64}$/),
+  bytes: external_exports.number().int().positive().max(16e3)
+}).strict();
+var NativeWorkflowTaskFilesSchema = external_exports.array(NativeWorkflowTaskFileSchema).max(4).refine(
+  (files) => files.reduce((total, file2) => total + file2.bytes, 0) <= 16e3,
+  "Task files must fit the original protected result"
+);
+var NativeWorkflowPageSchema = external_exports.object({
+  kind: external_exports.literal("native_workflow_page"),
+  version: external_exports.literal(1),
+  accountId: uuid3,
+  projectId: uuid3,
+  runId: uuid3,
+  handoffId: uuid3,
+  stepId: external_exports.string().min(1).max(100),
+  observedAt: external_exports.number().int().positive(),
+  page: external_exports.object({
+    url: external_exports.string().url().max(2e3),
+    title: external_exports.string().max(240),
+    width: external_exports.number().int().positive().max(1e4),
+    height: external_exports.number().int().positive().max(1e4),
+    text: external_exports.string().max(12e3),
+    truncated: external_exports.boolean().default(false),
+    controls: external_exports.array(
+      external_exports.object({
+        role: external_exports.enum([
+          "button",
+          "link",
+          "heading",
+          "textbox",
+          "combobox",
+          "checkbox",
+          "radio",
+          "status"
+        ]),
+        label: external_exports.string().max(160),
+        disabled: external_exports.boolean(),
+        x: external_exports.number().finite(),
+        y: external_exports.number().finite(),
+        width: external_exports.number().nonnegative().finite(),
+        height: external_exports.number().nonnegative().finite()
+      }).strict()
+    ).max(80)
+  }).strict()
+}).strict();
 
 // packages/plugin-core/src/memlin-api-client.ts
 init_auth_refusal();
@@ -26617,7 +26841,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.77";
+  cachedAgentVersion = "0.2.81";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -26849,7 +27073,7 @@ var MemlinApiClient = class {
       if (refusalAccountId && (res.ok || privateRefusal)) {
         await notePrivateUntil(
           refusalAccountId,
-          res.headers.get(PRIVATE_UNTIL_HEADER) ?? (parsed?.private_until ?? null),
+          res.headers.get(PRIVATE_UNTIL_HEADER) ?? parsed?.private_until ?? null,
           Date.now(),
           res.headers.get(PRIVATE_LEVEL_HEADER) ?? (refusedCode === "read_only_mode" ? "read_only" : null)
         ).catch(() => {
@@ -27034,7 +27258,9 @@ var MemlinApiClient = class {
   /**
    * POST /roles/assign — set a member's functional roles (backend, sre,
    * ...). Defaults to the caller; pass user_id to assign another member
-   * (owner/admin only). Replaces the member's set wholesale.
+   * (owner/admin only). Replaces the member's set wholesale. The two names
+   * that carry rights, project_manager and support, are owner/admin-only
+   * for every target, the caller included.
    */
   async assignRoles(input, opts = {}) {
     return this.request("POST", "/roles/assign", input, {
@@ -27044,9 +27270,21 @@ var MemlinApiClient = class {
   /**
    * POST /roles/tag — tag a document into one or more role packs. The
    * resolver boosts the document for members holding a matching role.
-   * Replaces the document's role tags wholesale.
+   * Replaces the document's role tags wholesale. The document must be one
+   * the caller can read.
    */
   async tagDocumentRoles(input, opts = {}) {
+    return this.request("POST", "/roles/tag", input, {
+      accountId: opts.accountId
+    });
+  }
+  /**
+   * POST /roles/tag with a selector — tag every document that matches
+   * (project, component, kind, path prefix; criteria AND together, at least
+   * one required). Owner/admin only. One call looks at a bounded page:
+   * while next_cursor is set, pass it back as cursor to continue.
+   */
+  async tagDocumentRolesBulk(input, opts = {}) {
     return this.request("POST", "/roles/tag", input, {
       accountId: opts.accountId
     });
@@ -27231,6 +27469,28 @@ var MemlinApiClient = class {
     return this.request("POST", "/documents", input, {
       accountId: callOpts.accountId
     });
+  }
+  /** POST /memory/task-notes (hold) — save a note written during a running
+   *  task as pending: held in the project inbox until the task's outcome is
+   *  recorded. An older server has no such route and answers 404, so the note
+   *  is never written without the hold. */
+  async holdTaskNote(input, callOpts = {}) {
+    return this.request(
+      "POST",
+      "/memory/task-notes",
+      { action: "hold", ...input },
+      { accountId: callOpts.accountId }
+    );
+  }
+  /** POST /memory/task-notes (settle) — record the task's final state on a
+   *  held note. Only 'completed' releases it; nothing here makes it live. */
+  async settleTaskNote(input, callOpts = {}) {
+    return this.request(
+      "POST",
+      "/memory/task-notes",
+      { action: "settle", ...input },
+      { accountId: callOpts.accountId }
+    );
   }
   /** Atomically compare-and-sync the server-owned project CONTRACT.md. */
   async syncWorkspaceContract(input) {
@@ -27977,8 +28237,8 @@ var MemlinApiClient = class {
     if (opts.severity) qs.set("severity", opts.severity);
     if (opts.limit) qs.set("limit", String(opts.limit));
     const query = qs.toString();
-    const path26 = `/feeds/${encodeURIComponent(key)}${query ? `?${query}` : ""}`;
-    return this.request("GET", path26, void 0, {
+    const path27 = `/feeds/${encodeURIComponent(key)}${query ? `?${query}` : ""}`;
+    return this.request("GET", path27, void 0, {
       accountId: opts.accountId,
       maxRetries: opts.maxRetries,
       requestTimeoutMs: opts.requestTimeoutMs
@@ -28028,9 +28288,6 @@ var MemlinApiClient = class {
     return res.projects;
   }
 };
-function resolveApiUrl() {
-  return process.env.MEMLIN_API_URL?.trim() || DEFAULT_API_URL;
-}
 
 // packages/plugin-core/src/client.ts
 init_workspace_binding();
@@ -28057,6 +28314,9 @@ async function readConfig() {
   } catch {
     return null;
   }
+}
+function resolveServiceApiUrl(config2, env = process.env) {
+  return env.MEMLIN_API_URL?.trim() || config2?.api_url?.trim() || DEFAULT_API_URL;
 }
 function accessTokenSubject(accessToken) {
   try {
@@ -28091,7 +28351,7 @@ async function getApi(opts = {}) {
     config2,
     overlay
   );
-  const apiUrl = process.env.MEMLIN_API_URL?.trim() || config2.api_url || resolveApiUrl();
+  const apiUrl = resolveServiceApiUrl(config2);
   const level = await captureLevel(void 0, void 0, config2.account_id);
   const privateSession = level === "private";
   const readOnlySession = level === "read_only";
@@ -28133,9 +28393,17 @@ function log(msg) {
 }
 
 // packages/plugin-core/src/project-resolver.ts
-import { existsSync, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
-import path9 from "node:path";
+import { existsSync, promises as fs8, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
+import path10 from "node:path";
 init_workspace_binding();
+
+// packages/plugin-core/src/auto-bind.ts
+init_workspace_binding();
+import { promises as fs7 } from "node:fs";
+import path9 from "node:path";
+
+// packages/plugin-core/src/project-resolver.ts
+init_companion_client();
 var ALLOW_ACCOUNT_MISMATCH_ENV = "MEMLIN_ALLOW_ACCOUNT_MISMATCH";
 function allowAccountMismatch(env = process.env) {
   const v = env[ALLOW_ACCOUNT_MISMATCH_ENV];
@@ -28160,12 +28428,12 @@ var WORKSPACE_ENV_VARS = [
 function runtimeCwd(fallback = process.cwd()) {
   for (const name of WORKSPACE_ENV_VARS) {
     const raw = process.env[name]?.trim();
-    if (raw && path9.isAbsolute(raw)) return path9.resolve(raw);
+    if (raw && path10.isAbsolute(raw)) return path10.resolve(raw);
   }
-  return path9.resolve(fallback);
+  return path10.resolve(fallback);
 }
 async function resolveProject(api, cwd, configProjectId) {
-  const absCwd = path9.resolve(cwd);
+  const absCwd = path10.resolve(cwd);
   const remotes = detectGitRemotes(cwd);
   const hasGitRemote = remotes.length > 0;
   let serverFailure;
@@ -28221,9 +28489,9 @@ function readGitRemote(cwd) {
     return readFileSync2(file2, "utf8");
   };
   try {
-    let root = path9.resolve(cwd);
+    let root = path10.resolve(cwd);
     for (; ; ) {
-      const marker = path9.join(root, ".git");
+      const marker = path10.join(root, ".git");
       if (existsSync(marker)) {
         const info = lstatSync(marker);
         if (info.isSymbolicLink()) return null;
@@ -28231,12 +28499,12 @@ function readGitRemote(cwd) {
         if (info.isFile()) {
           const match = /^gitdir:\s*(.+)$/m.exec(read2(marker));
           if (!match) return null;
-          directory = path9.resolve(root, match[1].trim());
+          directory = path10.resolve(root, match[1].trim());
         }
-        const common2 = path9.join(directory, "commondir");
-        if (existsSync(common2)) directory = path9.resolve(directory, read2(common2).trim());
+        const common2 = path10.join(directory, "commondir");
+        if (existsSync(common2)) directory = path10.resolve(directory, read2(common2).trim());
         let origin = false;
-        for (const line of read2(path9.join(directory, "config")).split(/\r?\n/)) {
+        for (const line of read2(path10.join(directory, "config")).split(/\r?\n/)) {
           if (/^\s*\[/.test(line)) origin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/.test(line);
           else if (origin) {
             const match = /^\s*url\s*=\s*(.*?)\s*$/.exec(line);
@@ -28245,7 +28513,7 @@ function readGitRemote(cwd) {
         }
         return null;
       }
-      const parent = path9.dirname(root);
+      const parent = path10.dirname(root);
       if (parent === root) return null;
       root = parent;
     }
@@ -28266,8 +28534,8 @@ function detectGitRemotes(cwd) {
         continue;
       }
       scanned++;
-      const child = path9.join(cwd, entry.name);
-      if (!existsSync(path9.join(child, ".git"))) continue;
+      const child = path10.join(cwd, entry.name);
+      if (!existsSync(path10.join(child, ".git"))) continue;
       const remote = readGitRemote(child);
       if (remote && !out.includes(remote)) out.push(remote);
     }
@@ -28287,11 +28555,11 @@ var DEFAULT_THROTTLE_MS = 6e4;
 var HEARTBEAT_REQUEST_TIMEOUT_MS = 750;
 function statePath(cwd, host) {
   const key = crypto4.createHash("sha256").update(cwd).digest("hex").slice(0, 16);
-  return path10.join(os9.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
+  return path11.join(os9.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
 }
 async function recentlySent(file2, throttleMs) {
   try {
-    const raw = await fs7.readFile(file2, "utf8");
+    const raw = await fs9.readFile(file2, "utf8");
     const parsed = JSON.parse(raw);
     return typeof parsed.sent_at === "number" && Date.now() - parsed.sent_at < throttleMs;
   } catch {
@@ -28321,7 +28589,7 @@ async function recordInstallHeartbeat(cwd, reason, opts = {}) {
       requestTimeoutMs: HEARTBEAT_REQUEST_TIMEOUT_MS,
       maxRetries: 0
     });
-    await fs7.writeFile(file2, JSON.stringify({ sent_at: Date.now(), reason, host }), "utf8");
+    await fs9.writeFile(file2, JSON.stringify({ sent_at: Date.now(), reason, host }), "utf8");
     log(`${host} activity recorded: ${reason}`);
   } catch (err) {
     log(`${host} activity failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -28329,30 +28597,30 @@ async function recordInstallHeartbeat(cwd, reason, opts = {}) {
 }
 
 // packages/plugin-core/src/light-sync.ts
-import { promises as fs8, constants as constants2 } from "node:fs";
-import path11 from "node:path";
+import { promises as fs10, constants as constants2 } from "node:fs";
+import path12 from "node:path";
 import { createHash, randomUUID as randomUUID4 } from "node:crypto";
 var hash = (s) => createHash("sha256").update(s).digest("hex");
 async function assertLightFile(root, relative) {
-  const rootPath = path11.resolve(root);
-  if (!path11.resolve(rootPath, relative).startsWith(rootPath + path11.sep))
+  const rootPath = path12.resolve(root);
+  if (!path12.resolve(rootPath, relative).startsWith(rootPath + path12.sep))
     throw new Error("Unsafe memory path");
   let canonicalRoot;
   try {
-    if ((await fs8.lstat(rootPath)).isSymbolicLink())
+    if ((await fs10.lstat(rootPath)).isSymbolicLink())
       throw new Error("Memory sync refuses symlinks");
-    canonicalRoot = await fs8.realpath(rootPath);
+    canonicalRoot = await fs10.realpath(rootPath);
   } catch (error40) {
     if (error40.code !== "ENOENT") throw error40;
-    canonicalRoot = path11.join(await fs8.realpath(path11.dirname(rootPath)), path11.basename(rootPath));
+    canonicalRoot = path12.join(await fs10.realpath(path12.dirname(rootPath)), path12.basename(rootPath));
   }
-  const resolved = path11.resolve(canonicalRoot, relative);
-  const parts = relative.split(path11.sep).filter(Boolean);
+  const resolved = path12.resolve(canonicalRoot, relative);
+  const parts = relative.split(path12.sep).filter(Boolean);
   let current = canonicalRoot;
   for (const part of parts) {
-    current = path11.join(current, part);
+    current = path12.join(current, part);
     try {
-      if ((await fs8.lstat(current)).isSymbolicLink())
+      if ((await fs10.lstat(current)).isSymbolicLink())
         throw new Error("Memory sync refuses symlinks");
     } catch (e) {
       if (e.code !== "ENOENT") throw e;
@@ -28363,7 +28631,7 @@ async function assertLightFile(root, relative) {
 async function read(root, rel, fileLimit) {
   const file2 = await assertLightFile(root, rel);
   try {
-    const handle = await fs8.open(file2, constants2.O_RDONLY | constants2.O_NOFOLLOW);
+    const handle = await fs10.open(file2, constants2.O_RDONLY | constants2.O_NOFOLLOW);
     try {
       const stat = await handle.stat();
       if (!stat.isFile() || stat.size > fileLimit) throw new Error(`Memory file too large: ${rel}`);
@@ -28381,14 +28649,14 @@ async function read(root, rel, fileLimit) {
 }
 async function put(root, rel, content) {
   const file2 = await assertLightFile(root, rel);
-  await fs8.mkdir(path11.dirname(file2), { recursive: true });
+  await fs10.mkdir(path12.dirname(file2), { recursive: true });
   const temp = await assertLightFile(root, `${rel}.${randomUUID4()}.tmp`);
-  await fs8.writeFile(temp, content, { flag: "wx", mode: 384 });
+  await fs10.writeFile(temp, content, { flag: "wx", mode: 384 });
   try {
     await assertLightFile(root, rel);
-    await fs8.rename(temp, file2);
+    await fs10.rename(temp, file2);
   } finally {
-    await fs8.rm(temp, { force: true });
+    await fs10.rm(temp, { force: true });
   }
 }
 async function tryLightSync(api, config2, mode, workspaceRoot) {
@@ -28403,15 +28671,15 @@ async function tryLightSync(api, config2, mode, workspaceRoot) {
     throw new Error(
       "Light sync uses the bound project folder. Export memories from the memory screen."
     );
-  const root = path11.join(workspaceRoot ?? runtimeCwd(), ".memlin");
+  const root = path12.join(workspaceRoot ?? runtimeCwd(), ".memlin");
   await assertLightFile(root, "memory");
-  await fs8.mkdir(path11.join(root, "memory"), { recursive: true });
+  await fs10.mkdir(path12.join(root, "memory"), { recursive: true });
   const lock = await assertLightFile(root, "light-sync.lock");
   try {
-    await fs8.mkdir(lock);
+    await fs10.mkdir(lock);
   } catch {
     const pidPath = await assertLightFile(root, "light-sync.lock/pid");
-    const pid = Number(await fs8.readFile(pidPath, "utf8").catch(() => ""));
+    const pid = Number(await fs10.readFile(pidPath, "utf8").catch(() => ""));
     if (!Number.isSafeInteger(pid) || pid <= 0)
       throw new Error("Memory sync is already starting. Retry shortly.");
     let alive = true;
@@ -28421,16 +28689,16 @@ async function tryLightSync(api, config2, mode, workspaceRoot) {
       if (error40.code === "ESRCH") alive = false;
     }
     if (alive) throw new Error("Memory sync is already running.");
-    await fs8.unlink(pidPath);
-    await fs8.rmdir(lock);
-    await fs8.mkdir(lock);
+    await fs10.unlink(pidPath);
+    await fs10.rmdir(lock);
+    await fs10.mkdir(lock);
   }
-  await fs8.writeFile(path11.join(lock, "pid"), String(process.pid), { flag: "wx", mode: 384 });
+  await fs10.writeFile(path12.join(lock, "pid"), String(process.pid), { flag: "wx", mode: 384 });
   try {
     const manifestPath = await assertLightFile(root, "light-sync.json");
     let state = {};
     try {
-      const manifest = JSON.parse(await fs8.readFile(manifestPath, "utf8"));
+      const manifest = JSON.parse(await fs10.readFile(manifestPath, "utf8"));
       if (manifest.project_id !== light.project_id || manifest.account_id !== config2.account_id)
         throw new Error(
           "Memory sync state belongs to another account or project. Use its original bound folder."
@@ -28445,7 +28713,7 @@ async function tryLightSync(api, config2, mode, workspaceRoot) {
     const remote = new Map(
       docs.filter((d) => d.path && validLightPath(d.path)).map((d) => [d.path, d])
     );
-    const locals = (await fs8.readdir(path11.join(root, "memory"))).map((n) => `memory/${n}`).filter(validLightPath);
+    const locals = (await fs10.readdir(path12.join(root, "memory"))).map((n) => `memory/${n}`).filter(validLightPath);
     const localFlag = process.argv.indexOf("--accept-local");
     const remoteFlag = process.argv.indexOf("--accept-remote");
     if (localFlag >= 0 && remoteFlag >= 0)
@@ -28479,7 +28747,7 @@ async function tryLightSync(api, config2, mode, workspaceRoot) {
           state[rel] = { id: saved.document_id, version: saved.version_number, hash: hash(local) };
         } else if (remoteFlag >= 0) {
           if (local !== null)
-            await put(root, `conflicts/${path11.basename(rel)}.local-${Date.now()}.md`, local);
+            await put(root, `conflicts/${path12.basename(rel)}.local-${Date.now()}.md`, local);
           await put(root, rel, doc.content);
           state[rel] = { id: doc.id, version: doc.version_number ?? 1, hash: hash(doc.content) };
         }
@@ -28530,7 +28798,7 @@ async function tryLightSync(api, config2, mode, workspaceRoot) {
         if (doc && (!prev || doc.id !== prev.id || doc.version_number !== prev.version)) {
           await put(
             root,
-            `conflicts/${path11.basename(rel)}.remote-v${doc.version_number}.md`,
+            `conflicts/${path12.basename(rel)}.remote-v${doc.version_number}.md`,
             doc.content
           );
           needsAttention = true;
@@ -28545,7 +28813,7 @@ async function tryLightSync(api, config2, mode, workspaceRoot) {
             expected_version: prev?.version ?? 0,
             scope: "project",
             kind: "memory",
-            title: doc?.title ?? path11.basename(rel, ".md"),
+            title: doc?.title ?? path12.basename(rel, ".md"),
             path: rel,
             content: local,
             project_id: light.project_id,
@@ -28575,7 +28843,7 @@ async function tryLightSync(api, config2, mode, workspaceRoot) {
         if (local !== null && hash(local) !== hash(doc.content) && (!prev || hash(local) !== prev.hash)) {
           await put(
             root,
-            `conflicts/${path11.basename(rel)}.remote-v${doc.version_number}.md`,
+            `conflicts/${path12.basename(rel)}.remote-v${doc.version_number}.md`,
             doc.content
           );
           needsAttention = true;
@@ -28598,25 +28866,25 @@ async function tryLightSync(api, config2, mode, workspaceRoot) {
         await api.recordLightSync(light.project_id, needsAttention ? "needs_attention" : "synced");
     } catch {
     }
-    console.log(`Memory sync checked. Files: ${path11.join(root, "memory")}`);
+    console.log(`Memory sync checked. Files: ${path12.join(root, "memory")}`);
     return true;
   } finally {
-    await fs8.unlink(path11.join(lock, "pid"));
-    await fs8.rmdir(lock);
+    await fs10.unlink(path12.join(lock, "pid"));
+    await fs10.rmdir(lock);
   }
 }
 
 // packages/plugin-core/src/light/run-sync.ts
 import { existsSync as existsSync2 } from "node:fs";
-import path21 from "node:path";
+import path22 from "node:path";
 
 // packages/plugin-core/src/light/claude.ts
-import path13 from "node:path";
+import path14 from "node:path";
 
 // packages/plugin-core/src/light/fs.ts
 import { promises as fsp, constants as constants3 } from "node:fs";
 import { createHash as createHash2 } from "node:crypto";
-import path12 from "node:path";
+import path13 from "node:path";
 var nodeLightFs = {
   lstat: (p) => fsp.lstat(p),
   readdir: (p) => fsp.readdir(p),
@@ -28630,16 +28898,16 @@ function isEnoent(e) {
 }
 function lightDisplayPath(abs2, home, lightRoot) {
   const within = (base) => {
-    const rel = path12.relative(base, abs2);
-    return rel === "" || !rel.startsWith("..") && !path12.isAbsolute(rel) ? rel : null;
+    const rel = path13.relative(base, abs2);
+    return rel === "" || !rel.startsWith("..") && !path13.isAbsolute(rel) ? rel : null;
   };
   const h = within(home);
-  if (h !== null) return h ? `~/${h.split(path12.sep).join("/")}` : "~";
+  if (h !== null) return h ? `~/${h.split(path13.sep).join("/")}` : "~";
   if (lightRoot) {
     const r = within(lightRoot);
-    if (r !== null) return r ? `<light-root>/${r.split(path12.sep).join("/")}` : "<light-root>";
+    if (r !== null) return r ? `<light-root>/${r.split(path13.sep).join("/")}` : "<light-root>";
   }
-  return `<outside-home>/${path12.basename(abs2)}`;
+  return `<outside-home>/${path13.basename(abs2)}`;
 }
 var HostReader = class {
   constructor(host, kind, home, lightRoot, opts = {}) {
@@ -28708,7 +28976,7 @@ var HostReader = class {
     }
     const out = [];
     for (const name of [...names].sort()) {
-      const child = path12.join(abs2, name);
+      const child = path13.join(abs2, name);
       try {
         const st = await this.fs.lstat(child);
         out.push({
@@ -28837,7 +29105,7 @@ var HostReader = class {
     const out = [];
     const visit = async (dir, depth) => {
       for (const e of await this.list(dir)) {
-        const rel = path12.relative(root, e.abs).split(path12.sep).join("/");
+        const rel = path13.relative(root, e.abs).split(path13.sep).join("/");
         if (e.kind === "symlink") {
           if (accept(e.name, rel)) this.skip(e.abs, "symlink");
           continue;
@@ -28908,24 +29176,24 @@ function lightContentHash(body) {
   return createHash2("sha256").update(normalizeLightBody(body), "utf8").digest("hex");
 }
 async function gitMainRoot(start, reader) {
-  let dir = path12.resolve(start);
+  let dir = path13.resolve(start);
   for (let i = 0; i < 64; i++) {
-    const dotGit = path12.join(dir, ".git");
+    const dotGit = path13.join(dir, ".git");
     const st = await reader.lstat(dotGit).catch(() => null);
     if (st?.isDirectory()) return dir;
     if (st?.isFile()) {
       const file2 = await reader.readText(dotGit, 4096, { countTowardBudget: false });
       const m = file2 ? /^gitdir:\s*(.+?)\s*$/m.exec(file2.text) : null;
       if (!m) return dir;
-      const gitdir = path12.resolve(dir, m[1]);
-      const common2 = await reader.readText(path12.join(gitdir, "commondir"), 4096, {
+      const gitdir = path13.resolve(dir, m[1]);
+      const common2 = await reader.readText(path13.join(gitdir, "commondir"), 4096, {
         countTowardBudget: false
       });
       if (!common2) return dir;
-      const commonDir = path12.resolve(gitdir, common2.text.trim());
-      return path12.basename(commonDir) === ".git" ? path12.dirname(commonDir) : dir;
+      const commonDir = path13.resolve(gitdir, common2.text.trim());
+      return path13.basename(commonDir) === ".git" ? path13.dirname(commonDir) : dir;
     }
-    const parent = path12.dirname(dir);
+    const parent = path13.dirname(dir);
     if (parent === dir) return null;
     dir = parent;
   }
@@ -28935,8 +29203,8 @@ function expandHomePath(value, home) {
   if (!value || typeof value !== "string") return null;
   const v = value.trim();
   if (v === "~") return home;
-  if (v.startsWith("~/") || v.startsWith("~\\")) return path12.join(home, v.slice(2));
-  if (path12.isAbsolute(v)) return path12.normalize(v);
+  if (v.startsWith("~/") || v.startsWith("~\\")) return path13.join(home, v.slice(2));
+  if (path13.isAbsolute(v)) return path13.normalize(v);
   return null;
 }
 
@@ -28961,19 +29229,19 @@ async function loadClaudeLightSettings(opts) {
   const r = new HostReader("claude", "memory", opts.home, opts.lightRoot, opts);
   const read2 = async (p, max = CONFIG_BYTES) => (await r.readText(p, max, { countTowardBudget: false }))?.text;
   let projectTrusted = false;
-  const claudeJson = await read2(path13.join(opts.home, ".claude.json"), CLAUDE_JSON_BYTES);
+  const claudeJson = await read2(path14.join(opts.home, ".claude.json"), CLAUDE_JSON_BYTES);
   if (claudeJson) {
     try {
       const projects = JSON.parse(claudeJson).projects;
-      const entry = projects?.[path13.resolve(opts.lightRoot)];
+      const entry = projects?.[path14.resolve(opts.lightRoot)];
       projectTrusted = entry?.hasTrustDialogAccepted === true;
     } catch {
     }
   }
   return {
-    user: view(await read2(path13.join(opts.home, ".claude", "settings.json"))),
-    project: view(await read2(path13.join(opts.lightRoot, ".claude", "settings.json"))),
-    local: view(await read2(path13.join(opts.lightRoot, ".claude", "settings.local.json"))),
+    user: view(await read2(path14.join(opts.home, ".claude", "settings.json"))),
+    project: view(await read2(path14.join(opts.lightRoot, ".claude", "settings.json"))),
+    local: view(await read2(path14.join(opts.lightRoot, ".claude", "settings.local.json"))),
     projectTrusted
   };
 }
@@ -29009,10 +29277,10 @@ function resolveClaudeMemoryDirs(home, roots, settings = {}) {
     }
     return { candidates: [dir], customFrom: from, notes };
   }
-  const projects = path13.join(home, ".claude", "projects");
+  const projects = path14.join(home, ".claude", "projects");
   const candidates = [
     ...new Set(
-      roots.flatMap((r) => claudeProjectKeys(r).map((k) => path13.join(projects, k, "memory")))
+      roots.flatMap((r) => claudeProjectKeys(r).map((k) => path14.join(projects, k, "memory")))
     )
   ];
   return { candidates, customFrom: null, notes };
@@ -29026,7 +29294,7 @@ function autoMemoryEnabled(settings) {
 async function readClaudeMemory(opts) {
   const r = new HostReader("claude", "memory", opts.home, opts.lightRoot, opts);
   const settings = opts.settings ?? {};
-  const lightRoot = path13.resolve(opts.lightRoot);
+  const lightRoot = path14.resolve(opts.lightRoot);
   const main = await gitMainRoot(lightRoot, r);
   const roots = [...new Set([main, lightRoot].filter((x) => !!x))];
   const resolution = resolveClaudeMemoryDirs(opts.home, roots, settings);
@@ -29043,7 +29311,7 @@ async function readClaudeMemory(opts) {
     return r.result(enabled === false ? "disabled" : "no_memories_yet");
   }
   r.addSource(dir);
-  const dirKey = resolution.customFrom ? "custom" : path13.basename(path13.dirname(dir));
+  const dirKey = resolution.customFrom ? "custom" : path14.basename(path14.dirname(dir));
   const entries = (await r.list(dir)).filter((e) => /\.md$/i.test(e.name));
   entries.sort(
     (a, b) => a.name === "MEMORY.md" ? -1 : b.name === "MEMORY.md" ? 1 : a.name.localeCompare(b.name)
@@ -29104,30 +29372,30 @@ async function readClaudeMemory(opts) {
 }
 
 // packages/plugin-core/src/light/codex.ts
-import path14 from "node:path";
+import path15 from "node:path";
 function expandTilde(p, home) {
-  return p.startsWith("~/") ? path14.join(home, p.slice(2)) : p;
+  return p.startsWith("~/") ? path15.join(home, p.slice(2)) : p;
 }
 async function readCodexMemory(opts) {
   const r = new HostReader("codex", "memory", opts.home, opts.lightRoot, opts);
-  const lightRoot = path14.resolve(opts.lightRoot);
+  const lightRoot = path15.resolve(opts.lightRoot);
   const main = await gitMainRoot(lightRoot, r);
   const roots = [...new Set([lightRoot, main].filter((x) => !!x))];
   const matches = (p) => roots.some((root) => pathWithinRoot(expandTilde(p, opts.home), root));
-  const codexDir = path14.join(opts.home, ".codex");
-  const memDir = path14.join(codexDir, "memories");
+  const codexDir = path15.join(opts.home, ".codex");
+  const memDir = path15.join(codexDir, "memories");
   const flags = [];
-  const override = await r.lstat(path14.join(lightRoot, "AGENTS.override.md")).catch(() => null);
+  const override = await r.lstat(path15.join(lightRoot, "AGENTS.override.md")).catch(() => null);
   if (override) {
     flags.push("shadowed_by_override");
     r.notes.push("AGENTS.override.md at the root hides the shared AGENTS.md section from Codex.");
   }
-  const config2 = await r.readText(path14.join(codexDir, "config.toml"), 256 * 1024, {
+  const config2 = await r.readText(path15.join(codexDir, "config.toml"), 256 * 1024, {
     countTowardBudget: false
   });
   const enabled = config2 ? parseCodexMemoriesFeature(config2.text) === true : false;
-  const memoryPath = path14.join(memDir, "MEMORY.md");
-  const summaryPath = path14.join(memDir, "memory_summary.md");
+  const memoryPath = path15.join(memDir, "MEMORY.md");
+  const summaryPath = path15.join(memDir, "memory_summary.md");
   const memDirExists = await r.isDir(memDir);
   const memory = memDirExists ? await r.readText(memoryPath, r.limits.memoryFileBytes) : null;
   const summary = memDirExists ? await r.readText(summaryPath, r.limits.memoryFileBytes) : null;
@@ -29170,7 +29438,7 @@ async function readCodexMemory(opts) {
       item_key: uniqueKey(
         `codex:memory:memory_summary.md#${s.older ? "older-" : ""}${lightSlug(s.path, 60)}`
       ),
-      title: `Codex memory summary \u2014 ${path14.basename(s.path)}${s.older ? " (older topics)" : ""}`,
+      title: `Codex memory summary \u2014 ${path15.basename(s.path)}${s.older ? " (older topics)" : ""}`,
       body: `## ${s.heading}
 
 ${s.body}`,
@@ -29212,7 +29480,7 @@ ${s.body}`,
 }
 
 // packages/plugin-core/src/light/native-plan-sources.ts
-import path15 from "node:path";
+import path16 from "node:path";
 var UUIDISH = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function newestFirst(a, b) {
   return b.mtimeMs - a.mtimeMs || a.name.localeCompare(b.name);
@@ -29221,7 +29489,7 @@ function scopeFor(opts, plan, inWorkspace, maxScope) {
   return attributePlan(
     { body: plan.body, title: plan.title, inWorkspace },
     {
-      lightRoot: path15.resolve(opts.lightRoot),
+      lightRoot: path16.resolve(opts.lightRoot),
       repoName: opts.repoName ?? null,
       ...maxScope ? { maxScope } : {}
     }
@@ -29241,7 +29509,7 @@ async function readMarkdownPlanDir(r, opts, dir, cfg) {
       r.skip(f.abs, file2.text.trim() ? "format_unsupported" : "empty");
       continue;
     }
-    const rel = path15.relative(dir, f.abs).split(path15.sep).join("/");
+    const rel = path16.relative(dir, f.abs).split(path16.sep).join("/");
     r.addItem({
       item_key: `${cfg.keyPrefix}${rel}`,
       title: parsed.title,
@@ -29264,13 +29532,13 @@ function planStatus(r, found, unsupported, experimental = false) {
 async function readCursorPlans(opts) {
   const r = new HostReader("cursor", "plan", opts.home, opts.lightRoot, opts);
   const accept = (n) => /\.plan\.md$/i.test(n);
-  const ws = await readMarkdownPlanDir(r, opts, path15.join(opts.lightRoot, ".cursor", "plans"), {
+  const ws = await readMarkdownPlanDir(r, opts, path16.join(opts.lightRoot, ".cursor", "plans"), {
     accept,
     keyPrefix: "cursor:plan:workspace/",
     inWorkspace: true,
     parse: "cursor"
   });
-  const user = await readMarkdownPlanDir(r, opts, path15.join(opts.home, ".cursor", "plans"), {
+  const user = await readMarkdownPlanDir(r, opts, path16.join(opts.home, ".cursor", "plans"), {
     accept,
     keyPrefix: "cursor:plan:user/",
     inWorkspace: false,
@@ -29279,16 +29547,16 @@ async function readCursorPlans(opts) {
   return planStatus(r, ws.found + user.found, ws.unsupported + user.unsupported);
 }
 function claudePlanDirs(home, lightRoot, settings = {}) {
-  const dirs = [path15.join(home, ".claude", "plans")];
+  const dirs = [path16.join(home, ".claude", "plans")];
   for (const s of [settings.local, settings.project, settings.user]) {
     const v = s?.plansDirectory?.trim();
     if (!v) continue;
     if (v.startsWith("~/")) {
-      dirs.push(path15.join(home, v.slice(2)), path15.join(lightRoot, v));
-    } else if (path15.isAbsolute(v)) {
-      dirs.push(path15.normalize(v));
+      dirs.push(path16.join(home, v.slice(2)), path16.join(lightRoot, v));
+    } else if (path16.isAbsolute(v)) {
+      dirs.push(path16.normalize(v));
     } else {
-      dirs.push(path15.resolve(lightRoot, v));
+      dirs.push(path16.resolve(lightRoot, v));
     }
     break;
   }
@@ -29296,12 +29564,12 @@ function claudePlanDirs(home, lightRoot, settings = {}) {
 }
 async function readClaudePlans(opts) {
   const r = new HostReader("claude", "plan", opts.home, opts.lightRoot, opts);
-  const root = path15.resolve(opts.lightRoot);
+  const root = path16.resolve(opts.lightRoot);
   let found = 0;
   let unsupported = 0;
   for (const dir of claudePlanDirs(opts.home, root, opts.settings)) {
-    const inWorkspace = dir === root || dir.startsWith(root + path15.sep);
-    const key = dir === path15.join(opts.home, ".claude", "plans") ? "claude:plan:" : `claude:plan:${r.display(dir)}/`;
+    const inWorkspace = dir === root || dir.startsWith(root + path16.sep);
+    const key = dir === path16.join(opts.home, ".claude", "plans") ? "claude:plan:" : `claude:plan:${r.display(dir)}/`;
     const res = await readMarkdownPlanDir(r, opts, dir, {
       accept: (n) => /\.md$/i.test(n),
       keyPrefix: key,
@@ -29315,7 +29583,7 @@ async function readClaudePlans(opts) {
 }
 async function readCodexPlans(opts) {
   const r = new HostReader("codex", "plan", opts.home, opts.lightRoot, opts);
-  const dir = path15.join(opts.home, ".codex", "plans");
+  const dir = path16.join(opts.home, ".codex", "plans");
   if (!await r.isDir(dir)) return r.result("no_memories_yet", { experimental: true });
   r.addSource(dir);
   let unknown2 = 0;
@@ -29338,7 +29606,7 @@ async function readCodexPlans(opts) {
         unknown2 += 1;
         continue;
       }
-      const planPath = path15.join(inner.abs, "PLAN.md");
+      const planPath = path16.join(inner.abs, "PLAN.md");
       const st = await r.lstat(planPath).catch(() => null);
       if (!st) continue;
       if (st.isSymbolicLink()) {
@@ -29363,7 +29631,7 @@ async function readCodexPlans(opts) {
   for (const c of candidates.sort(newestFirst)) {
     const file2 = await r.readText(c.abs, r.limits.planFileBytes);
     if (!file2) continue;
-    const rel = path15.relative(dir, path15.dirname(c.abs)).split(path15.sep).join("/");
+    const rel = path16.relative(dir, path16.dirname(c.abs)).split(path16.sep).join("/");
     const parsed = parseMarkdownPlan(
       file2.text,
       "PLAN.md",
@@ -29389,7 +29657,7 @@ async function readCodexPlans(opts) {
 }
 async function readAntigravityPlans(opts) {
   const r = new HostReader("antigravity", "plan", opts.home, opts.lightRoot, opts);
-  const brain = path15.join(opts.home, ".gemini", "antigravity", "brain");
+  const brain = path16.join(opts.home, ".gemini", "antigravity", "brain");
   if (!await r.isDir(brain)) return r.result("no_memories_yet", { experimental: true });
   r.addSource(brain);
   const convs = (await r.list(brain)).filter((e) => {
@@ -29400,7 +29668,7 @@ async function readAntigravityPlans(opts) {
   for (const conv of convs.sort(newestFirst)) {
     const parts = {};
     for (const artifact of ANTIGRAVITY_PLAN_ARTIFACTS) {
-      const mdPath = path15.join(conv.abs, `${artifact}.md`);
+      const mdPath = path16.join(conv.abs, `${artifact}.md`);
       const st = await r.lstat(mdPath).catch(() => null);
       if (!st) continue;
       if (st.isSymbolicLink()) {
@@ -29441,8 +29709,8 @@ async function readDevinPlans(opts) {
   let found = 0;
   let unsupported = 0;
   for (const [dir, prefix] of [
-    [path15.join(opts.home, ".devin", "plans"), "windsurf:plan:devin/"],
-    [path15.join(opts.home, ".windsurf", "plans"), "windsurf:plan:windsurf/"]
+    [path16.join(opts.home, ".devin", "plans"), "windsurf:plan:devin/"],
+    [path16.join(opts.home, ".windsurf", "plans"), "windsurf:plan:windsurf/"]
   ]) {
     const res = await readMarkdownPlanDir(r, opts, dir, {
       accept: (n) => /\.md$/i.test(n),
@@ -29470,13 +29738,13 @@ async function readAllNativePlans(opts) {
 }
 
 // packages/plugin-core/src/light/native-skill-sources.ts
-import path16 from "node:path";
+import path17 from "node:path";
 var SKILL_MD = "SKILL.md";
 function locationRoot(loc, home, lightRoot) {
-  return loc.scope === "user" ? path16.join(home, loc.path.replace(/^~\//, "")) : path16.join(lightRoot, loc.path);
+  return loc.scope === "user" ? path17.join(home, loc.path.replace(/^~\//, "")) : path17.join(lightRoot, loc.path);
 }
 async function hasSkillMd(r, dir) {
-  const st = await r.lstat(path16.join(dir, SKILL_MD)).catch(() => null);
+  const st = await r.lstat(path17.join(dir, SKILL_MD)).catch(() => null);
   if (!st) return null;
   if (st.isSymbolicLink()) return "symlink";
   return st.isFile() ? "file" : null;
@@ -29493,7 +29761,7 @@ async function listResources(r, skillDir, depthUsed) {
     }
     const sha256 = f.size <= r.limits.resourceHashBytes ? await r.sha256File(f.abs, r.limits.resourceHashBytes) : null;
     resources.push({
-      name: path16.relative(skillDir, f.abs).split(path16.sep).join("/"),
+      name: path17.relative(skillDir, f.abs).split(path17.sep).join("/"),
       size: f.size,
       sha256
     });
@@ -29501,7 +29769,7 @@ async function listResources(r, skillDir, depthUsed) {
   return { resources, truncated };
 }
 async function readSkillInventory(opts) {
-  const lightRoot = path16.resolve(opts.lightRoot);
+  const lightRoot = path17.resolve(opts.lightRoot);
   const readers = /* @__PURE__ */ new Map();
   const readerFor = (host) => {
     let r = readers.get(host);
@@ -29546,7 +29814,7 @@ async function readSkillInventory(opts) {
         }
         const skillMd = await hasSkillMd(r, e.abs);
         if (skillMd === "symlink") {
-          r.skip(path16.join(e.abs, SKILL_MD), "symlink");
+          r.skip(path17.join(e.abs, SKILL_MD), "symlink");
           continue;
         }
         if (!skillMd) {
@@ -29560,7 +29828,7 @@ async function readSkillInventory(opts) {
           continue;
         }
         folderCount.set(loc.owner, count2 + 1);
-        const mdPath = path16.join(e.abs, SKILL_MD);
+        const mdPath = path17.join(e.abs, SKILL_MD);
         const file2 = await r.readText(mdPath, r.limits.skillFileBytes);
         if (!file2) continue;
         const fm = splitYamlFrontmatter(file2.text);
@@ -29571,7 +29839,7 @@ async function readSkillInventory(opts) {
         const name = fm.data && typeof fm.data.name === "string" ? fm.data.name.trim() : "";
         const description = fm.data && typeof fm.data.description === "string" ? fm.data.description.trim() : "";
         const { resources, truncated } = await listResources(r, e.abs, depth);
-        const rel = path16.relative(root, e.abs).split(path16.sep).join("/");
+        const rel = path17.relative(root, e.abs).split(path17.sep).join("/");
         r.addItem({
           item_key: `${loc.owner}:skill:${loc.id}/${rel}`,
           title: name || e.name,
@@ -29638,7 +29906,7 @@ async function listPluginSkills(opts) {
         for (const e of entries)
           await expand(e.abs, i + 1, { ...captured, [seg.slice(1)]: e.name });
       } else {
-        const next = path16.join(dir, seg);
+        const next = path17.join(dir, seg);
         if (await r.isDir(next, false)) await expand(next, i + 1, captured);
       }
     };
@@ -29648,10 +29916,10 @@ async function listPluginSkills(opts) {
 }
 
 // packages/plugin-core/src/light/p1-p2-memory.ts
-import path17 from "node:path";
+import path18 from "node:path";
 async function readAntigravityKnowledge(opts) {
   const r = new HostReader("antigravity", "memory", opts.home, null, opts);
-  const knowledge = path17.join(opts.home, ".gemini", "antigravity", "knowledge");
+  const knowledge = path18.join(opts.home, ".gemini", "antigravity", "knowledge");
   if (!await r.isDir(knowledge)) return r.result("no_memories_yet", { experimental: true });
   r.addSource(knowledge);
   const entries = await r.list(knowledge);
@@ -29666,14 +29934,14 @@ async function readAntigravityKnowledge(opts) {
   }
   let unsupported = 0;
   for (const d of idDirs) {
-    const meta = await r.readText(path17.join(d.abs, "metadata.json"), 64 * 1024);
+    const meta = await r.readText(path18.join(d.abs, "metadata.json"), 64 * 1024);
     const parsed = meta ? parseAntigravityKnowledgeMetadata(meta.text) : null;
     if (!parsed) {
       unsupported += 1;
       r.skip(d.abs, "format_unsupported", "metadata.json missing or unrecognised");
       continue;
     }
-    const artifactsDir = path17.join(d.abs, "artifacts");
+    const artifactsDir = path18.join(d.abs, "artifacts");
     if (!await r.isDir(artifactsDir)) {
       unsupported += 1;
       r.skip(d.abs, "format_unsupported", "no artifacts/ folder");
@@ -29716,7 +29984,7 @@ ${text.text.trim()}`);
 }
 async function readWindsurfMemories(opts) {
   const r = new HostReader("windsurf", "memory", opts.home, null, opts);
-  const dir = path17.join(opts.home, ".codeium", "windsurf", "memories");
+  const dir = path18.join(opts.home, ".codeium", "windsurf", "memories");
   r.notes.push("Memories apply to the legacy Cascade agent only; Devin Local keeps none.");
   if (!await r.isDir(dir)) return r.result("no_memories_yet");
   r.addSource(dir);
@@ -29759,12 +30027,12 @@ async function readWindsurfMemories(opts) {
 init_atomic_rename();
 import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { promises as fs9 } from "node:fs";
-import path19 from "node:path";
+import { promises as fs11 } from "node:fs";
+import path20 from "node:path";
 
 // packages/plugin-core/src/light/delivery-markers.ts
 import { readFileSync as readFileSync3 } from "node:fs";
-import path18 from "node:path";
+import path19 from "node:path";
 var LIGHT_SECTION_START = "<!-- memlin:shared-memory:start v1 -->";
 var LIGHT_SECTION_END = "<!-- memlin:shared-memory:end -->";
 var LIGHT_OWNED_FINGERPRINT = "<!-- memlin:shared-memory:owned v1 -->";
@@ -30000,11 +30268,11 @@ var LightDeliveryInvariantError = class extends Error {
 };
 async function inspect(file2) {
   try {
-    const st = await fs9.lstat(file2);
+    const st = await fs11.lstat(file2);
     if (st.isSymbolicLink()) return { kind: "symlink" };
     if (st.isDirectory()) return { kind: "dir" };
     if (!st.isFile()) return { kind: "symlink" };
-    return { kind: "file", content: await fs9.readFile(file2, "utf8") };
+    return { kind: "file", content: await fs11.readFile(file2, "utf8") };
   } catch (error40) {
     if (error40.code === "ENOENT" || error40.code === "ENOTDIR") {
       return { kind: "missing" };
@@ -30014,7 +30282,7 @@ async function inspect(file2) {
 }
 async function isDir(dir) {
   try {
-    const st = await fs9.lstat(dir);
+    const st = await fs11.lstat(dir);
     return st.isDirectory();
   } catch {
     return false;
@@ -30024,9 +30292,9 @@ async function unsafeParents(lightRoot, rel) {
   const parts = rel.split("/").slice(0, -1);
   let current = lightRoot;
   for (const part of parts) {
-    current = path19.join(current, part);
+    current = path20.join(current, part);
     try {
-      const st = await fs9.lstat(current);
+      const st = await fs11.lstat(current);
       if (st.isSymbolicLink() || !st.isDirectory()) return true;
     } catch {
       return false;
@@ -30035,7 +30303,7 @@ async function unsafeParents(lightRoot, rel) {
   return false;
 }
 function abs(lightRoot, rel) {
-  return path19.join(lightRoot, ...rel.split("/"));
+  return path20.join(lightRoot, ...rel.split("/"));
 }
 function git(cwd, args) {
   return new Promise((resolve) => {
@@ -30054,23 +30322,23 @@ function git(cwd, args) {
   });
 }
 async function atomicWrite(file2, content) {
-  await fs9.mkdir(path19.dirname(file2), { recursive: true });
+  await fs11.mkdir(path20.dirname(file2), { recursive: true });
   let mode;
   try {
-    mode = (await fs9.stat(file2)).mode & 511;
+    mode = (await fs11.stat(file2)).mode & 511;
   } catch {
     mode = void 0;
   }
-  const tmp = path19.join(
-    path19.dirname(file2),
-    `.${path19.basename(file2)}.memlin-${process.pid}-${randomBytes(4).toString("hex")}.tmp`
+  const tmp = path20.join(
+    path20.dirname(file2),
+    `.${path20.basename(file2)}.memlin-${process.pid}-${randomBytes(4).toString("hex")}.tmp`
   );
   try {
-    await fs9.writeFile(tmp, content, { encoding: "utf8", mode: mode ?? 420 });
-    if (mode !== void 0) await fs9.chmod(tmp, mode);
+    await fs11.writeFile(tmp, content, { encoding: "utf8", mode: mode ?? 420 });
+    if (mode !== void 0) await fs11.chmod(tmp, mode);
     await atomicRename(tmp, file2);
   } catch (error40) {
-    await fs9.rm(tmp, { force: true });
+    await fs11.rm(tmp, { force: true });
     throw error40;
   }
 }
@@ -30109,20 +30377,20 @@ function upsertLightSection(existing, section) {
 `;
 }
 async function defaultAgentsMdDelivery(lightRoot) {
-  const entry = await inspect(path19.join(lightRoot, LIGHT_AGENTS_MD)).catch(
+  const entry = await inspect(path20.join(lightRoot, LIGHT_AGENTS_MD)).catch(
     () => ({ kind: "missing" })
   );
   const result = await git(lightRoot, ["ls-files", "--error-unmatch", "--", LIGHT_AGENTS_MD]);
   if (result.code === 0) return { enabled: false, promptUser: true, reason: "agents_md_tracked" };
-  if (result.spawnError && entry.kind !== "missing" && await isDir(path19.join(lightRoot, ".git"))) {
+  if (result.spawnError && entry.kind !== "missing" && await isDir(path20.join(lightRoot, ".git"))) {
     return { enabled: false, promptUser: true, reason: "agents_md_tracked" };
   }
   return entry.kind === "missing" ? { enabled: true, promptUser: false, reason: "agents_md_absent" } : { enabled: true, promptUser: false, reason: "agents_md_untracked" };
 }
 async function resolveRulePath(lightRoot, candidates) {
   const [preferred, legacy] = candidates;
-  const preferredDir = path19.posix.dirname(preferred);
-  const legacyDir = path19.posix.dirname(legacy);
+  const preferredDir = path20.posix.dirname(preferred);
+  const legacyDir = path20.posix.dirname(legacy);
   if (!await isDir(abs(lightRoot, preferredDir)) && await isDir(abs(lightRoot, legacyDir)))
     return legacy;
   return preferred;
@@ -30131,7 +30399,7 @@ function claudeImportsAgentsMd(claudeMd) {
   return /^[ \t]*@(?:\.\/)?AGENTS\.md[ \t]*$/m.test(claudeMd);
 }
 async function planDelivery(input) {
-  const lightRoot = path19.resolve(input.lightRoot);
+  const lightRoot = path20.resolve(input.lightRoot);
   const detected = HOST_ORDER.filter((host) => input.detectedHosts.includes(host));
   const notes = input.notes ?? [];
   const plans = input.plans ?? [];
@@ -30354,13 +30622,13 @@ async function excludeLocation(lightRoot) {
     git(lightRoot, ["rev-parse", "--git-path", "info/exclude"])
   ]);
   if (top.code !== 0 || gitPath.code !== 0) return null;
-  const topLevel = await fs9.realpath(top.stdout.trim()).catch(() => top.stdout.trim());
-  const root = await fs9.realpath(lightRoot).catch(() => lightRoot);
-  const rel = path19.relative(topLevel, root);
-  if (rel.startsWith("..") || path19.isAbsolute(rel)) return null;
+  const topLevel = await fs11.realpath(top.stdout.trim()).catch(() => top.stdout.trim());
+  const root = await fs11.realpath(lightRoot).catch(() => lightRoot);
+  const rel = path20.relative(topLevel, root);
+  if (rel.startsWith("..") || path20.isAbsolute(rel)) return null;
   return {
-    file: path19.resolve(lightRoot, gitPath.stdout.trim()),
-    prefix: rel.split(path19.sep).filter(Boolean).join("/")
+    file: path20.resolve(lightRoot, gitPath.stdout.trim()),
+    prefix: rel.split(path20.sep).filter(Boolean).join("/")
   };
 }
 function escapeExcludePattern(rel) {
@@ -30462,13 +30730,13 @@ async function applyDelivery(plan) {
         result.skipped.push({ path: rel, reason: "file is not owned by Memlin Light" });
         continue;
       }
-      await fs9.rm(file2, { force: true });
+      await fs11.rm(file2, { force: true });
       result.removed.push(rel);
       continue;
     }
     const next = removeLightSection(entry.content);
     if (next === entry.content) continue;
-    if (next.length === 0) await fs9.rm(file2, { force: true });
+    if (next.length === 0) await fs11.rm(file2, { force: true });
     else await atomicWrite(file2, next);
     result.removed.push(rel);
   }
@@ -30544,9 +30812,9 @@ function lightPlanSettled(now, lastEditAt, lastVersionAt, trigger) {
 
 // packages/plugin-core/src/light/sync-state.ts
 init_atomic_rename();
-import { promises as fs10 } from "node:fs";
+import { promises as fs12 } from "node:fs";
 import { randomUUID as randomUUID5 } from "node:crypto";
-import path20 from "node:path";
+import path21 from "node:path";
 var LIGHT_STATE_FILE = ".memlin/light-agents.json";
 var LIGHT_LOCK_DIR = ".memlin/light-agents.lock";
 var LIGHT_LOCK_STALE_MS = 10 * 6e4;
@@ -30579,7 +30847,7 @@ function emptyLightSyncState() {
   };
 }
 function lightStatePath(lightRoot) {
-  return path20.join(lightRoot, LIGHT_STATE_FILE);
+  return path21.join(lightRoot, LIGHT_STATE_FILE);
 }
 function obj(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -30588,7 +30856,7 @@ async function loadLightSyncState(lightRoot) {
   const base = emptyLightSyncState();
   let raw;
   try {
-    raw = obj(JSON.parse(await fs10.readFile(lightStatePath(lightRoot), "utf8")));
+    raw = obj(JSON.parse(await fs12.readFile(lightStatePath(lightRoot), "utf8")));
   } catch {
     return base;
   }
@@ -30634,21 +30902,21 @@ async function loadLightSyncState(lightRoot) {
 }
 async function refuseSymlink(p) {
   try {
-    if ((await fs10.lstat(p)).isSymbolicLink()) throw new Error(`Light sync refuses symlink: ${p}`);
+    if ((await fs12.lstat(p)).isSymbolicLink()) throw new Error(`Light sync refuses symlink: ${p}`);
   } catch (e) {
     if (e.code !== "ENOENT") throw e;
   }
 }
 async function writeJsonAtomic(file2, value) {
-  await refuseSymlink(path20.dirname(file2));
-  await fs10.mkdir(path20.dirname(file2), { recursive: true });
+  await refuseSymlink(path21.dirname(file2));
+  await fs12.mkdir(path21.dirname(file2), { recursive: true });
   await refuseSymlink(file2);
   const temp = `${file2}.${randomUUID5()}.tmp`;
-  await fs10.writeFile(temp, JSON.stringify(value, null, 2) + "\n", { flag: "wx", mode: 384 });
+  await fs12.writeFile(temp, JSON.stringify(value, null, 2) + "\n", { flag: "wx", mode: 384 });
   try {
     await atomicRename(temp, file2);
   } finally {
-    await fs10.rm(temp, { force: true });
+    await fs12.rm(temp, { force: true });
   }
 }
 async function saveLightSyncState(lightRoot, state) {
@@ -30661,12 +30929,12 @@ function lightHostIncluded(state, host) {
 }
 var DEVICE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 function lightDeviceFile(home) {
-  return path20.join(home, ".config", "memlin", "light-device.json");
+  return path21.join(home, ".config", "memlin", "light-device.json");
 }
 async function lightDeviceId(home) {
   const file2 = lightDeviceFile(home);
   try {
-    const id2 = obj(JSON.parse(await fs10.readFile(file2, "utf8"))).device_id;
+    const id2 = obj(JSON.parse(await fs12.readFile(file2, "utf8"))).device_id;
     if (typeof id2 === "string" && DEVICE_ID.test(id2)) return id2;
   } catch {
   }
@@ -30690,14 +30958,14 @@ function pidAlive(pid) {
   }
 }
 async function acquireLightLocalLock(lightRoot, now = Date.now) {
-  const dir = path20.join(lightRoot, LIGHT_LOCK_DIR);
-  await refuseSymlink(path20.join(lightRoot, ".memlin"));
-  await fs10.mkdir(path20.dirname(dir), { recursive: true });
-  const owner = path20.join(dir, "owner.json");
+  const dir = path21.join(lightRoot, LIGHT_LOCK_DIR);
+  await refuseSymlink(path21.join(lightRoot, ".memlin"));
+  await fs12.mkdir(path21.dirname(dir), { recursive: true });
+  const owner = path21.join(dir, "owner.json");
   const token = randomUUID5();
   const take = async () => {
-    await fs10.mkdir(dir);
-    await fs10.writeFile(owner, JSON.stringify({ pid: process.pid, at: now(), token }), {
+    await fs12.mkdir(dir);
+    await fs12.writeFile(owner, JSON.stringify({ pid: process.pid, at: now(), token }), {
       flag: "wx",
       mode: 384
     });
@@ -30708,19 +30976,19 @@ async function acquireLightLocalLock(lightRoot, now = Date.now) {
     if (e.code !== "EEXIST") throw e;
     let stale = true;
     try {
-      const info = obj(JSON.parse(await fs10.readFile(owner, "utf8")));
+      const info = obj(JSON.parse(await fs12.readFile(owner, "utf8")));
       const pid = Number(info.pid);
       const at = Number(info.at);
       stale = !Number.isSafeInteger(pid) || pid <= 0 || !pidAlive(pid) || !Number.isFinite(at) || now() - at > LIGHT_LOCK_STALE_MS;
     } catch {
       try {
-        stale = now() - (await fs10.stat(dir)).mtimeMs > LIGHT_LOCK_STALE_MS;
+        stale = now() - (await fs12.stat(dir)).mtimeMs > LIGHT_LOCK_STALE_MS;
       } catch {
         stale = true;
       }
     }
     if (!stale) throw new LightSyncBusyError();
-    await fs10.rm(dir, { recursive: true, force: true });
+    await fs12.rm(dir, { recursive: true, force: true });
     try {
       await take();
     } catch (again) {
@@ -30730,12 +30998,12 @@ async function acquireLightLocalLock(lightRoot, now = Date.now) {
   }
   return async () => {
     try {
-      const info = obj(JSON.parse(await fs10.readFile(owner, "utf8")));
+      const info = obj(JSON.parse(await fs12.readFile(owner, "utf8")));
       if (info.token !== token) return;
     } catch {
       return;
     }
-    await fs10.rm(dir, { recursive: true, force: true });
+    await fs12.rm(dir, { recursive: true, force: true });
   };
 }
 
@@ -30806,7 +31074,7 @@ async function detectLightMode(api) {
   }
 }
 function detectLightDeliveryHosts(home) {
-  const has = (...p) => existsSync2(path21.join(home, ...p));
+  const has = (...p) => existsSync2(path22.join(home, ...p));
   const out = [];
   if (has(".claude")) out.push("claude");
   if (has(".codex")) out.push("codex");
@@ -30927,7 +31195,7 @@ function lightSuggestionUpsert(sg) {
   if (sg.document_id) out.document_id = sg.document_id;
   if (sg.suppression_id) out.suppression_id = sg.suppression_id;
   const displayPath = clip(sg.displayPath, 512);
-  if (displayPath && !path21.isAbsolute(displayPath)) out.display_path = displayPath;
+  if (displayPath && !path22.isAbsolute(displayPath)) out.display_path = displayPath;
   if (sg.excerpt) out.excerpt = redactSecretShapes(sg.excerpt).redacted.slice(0, 280);
   return out;
 }
@@ -31040,7 +31308,7 @@ async function runLightSync(opts) {
   const nowIso = () => new Date(now()).toISOString();
   const trigger = opts.trigger;
   const dryRun = opts.dryRun === true;
-  const lightRoot = path21.resolve(opts.lightRoot);
+  const lightRoot = path22.resolve(opts.lightRoot);
   const api = opts.api;
   const detected = await detectLightMode(api);
   const mode = detected.mode;
@@ -32358,9 +32626,9 @@ async function runLightSync(opts) {
 }
 
 // packages/plugin-core/src/remote-session-hook.ts
-import { promises as fs11 } from "node:fs";
+import { promises as fs13 } from "node:fs";
 import os10 from "node:os";
-import path22 from "node:path";
+import path23 from "node:path";
 import { createHash as createHash3, randomUUID as randomUUID6 } from "node:crypto";
 init_companion_client();
 function remoteHookEventId(input, phase) {
@@ -32369,17 +32637,26 @@ function remoteHookEventId(input, phase) {
   const digest = createHash3("sha256").update(JSON.stringify([input.session_id, phase, invocation])).digest("hex");
   return `${digest.slice(0, 8)}-${digest.slice(8, 12)}-4${digest.slice(13, 16)}-8${digest.slice(17, 20)}-${digest.slice(20, 32)}`;
 }
-async function remoteHookRootAllowed(cwd, settingsPath = path22.join(os10.homedir(), ".config/memlin/remote-control.json")) {
+async function remoteHookRootAllowed(cwd, settingsPath = path23.join(os10.homedir(), ".config/memlin/remote-control.json")) {
   try {
-    const config2 = JSON.parse(await fs11.readFile(settingsPath, "utf8"));
+    const config2 = JSON.parse(await fs13.readFile(settingsPath, "utf8"));
     if (config2.enabled !== true || !Array.isArray(config2.workspace_roots)) return false;
-    const root = await fs11.realpath(cwd);
+    const root = await fs13.realpath(cwd);
     return (await Promise.all(
-      config2.workspace_roots.filter((r) => typeof r === "string").map((r) => fs11.realpath(r).catch(() => null))
+      config2.workspace_roots.filter((r) => typeof r === "string").map((r) => fs13.realpath(r).catch(() => null))
     )).includes(root);
   } catch {
     return false;
   }
+}
+async function remoteReportingWorkspace(cwd) {
+  const asked = await companionRemoteReporting(cwd);
+  const allowed = asked ? asked.allowed === true : await remoteHookRootAllowed(cwd);
+  if (!allowed) return null;
+  const bound = await companionResolveWorkspace(cwd);
+  if (!bound) return null;
+  const answer = bound.remote_reporting_allowed;
+  return answer === void 0 || answer === true ? bound : null;
 }
 function nativeFollowUpDecision(message) {
   if (!message || typeof message !== "object") return null;
@@ -32396,13 +32673,13 @@ ${m.text}`
 async function runRemoteSessionHook(input, host, phase, allowDelivery = false) {
   if (process.env.MEMLIN_REMOTE_CONTROL_MANAGED === "1") return false;
   const cwd = input.cwd ?? process.cwd(), session = input.session_id;
-  if (!session || session.length > 256 || !await remoteHookRootAllowed(cwd)) return false;
+  if (!session || session.length > 256) return false;
   try {
+    const bound = await remoteReportingWorkspace(cwd);
+    if (!bound?.project_id || !bound.account_id || bound.hazard !== "none") return false;
     const ctx = await getApi({ cwd });
     if (!ctx) return false;
     if (ctx.privateSession) return false;
-    const bound = await companionResolveWorkspace(cwd);
-    if (!bound?.project_id || !bound.account_id || bound.hazard !== "none") return false;
     const args = { accountId: bound.account_id, agentKind: host, requestTimeoutMs: 1800 };
     const text = redactSecretShapes(
       phase === "prompt" ? input.prompt ?? "" : phase === "stop" ? input.last_assistant_message ?? "" : input.tool_name ? `Using ${input.tool_name}` : ""
@@ -32476,11 +32753,11 @@ ${text.trim()}`);
 
 // packages/plugin-core/src/light-worker.ts
 import { spawn } from "node:child_process";
-import path23 from "node:path";
+import path24 from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 function startLightWorker(cwd, payload) {
-  const directory = path23.dirname(fileURLToPath2(import.meta.url));
-  const worker = path23.basename(directory) === "hooks" || path23.basename(directory) === "cli" ? path23.resolve(directory, "../cli/light-worker.js") : path23.join(directory, "cli/light-worker.js");
+  const directory = path24.dirname(fileURLToPath2(import.meta.url));
+  const worker = path24.basename(directory) === "hooks" || path24.basename(directory) === "cli" ? path24.resolve(directory, "../cli/light-worker.js") : path24.join(directory, "cli/light-worker.js");
   const child = spawn(process.execPath, [worker, JSON.stringify({ cwd, payload })], {
     cwd,
     stdio: "ignore",
@@ -32495,13 +32772,13 @@ function startLightWorker(cwd, payload) {
 // packages/plugin-core/src/stop-handler.ts
 import { execSync } from "node:child_process";
 import { createHash as createHash4 } from "node:crypto";
-import { promises as fs14, constants as fsConstants } from "node:fs";
+import { promises as fs16, constants as fsConstants } from "node:fs";
 
 // packages/plugin-core/src/done-gate.ts
 init_companion_client();
 import { execFileSync } from "node:child_process";
-import { promises as fs12 } from "node:fs";
-import path24 from "node:path";
+import { promises as fs14 } from "node:fs";
+import path25 from "node:path";
 var CLAIM = /\bit'?s (now )?(live|deployed|done|fixed|shipped)\b|\bnow live\b|\bis live\b|\bis deployed\b|\bdeployed to prod\b|\ball done\b|\bfully (fixed|working|deployed|shipped)\b|\bfix(ed)? (and|&) deployed\b|\bmerged (and|&) deployed\b|(^|\n)\s*[-*•\s]*(done|deployed|shipped|fixed)\b|✅/i;
 var HARD = /(^|\n)\s*[-*✅•\s]*\s*(fixed|deployed|shipped|done)\b[.! ]*\s*$/im;
 var HONEST = /not (yet )?(live|merged|deployed|shipped)|isn'?t (live|merged|deployed|shipped)|remaining step|next step (is|to)|not on main|still on (the |a )?(feature )?branch|needs? (to be )?merg|to be merged|before (this|it) is live|to make (it|this) live|awaiting (merge|deploy)|hold(ing)? the merge/i;
@@ -32512,11 +32789,11 @@ function isOff(v) {
   return s === "off" || s === "0" || s === "false" || s === "no";
 }
 async function readMarker(cwd) {
-  let dir = path24.resolve(cwd);
+  let dir = path25.resolve(cwd);
   for (let i = 0; i < 40; i += 1) {
-    const file2 = path24.join(dir, ".memlin", "enforce-done-deployed.json");
+    const file2 = path25.join(dir, ".memlin", "enforce-done-deployed.json");
     try {
-      const raw = await fs12.readFile(file2, "utf8");
+      const raw = await fs14.readFile(file2, "utf8");
       const parsed = JSON.parse(raw);
       const deploymentEvidence = Array.isArray(parsed.deploymentEvidence) ? parsed.deploymentEvidence.filter(
         (item) => item && typeof item.name === "string" && typeof item.tag === "string" && Array.isArray(item.paths) && item.paths.every((p) => typeof p === "string" && p.length > 0)
@@ -32529,7 +32806,7 @@ async function readMarker(cwd) {
       };
     } catch {
     }
-    const parent = path24.dirname(dir);
+    const parent = path25.dirname(dir);
     if (parent === dir) break;
     dir = parent;
   }
@@ -32572,7 +32849,7 @@ function contentText(content) {
 async function readTranscript(transcriptPath) {
   let raw;
   try {
-    raw = await fs12.readFile(transcriptPath, "utf8");
+    raw = await fs14.readFile(transcriptPath, "utf8");
   } catch {
     return null;
   }
@@ -32876,11 +33153,11 @@ function attributeAppliedItems(agentMessage, replay) {
   const titleIds = /* @__PURE__ */ new Map();
   const titleVersionIds = /* @__PURE__ */ new Map();
   for (const candidate of candidates) {
-    const path26 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
+    const path27 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
     const title = normalizeReference(candidate.title);
-    addReferenceKey(pathIds, path26, candidate.id);
-    if (path26) {
-      addReferenceKey(pathVersionIds, `${path26}\0${candidate.version_number}`, candidate.id);
+    addReferenceKey(pathIds, path27, candidate.id);
+    if (path27) {
+      addReferenceKey(pathVersionIds, `${path27}\0${candidate.version_number}`, candidate.id);
     }
     addReferenceKey(titleIds, title, candidate.id);
     if (title) {
@@ -32889,14 +33166,14 @@ function attributeAppliedItems(agentMessage, replay) {
   }
   const referenced = [];
   for (const candidate of candidates) {
-    const path26 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
+    const path27 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
     const title = normalizeReference(candidate.title);
-    const pathPositions = unnegatedReferencePositions(message, path26);
-    const pathVersionKey = `${path26}\0${candidate.version_number}`;
-    const pathIsUnique = pathIds.get(path26)?.size === 1;
+    const pathPositions = unnegatedReferencePositions(message, path27);
+    const pathVersionKey = `${path27}\0${candidate.version_number}`;
+    const pathIsUnique = pathIds.get(path27)?.size === 1;
     const pathVersionIsUnique = pathVersionIds.get(pathVersionKey)?.size === 1;
     const pathMatch = pathPositions.length > 0 && (pathIsUnique || pathVersionIsUnique && pathPositions.some(
-      (position) => versionMentionNear(message, position, path26.length, candidate.version_number)
+      (position) => versionMentionNear(message, position, path27.length, candidate.version_number)
     ));
     const titlePositions = unnegatedReferencePositions(message, title);
     const titleVersionKey = `${title}\0${candidate.version_number}`;
@@ -32923,24 +33200,24 @@ function attributeAppliedItems(agentMessage, replay) {
 
 // packages/plugin-core/src/state.ts
 init_atomic_rename();
-import { promises as fs13 } from "node:fs";
-import path25 from "node:path";
+import { promises as fs15 } from "node:fs";
+import path26 from "node:path";
 import os11 from "node:os";
 import crypto5 from "node:crypto";
-var STATE_FILE = path25.join(os11.homedir(), ".config", "memlin", "state.json");
+var STATE_FILE = path26.join(os11.homedir(), ".config", "memlin", "state.json");
 var EMPTY = { documents: {} };
 async function readState() {
   try {
-    const raw = await fs13.readFile(STATE_FILE, "utf8");
+    const raw = await fs15.readFile(STATE_FILE, "utf8");
     return JSON.parse(raw);
   } catch {
     return { ...EMPTY };
   }
 }
 async function writeState(state) {
-  await fs13.mkdir(path25.dirname(STATE_FILE), { recursive: true });
+  await fs15.mkdir(path26.dirname(STATE_FILE), { recursive: true });
   const tmp = `${STATE_FILE}.${process.pid}.tmp`;
-  await fs13.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
+  await fs15.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
   await atomicRename(tmp, STATE_FILE);
 }
 var LOCK_DIR = `${STATE_FILE}.lock`;
@@ -32949,17 +33226,17 @@ var LOCK_WAIT_MS = 2e3;
 var LOCK_RETRY_MS = 50;
 async function acquireStateLock() {
   const deadline2 = Date.now() + LOCK_WAIT_MS;
-  await fs13.mkdir(path25.dirname(LOCK_DIR), { recursive: true }).catch(() => {
+  await fs15.mkdir(path26.dirname(LOCK_DIR), { recursive: true }).catch(() => {
   });
   for (; ; ) {
     try {
-      await fs13.mkdir(LOCK_DIR);
+      await fs15.mkdir(LOCK_DIR);
       return true;
     } catch {
       try {
-        const stat = await fs13.stat(LOCK_DIR);
+        const stat = await fs15.stat(LOCK_DIR);
         if (Date.now() - stat.mtimeMs > LOCK_STALE_MS) {
-          await fs13.rmdir(LOCK_DIR).catch(() => {
+          await fs15.rmdir(LOCK_DIR).catch(() => {
           });
           continue;
         }
@@ -32972,7 +33249,7 @@ async function acquireStateLock() {
   }
 }
 async function releaseStateLock() {
-  await fs13.rmdir(LOCK_DIR).catch(() => {
+  await fs15.rmdir(LOCK_DIR).catch(() => {
   });
 }
 async function updateState(mutate) {
@@ -33281,7 +33558,7 @@ function flattenContent(c) {
 async function readLastExchange(transcriptPath) {
   let raw;
   try {
-    raw = await fs14.readFile(transcriptPath, "utf8");
+    raw = await fs16.readFile(transcriptPath, "utf8");
   } catch {
     return null;
   }
@@ -33323,7 +33600,7 @@ function nonNegativeInt(v) {
 async function readLastAssistantUsage(transcriptPath) {
   let raw;
   try {
-    raw = await fs14.readFile(transcriptPath, "utf8");
+    raw = await fs16.readFile(transcriptPath, "utf8");
   } catch {
     return null;
   }
@@ -33652,7 +33929,7 @@ async function maybeScribeSession(ctx, payload, routing, lightMode = false) {
   let raw;
   try {
     if (lightMode) {
-      const handle = await fs14.open(
+      const handle = await fs16.open(
         payload.transcript_path,
         fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW
       );
@@ -33665,7 +33942,7 @@ async function maybeScribeSession(ctx, payload, routing, lightMode = false) {
       } finally {
         await handle.close();
       }
-    } else raw = await fs14.readFile(payload.transcript_path, "utf8");
+    } else raw = await fs16.readFile(payload.transcript_path, "utf8");
   } catch {
     return;
   }
@@ -33845,7 +34122,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
     log("working memory: skipped \u2014 no resolve or exchange yet");
     return;
   }
-  const path26 = workingMemoryPath(sessionId);
+  const path27 = workingMemoryPath(sessionId);
   const callOpts = { accountId: routing.accountId };
   let documentId = state.working_memory_ids?.[sessionId] ?? null;
   if (!documentId) {
@@ -33854,7 +34131,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
         ctx.api.listDocuments(
           {
             kinds: ["memory"],
-            path: path26,
+            path: path27,
             ...routing.projectId ? { project_id: routing.projectId } : {}
           },
           callOpts
@@ -33862,7 +34139,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
         TIMEOUT_MS,
         []
       );
-      const hit = docs.find((d) => d.path === path26);
+      const hit = docs.find((d) => d.path === path27);
       if (hit) documentId = hit.id;
     } catch (err) {
       log(
@@ -33882,7 +34159,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
         scope: routing.projectId ? "project" : "team",
         kind: "memory",
         title: `Working memory \u2014 ${sessionId.slice(0, 12)}`,
-        path: path26,
+        path: path27,
         content,
         commit_message: "session working memory",
         project_id: routing.projectId,
@@ -33925,7 +34202,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
       Object.entries(next.working_memory_hashes).filter(([k]) => keep.has(k))
     );
     await writeState(next);
-    log(`working memory: upserted ${path26} (v${result.version_number})`);
+    log(`working memory: upserted ${path27} (v${result.version_number})`);
   } catch (err) {
     log(`working memory failed: ${err instanceof Error ? err.message : String(err)}`);
   }

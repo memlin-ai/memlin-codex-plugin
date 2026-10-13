@@ -29,6 +29,7 @@ const RUN = {
   role: () => import("./role.js"),
   features: () => import("./features.js"),
   upload: () => import("./upload.js"),
+  download: () => import("./download.js"),
   link: () => import("./link.js"),
   revert: () => import("./revert.js"),
   pin: () => import("./pin.js"),

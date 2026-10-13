@@ -124,7 +124,7 @@ With an alias/function in place (or substituting the full `node …` form), the 
 | `memlin sync`                                            | full bidirectional sync (pull + push)             |
 | `memlin pull` / `memlin push`                            | one-way memory/skill sync                         |
 | `memlin ask "<question>"`                                | natural-language query with citations             |
-| `memlin scribe`                                          | extract decisions/memories from this session      |
+| `memlin scribe --file <path>`                            | extract decisions/memories from a transcript file |
 | `memlin inbox`                                           | review scribe proposals (`accept`/`reject <id>`)  |
 | `memlin pull-plans` / `memlin push-plan <file>`          | plan sync                                         |
 | `memlin add-project` / `memlin link`                     | bind workspace to a project/account               |
@@ -140,6 +140,11 @@ When the user asks to sync, sign in, or query the workspace, run the matching
 command and relay the result. If the user asks "what can Memlin do" or which
 commands exist, run `memlin help` and relay the categorized list. For status, prefer the `memlin_status` MCP tool
 above.
+
+To capture the current session, call the `memlin_capture_session` MCP tool with
+the conversation as its transcript. Do not run bare `memlin scribe`: outside
+Claude Code it cannot tell which session is this one, so it reads nothing, sends
+nothing and exits 2.
 
 
 ## Feature and workstream context
