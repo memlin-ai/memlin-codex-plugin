@@ -7666,6 +7666,74 @@ var coerce = {
 };
 var NEVER = INVALID;
 
+// packages/shared/dist/agent-hosts.js
+var AGENT_HOSTS = [
+  { kind: "claude-code", label: "Claude Code", companion: "claude", provider: "anthropic", pickup: true },
+  { kind: "claude-ai", label: "Claude", provider: "anthropic" },
+  { kind: "codex", label: "Codex", companion: "codex", provider: "openai", pickup: true },
+  { kind: "cursor", label: "Cursor", companion: "cursor", pickup: true },
+  { kind: "windsurf", label: "Windsurf", pickup: true },
+  // Microsoft VS Code + GitHub Copilot agent mode (apps/vscode-extension).
+  // Registers the Memlin MCP server via the stable
+  // `lm.registerMcpServerDefinitionProvider` API (VS Code ≥ 1.101) plus
+  // sign-in/sync commands and a copilot-instructions directive. Plain VS Code
+  // has no lifecycle-hook or slash-command surface, so this kind is MCP + CLI
+  // + rules (no hooks/commands) — see AGENT_EXPECTED_CAPABILITIES.
+  { kind: "vscode", label: "VS Code" },
+  { kind: "gemini", label: "Gemini", provider: "google" },
+  { kind: "grok", label: "Grok", provider: "xai" },
+  // Nous Research Hermes Agent — autonomous, self-hosted, 24/7 (Feb 2026).
+  // Plugin system is Python-only; today this kind reflects MCP-only
+  // connections. Phase 2 ships a native Python plugin (apps/hermes-plugin/)
+  // wiring pre_tool_call into the same controller path Claude Code uses.
+  { kind: "hermes", label: "Hermes" },
+  // OpenClaw — Peter Steinberger's viral open-source autonomous personal
+  // agent (Discord/Slack-first UI, local-first, 247k+ stars by Mar 2026).
+  // Has MCP Registry support and a SKILL.md skills format at
+  // ~/.openclaw/workspace/skills/. MCP-only today; the Phase 3
+  // agentskills.io bridge is the bet for skills round-tripping.
+  { kind: "openclaw", label: "OpenClaw" },
+  // Google Antigravity — Google's agent-first IDE (Nov 2025), built by the
+  // former Windsurf/Codeium team on a VS Code fork. MCP servers live in
+  // ~/.gemini/antigravity/mcp_config.json (remote servers use `serverUrl`,
+  // exactly Memlin's hosted shape); project rules in .agent/rules/*.md and
+  // AGENTS.md. No lifecycle-hook surface yet — MCP + rules today. See
+  // packages/adapters/src/antigravity.ts.
+  // Its CLI takes a tier, never a model id (`agentapi new-conversation
+  // --model=pro`); without one it uses whatever was last chosen in its own
+  // window, which Memlin is not told, so a step always names a tier.
+  {
+    kind: "antigravity",
+    label: "Antigravity",
+    pickup: true,
+    handoffStart: "antigravity",
+    ownModels: {
+      family: "Gemini",
+      provider: "google",
+      note: "Antigravity picks which current Gemini model each tier uses; it does not say which.",
+      tiers: [
+        { value: "pro", label: "Gemini Pro (Antigravity's pro tier)" },
+        { value: "flash", label: "Gemini Flash (Antigravity's flash tier)" },
+        { value: "flash_lite", label: "Gemini Flash-Lite (Antigravity's flash-lite tier)" }
+      ]
+    }
+  },
+  { kind: "mcp", label: "MCP client" },
+  // Memlin Companion — the installable desktop tray app (apps/companion).
+  // A per-user background daemon (packages/companion-core) that keeps the
+  // token fresh, auto-links workspaces, and syncs plans continuously; other
+  // agents on the machine delegate to it over a local socket. One install
+  // per device, so agent_installations dedup by device name works as-is.
+  { kind: "companion", label: "Memlin Companion" }
+];
+var AGENT_KINDS = AGENT_HOSTS.map((host) => host.kind);
+var COMPANION_AGENT_KINDS = AGENT_HOSTS.filter((host) => "companion" in host).map(
+  (host) => host.kind
+);
+var COMPANION_HANDOFF_START_KINDS = AGENT_HOSTS.filter((host) => "handoffStart" in host).map(
+  (host) => host.kind
+);
+
 // packages/shared/dist/constants.js
 var DOCUMENT_KINDS = [
   "memory",
@@ -7738,47 +7806,6 @@ var MEMORY_TYPES = [
   "reference",
   "episodic",
   "working"
-];
-var AGENT_KINDS = [
-  "claude-code",
-  "claude-ai",
-  "codex",
-  "cursor",
-  "windsurf",
-  // Microsoft VS Code + GitHub Copilot agent mode (apps/vscode-extension).
-  // Registers the Memlin MCP server via the stable
-  // `lm.registerMcpServerDefinitionProvider` API (VS Code ≥ 1.101) plus
-  // sign-in/sync commands and a copilot-instructions directive. Plain VS Code
-  // has no lifecycle-hook or slash-command surface, so this kind is MCP + CLI
-  // + rules (no hooks/commands) — see AGENT_EXPECTED_CAPABILITIES.
-  "vscode",
-  "gemini",
-  "grok",
-  // Nous Research Hermes Agent — autonomous, self-hosted, 24/7 (Feb 2026).
-  // Plugin system is Python-only; today this kind reflects MCP-only
-  // connections. Phase 2 ships a native Python plugin (apps/hermes-plugin/)
-  // wiring pre_tool_call into the same controller path Claude Code uses.
-  "hermes",
-  // OpenClaw — Peter Steinberger's viral open-source autonomous personal
-  // agent (Discord/Slack-first UI, local-first, 247k+ stars by Mar 2026).
-  // Has MCP Registry support and a SKILL.md skills format at
-  // ~/.openclaw/workspace/skills/. MCP-only today; the Phase 3
-  // agentskills.io bridge is the bet for skills round-tripping.
-  "openclaw",
-  // Google Antigravity — Google's agent-first IDE (Nov 2025), built by the
-  // former Windsurf/Codeium team on a VS Code fork. MCP servers live in
-  // ~/.gemini/antigravity/mcp_config.json (remote servers use `serverUrl`,
-  // exactly Memlin's hosted shape); project rules in .agent/rules/*.md and
-  // AGENTS.md. No lifecycle-hook surface yet — MCP + rules today. See
-  // packages/adapters/src/antigravity.ts.
-  "antigravity",
-  "mcp",
-  // Memlin Companion — the installable desktop tray app (apps/companion).
-  // A per-user background daemon (packages/companion-core) that keeps the
-  // token fresh, auto-links workspaces, and syncs plans continuously; other
-  // agents on the machine delegate to it over a local socket. One install
-  // per device, so agent_installations dedup by device name works as-is.
-  "companion"
 ];
 var MEMBER_ROLES = ["owner", "admin", "member", "viewer"];
 var ACCOUNT_TIERS = ["free", "starter", "pro", "team", "enterprise"];
@@ -19517,10 +19544,18 @@ var DESIGN_RESEARCH_SOURCES = [
     citationPrefix: "https://web.dev/blog/"
   }
 ];
+function isLocaleOnlyQuery(url2) {
+  const keys = [...url2.searchParams.keys()];
+  return keys.length > 0 && keys.every((key) => key === "hl") && url2.searchParams.getAll("hl").every((value) => /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(value));
+}
 function configuredDesignSource(value, platform) {
   try {
     const url2 = new URL(value);
-    if (url2.protocol !== "https:" || url2.username || url2.password || url2.search) return false;
+    if (url2.protocol !== "https:" || url2.username || url2.password) return false;
+    if (url2.search) {
+      if (!isLocaleOnlyQuery(url2)) return false;
+      url2.search = "";
+    }
     url2.hash = "";
     return DESIGN_RESEARCH_SOURCES.some(
       (source) => (!platform || source.platforms.includes(platform)) && (url2.href === source.url || "canonicalUrl" in source && url2.href === source.canonicalUrl || "citationPrefix" in source && url2.href.startsWith(source.citationPrefix))
@@ -19679,7 +19714,12 @@ var FeedResponseSchema = external_exports.object({
 }).strict();
 
 // packages/shared/dist/job-dispatch.js
-var JOB_KINDS = ["workflow_run", "model_watch_match", "model_watch_digest"];
+var JOB_KINDS = [
+  "workflow_run",
+  "model_watch_match",
+  "model_watch_digest",
+  "home_summary"
+];
 var JobMessageSchema = external_exports.object({
   version: external_exports.literal(1),
   kind: external_exports.enum(JOB_KINDS),
@@ -22644,6 +22684,96 @@ var HOSTS = new Set(LIGHT_HOSTS);
 // packages/shared/dist/decision-prompt.js
 var encoder = new TextEncoder();
 
+// packages/shared/dist/persona-context.js
+var PersonaReferenceSchema = external_exports.object({
+  id: external_exports.string().min(1).max(128),
+  revision: external_exports.number().int().positive()
+}).strict();
+var PersonaContextAssessmentSchema = external_exports.object({
+  status: external_exports.enum(["disabled", "skipped", "unavailable", "assessed"]),
+  evaluator: external_exports.string().optional(),
+  policy_revision: external_exports.string().optional(),
+  candidates: external_exports.array(external_exports.object({ id: external_exports.string(), relevance: external_exports.number(), skill_fit: external_exports.number().nullable(), conflict: external_exports.boolean().nullable() })),
+  reason: external_exports.string().optional(),
+  usage: external_exports.object({ input_tokens: external_exports.number().nonnegative(), output_tokens: external_exports.number().nonnegative() }).optional()
+});
+var Citation = external_exports.object({
+  source: external_exports.enum(["memory", "skill", "web", "github", "slack", "work_item", "catalog", "feed", "repository"]),
+  id: external_exports.string(),
+  revision: external_exports.string(),
+  title: external_exports.string(),
+  url: external_exports.string().optional()
+}).strict();
+var PersonaContextV1Schema = external_exports.object({
+  schema_version: external_exports.literal(1),
+  persona: PersonaReferenceSchema.extend({
+    name: external_exports.string(),
+    instructions: external_exports.string(),
+    checks: external_exports.array(external_exports.string())
+  }),
+  task: external_exports.string(),
+  skills: external_exports.array(external_exports.object({
+    document_id: external_exports.string(),
+    version_id: external_exports.string(),
+    revision: external_exports.number().int().positive(),
+    title: external_exports.string(),
+    content: external_exports.string()
+  })),
+  learning: external_exports.object({
+    items: external_exports.array(external_exports.object({
+      id: external_exports.string(),
+      revision: external_exports.number().int().positive(),
+      title: external_exports.string(),
+      guidance: external_exports.string(),
+      url: external_exports.string(),
+      scope: external_exports.enum(["personal", "company", "project", "core"])
+    })),
+    omitted: external_exports.number().int().nonnegative()
+  }),
+  memories: external_exports.array(external_exports.object({
+    id: external_exports.string(),
+    title: external_exports.string(),
+    body: external_exports.string(),
+    kind: external_exports.enum(["learned", "feedback"]),
+    scope: external_exports.string(),
+    project_id: external_exports.string().nullable(),
+    updated_at: external_exports.string(),
+    version_number: external_exports.number(),
+    source_label: external_exports.string().nullable(),
+    evidence_url: external_exports.string().nullable(),
+    persona_finding_id: external_exports.string().nullable().optional()
+  })),
+  role: external_exports.object({
+    job_profile: external_exports.unknown().optional(),
+    execution_rubric: external_exports.unknown().optional(),
+    evaluated_research_protocol: external_exports.unknown().optional(),
+    platform_defaults: external_exports.unknown().optional(),
+    brand_guidelines: external_exports.unknown().optional()
+  }),
+  evidence: external_exports.array(external_exports.unknown()).optional(),
+  project_context: external_exports.array(external_exports.object({
+    id: external_exports.string(),
+    kind: external_exports.string(),
+    title: external_exports.string(),
+    body: external_exports.string(),
+    path: external_exports.string().nullable(),
+    revision: external_exports.number(),
+    mandatory: external_exports.boolean()
+  })),
+  citations: external_exports.array(Citation),
+  manifest: external_exports.object({
+    prepared_at: external_exports.string(),
+    source_ids: external_exports.array(external_exports.string()),
+    project_context_delivery: external_exports.enum(["included", "resolver_bundle"]).optional(),
+    project_context_references: external_exports.array(external_exports.object({ id: external_exports.string(), revision: external_exports.number() })).optional(),
+    omitted: external_exports.array(external_exports.object({ kind: external_exports.string(), count: external_exports.number().int().nonnegative(), reason: external_exports.string() })),
+    unavailable: external_exports.array(external_exports.string()),
+    assessment: PersonaContextAssessmentSchema.optional()
+  }),
+  handling: external_exports.string()
+});
+var STOP_WORDS = new Set("a an and are as at be by for from has have how i in is it its of on or our that the their this to use using was we what when where which with you your".split(" "));
+
 // packages/shared/dist/thought-handoff-v2.js
 var ThoughtHandoffRequestV2Schema = external_exports.object({
   version: external_exports.literal(2),
@@ -24132,18 +24262,158 @@ var Receipt = external_exports.object({
   reason: external_exports.string().optional()
 });
 
+// packages/shared/dist/screen-manifest.js
+var SCREEN_PLATFORMS = [...DESIGN_STANDARD_PLATFORMS, "desktop"];
+var SCREEN_STATE_KINDS = [
+  "default",
+  "stage",
+  "empty",
+  "loading",
+  "error",
+  "dialog",
+  "variant"
+];
+var SCREEN_STATE_VIA = [
+  "story",
+  "preview",
+  "fixture",
+  "route_query",
+  "mock",
+  "account",
+  "deeplink",
+  "observed",
+  "capture",
+  "design"
+];
+var SCREEN_STATE_EFFECTS = ["none", "read", "write"];
+var SCREEN_CONFIDENCE = ["declared", "extracted", "inferred"];
+var SCREEN_ENTRY_STATUS = ["proposed", "active", "stale"];
+var SCREEN_SOURCES = ["repo_file", "person", "extractor", "agent", "runtime"];
+var SCREEN_DISCOVERY_SOURCES = ["extractor", "agent", "runtime"];
+var SCREEN_MANIFEST_LIMITS = {
+  idChars: 80,
+  titleChars: 120,
+  entryChars: 500,
+  regionChars: 80,
+  pathChars: 300,
+  detailChars: 300,
+  filesPerScreen: 50,
+  statesPerScreen: 40,
+  evidencePerState: 20,
+  stateOrderMax: 999,
+  screensPerFile: 500,
+  /** The most screens one read returns; past it the read says it was cut. */
+  screensPerProject: 500,
+  /** The most open proposals one read returns, newest first. */
+  proposalsShown: 200,
+  /** The largest `.memlin/screens.yaml` read. */
+  fileBytes: 256 * 1024
+};
+var L = SCREEN_MANIFEST_LIMITS;
+var SCREEN_ID_PATTERN = new RegExp(`^[a-z0-9][a-z0-9._-]{0,${L.idChars - 1}}$`);
+var ScreenIdSchema = external_exports.string().regex(SCREEN_ID_PATTERN, "Use lower-case letters, digits, dots, dashes or underscores.");
+var text = (max) => external_exports.string().trim().min(1).max(max);
+var ScreenRepoPathSchema = external_exports.string().min(1).max(L.pathChars).refine(
+  (path7) => !path7.startsWith("/") && !path7.includes("\\") && !path7.split("/").some((part) => part === ".." || part === "") && // eslint-disable-next-line no-control-regex
+  !/[\u0000-\u001f\u007f]/.test(path7),
+  "Use a path inside the repository."
+);
+var ScreenEvidenceSchema = external_exports.object({
+  file: ScreenRepoPathSchema,
+  line: external_exports.number().int().positive(),
+  sha: external_exports.string().regex(/^[0-9a-f]{40}$/).optional()
+}).strict();
+var ScreenStateDeclarationSchema = external_exports.object({
+  id: ScreenIdSchema,
+  label: text(L.titleChars),
+  order: external_exports.number().int().min(0).max(L.stateOrderMax).optional(),
+  kind: external_exports.enum(SCREEN_STATE_KINDS),
+  via: external_exports.enum(SCREEN_STATE_VIA).optional(),
+  effects: external_exports.enum(SCREEN_STATE_EFFECTS).default("none"),
+  region: text(L.regionChars).optional(),
+  evidence: external_exports.array(ScreenEvidenceSchema).max(L.evidencePerState).default([])
+}).strict();
+var uniqueIds = (items) => new Set(items.map((item) => item.id)).size === items.length;
+var ScreenDeclarationSchema = external_exports.object({
+  id: ScreenIdSchema,
+  title: text(L.titleChars),
+  platform: external_exports.enum(SCREEN_PLATFORMS).optional(),
+  entry: text(L.entryChars).optional(),
+  files: external_exports.array(ScreenRepoPathSchema).max(L.filesPerScreen).default([]),
+  region: text(L.regionChars).optional(),
+  states: external_exports.array(ScreenStateDeclarationSchema).max(L.statesPerScreen).default([]).refine(uniqueIds, "Each state of a screen needs its own id.")
+}).strict();
+var ScreenManifestFileSchema = external_exports.object({
+  version: external_exports.literal(1),
+  screens: external_exports.array(ScreenDeclarationSchema).max(L.screensPerFile).refine(uniqueIds, "Each screen needs its own id.")
+}).strict();
+var ScreenProvenanceSchema = external_exports.object({
+  source: external_exports.enum(SCREEN_SOURCES),
+  /** The extractor, agent run, computer or file that produced it. */
+  detail: text(L.detailChars).optional()
+}).strict();
+var entryMeta = {
+  confidence: external_exports.enum(SCREEN_CONFIDENCE),
+  status: external_exports.enum(SCREEN_ENTRY_STATUS),
+  provenance: ScreenProvenanceSchema,
+  /** Set while a file it was found in changed after it was confirmed. */
+  stale_since: external_exports.string().datetime({ offset: true }).optional()
+};
+var ScreenStateSchema = ScreenStateDeclarationSchema.extend(entryMeta);
+var ScreenSchema = ScreenDeclarationSchema.extend({
+  ...entryMeta,
+  states: external_exports.array(ScreenStateSchema),
+  record: external_exports.object({ id: external_exports.string().uuid(), version: external_exports.number().int().positive() }).optional()
+});
+var ScreenProposalSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({
+    id: external_exports.string().uuid(),
+    kind: external_exports.literal("screen"),
+    screen: ScreenDeclarationSchema,
+    source: external_exports.enum(SCREEN_DISCOVERY_SOURCES),
+    detail: text(L.detailChars).optional(),
+    confidence: external_exports.enum(["extracted", "inferred"]),
+    created_at: external_exports.string()
+  }),
+  external_exports.object({
+    id: external_exports.string().uuid(),
+    kind: external_exports.literal("state"),
+    screen_id: ScreenIdSchema,
+    state: ScreenStateDeclarationSchema,
+    source: external_exports.enum(SCREEN_DISCOVERY_SOURCES),
+    detail: text(L.detailChars).optional(),
+    confidence: external_exports.enum(["extracted", "inferred"]),
+    created_at: external_exports.string()
+  })
+]);
+var ScreenManifestChangeSchema = external_exports.discriminatedUnion("action", [
+  external_exports.object({
+    action: external_exports.literal("save"),
+    screen: ScreenDeclarationSchema,
+    expected_version: external_exports.number().int().min(0)
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("remove"),
+    screen_id: ScreenIdSchema,
+    expected_version: external_exports.number().int().positive()
+  }).strict(),
+  external_exports.object({ action: external_exports.literal("accept"), proposal_id: external_exports.string().uuid() }).strict(),
+  external_exports.object({ action: external_exports.literal("reject"), proposal_id: external_exports.string().uuid() }).strict()
+]);
+
 // packages/shared/dist/native-workflow-task-connection.js
+var NATIVE_WORKFLOW_FILE_BYTES = 256e3;
 var uuid3 = external_exports.string().uuid();
 var NativeWorkflowTaskFileSchema = external_exports.object({
   id: uuid3,
   name: external_exports.string().min(1).max(120).regex(/^[A-Za-z0-9][A-Za-z0-9._ -]*\.(?:md|txt|json|csv)$/),
   title: external_exports.string().trim().min(1).max(200),
-  content: external_exports.string().min(1).max(16e3).refine((v) => new TextEncoder().encode(v).length <= 16e3),
+  content: external_exports.string().min(1).max(NATIVE_WORKFLOW_FILE_BYTES).refine((v) => new TextEncoder().encode(v).length <= NATIVE_WORKFLOW_FILE_BYTES),
   sha256: external_exports.string().regex(/^[a-f0-9]{64}$/),
-  bytes: external_exports.number().int().positive().max(16e3)
+  bytes: external_exports.number().int().positive().max(NATIVE_WORKFLOW_FILE_BYTES)
 }).strict();
 var NativeWorkflowTaskFilesSchema = external_exports.array(NativeWorkflowTaskFileSchema).max(4).refine(
-  (files) => files.reduce((total, file2) => total + file2.bytes, 0) <= 16e3,
+  (files) => files.reduce((total, file2) => total + file2.bytes, 0) <= NATIVE_WORKFLOW_FILE_BYTES,
   "Task files must fit the original protected result"
 );
 var NativeWorkflowPageSchema = external_exports.object({
@@ -24199,7 +24469,7 @@ function mapFeatureDocResourceLinks(body, map2) {
       return line;
     }
     if (fence) return line;
-    const rewrite = (text) => text.replace(
+    const rewrite = (text2) => text2.replace(
       /(!?\[(?:\\.|[^\\\]\r\n])*\]\()(memlin-resource:[^)\s]+)(\))/g,
       (whole, prefix, uri, suffix) => {
         const reference = parseResourceReference(uri);
@@ -24354,7 +24624,7 @@ async function exportFeatureDocAssets(api, body, context, fetchBytes = fetch) {
 // packages/plugin-core/src/feature-doc-export.ts
 import path3 from "node:path";
 var UUID2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-var sha = (text) => createHash2("sha256").update(text, "utf8").digest("hex");
+var sha = (text2) => createHash2("sha256").update(text2, "utf8").digest("hex");
 var object2 = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
 async function listExportFeatures(api, projectId, accountId) {
   if (!UUID2.test(projectId) || !UUID2.test(accountId))
@@ -24427,11 +24697,11 @@ function featureDocExportText(copy) {
   return `<!-- memlin:feature-doc feature=${copy.featureId} doc=${copy.documentId} v=${copy.version} sha=${copy.sha}${copy.sourceSha ? ` source_sha=${copy.sourceSha}` : ""} generated \u2014 edit in Memlin -->
 ${copy.content}`;
 }
-function isEdited(text) {
+function isEdited(text2) {
   const header = /^<!-- memlin:feature-doc feature=([0-9a-f-]+) doc=([0-9a-f-]+) v=(\d+) sha=([0-9a-f]{64})(?: source_sha=[0-9a-f]{64})? generated — edit in Memlin -->\n/.exec(
-    text
+    text2
   );
-  return !header || sha(text.slice(header[0].length)) !== header[4];
+  return !header || sha(text2.slice(header[0].length)) !== header[4];
 }
 async function saveFeatureDocCopy(copy, destination) {
   return saveReviewBytes(

@@ -3426,11 +3426,11 @@ var require_gray_matter = __commonJS({
         return { data: {}, content: input, excerpt: "", orig: input };
       }
       let file2 = toFile(input);
-      const cached2 = matter3.cache[file2.content];
+      const cached3 = matter3.cache[file2.content];
       if (!options2) {
-        if (cached2) {
-          file2 = Object.assign({}, cached2);
-          file2.orig = cached2.orig;
+        if (cached3) {
+          file2 = Object.assign({}, cached3);
+          file2.orig = cached3.orig;
           return file2;
         }
         matter3.cache[file2.content] = file2;
@@ -3948,14 +3948,14 @@ __export(workspace_binding_exports, {
   resolveGitWorkspaceIdentity: () => resolveGitWorkspaceIdentity,
   writeWorkspaceBinding: () => writeWorkspaceBinding
 });
-import { randomUUID as randomUUID2 } from "node:crypto";
+import { randomUUID as randomUUID3 } from "node:crypto";
 import { constants, promises as fs5 } from "node:fs";
-import os6 from "node:os";
-import path7 from "node:path";
+import os7 from "node:os";
+import path8 from "node:path";
 async function homeDirectories() {
-  const home = os6.homedir();
+  const home = os7.homedir();
   if (!home) return [];
-  const resolved = path7.resolve(home);
+  const resolved = path8.resolve(home);
   const real = await fs5.realpath(resolved).catch(() => resolved);
   return real === resolved ? [resolved] : [resolved, real];
 }
@@ -3964,7 +3964,7 @@ function coversHome(dir, homes) {
 }
 async function isTooBroadForWorkspaceBinding(dir) {
   const homes = await homeDirectories();
-  const resolved = path7.resolve(dir);
+  const resolved = path8.resolve(dir);
   const real = await fs5.realpath(resolved).catch(() => resolved);
   return coversHome(resolved, homes) || coversHome(real, homes);
 }
@@ -3973,13 +3973,13 @@ async function findIgnoredBroadWorkspaceBinding() {
   for (const home of homes) {
     let dir = home;
     for (let i = 0; i < 64; i++) {
-      const candidate = path7.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE);
+      const candidate = path8.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE);
       try {
         const parsed = JSON.parse(await fs5.readFile(candidate, "utf8"));
         if (typeof parsed.account_id === "string" && parsed.account_id) return candidate;
       } catch {
       }
-      const parent = path7.dirname(dir);
+      const parent = path8.dirname(dir);
       if (parent === dir) break;
       dir = parent;
     }
@@ -3987,11 +3987,11 @@ async function findIgnoredBroadWorkspaceBinding() {
   return null;
 }
 async function walkForWorkspaceBinding(startDir) {
-  let dir = path7.resolve(startDir);
+  let dir = path8.resolve(startDir);
   const homes = await homeDirectories();
   for (let i = 0; i < 64; i++) {
     if (coversHome(dir, homes)) return null;
-    const candidate = path7.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE);
+    const candidate = path8.join(dir, WORKSPACE_DIR_NAME, WORKSPACE_BINDING_FILE);
     try {
       const raw = await fs5.readFile(candidate, "utf8");
       const parsed = JSON.parse(raw);
@@ -4007,7 +4007,7 @@ async function walkForWorkspaceBinding(startDir) {
       }
     } catch {
     }
-    const parent = path7.dirname(dir);
+    const parent = path8.dirname(dir);
     if (parent === dir) return null;
     dir = parent;
   }
@@ -4045,8 +4045,8 @@ async function readSmallRegularFile(file2) {
   }
 }
 function containedBy(parent, child) {
-  const relative = path7.relative(parent, child);
-  return relative === "" || relative !== ".." && !relative.startsWith(`..${path7.sep}`) && !path7.isAbsolute(relative);
+  const relative = path8.relative(parent, child);
+  return relative === "" || relative !== ".." && !relative.startsWith(`..${path8.sep}`) && !path8.isAbsolute(relative);
 }
 async function canonicalSafeDirectory(candidate) {
   try {
@@ -4071,7 +4071,7 @@ function gitIdentity(checkoutRoot, state, repositoryRoot = checkoutRoot) {
   };
 }
 async function resolveGitWorkspaceIdentity(startDir) {
-  const requested = path7.resolve(startDir);
+  const requested = path8.resolve(startDir);
   let canonicalStart;
   try {
     canonicalStart = await fs5.realpath(requested);
@@ -4082,13 +4082,13 @@ async function resolveGitWorkspaceIdentity(startDir) {
   }
   let dir = canonicalStart;
   for (let i = 0; i < 64; i++) {
-    const gitEntry = path7.join(dir, ".git");
+    const gitEntry = path8.join(dir, ".git");
     let entry;
     try {
       entry = await fs5.lstat(gitEntry);
     } catch (error40) {
       if (!isFileNotFound(error40)) return gitIdentity(dir, "unknown");
-      const parent = path7.dirname(dir);
+      const parent = path8.dirname(dir);
       if (parent === dir) return gitIdentity(canonicalStart, "none");
       dir = parent;
       continue;
@@ -4109,16 +4109,16 @@ async function resolveGitWorkspaceIdentity(startDir) {
     if (!pointerValue) return gitIdentity(checkoutRoot, "unknown");
     let gitDirCandidate;
     try {
-      gitDirCandidate = path7.isAbsolute(pointerValue) ? pointerValue : path7.resolve(checkoutRoot, pointerValue);
+      gitDirCandidate = path8.isAbsolute(pointerValue) ? pointerValue : path8.resolve(checkoutRoot, pointerValue);
     } catch {
       return gitIdentity(checkoutRoot, "unknown");
     }
     const gitDir = await canonicalSafeDirectory(gitDirCandidate);
     if (!gitDir) return gitIdentity(checkoutRoot, "unknown");
-    const commonRead = await readSmallRegularFile(path7.join(gitDir, "commondir"));
+    const commonRead = await readSmallRegularFile(path8.join(gitDir, "commondir"));
     if (commonRead.kind === "missing") {
-      const gitDirParent = path7.dirname(gitDir);
-      const looksLikeWorktreeAdmin = path7.basename(gitDirParent) === "worktrees" && path7.basename(path7.dirname(gitDirParent)) === ".git";
+      const gitDirParent = path8.dirname(gitDir);
+      const looksLikeWorktreeAdmin = path8.basename(gitDirParent) === "worktrees" && path8.basename(path8.dirname(gitDirParent)) === ".git";
       if (looksLikeWorktreeAdmin) return gitIdentity(checkoutRoot, "unknown");
       return gitIdentity(checkoutRoot, "main");
     }
@@ -4130,22 +4130,22 @@ async function resolveGitWorkspaceIdentity(startDir) {
     if (!commonValue) return gitIdentity(checkoutRoot, "unknown");
     let commonCandidate;
     try {
-      commonCandidate = path7.isAbsolute(commonValue) ? commonValue : path7.resolve(gitDir, commonValue);
+      commonCandidate = path8.isAbsolute(commonValue) ? commonValue : path8.resolve(gitDir, commonValue);
     } catch {
       return gitIdentity(checkoutRoot, "unknown");
     }
     const commonDir = await canonicalSafeDirectory(commonCandidate);
     if (!commonDir) return gitIdentity(checkoutRoot, "unknown");
-    const worktreesDir = path7.join(commonDir, "worktrees");
-    if (path7.basename(commonDir) !== ".git" || gitDir === worktreesDir || !containedBy(worktreesDir, gitDir)) {
+    const worktreesDir = path8.join(commonDir, "worktrees");
+    if (path8.basename(commonDir) !== ".git" || gitDir === worktreesDir || !containedBy(worktreesDir, gitDir)) {
       return gitIdentity(checkoutRoot, "unknown");
     }
-    const repositoryRoot = path7.dirname(commonDir);
-    const repositoryGitDir = await canonicalSafeDirectory(path7.join(repositoryRoot, ".git"));
+    const repositoryRoot = path8.dirname(commonDir);
+    const repositoryGitDir = await canonicalSafeDirectory(path8.join(repositoryRoot, ".git"));
     if (!repositoryGitDir || repositoryGitDir !== commonDir) {
       return gitIdentity(checkoutRoot, "unknown");
     }
-    const reverseRead = await readSmallRegularFile(path7.join(gitDir, "gitdir"));
+    const reverseRead = await readSmallRegularFile(path8.join(gitDir, "gitdir"));
     if (reverseRead.kind !== "ok" || reverseRead.value.includes("\0")) {
       return gitIdentity(checkoutRoot, "unknown");
     }
@@ -4153,7 +4153,7 @@ async function resolveGitWorkspaceIdentity(startDir) {
     const reverseValue = reverseMatch?.[1];
     if (!reverseValue) return gitIdentity(checkoutRoot, "unknown");
     try {
-      const reverseCandidate = path7.isAbsolute(reverseValue) ? reverseValue : path7.resolve(gitDir, reverseValue);
+      const reverseCandidate = path8.isAbsolute(reverseValue) ? reverseValue : path8.resolve(gitDir, reverseValue);
       const [reverseTarget, checkoutGitFile] = await Promise.all([
         fs5.realpath(reverseCandidate),
         fs5.realpath(gitEntry)
@@ -4171,7 +4171,7 @@ async function findWorkspaceBinding(startDir) {
   const gitIdentity2 = await resolveGitWorkspaceIdentity(startDir);
   if (gitIdentity2.state !== "worktree") return direct;
   if (direct) {
-    const bindingRoot = await fs5.realpath(direct.workspaceRoot).catch(() => path7.resolve(direct.workspaceRoot));
+    const bindingRoot = await fs5.realpath(direct.workspaceRoot).catch(() => path8.resolve(direct.workspaceRoot));
     if (containedBy(gitIdentity2.checkout_root, bindingRoot)) return direct;
   }
   return walkForWorkspaceBinding(gitIdentity2.repository_root);
@@ -4180,7 +4180,7 @@ async function writeWorkspaceBinding(workspaceRoot, binding) {
   if (typeof binding.account_id !== "string" || binding.account_id.length === 0) {
     throw new Error("Workspace binding account_id is required.");
   }
-  const root = await fs5.realpath(path7.resolve(workspaceRoot));
+  const root = await fs5.realpath(path8.resolve(workspaceRoot));
   const rootEntry = await fs5.stat(root);
   if (!rootEntry.isDirectory()) throw new Error("Workspace root must be a directory.");
   if (await isTooBroadForWorkspaceBinding(root)) {
@@ -4188,7 +4188,7 @@ async function writeWorkspaceBinding(workspaceRoot, binding) {
       `Refusing to link ${root}: it is your home folder or above it, so the link would cover every project inside it. Run this from inside the project folder instead.`
     );
   }
-  const dir = path7.join(root, WORKSPACE_DIR_NAME);
+  const dir = path8.join(root, WORKSPACE_DIR_NAME);
   try {
     const entry = await fs5.lstat(dir);
     if (!entry.isDirectory() || entry.isSymbolicLink()) {
@@ -4202,7 +4202,7 @@ async function writeWorkspaceBinding(workspaceRoot, binding) {
       throw new Error(`Refusing an unsafe Memlin workspace directory at ${dir}`);
     }
   }
-  const file2 = path7.join(dir, WORKSPACE_BINDING_FILE);
+  const file2 = path8.join(dir, WORKSPACE_BINDING_FILE);
   try {
     const existing = await fs5.lstat(file2);
     if (!existing.isFile() || existing.isSymbolicLink()) {
@@ -4220,7 +4220,7 @@ async function writeWorkspaceBinding(workspaceRoot, binding) {
     null,
     2
   );
-  const temporary = path7.join(dir, `.config.${randomUUID2()}.tmp`);
+  const temporary = path8.join(dir, `.config.${randomUUID3()}.tmp`);
   let handle;
   try {
     handle = await fs5.open(temporary, "wx", 384);
@@ -4241,10 +4241,10 @@ async function writeWorkspaceBinding(workspaceRoot, binding) {
   }
 }
 async function clearWorkspaceBinding(workspaceRoot) {
-  const root = await fs5.realpath(path7.resolve(workspaceRoot));
+  const root = await fs5.realpath(path8.resolve(workspaceRoot));
   const rootEntry = await fs5.stat(root);
   if (!rootEntry.isDirectory()) throw new Error("Workspace root must be a directory.");
-  const dir = path7.join(root, WORKSPACE_DIR_NAME);
+  const dir = path8.join(root, WORKSPACE_DIR_NAME);
   try {
     const entry = await fs5.lstat(dir);
     if (!entry.isDirectory() || entry.isSymbolicLink()) {
@@ -4254,7 +4254,7 @@ async function clearWorkspaceBinding(workspaceRoot) {
     if (isFileNotFound(error40)) return false;
     throw error40;
   }
-  const file2 = path7.join(dir, WORKSPACE_BINDING_FILE);
+  const file2 = path8.join(dir, WORKSPACE_BINDING_FILE);
   try {
     const entry = await fs5.lstat(file2);
     if (!entry.isFile() || entry.isSymbolicLink()) {
@@ -4285,9 +4285,9 @@ var init_workspace_binding = __esm({
 
 // packages/plugin-core/dist/remote-session-hook.js
 import { promises as fs7 } from "node:fs";
-import os9 from "node:os";
-import path9 from "node:path";
-import { createHash, randomUUID as randomUUID4 } from "node:crypto";
+import os10 from "node:os";
+import path10 from "node:path";
+import { createHash, randomUUID as randomUUID5 } from "node:crypto";
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
 var external_exports = {};
@@ -4767,8 +4767,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path16, errorMaps, issueData } = params;
-  const fullPath = [...path16, ...issueData.path || []];
+  const { data, path: path17, errorMaps, issueData } = params;
+  const fullPath = [...path17, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -4884,11 +4884,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path16, key) {
+  constructor(parent, value, path17, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path16;
+    this._path = path17;
     this._key = key;
   }
   get path() {
@@ -8330,6 +8330,74 @@ var coerce = {
 };
 var NEVER = INVALID;
 
+// packages/shared/dist/agent-hosts.js
+var AGENT_HOSTS = [
+  { kind: "claude-code", label: "Claude Code", companion: "claude", provider: "anthropic", pickup: true },
+  { kind: "claude-ai", label: "Claude", provider: "anthropic" },
+  { kind: "codex", label: "Codex", companion: "codex", provider: "openai", pickup: true },
+  { kind: "cursor", label: "Cursor", companion: "cursor", pickup: true },
+  { kind: "windsurf", label: "Windsurf", pickup: true },
+  // Microsoft VS Code + GitHub Copilot agent mode (apps/vscode-extension).
+  // Registers the Memlin MCP server via the stable
+  // `lm.registerMcpServerDefinitionProvider` API (VS Code ≥ 1.101) plus
+  // sign-in/sync commands and a copilot-instructions directive. Plain VS Code
+  // has no lifecycle-hook or slash-command surface, so this kind is MCP + CLI
+  // + rules (no hooks/commands) — see AGENT_EXPECTED_CAPABILITIES.
+  { kind: "vscode", label: "VS Code" },
+  { kind: "gemini", label: "Gemini", provider: "google" },
+  { kind: "grok", label: "Grok", provider: "xai" },
+  // Nous Research Hermes Agent — autonomous, self-hosted, 24/7 (Feb 2026).
+  // Plugin system is Python-only; today this kind reflects MCP-only
+  // connections. Phase 2 ships a native Python plugin (apps/hermes-plugin/)
+  // wiring pre_tool_call into the same controller path Claude Code uses.
+  { kind: "hermes", label: "Hermes" },
+  // OpenClaw — Peter Steinberger's viral open-source autonomous personal
+  // agent (Discord/Slack-first UI, local-first, 247k+ stars by Mar 2026).
+  // Has MCP Registry support and a SKILL.md skills format at
+  // ~/.openclaw/workspace/skills/. MCP-only today; the Phase 3
+  // agentskills.io bridge is the bet for skills round-tripping.
+  { kind: "openclaw", label: "OpenClaw" },
+  // Google Antigravity — Google's agent-first IDE (Nov 2025), built by the
+  // former Windsurf/Codeium team on a VS Code fork. MCP servers live in
+  // ~/.gemini/antigravity/mcp_config.json (remote servers use `serverUrl`,
+  // exactly Memlin's hosted shape); project rules in .agent/rules/*.md and
+  // AGENTS.md. No lifecycle-hook surface yet — MCP + rules today. See
+  // packages/adapters/src/antigravity.ts.
+  // Its CLI takes a tier, never a model id (`agentapi new-conversation
+  // --model=pro`); without one it uses whatever was last chosen in its own
+  // window, which Memlin is not told, so a step always names a tier.
+  {
+    kind: "antigravity",
+    label: "Antigravity",
+    pickup: true,
+    handoffStart: "antigravity",
+    ownModels: {
+      family: "Gemini",
+      provider: "google",
+      note: "Antigravity picks which current Gemini model each tier uses; it does not say which.",
+      tiers: [
+        { value: "pro", label: "Gemini Pro (Antigravity's pro tier)" },
+        { value: "flash", label: "Gemini Flash (Antigravity's flash tier)" },
+        { value: "flash_lite", label: "Gemini Flash-Lite (Antigravity's flash-lite tier)" }
+      ]
+    }
+  },
+  { kind: "mcp", label: "MCP client" },
+  // Memlin Companion — the installable desktop tray app (apps/companion).
+  // A per-user background daemon (packages/companion-core) that keeps the
+  // token fresh, auto-links workspaces, and syncs plans continuously; other
+  // agents on the machine delegate to it over a local socket. One install
+  // per device, so agent_installations dedup by device name works as-is.
+  { kind: "companion", label: "Memlin Companion" }
+];
+var AGENT_KINDS = AGENT_HOSTS.map((host) => host.kind);
+var COMPANION_AGENT_KINDS = AGENT_HOSTS.filter((host) => "companion" in host).map(
+  (host) => host.kind
+);
+var COMPANION_HANDOFF_START_KINDS = AGENT_HOSTS.filter((host) => "handoffStart" in host).map(
+  (host) => host.kind
+);
+
 // packages/shared/dist/constants.js
 var DOCUMENT_KINDS = [
   "memory",
@@ -8388,47 +8456,6 @@ var MEMORY_TYPES = [
   "reference",
   "episodic",
   "working"
-];
-var AGENT_KINDS = [
-  "claude-code",
-  "claude-ai",
-  "codex",
-  "cursor",
-  "windsurf",
-  // Microsoft VS Code + GitHub Copilot agent mode (apps/vscode-extension).
-  // Registers the Memlin MCP server via the stable
-  // `lm.registerMcpServerDefinitionProvider` API (VS Code ≥ 1.101) plus
-  // sign-in/sync commands and a copilot-instructions directive. Plain VS Code
-  // has no lifecycle-hook or slash-command surface, so this kind is MCP + CLI
-  // + rules (no hooks/commands) — see AGENT_EXPECTED_CAPABILITIES.
-  "vscode",
-  "gemini",
-  "grok",
-  // Nous Research Hermes Agent — autonomous, self-hosted, 24/7 (Feb 2026).
-  // Plugin system is Python-only; today this kind reflects MCP-only
-  // connections. Phase 2 ships a native Python plugin (apps/hermes-plugin/)
-  // wiring pre_tool_call into the same controller path Claude Code uses.
-  "hermes",
-  // OpenClaw — Peter Steinberger's viral open-source autonomous personal
-  // agent (Discord/Slack-first UI, local-first, 247k+ stars by Mar 2026).
-  // Has MCP Registry support and a SKILL.md skills format at
-  // ~/.openclaw/workspace/skills/. MCP-only today; the Phase 3
-  // agentskills.io bridge is the bet for skills round-tripping.
-  "openclaw",
-  // Google Antigravity — Google's agent-first IDE (Nov 2025), built by the
-  // former Windsurf/Codeium team on a VS Code fork. MCP servers live in
-  // ~/.gemini/antigravity/mcp_config.json (remote servers use `serverUrl`,
-  // exactly Memlin's hosted shape); project rules in .agent/rules/*.md and
-  // AGENTS.md. No lifecycle-hook surface yet — MCP + rules today. See
-  // packages/adapters/src/antigravity.ts.
-  "antigravity",
-  "mcp",
-  // Memlin Companion — the installable desktop tray app (apps/companion).
-  // A per-user background daemon (packages/companion-core) that keeps the
-  // token fresh, auto-links workspaces, and syncs plans continuously; other
-  // agents on the machine delegate to it over a local socket. One install
-  // per device, so agent_installations dedup by device name works as-is.
-  "companion"
 ];
 var MEMBER_ROLES = ["owner", "admin", "member", "viewer"];
 var ACCOUNT_TIERS = ["free", "starter", "pro", "team", "enterprise"];
@@ -8796,9 +8823,9 @@ function applyRedaction(input, builtIns, extraPatterns) {
     return { redacted: input, hits: [], changed: false };
   }
   const counts = /* @__PURE__ */ new Map();
-  const apply = (text, p) => {
+  const apply = (text2, p) => {
     p.regex.lastIndex = 0;
-    return text.replaceAll(p.regex, (match) => {
+    return text2.replaceAll(p.regex, (match) => {
       if (p.validate && !p.validate(match)) return match;
       counts.set(p, (counts.get(p) ?? 0) + 1);
       return `[REDACTED-${p.name}]`;
@@ -9303,35 +9330,35 @@ var INSISTENCE_SHOUT = /\b[A-Z]{3,}\s+[A-Z]{3,}\s+[A-Z]{3,}\b/;
 var AGENT_APOLOGY_PATTERNS = [
   /\b(you['’]?re right|i was wrong|i was confused|let me correct|my mistake|apolog)\b/i
 ];
-function hasCorrectionSignal(text) {
-  return CORRECTION_PATTERNS.some((re) => re.test(text));
+function hasCorrectionSignal(text2) {
+  return CORRECTION_PATTERNS.some((re) => re.test(text2));
 }
-function hasFrustrationSignal(text) {
-  return FRUSTRATION_PATTERNS.some((re) => re.test(text));
+function hasFrustrationSignal(text2) {
+  return FRUSTRATION_PATTERNS.some((re) => re.test(text2));
 }
-function hasInsistenceSignal(text) {
-  if (INSISTENCE_PATTERNS_I.some((re) => re.test(text))) return true;
-  if (INSISTENCE_CAPS.test(text)) return true;
-  if (INSISTENCE_REPEAT.test(text)) return true;
-  if (INSISTENCE_SHOUT.test(text)) return true;
+function hasInsistenceSignal(text2) {
+  if (INSISTENCE_PATTERNS_I.some((re) => re.test(text2))) return true;
+  if (INSISTENCE_CAPS.test(text2)) return true;
+  if (INSISTENCE_REPEAT.test(text2)) return true;
+  if (INSISTENCE_SHOUT.test(text2)) return true;
   return false;
 }
-function hasAgentApology(text) {
-  return AGENT_APOLOGY_PATTERNS.some((re) => re.test(text));
+function hasAgentApology(text2) {
+  return AGENT_APOLOGY_PATTERNS.some((re) => re.test(text2));
 }
-function classifyNegativeFeedback(text) {
+function classifyNegativeFeedback(text2) {
   const kinds = [];
-  if (hasCorrectionSignal(text)) kinds.push("correction");
-  if (hasFrustrationSignal(text)) kinds.push("frustration");
-  if (hasInsistenceSignal(text)) kinds.push("insistence");
+  if (hasCorrectionSignal(text2)) kinds.push("correction");
+  if (hasFrustrationSignal(text2)) kinds.push("frustration");
+  if (hasInsistenceSignal(text2)) kinds.push("insistence");
   if (kinds.length === 0) {
     return { isNegative: false, severity: "none", kinds };
   }
   const high = kinds.includes("insistence") || kinds.includes("frustration");
   return { isNegative: true, severity: high ? "high" : "medium", kinds };
 }
-function isNegativeFeedback(text) {
-  return classifyNegativeFeedback(text).isNegative;
+function isNegativeFeedback(text2) {
+  return classifyNegativeFeedback(text2).isNegative;
 }
 
 // packages/shared/dist/model-prices.js
@@ -10063,10 +10090,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path16) {
-  if (!path16)
+function getElementAtPath(obj, path17) {
+  if (!path17)
     return obj;
-  return path16.reduce((acc, key) => acc?.[key], obj);
+  return path17.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -10386,11 +10413,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path16, issues) {
+function prefixIssues(path17, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path16);
+    iss.path.unshift(path17);
     return iss;
   });
 }
@@ -10527,7 +10554,7 @@ function treeifyError(error40, _mapper) {
     return issue2.message;
   };
   const result = { errors: [] };
-  const processError = (error41, path16 = []) => {
+  const processError = (error41, path17 = []) => {
     var _a, _b;
     for (const issue2 of error41.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
@@ -10537,7 +10564,7 @@ function treeifyError(error40, _mapper) {
       } else if (issue2.code === "invalid_element") {
         processError({ issues: issue2.issues }, issue2.path);
       } else {
-        const fullpath = [...path16, ...issue2.path];
+        const fullpath = [...path17, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -10567,9 +10594,9 @@ function treeifyError(error40, _mapper) {
   processError(error40);
   return result;
 }
-function toDotPath(path16) {
+function toDotPath(path17) {
   const segs = [];
-  for (const seg of path16) {
+  for (const seg of path17) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -20593,10 +20620,18 @@ var DESIGN_RESEARCH_SOURCES = [
     citationPrefix: "https://web.dev/blog/"
   }
 ];
+function isLocaleOnlyQuery(url2) {
+  const keys = [...url2.searchParams.keys()];
+  return keys.length > 0 && keys.every((key) => key === "hl") && url2.searchParams.getAll("hl").every((value) => /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(value));
+}
 function configuredDesignSource(value, platform) {
   try {
     const url2 = new URL(value);
-    if (url2.protocol !== "https:" || url2.username || url2.password || url2.search) return false;
+    if (url2.protocol !== "https:" || url2.username || url2.password) return false;
+    if (url2.search) {
+      if (!isLocaleOnlyQuery(url2)) return false;
+      url2.search = "";
+    }
     url2.hash = "";
     return DESIGN_RESEARCH_SOURCES.some(
       (source) => (!platform || source.platforms.includes(platform)) && (url2.href === source.url || "canonicalUrl" in source && url2.href === source.canonicalUrl || "citationPrefix" in source && url2.href.startsWith(source.citationPrefix))
@@ -20755,7 +20790,12 @@ var FeedResponseSchema = external_exports.object({
 }).strict();
 
 // packages/shared/dist/job-dispatch.js
-var JOB_KINDS = ["workflow_run", "model_watch_match", "model_watch_digest"];
+var JOB_KINDS = [
+  "workflow_run",
+  "model_watch_match",
+  "model_watch_digest",
+  "home_summary"
+];
 var JobMessageSchema = external_exports.object({
   version: external_exports.literal(1),
   kind: external_exports.enum(JOB_KINDS),
@@ -20859,13 +20899,13 @@ var LIGHT_HOSTS = [
   "windsurf",
   "devin"
 ];
-function boundLightText(text, byteLimit) {
+function boundLightText(text2, byteLimit) {
   const encoder2 = new TextEncoder();
-  const bytes = encoder2.encode(text);
-  return bytes.length <= byteLimit ? text : new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, byteLimit)).replace(/\uFFFD$/, "");
+  const bytes = encoder2.encode(text2);
+  return bytes.length <= byteLimit ? text2 : new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, byteLimit)).replace(/\uFFFD$/, "");
 }
-function redactLightTranscript(text) {
-  return text.replace(
+function redactLightTranscript(text2) {
+  return text2.replace(
     /-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----/g,
     "[private key removed]"
   ).replace(
@@ -20876,10 +20916,10 @@ function redactLightTranscript(text) {
     "$1[removed]"
   );
 }
-function lightCaptureExcluded(text, paths = []) {
+function lightCaptureExcluded(text2, paths = []) {
   return /(?:^|[\s/\\"'`])(?:\.env(?:\.[\w-]+)?|id_rsa|id_ed25519|credentials\.json)(?=$|[\s/\\"'`:])/m.test(
-    text
-  ) || paths.some((p) => p.length > 0 && text.includes(p));
+    text2
+  ) || paths.some((p) => p.length > 0 && text2.includes(p));
 }
 
 // packages/shared/dist/skill-inventory.js
@@ -21235,19 +21275,19 @@ var ContextManifestV1Schema = external_exports.object({
       location: `linked_contexts.${index}`
     }))
   ];
-  references.forEach(({ ref, path: path16, location }) => {
+  references.forEach(({ ref, path: path17, location }) => {
     const identity = contextReferenceIdentityKey(ref);
     const prior = seen.get(identity);
     if (prior && prior.revision !== ref.revision) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path16,
+        path: path17,
         message: `context ${identity} has conflicting revisions in ${prior.location} and ${location}`
       });
     } else if (prior && location.startsWith("linked_contexts.")) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path16,
+        path: path17,
         message: `duplicate linked context ${identity}`
       });
     }
@@ -21561,11 +21601,11 @@ var ContextBundleV1Schema = external_exports.object({
         path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
       }))
     ];
-    for (const { ref, path: path16 } of references) {
+    for (const { ref, path: path17 } of references) {
       if (!contextKeys.has(contextReferenceKey(ref))) {
         ctx.addIssue({
           code: external_exports.ZodIssueCode.custom,
-          path: path16,
+          path: path17,
           message: "provider coverage is outside the exact manifest contexts"
         });
       }
@@ -23899,10 +23939,10 @@ function isDecisionKind(value) {
 function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-function labelDecisionOptionIds(kind, text) {
+function labelDecisionOptionIds(kind, text2) {
   const spec = DECISION_KINDS[kind];
-  if (!spec || !text) return text;
-  let out = text;
+  if (!spec || !text2) return text2;
+  let out = text2;
   const options2 = [...spec.options].sort((a, b) => b.id.length - a.id.length);
   for (const o of options2) {
     const id = escapeRegExp(o.id);
@@ -23962,7 +24002,7 @@ function askLine(host, decision) {
   }
 }
 function renderAt(decision, host, detail, nowMs) {
-  const prose = (text, max) => oneLine(labelDecisionOptionIds(decision.kind, text), max);
+  const prose = (text2, max) => oneLine(labelDecisionOptionIds(decision.kind, text2), max);
   const lines = [];
   lines.push(`<memlin-decision id="${decision.id}" kind="${decision.kind}">`);
   lines.push(
@@ -24023,6 +24063,96 @@ function renderDecisionBlock(decision, opts) {
   }
   return "";
 }
+
+// packages/shared/dist/persona-context.js
+var PersonaReferenceSchema = external_exports.object({
+  id: external_exports.string().min(1).max(128),
+  revision: external_exports.number().int().positive()
+}).strict();
+var PersonaContextAssessmentSchema = external_exports.object({
+  status: external_exports.enum(["disabled", "skipped", "unavailable", "assessed"]),
+  evaluator: external_exports.string().optional(),
+  policy_revision: external_exports.string().optional(),
+  candidates: external_exports.array(external_exports.object({ id: external_exports.string(), relevance: external_exports.number(), skill_fit: external_exports.number().nullable(), conflict: external_exports.boolean().nullable() })),
+  reason: external_exports.string().optional(),
+  usage: external_exports.object({ input_tokens: external_exports.number().nonnegative(), output_tokens: external_exports.number().nonnegative() }).optional()
+});
+var Citation = external_exports.object({
+  source: external_exports.enum(["memory", "skill", "web", "github", "slack", "work_item", "catalog", "feed", "repository"]),
+  id: external_exports.string(),
+  revision: external_exports.string(),
+  title: external_exports.string(),
+  url: external_exports.string().optional()
+}).strict();
+var PersonaContextV1Schema = external_exports.object({
+  schema_version: external_exports.literal(1),
+  persona: PersonaReferenceSchema.extend({
+    name: external_exports.string(),
+    instructions: external_exports.string(),
+    checks: external_exports.array(external_exports.string())
+  }),
+  task: external_exports.string(),
+  skills: external_exports.array(external_exports.object({
+    document_id: external_exports.string(),
+    version_id: external_exports.string(),
+    revision: external_exports.number().int().positive(),
+    title: external_exports.string(),
+    content: external_exports.string()
+  })),
+  learning: external_exports.object({
+    items: external_exports.array(external_exports.object({
+      id: external_exports.string(),
+      revision: external_exports.number().int().positive(),
+      title: external_exports.string(),
+      guidance: external_exports.string(),
+      url: external_exports.string(),
+      scope: external_exports.enum(["personal", "company", "project", "core"])
+    })),
+    omitted: external_exports.number().int().nonnegative()
+  }),
+  memories: external_exports.array(external_exports.object({
+    id: external_exports.string(),
+    title: external_exports.string(),
+    body: external_exports.string(),
+    kind: external_exports.enum(["learned", "feedback"]),
+    scope: external_exports.string(),
+    project_id: external_exports.string().nullable(),
+    updated_at: external_exports.string(),
+    version_number: external_exports.number(),
+    source_label: external_exports.string().nullable(),
+    evidence_url: external_exports.string().nullable(),
+    persona_finding_id: external_exports.string().nullable().optional()
+  })),
+  role: external_exports.object({
+    job_profile: external_exports.unknown().optional(),
+    execution_rubric: external_exports.unknown().optional(),
+    evaluated_research_protocol: external_exports.unknown().optional(),
+    platform_defaults: external_exports.unknown().optional(),
+    brand_guidelines: external_exports.unknown().optional()
+  }),
+  evidence: external_exports.array(external_exports.unknown()).optional(),
+  project_context: external_exports.array(external_exports.object({
+    id: external_exports.string(),
+    kind: external_exports.string(),
+    title: external_exports.string(),
+    body: external_exports.string(),
+    path: external_exports.string().nullable(),
+    revision: external_exports.number(),
+    mandatory: external_exports.boolean()
+  })),
+  citations: external_exports.array(Citation),
+  manifest: external_exports.object({
+    prepared_at: external_exports.string(),
+    source_ids: external_exports.array(external_exports.string()),
+    project_context_delivery: external_exports.enum(["included", "resolver_bundle"]).optional(),
+    project_context_references: external_exports.array(external_exports.object({ id: external_exports.string(), revision: external_exports.number() })).optional(),
+    omitted: external_exports.array(external_exports.object({ kind: external_exports.string(), count: external_exports.number().int().nonnegative(), reason: external_exports.string() })),
+    unavailable: external_exports.array(external_exports.string()),
+    assessment: PersonaContextAssessmentSchema.optional()
+  }),
+  handling: external_exports.string()
+});
+var STOP_WORDS = new Set("a an and are as at be by for from has have how i in is it its of on or our that the their this to use using was we what when where which with you your".split(" "));
 
 // packages/shared/dist/thought-handoff-v2.js
 var ThoughtHandoffRequestV2Schema = external_exports.object({
@@ -24857,10 +24987,10 @@ function validateFlowDefinitionSemantics(flow) {
       ],
       ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, path: `stages.${stageIndex}.bypass_target` }]
     ];
-    targets.forEach(({ target, path: path16 }) => {
+    targets.forEach(({ target, path: path17 }) => {
       if (!isReservedTarget(target) && !stageById.has(target)) {
         issues.push({
-          path: path16,
+          path: path17,
           code: "missing_transition_target",
           message: `transition target ${JSON.stringify(target)} does not exist`
         });
@@ -24890,7 +25020,7 @@ function validateFlowDefinitionSemantics(flow) {
   const visiting = /* @__PURE__ */ new Set();
   const visited = /* @__PURE__ */ new Set();
   let hasReachableEnd = false;
-  const visit = (stageId, path16, pathBounds) => {
+  const visit = (stageId, path17, pathBounds) => {
     reachable.add(stageId);
     if (visited.has(stageId)) return;
     visiting.add(stageId);
@@ -24906,7 +25036,7 @@ function validateFlowDefinitionSemantics(flow) {
         ...stage.default_transition === null ? [] : [{ target: stage.default_transition, bounded: false }],
         ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, bounded: false }]
       ];
-      const currentPath = [...path16, stageId];
+      const currentPath = [...path17, stageId];
       for (const edge of edges) {
         const { target } = edge;
         if (target === "$end") {
@@ -25014,18 +25144,18 @@ var FlowPackManifestBaseSchema = external_exports2.object({
   evals: external_exports2.array(ManifestEvalSchema).max(256),
   model_roles: external_exports2.array(ManifestModelRoleSchema).max(64)
 }).strict();
-function validateRelativePackPath(path16) {
-  if (path16.startsWith("/") || path16.startsWith("\\")) return "path must be relative";
-  if (/^[A-Za-z]:/.test(path16) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path16)) {
+function validateRelativePackPath(path17) {
+  if (path17.startsWith("/") || path17.startsWith("\\")) return "path must be relative";
+  if (/^[A-Za-z]:/.test(path17) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path17)) {
     return "drive-qualified paths and URI schemes are not allowed";
   }
-  if (/[\u0000-\u001f\u007f]/.test(path16)) return "control characters are not allowed";
-  if (/%(?:2e|2f|5c)/i.test(path16)) return "encoded path traversal is not allowed";
-  if (path16.includes("\\")) return "path must use forward slashes";
-  if (path16.split("/").some((segment) => segment === ".." || segment === ".")) {
+  if (/[\u0000-\u001f\u007f]/.test(path17)) return "control characters are not allowed";
+  if (/%(?:2e|2f|5c)/i.test(path17)) return "encoded path traversal is not allowed";
+  if (path17.includes("\\")) return "path must use forward slashes";
+  if (path17.split("/").some((segment) => segment === ".." || segment === ".")) {
     return "path traversal and dot segments are not allowed";
   }
-  if (path16.split("/").some((segment) => segment.length === 0)) {
+  if (path17.split("/").some((segment) => segment.length === 0)) {
     return "path cannot contain empty segments";
   }
   return null;
@@ -25072,22 +25202,22 @@ function validateFlowPackManifestSemantics(manifest) {
       issues
     );
     role.independence.compare_against_roles.forEach((comparedRole, comparedIndex) => {
-      const path16 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
+      const path17 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
       if (comparedRole === role.id) {
         issues.push({
-          path: path16,
+          path: path17,
           code: "self_referential_model_independence",
           message: "a model role cannot require independence from itself"
         });
       } else if (!modelRolesById.has(comparedRole)) {
         issues.push({
-          path: path16,
+          path: path17,
           code: "missing_independence_model_role",
           message: `independence policy references undeclared model role ${JSON.stringify(comparedRole)}`
         });
       } else if (modelRolesById.get(comparedRole)?.independence !== null) {
         issues.push({
-          path: path16,
+          path: path17,
           code: "independence_reference_not_author",
           message: `independence policy must compare against an author role; ${JSON.stringify(comparedRole)} declares its own independence policy`
         });
@@ -25358,18 +25488,158 @@ var Receipt = external_exports.object({
   reason: external_exports.string().optional()
 });
 
+// packages/shared/dist/screen-manifest.js
+var SCREEN_PLATFORMS = [...DESIGN_STANDARD_PLATFORMS, "desktop"];
+var SCREEN_STATE_KINDS = [
+  "default",
+  "stage",
+  "empty",
+  "loading",
+  "error",
+  "dialog",
+  "variant"
+];
+var SCREEN_STATE_VIA = [
+  "story",
+  "preview",
+  "fixture",
+  "route_query",
+  "mock",
+  "account",
+  "deeplink",
+  "observed",
+  "capture",
+  "design"
+];
+var SCREEN_STATE_EFFECTS = ["none", "read", "write"];
+var SCREEN_CONFIDENCE = ["declared", "extracted", "inferred"];
+var SCREEN_ENTRY_STATUS = ["proposed", "active", "stale"];
+var SCREEN_SOURCES = ["repo_file", "person", "extractor", "agent", "runtime"];
+var SCREEN_DISCOVERY_SOURCES = ["extractor", "agent", "runtime"];
+var SCREEN_MANIFEST_LIMITS = {
+  idChars: 80,
+  titleChars: 120,
+  entryChars: 500,
+  regionChars: 80,
+  pathChars: 300,
+  detailChars: 300,
+  filesPerScreen: 50,
+  statesPerScreen: 40,
+  evidencePerState: 20,
+  stateOrderMax: 999,
+  screensPerFile: 500,
+  /** The most screens one read returns; past it the read says it was cut. */
+  screensPerProject: 500,
+  /** The most open proposals one read returns, newest first. */
+  proposalsShown: 200,
+  /** The largest `.memlin/screens.yaml` read. */
+  fileBytes: 256 * 1024
+};
+var L = SCREEN_MANIFEST_LIMITS;
+var SCREEN_ID_PATTERN = new RegExp(`^[a-z0-9][a-z0-9._-]{0,${L.idChars - 1}}$`);
+var ScreenIdSchema = external_exports.string().regex(SCREEN_ID_PATTERN, "Use lower-case letters, digits, dots, dashes or underscores.");
+var text = (max) => external_exports.string().trim().min(1).max(max);
+var ScreenRepoPathSchema = external_exports.string().min(1).max(L.pathChars).refine(
+  (path17) => !path17.startsWith("/") && !path17.includes("\\") && !path17.split("/").some((part) => part === ".." || part === "") && // eslint-disable-next-line no-control-regex
+  !/[\u0000-\u001f\u007f]/.test(path17),
+  "Use a path inside the repository."
+);
+var ScreenEvidenceSchema = external_exports.object({
+  file: ScreenRepoPathSchema,
+  line: external_exports.number().int().positive(),
+  sha: external_exports.string().regex(/^[0-9a-f]{40}$/).optional()
+}).strict();
+var ScreenStateDeclarationSchema = external_exports.object({
+  id: ScreenIdSchema,
+  label: text(L.titleChars),
+  order: external_exports.number().int().min(0).max(L.stateOrderMax).optional(),
+  kind: external_exports.enum(SCREEN_STATE_KINDS),
+  via: external_exports.enum(SCREEN_STATE_VIA).optional(),
+  effects: external_exports.enum(SCREEN_STATE_EFFECTS).default("none"),
+  region: text(L.regionChars).optional(),
+  evidence: external_exports.array(ScreenEvidenceSchema).max(L.evidencePerState).default([])
+}).strict();
+var uniqueIds = (items) => new Set(items.map((item) => item.id)).size === items.length;
+var ScreenDeclarationSchema = external_exports.object({
+  id: ScreenIdSchema,
+  title: text(L.titleChars),
+  platform: external_exports.enum(SCREEN_PLATFORMS).optional(),
+  entry: text(L.entryChars).optional(),
+  files: external_exports.array(ScreenRepoPathSchema).max(L.filesPerScreen).default([]),
+  region: text(L.regionChars).optional(),
+  states: external_exports.array(ScreenStateDeclarationSchema).max(L.statesPerScreen).default([]).refine(uniqueIds, "Each state of a screen needs its own id.")
+}).strict();
+var ScreenManifestFileSchema = external_exports.object({
+  version: external_exports.literal(1),
+  screens: external_exports.array(ScreenDeclarationSchema).max(L.screensPerFile).refine(uniqueIds, "Each screen needs its own id.")
+}).strict();
+var ScreenProvenanceSchema = external_exports.object({
+  source: external_exports.enum(SCREEN_SOURCES),
+  /** The extractor, agent run, computer or file that produced it. */
+  detail: text(L.detailChars).optional()
+}).strict();
+var entryMeta = {
+  confidence: external_exports.enum(SCREEN_CONFIDENCE),
+  status: external_exports.enum(SCREEN_ENTRY_STATUS),
+  provenance: ScreenProvenanceSchema,
+  /** Set while a file it was found in changed after it was confirmed. */
+  stale_since: external_exports.string().datetime({ offset: true }).optional()
+};
+var ScreenStateSchema = ScreenStateDeclarationSchema.extend(entryMeta);
+var ScreenSchema = ScreenDeclarationSchema.extend({
+  ...entryMeta,
+  states: external_exports.array(ScreenStateSchema),
+  record: external_exports.object({ id: external_exports.string().uuid(), version: external_exports.number().int().positive() }).optional()
+});
+var ScreenProposalSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({
+    id: external_exports.string().uuid(),
+    kind: external_exports.literal("screen"),
+    screen: ScreenDeclarationSchema,
+    source: external_exports.enum(SCREEN_DISCOVERY_SOURCES),
+    detail: text(L.detailChars).optional(),
+    confidence: external_exports.enum(["extracted", "inferred"]),
+    created_at: external_exports.string()
+  }),
+  external_exports.object({
+    id: external_exports.string().uuid(),
+    kind: external_exports.literal("state"),
+    screen_id: ScreenIdSchema,
+    state: ScreenStateDeclarationSchema,
+    source: external_exports.enum(SCREEN_DISCOVERY_SOURCES),
+    detail: text(L.detailChars).optional(),
+    confidence: external_exports.enum(["extracted", "inferred"]),
+    created_at: external_exports.string()
+  })
+]);
+var ScreenManifestChangeSchema = external_exports.discriminatedUnion("action", [
+  external_exports.object({
+    action: external_exports.literal("save"),
+    screen: ScreenDeclarationSchema,
+    expected_version: external_exports.number().int().min(0)
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("remove"),
+    screen_id: ScreenIdSchema,
+    expected_version: external_exports.number().int().positive()
+  }).strict(),
+  external_exports.object({ action: external_exports.literal("accept"), proposal_id: external_exports.string().uuid() }).strict(),
+  external_exports.object({ action: external_exports.literal("reject"), proposal_id: external_exports.string().uuid() }).strict()
+]);
+
 // packages/shared/dist/native-workflow-task-connection.js
+var NATIVE_WORKFLOW_FILE_BYTES = 256e3;
 var uuid3 = external_exports.string().uuid();
 var NativeWorkflowTaskFileSchema = external_exports.object({
   id: uuid3,
   name: external_exports.string().min(1).max(120).regex(/^[A-Za-z0-9][A-Za-z0-9._ -]*\.(?:md|txt|json|csv)$/),
   title: external_exports.string().trim().min(1).max(200),
-  content: external_exports.string().min(1).max(16e3).refine((v) => new TextEncoder().encode(v).length <= 16e3),
+  content: external_exports.string().min(1).max(NATIVE_WORKFLOW_FILE_BYTES).refine((v) => new TextEncoder().encode(v).length <= NATIVE_WORKFLOW_FILE_BYTES),
   sha256: external_exports.string().regex(/^[a-f0-9]{64}$/),
-  bytes: external_exports.number().int().positive().max(16e3)
+  bytes: external_exports.number().int().positive().max(NATIVE_WORKFLOW_FILE_BYTES)
 }).strict();
 var NativeWorkflowTaskFilesSchema = external_exports.array(NativeWorkflowTaskFileSchema).max(4).refine(
-  (files) => files.reduce((total, file2) => total + file2.bytes, 0) <= 16e3,
+  (files) => files.reduce((total, file2) => total + file2.bytes, 0) <= NATIVE_WORKFLOW_FILE_BYTES,
   "Task files must fit the original protected result"
 );
 var NativeWorkflowPageSchema = external_exports.object({
@@ -25413,9 +25683,9 @@ var NativeWorkflowPageSchema = external_exports.object({
 
 // packages/plugin-core/dist/client.js
 import { promises as fs6 } from "node:fs";
-import path8 from "node:path";
-import os8 from "node:os";
-import { randomUUID as randomUUID3 } from "node:crypto";
+import path9 from "node:path";
+import os9 from "node:os";
+import { randomUUID as randomUUID4 } from "node:crypto";
 
 // packages/plugin-core/dist/auth.js
 init_atomic_rename();
@@ -25435,16 +25705,16 @@ var MemlinApiError = class extends Error {
   status;
   code;
 };
-function looksLikeHtml(text) {
-  const head = text.slice(0, 512).trimStart().toLowerCase();
-  return head.startsWith("<!doctype html") || head.startsWith("<html") || head.includes("<html") || head.startsWith("<") && /<\/(head|body|title|div|p)>/i.test(text);
+function looksLikeHtml(text2) {
+  const head = text2.slice(0, 512).trimStart().toLowerCase();
+  return head.startsWith("<!doctype html") || head.startsWith("<html") || head.includes("<html") || head.startsWith("<") && /<\/(head|body|title|div|p)>/i.test(text2);
 }
-function singleLine(text, max = 200) {
-  const collapsed = text.replace(/\s+/g, " ").trim();
+function singleLine(text2, max = 200) {
+  const collapsed = text2.replace(/\s+/g, " ").trim();
   return collapsed.length <= max ? collapsed : `${collapsed.slice(0, max - 1)}\u2026`;
 }
-function describeOpaqueBody(status, text) {
-  const trimmed = text.trim();
+function describeOpaqueBody(status, text2) {
+  const trimmed = text2.trim();
   if (!trimmed) return `HTTP ${status}`;
   if (looksLikeHtml(trimmed)) {
     const via = /cloudflare/i.test(trimmed) ? "Cloudflare " : "";
@@ -25700,9 +25970,9 @@ init_atomic_rename();
 
 // packages/plugin-core/dist/memlin-api-client.js
 init_auth_refusal();
-import { readFileSync } from "node:fs";
+import { readFileSync as readFileSync2 } from "node:fs";
 import crypto3 from "node:crypto";
-import os7 from "node:os";
+import os8 from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -25713,6 +25983,7 @@ var AGENT_VERSION_HEADER = "Memlin-Agent-Version";
 var AGENT_CAPABILITIES_HEADER = "Memlin-Agent-Capabilities";
 var AGENT_PLATFORM_HEADER = "Memlin-Agent-Platform";
 var AGENT_ARCHITECTURE_HEADER = "Memlin-Agent-Architecture";
+var MEMLIN_AGENT_INSTALL_ID_HEADER = "Memlin-Agent-Install-Id";
 var AGENT_EXPECTED_CAPABILITIES = {
   "claude-code": ["cli", "commands", "hooks", "sync", "scribe", "resolve"],
   cursor: ["mcp", "commands", "hooks", "rules", "scribe", "resolve"],
@@ -25802,9 +26073,140 @@ async function closeHttpSockets() {
   }
 }
 
-// packages/plugin-core/dist/host.js
+// packages/plugin-core/dist/computer-id.js
+import {
+  closeSync,
+  constants as fsConstants,
+  linkSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync
+} from "node:fs";
+import { randomUUID as randomUUID2 } from "node:crypto";
 import os4 from "node:os";
 import path5 from "node:path";
+var COMPUTER_ID_FILE_ENV = "MEMLIN_COMPUTER_ID_FILE";
+var UUID2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+var NIL = "00000000-0000-0000-0000-000000000000";
+var IN_PROGRESS_MS = 2e3;
+function computerIdFilePath() {
+  return process.env[COMPUTER_ID_FILE_ENV] || path5.join(os4.homedir(), ".config", "memlin", "computer-id.json");
+}
+function validId(value) {
+  if (typeof value !== "string") return null;
+  const id = value.trim().toLowerCase();
+  return UUID2.test(id) && id !== NIL ? id : null;
+}
+function readFileId(file2) {
+  let text2;
+  try {
+    text2 = readFileSync(file2, "utf8");
+  } catch {
+    return { id: null, exists: false, youngMs: Infinity };
+  }
+  let age = Infinity;
+  try {
+    age = Date.now() - statSync(file2).mtimeMs;
+  } catch {
+  }
+  try {
+    const id = validId(JSON.parse(text2)?.computer_id);
+    if (id) return { id, exists: true, youngMs: age };
+  } catch {
+  }
+  return { id: null, exists: true, youngMs: age };
+}
+function sleepSync(ms) {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch {
+  }
+}
+function publish(file2, id) {
+  const dir = path5.dirname(file2);
+  mkdirSync(dir, { recursive: true, mode: 448 });
+  const body = JSON.stringify(
+    { version: 1, computer_id: id, created_at: (/* @__PURE__ */ new Date()).toISOString() },
+    null,
+    2
+  );
+  const tmp = path5.join(dir, `.computer-id.${process.pid}.${randomUUID2().slice(0, 8)}.tmp`);
+  writeFileSync(tmp, body, { mode: 384, flag: "wx" });
+  try {
+    linkSync(tmp, file2);
+    return true;
+  } catch (error40) {
+    const code = error40.code;
+    if (code === "EEXIST") return false;
+    try {
+      const fd = openSync(
+        file2,
+        fsConstants.O_CREAT | fsConstants.O_EXCL | fsConstants.O_WRONLY,
+        384
+      );
+      try {
+        writeFileSync(fd, body);
+      } finally {
+        closeSync(fd);
+      }
+      return true;
+    } catch (inner) {
+      if (inner.code === "EEXIST") return false;
+      throw inner;
+    }
+  } finally {
+    try {
+      unlinkSync(tmp);
+    } catch {
+    }
+  }
+}
+function resolveComputerId(file2) {
+  try {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const read = readFileId(file2);
+      if (read.id) return read.id;
+      if (read.exists) {
+        if (read.youngMs < IN_PROGRESS_MS) {
+          sleepSync(50);
+          const again = readFileId(file2);
+          if (again.id) return again.id;
+          if (again.exists && again.youngMs < IN_PROGRESS_MS && attempt < 4) continue;
+        }
+        try {
+          renameSync(file2, `${file2}.corrupt-${process.pid}`);
+        } catch {
+        }
+      }
+      const minted = randomUUID2();
+      if (publish(file2, minted)) return minted;
+    }
+  } catch {
+  }
+  return null;
+}
+var cached2;
+function getComputerId() {
+  if (process.env.MEMLIN_AGENT_DEVICE?.trim()) return null;
+  if (!process.env[COMPUTER_ID_FILE_ENV] && process.env.NODE_TEST_CONTEXT) return null;
+  const file2 = computerIdFilePath();
+  if (cached2?.key === file2) return cached2.id;
+  const id = resolveComputerId(file2);
+  cached2 = { key: file2, id };
+  return id;
+}
+function computerIdHeaders() {
+  const id = getComputerId();
+  return id ? { [MEMLIN_AGENT_INSTALL_ID_HEADER]: id } : {};
+}
+
+// packages/plugin-core/dist/host.js
+import os5 from "node:os";
+import path6 from "node:path";
 var BaseHost = class {
   constructor(kind, home) {
     this.kind = kind;
@@ -25816,42 +26218,42 @@ var BaseHost = class {
     return this.home;
   }
   plansDir() {
-    return path5.join(this.home, "plans");
+    return path6.join(this.home, "plans");
   }
 };
 var ClaudeCodeHost = class extends BaseHost {
   constructor() {
-    super("claude-code", path5.join(os4.homedir(), ".claude"));
+    super("claude-code", path6.join(os5.homedir(), ".claude"));
   }
 };
 var CursorHost = class extends BaseHost {
   constructor() {
-    super("cursor", path5.join(os4.homedir(), ".config", "memlin"));
+    super("cursor", path6.join(os5.homedir(), ".config", "memlin"));
   }
 };
 var CodexHost = class extends BaseHost {
   constructor() {
-    super("codex", path5.join(os4.homedir(), ".config", "memlin"));
+    super("codex", path6.join(os5.homedir(), ".config", "memlin"));
   }
 };
 var WindsurfHost = class extends BaseHost {
   constructor() {
-    super("windsurf", path5.join(os4.homedir(), ".config", "memlin"));
+    super("windsurf", path6.join(os5.homedir(), ".config", "memlin"));
   }
 };
 var AntigravityHost = class extends BaseHost {
   constructor() {
-    super("antigravity", path5.join(os4.homedir(), ".config", "memlin"));
+    super("antigravity", path6.join(os5.homedir(), ".config", "memlin"));
   }
 };
 var VSCodeHost = class extends BaseHost {
   constructor() {
-    super("vscode", path5.join(os4.homedir(), ".config", "memlin"));
+    super("vscode", path6.join(os5.homedir(), ".config", "memlin"));
   }
 };
 var CompanionHost = class extends BaseHost {
   constructor() {
-    super("companion", path5.join(os4.homedir(), ".config", "memlin"));
+    super("companion", path6.join(os5.homedir(), ".config", "memlin"));
   }
 };
 var HOSTS2 = {
@@ -25872,8 +26274,8 @@ function resolveHost() {
 // packages/plugin-core/dist/private-mode.js
 init_atomic_rename();
 import { promises as fs4 } from "node:fs";
-import path6 from "node:path";
-import os5 from "node:os";
+import path7 from "node:path";
+import os6 from "node:os";
 var PRIVATE_HEADER = "Memlin-Private";
 var PRIVATE_UNTIL_HEADER = "Memlin-Private-Until";
 var PRIVATE_LEVEL_HEADER = "Memlin-Private-Level";
@@ -25909,7 +26311,7 @@ var PRIVATE_ALLOWED_WRITES = [
 var DENIED_TTL_MS = 10 * 60 * 1e3;
 var FLOOR_TTL_MS = 30 * 24 * 60 * 60 * 1e3;
 function stateFile() {
-  return path6.join(os5.homedir(), ".config", "memlin", "private-sessions.json");
+  return path7.join(os6.homedir(), ".config", "memlin", "private-sessions.json");
 }
 async function readPrivateState() {
   try {
@@ -25933,7 +26335,7 @@ async function writePrivateState(state, now) {
     if (now - floor.at > FLOOR_TTL_MS) delete state.floors?.[id];
   }
   const file2 = stateFile();
-  await fs4.mkdir(path6.dirname(file2), { recursive: true });
+  await fs4.mkdir(path7.dirname(file2), { recursive: true });
   const tmp = `${file2}.${process.pid}.${Date.now()}.tmp`;
   await fs4.writeFile(tmp, JSON.stringify(state, null, 2), { mode: 384 });
   await atomicRename(tmp, file2);
@@ -26035,12 +26437,12 @@ function isPrivateAllowedWrite(method, pathAndQuery) {
 // packages/plugin-core/dist/memlin-api-client.js
 var DEFAULT_API_URL = "https://memlin.ai/api/v1";
 function agentDevice() {
-  return process.env.MEMLIN_AGENT_DEVICE || os7.hostname() || "unknown";
+  return process.env.MEMLIN_AGENT_DEVICE || os8.hostname() || "unknown";
 }
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.81";
+  cachedAgentVersion = "0.2.85";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -26203,10 +26605,13 @@ var MemlinApiClient = class {
       Authorization: `Bearer ${token}`,
       [AGENT_KIND_HEADER]: kind,
       [AGENT_DEVICE_HEADER]: agentDevice(),
+      // The computer's permanent id, so a rename is not a new computer. Absent
+      // for a named agent (MEMLIN_AGENT_DEVICE) and on a profile that cannot keep it.
+      ...computerIdHeaders(),
       [AGENT_VERSION_HEADER]: version2,
       [AGENT_CAPABILITIES_HEADER]: (override.agentKind ? AGENT_EXPECTED_CAPABILITIES[kind] : agentCapabilities()).join(","),
-      [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os7.platform(),
-      [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os7.arch()
+      [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os8.platform(),
+      [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os8.arch()
     };
     if (includeAccount && this.cfg.accountId) {
       h["Memlin-Account-Id"] = this.cfg.accountId;
@@ -26237,7 +26642,7 @@ var MemlinApiClient = class {
     );
     for (let attempt = 1; ; attempt++) {
       let res;
-      let text;
+      let text2;
       try {
         const timeoutSignal = AbortSignal.timeout(timeoutMs);
         res = await fetch(url2, {
@@ -26247,7 +26652,7 @@ var MemlinApiClient = class {
           signal: opts.signal ? AbortSignal.any([opts.signal, timeoutSignal]) : timeoutSignal,
           ...body !== void 0 ? { body: JSON.stringify(body) } : {}
         });
-        text = await res.text();
+        text2 = await res.text();
       } catch (error40) {
         if (attempt < maxAttempts && isRetriableNetworkError(error40)) {
           await delay(this.backoffMs(attempt));
@@ -26260,9 +26665,9 @@ var MemlinApiClient = class {
         continue;
       }
       let parsed = null;
-      if (text) {
+      if (text2) {
         try {
-          parsed = JSON.parse(text);
+          parsed = JSON.parse(text2);
         } catch {
         }
       }
@@ -26280,7 +26685,7 @@ var MemlinApiClient = class {
       }
       if (!res.ok) {
         const serverError = parsed?.error;
-        const errMsg = typeof serverError === "string" && serverError ? singleLine(serverError, 300) : describeOpaqueBody(res.status, text);
+        const errMsg = typeof serverError === "string" && serverError ? singleLine(serverError, 300) : describeOpaqueBody(res.status, text2);
         throw new MemlinApiError(
           `${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`,
           res.status,
@@ -26401,17 +26806,17 @@ var MemlinApiClient = class {
       await this.noteAuthOutcome(response.status, null, refusalAccountId);
       return response;
     }
-    const text = await response.text().catch(() => "");
+    const text2 = await response.text().catch(() => "");
     let serverError;
     let parsedBody = null;
     try {
-      const parsed = JSON.parse(text);
+      const parsed = JSON.parse(text2);
       parsedBody = parsed;
       serverError = typeof parsed.error === "string" ? parsed.error : parsed.error?.message ?? parsed.error?.code;
     } catch {
     }
     const refusalCode = await this.noteAuthOutcome(response.status, parsedBody, refusalAccountId);
-    const detail = response.status >= 500 ? `HTTP ${response.status} (upstream response suppressed)` : serverError ? singleLine(serverError, 300) : describeOpaqueBody(response.status, text);
+    const detail = response.status >= 500 ? `HTTP ${response.status} (upstream response suppressed)` : serverError ? singleLine(serverError, 300) : describeOpaqueBody(response.status, text2);
     throw new MemlinApiError(
       `${method} ${pathAndQuery} \u2192 ${response.status}: ${detail}`,
       response.status,
@@ -27436,8 +27841,8 @@ var MemlinApiClient = class {
     if (opts.severity) qs.set("severity", opts.severity);
     if (opts.limit) qs.set("limit", String(opts.limit));
     const query = qs.toString();
-    const path16 = `/feeds/${encodeURIComponent(key)}${query ? `?${query}` : ""}`;
-    return this.request("GET", path16, void 0, {
+    const path17 = `/feeds/${encodeURIComponent(key)}${query ? `?${query}` : ""}`;
+    return this.request("GET", path17, void 0, {
       accountId: opts.accountId,
       maxRetries: opts.maxRetries,
       requestTimeoutMs: opts.requestTimeoutMs
@@ -27511,10 +27916,10 @@ function exitHook(code) {
 // packages/plugin-core/dist/client.js
 init_auth_refusal();
 function globalConfigFilePath() {
-  return process.env.MEMLIN_CONFIG_FILE || path8.join(os8.homedir(), ".config", "memlin", "config.json");
+  return process.env.MEMLIN_CONFIG_FILE || path9.join(os9.homedir(), ".config", "memlin", "config.json");
 }
-var CONFIG_DIR = path8.join(os8.homedir(), ".config", "memlin");
-var TOKEN_FILE = path8.join(CONFIG_DIR, "token.json");
+var CONFIG_DIR = path9.join(os9.homedir(), ".config", "memlin");
+var TOKEN_FILE = path9.join(CONFIG_DIR, "token.json");
 async function readConfig() {
   try {
     const raw = await fs6.readFile(globalConfigFilePath(), "utf8");
@@ -27614,11 +28019,11 @@ function log(msg) {
 init_companion_client();
 function remoteHookEventId(input, phase) {
   const invocation = phase === "tool" ? input.tool_use_id ?? input.tool_call_id : phase === "prompt" ? input.turn_id : void 0;
-  if (!invocation) return randomUUID4();
+  if (!invocation) return randomUUID5();
   const digest = createHash("sha256").update(JSON.stringify([input.session_id, phase, invocation])).digest("hex");
   return `${digest.slice(0, 8)}-${digest.slice(8, 12)}-4${digest.slice(13, 16)}-8${digest.slice(17, 20)}-${digest.slice(20, 32)}`;
 }
-async function remoteHookRootAllowed(cwd, settingsPath = path9.join(os9.homedir(), ".config/memlin/remote-control.json")) {
+async function remoteHookRootAllowed(cwd, settingsPath = path10.join(os10.homedir(), ".config/memlin/remote-control.json")) {
   try {
     const config2 = JSON.parse(await fs7.readFile(settingsPath, "utf8"));
     if (config2.enabled !== true || !Array.isArray(config2.workspace_roots)) return false;
@@ -27662,7 +28067,7 @@ async function runRemoteSessionHook(input, host, phase, allowDelivery = false) {
     if (!ctx) return false;
     if (ctx.privateSession) return false;
     const args = { accountId: bound.account_id, agentKind: host, requestTimeoutMs: 1800 };
-    const text = redactSecretShapes(
+    const text2 = redactSecretShapes(
       phase === "prompt" ? input.prompt ?? "" : phase === "stop" ? input.last_assistant_message ?? "" : input.tool_name ? `Using ${input.tool_name}` : ""
     ).redacted;
     const eventId = remoteHookEventId(input, phase);
@@ -27671,8 +28076,8 @@ async function runRemoteSessionHook(input, host, phase, allowDelivery = false) {
       project_id: bound.project_id,
       phase,
       event_id: eventId,
-      title: phase === "prompt" ? text.slice(0, 200) : void 0,
-      text: text.slice(0, 8e3),
+      title: phase === "prompt" ? text2.slice(0, 200) : void 0,
+      text: text2.slice(0, 8e3),
       allow_delivery: allowDelivery
     };
     const result = await ctx.api.nativeSessionHook(payload, args);
@@ -27683,7 +28088,7 @@ async function runRemoteSessionHook(input, host, phase, allowDelivery = false) {
       {
         ...payload,
         phase: "ack",
-        event_id: randomUUID4(),
+        event_id: randomUUID5(),
         allow_delivery: false,
         text: void 0,
         message_id: result.message.id
@@ -27722,11 +28127,11 @@ function flattenLightTranscript(raw) {
       content = value.assistantMessage;
     }
     if (role !== "user" && role !== "assistant") continue;
-    const text = typeof content === "string" ? content : Array.isArray(content) ? content.filter(
+    const text2 = typeof content === "string" ? content : Array.isArray(content) ? content.filter(
       (b) => b && ["text", "input_text", "output_text"].includes(b.type) && typeof b.text === "string"
     ).map((b) => b.text).join("\n") : "";
-    if (text.trim()) turns.push(`### ${role}
-${text.trim()}`);
+    if (text2.trim()) turns.push(`### ${role}
+${text2.trim()}`);
   }
   if (!parsedLines && /^(?:user|assistant):\s*$/im.test(raw)) return raw;
   return turns.join("\n\n");
@@ -27734,11 +28139,11 @@ ${text.trim()}`);
 
 // packages/plugin-core/dist/light-worker.js
 import { spawn } from "node:child_process";
-import path10 from "node:path";
+import path11 from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 function startLightWorker(cwd, payload) {
-  const directory = path10.dirname(fileURLToPath2(import.meta.url));
-  const worker = path10.basename(directory) === "hooks" || path10.basename(directory) === "cli" ? path10.resolve(directory, "../cli/light-worker.js") : path10.join(directory, "cli/light-worker.js");
+  const directory = path11.dirname(fileURLToPath2(import.meta.url));
+  const worker = path11.basename(directory) === "hooks" || path11.basename(directory) === "cli" ? path11.resolve(directory, "../cli/light-worker.js") : path11.join(directory, "cli/light-worker.js");
   const child = spawn(process.execPath, [worker, JSON.stringify({ cwd, payload })], {
     cwd,
     stdio: "ignore",
@@ -27753,13 +28158,13 @@ function startLightWorker(cwd, payload) {
 // packages/plugin-core/dist/stop-handler.js
 import { execSync } from "node:child_process";
 import { createHash as createHash2 } from "node:crypto";
-import { promises as fs13, constants as fsConstants } from "node:fs";
+import { promises as fs13, constants as fsConstants2 } from "node:fs";
 
 // packages/plugin-core/dist/done-gate.js
 init_companion_client();
 import { execFileSync } from "node:child_process";
 import { promises as fs8 } from "node:fs";
-import path11 from "node:path";
+import path12 from "node:path";
 var CLAIM = /\bit'?s (now )?(live|deployed|done|fixed|shipped)\b|\bnow live\b|\bis live\b|\bis deployed\b|\bdeployed to prod\b|\ball done\b|\bfully (fixed|working|deployed|shipped)\b|\bfix(ed)? (and|&) deployed\b|\bmerged (and|&) deployed\b|(^|\n)\s*[-*•\s]*(done|deployed|shipped|fixed)\b|✅/i;
 var HARD = /(^|\n)\s*[-*✅•\s]*\s*(fixed|deployed|shipped|done)\b[.! ]*\s*$/im;
 var HONEST = /not (yet )?(live|merged|deployed|shipped)|isn'?t (live|merged|deployed|shipped)|remaining step|next step (is|to)|not on main|still on (the |a )?(feature )?branch|needs? (to be )?merg|to be merged|before (this|it) is live|to make (it|this) live|awaiting (merge|deploy)|hold(ing)? the merge/i;
@@ -27770,9 +28175,9 @@ function isOff(v) {
   return s === "off" || s === "0" || s === "false" || s === "no";
 }
 async function readMarker(cwd) {
-  let dir = path11.resolve(cwd);
+  let dir = path12.resolve(cwd);
   for (let i = 0; i < 40; i += 1) {
-    const file2 = path11.join(dir, ".memlin", "enforce-done-deployed.json");
+    const file2 = path12.join(dir, ".memlin", "enforce-done-deployed.json");
     try {
       const raw = await fs8.readFile(file2, "utf8");
       const parsed = JSON.parse(raw);
@@ -27787,7 +28192,7 @@ async function readMarker(cwd) {
       };
     } catch {
     }
-    const parent = path11.dirname(dir);
+    const parent = path12.dirname(dir);
     if (parent === dir) break;
     dir = parent;
   }
@@ -27827,12 +28232,42 @@ function contentText(content) {
     return item.type === "text" || item.type === "input_text" || item.type === "output_text" ? String(item.text ?? "") : "";
   }).join(" ");
 }
+var MAX_DONE_GATE_TAIL_BYTES = 4 * 1024 * 1024;
+var DONE_GATE_HEAD_BYTES = 64 * 1024;
 async function readTranscript(transcriptPath) {
   let raw;
+  let handle;
   try {
-    raw = await fs8.readFile(transcriptPath, "utf8");
+    handle = await fs8.open(transcriptPath, "r");
+    const stat = await handle.stat();
+    if (!stat.isFile()) return null;
+    if (stat.size <= MAX_DONE_GATE_TAIL_BYTES) {
+      raw = await handle.readFile({ encoding: "utf8" });
+    } else {
+      const headBuf = Buffer.alloc(DONE_GATE_HEAD_BYTES);
+      const { bytesRead: headRead } = await handle.read(headBuf, 0, DONE_GATE_HEAD_BYTES, 0);
+      const headChunk = headBuf.subarray(0, headRead).toString("utf8");
+      const headLastNewline = headChunk.lastIndexOf("\n");
+      const headLines = headLastNewline >= 0 ? headChunk.slice(0, headLastNewline) : headChunk;
+      const tailOffset = stat.size - MAX_DONE_GATE_TAIL_BYTES;
+      const tailBuf = Buffer.alloc(MAX_DONE_GATE_TAIL_BYTES);
+      const { bytesRead: tailRead } = await handle.read(
+        tailBuf,
+        0,
+        MAX_DONE_GATE_TAIL_BYTES,
+        tailOffset
+      );
+      const tailChunk = tailBuf.subarray(0, tailRead).toString("utf8");
+      const tailFirstNewline = tailChunk.indexOf("\n");
+      const tailLines = tailFirstNewline >= 0 ? tailChunk.slice(tailFirstNewline + 1) : "";
+      raw = `${headLines}
+${tailLines}`;
+    }
   } catch {
     return null;
+  } finally {
+    await handle?.close().catch(() => {
+    });
   }
   let lastAssistantText = "";
   const userTexts = [];
@@ -27975,7 +28410,7 @@ async function enforceDoneMeansDeployed(payload) {
     if (!snapshot) {
       return cfg.strict ? strictBlock(["the transcript could not be read, so completion cannot be verified"], cfg.base) : null;
     }
-    const text = snapshot.lastAssistantText;
+    const text2 = snapshot.lastAssistantText;
     const deliveryRequested = snapshot.userTexts.some((userText) => DELIVERY_REQUEST.test(userText));
     if (cfg.strict && deliveryRequested) {
       const why2 = [];
@@ -28002,10 +28437,10 @@ async function enforceDoneMeansDeployed(payload) {
       return null;
     }
     if (payload.stop_hook_active) return null;
-    if (!text) return null;
-    if (HONEST.test(text)) return null;
-    if (OVERRIDE.test(text)) return null;
-    if (!CLAIM.test(text) && !HARD.test(text)) return null;
+    if (!text2) return null;
+    if (HONEST.test(text2)) return null;
+    if (OVERRIDE.test(text2)) return null;
+    if (!CLAIM.test(text2) && !HARD.test(text2)) return null;
     if (!gitOk(["rev-parse", "--verify", cfg.base], cwd)) return null;
     const branch = git(["rev-parse", "--abbrev-ref", "HEAD"], cwd) || "HEAD";
     const dirty = Boolean(git(["status", "--porcelain"], cwd));
@@ -28035,18 +28470,18 @@ Override (deliberate): include [skip-done-gate] in your message to ship-anyway t
 // packages/plugin-core/dist/heartbeat.js
 import crypto4 from "node:crypto";
 import { promises as fs11 } from "node:fs";
-import os10 from "node:os";
-import path14 from "node:path";
+import os11 from "node:os";
+import path15 from "node:path";
 
 // packages/plugin-core/dist/project-resolver.js
-import { existsSync, promises as fs10, readdirSync, readFileSync as readFileSync2, lstatSync } from "node:fs";
-import path13 from "node:path";
+import { existsSync, promises as fs10, readdirSync, readFileSync as readFileSync3, lstatSync } from "node:fs";
+import path14 from "node:path";
 init_workspace_binding();
 
 // packages/plugin-core/dist/auto-bind.js
 init_workspace_binding();
 import { promises as fs9 } from "node:fs";
-import path12 from "node:path";
+import path13 from "node:path";
 
 // packages/plugin-core/dist/project-resolver.js
 init_companion_client();
@@ -28062,7 +28497,7 @@ function accountBindingHazard(r, opts = {}) {
   return "none";
 }
 async function resolveProject(api, cwd, configProjectId) {
-  const absCwd = path13.resolve(cwd);
+  const absCwd = path14.resolve(cwd);
   const remotes = detectGitRemotes(cwd);
   const hasGitRemote = remotes.length > 0;
   let serverFailure;
@@ -28115,12 +28550,12 @@ function readGitRemote(cwd) {
     const stat = lstatSync(file2);
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 64 * 1024)
       throw new Error("Unsupported Git metadata");
-    return readFileSync2(file2, "utf8");
+    return readFileSync3(file2, "utf8");
   };
   try {
-    let root = path13.resolve(cwd);
+    let root = path14.resolve(cwd);
     for (; ; ) {
-      const marker = path13.join(root, ".git");
+      const marker = path14.join(root, ".git");
       if (existsSync(marker)) {
         const info = lstatSync(marker);
         if (info.isSymbolicLink()) return null;
@@ -28128,12 +28563,12 @@ function readGitRemote(cwd) {
         if (info.isFile()) {
           const match = /^gitdir:\s*(.+)$/m.exec(read(marker));
           if (!match) return null;
-          directory = path13.resolve(root, match[1].trim());
+          directory = path14.resolve(root, match[1].trim());
         }
-        const common2 = path13.join(directory, "commondir");
-        if (existsSync(common2)) directory = path13.resolve(directory, read(common2).trim());
+        const common2 = path14.join(directory, "commondir");
+        if (existsSync(common2)) directory = path14.resolve(directory, read(common2).trim());
         let origin = false;
-        for (const line of read(path13.join(directory, "config")).split(/\r?\n/)) {
+        for (const line of read(path14.join(directory, "config")).split(/\r?\n/)) {
           if (/^\s*\[/.test(line)) origin = /^\s*\[remote\s+"origin"\]\s*(?:[#;].*)?$/.test(line);
           else if (origin) {
             const match = /^\s*url\s*=\s*(.*?)\s*$/.exec(line);
@@ -28142,7 +28577,7 @@ function readGitRemote(cwd) {
         }
         return null;
       }
-      const parent = path13.dirname(root);
+      const parent = path14.dirname(root);
       if (parent === root) return null;
       root = parent;
     }
@@ -28163,8 +28598,8 @@ function detectGitRemotes(cwd) {
         continue;
       }
       scanned++;
-      const child = path13.join(cwd, entry.name);
-      if (!existsSync(path13.join(child, ".git"))) continue;
+      const child = path14.join(cwd, entry.name);
+      if (!existsSync(path14.join(child, ".git"))) continue;
       const remote = readGitRemote(child);
       if (remote && !out.includes(remote)) out.push(remote);
     }
@@ -28184,7 +28619,7 @@ var DEFAULT_THROTTLE_MS = 6e4;
 var HEARTBEAT_REQUEST_TIMEOUT_MS = 750;
 function statePath(cwd, host) {
   const key = crypto4.createHash("sha256").update(cwd).digest("hex").slice(0, 16);
-  return path14.join(os10.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
+  return path15.join(os11.tmpdir(), `memlin-${host}-heartbeat-${key}.json`);
 }
 async function recentlySent(file2, throttleMs) {
   try {
@@ -28327,11 +28762,11 @@ function attributeAppliedItems(agentMessage, replay) {
   const titleIds = /* @__PURE__ */ new Map();
   const titleVersionIds = /* @__PURE__ */ new Map();
   for (const candidate of candidates) {
-    const path16 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
+    const path17 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
     const title = normalizeReference(candidate.title);
-    addReferenceKey(pathIds, path16, candidate.id);
-    if (path16) {
-      addReferenceKey(pathVersionIds, `${path16}\0${candidate.version_number}`, candidate.id);
+    addReferenceKey(pathIds, path17, candidate.id);
+    if (path17) {
+      addReferenceKey(pathVersionIds, `${path17}\0${candidate.version_number}`, candidate.id);
     }
     addReferenceKey(titleIds, title, candidate.id);
     if (title) {
@@ -28340,14 +28775,14 @@ function attributeAppliedItems(agentMessage, replay) {
   }
   const referenced = [];
   for (const candidate of candidates) {
-    const path16 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
+    const path17 = candidate.path ? normalizeReference(candidate.path.replace(/^\.\//, "")) : "";
     const title = normalizeReference(candidate.title);
-    const pathPositions = unnegatedReferencePositions(message, path16);
-    const pathVersionKey = `${path16}\0${candidate.version_number}`;
-    const pathIsUnique = pathIds.get(path16)?.size === 1;
+    const pathPositions = unnegatedReferencePositions(message, path17);
+    const pathVersionKey = `${path17}\0${candidate.version_number}`;
+    const pathIsUnique = pathIds.get(path17)?.size === 1;
     const pathVersionIsUnique = pathVersionIds.get(pathVersionKey)?.size === 1;
     const pathMatch = pathPositions.length > 0 && (pathIsUnique || pathVersionIsUnique && pathPositions.some(
-      (position) => versionMentionNear(message, position, path16.length, candidate.version_number)
+      (position) => versionMentionNear(message, position, path17.length, candidate.version_number)
     ));
     const titlePositions = unnegatedReferencePositions(message, title);
     const titleVersionKey = `${title}\0${candidate.version_number}`;
@@ -28375,10 +28810,10 @@ function attributeAppliedItems(agentMessage, replay) {
 // packages/plugin-core/dist/state.js
 init_atomic_rename();
 import { promises as fs12 } from "node:fs";
-import path15 from "node:path";
-import os11 from "node:os";
+import path16 from "node:path";
+import os12 from "node:os";
 import crypto5 from "node:crypto";
-var STATE_FILE = path15.join(os11.homedir(), ".config", "memlin", "state.json");
+var STATE_FILE = path16.join(os12.homedir(), ".config", "memlin", "state.json");
 var EMPTY = { documents: {} };
 async function readState() {
   try {
@@ -28389,7 +28824,7 @@ async function readState() {
   }
 }
 async function writeState(state) {
-  await fs12.mkdir(path15.dirname(STATE_FILE), { recursive: true });
+  await fs12.mkdir(path16.dirname(STATE_FILE), { recursive: true });
   const tmp = `${STATE_FILE}.${process.pid}.tmp`;
   await fs12.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
   await atomicRename(tmp, STATE_FILE);
@@ -28400,7 +28835,7 @@ var LOCK_WAIT_MS = 2e3;
 var LOCK_RETRY_MS = 50;
 async function acquireStateLock() {
   const deadline = Date.now() + LOCK_WAIT_MS;
-  await fs12.mkdir(path15.dirname(LOCK_DIR), { recursive: true }).catch(() => {
+  await fs12.mkdir(path16.dirname(LOCK_DIR), { recursive: true }).catch(() => {
   });
   for (; ; ) {
     try {
@@ -28632,7 +29067,7 @@ async function takeUrgentStopDecision(opts) {
 // packages/plugin-core/dist/session-feature.js
 import { execFileSync as execFileSync2 } from "node:child_process";
 var TTL = 14 * 864e5;
-var UUID2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+var UUID3 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function validSession(value) {
   return !!value && value.length <= 256;
 }
@@ -28652,7 +29087,7 @@ function readFeatureBranch(cwd) {
 function getSessionFeature(state, identity, now = Date.now()) {
   if (!validSession(identity.sessionId) || !identity.accountId || !identity.projectId) return null;
   const entry = state.session_features?.[identity.sessionId];
-  if (!entry || entry.account_id !== identity.accountId || entry.project_id !== identity.projectId || !UUID2.test(entry.feature_id) || !["pin", "handoff", "branch"].includes(entry.via) || !Number.isFinite(entry.at) || entry.at > now || now - entry.at >= TTL || entry.via === "branch" && (!entry.git_branch || entry.git_branch !== featureBranch(identity.gitBranch)))
+  if (!entry || entry.account_id !== identity.accountId || entry.project_id !== identity.projectId || !UUID3.test(entry.feature_id) || !["pin", "handoff", "branch"].includes(entry.via) || !Number.isFinite(entry.at) || entry.at > now || now - entry.at >= TTL || entry.via === "branch" && (!entry.git_branch || entry.git_branch !== featureBranch(identity.gitBranch)))
     return null;
   return entry;
 }
@@ -28729,13 +29164,34 @@ function flattenContent(c) {
   if (typeof c === "string") return c;
   return c.map((b) => b.type === "text" ? b.text ?? "" : "").join("");
 }
-async function readLastExchange(transcriptPath) {
-  let raw;
+var MAX_LAST_EXCHANGE_BYTES = 512 * 1024;
+var MAX_SCRIBE_TRANSCRIPT_BYTES = 8 * 1024 * 1024;
+async function readTranscriptTail(transcriptPath, maxBytes) {
+  let handle;
   try {
-    raw = await fs13.readFile(transcriptPath, "utf8");
+    handle = await fs13.open(transcriptPath, fsConstants2.O_RDONLY | fsConstants2.O_NOFOLLOW);
+    const stat = await handle.stat();
+    if (!stat.isFile() || stat.size <= 0) return null;
+    const readSize = Math.min(stat.size, maxBytes);
+    const offset = Math.max(0, stat.size - readSize);
+    const buffer = Buffer.alloc(readSize);
+    const { bytesRead } = await handle.read(buffer, 0, readSize, offset);
+    const chunk = buffer.subarray(0, bytesRead).toString("utf8");
+    if (offset > 0) {
+      const firstNewline = chunk.indexOf("\n");
+      return firstNewline >= 0 ? chunk.slice(firstNewline + 1) : "";
+    }
+    return chunk;
   } catch {
     return null;
+  } finally {
+    await handle?.close().catch(() => {
+    });
   }
+}
+async function readLastExchange(transcriptPath) {
+  const raw = await readTranscriptTail(transcriptPath, MAX_LAST_EXCHANGE_BYTES);
+  if (!raw) return null;
   const lines = raw.split("\n").filter((l) => l.trim());
   if (lines.length < 2) return null;
   let assistantText = "";
@@ -28752,15 +29208,15 @@ async function readLastExchange(transcriptPath) {
       continue;
     }
     if (!turn || turn.role !== "user" && turn.role !== "assistant") continue;
-    const text = flattenContent(turn.content).trim();
-    if (!text) continue;
+    const text2 = flattenContent(turn.content).trim();
+    if (!text2) continue;
     if (!foundAssistant && turn.role === "assistant") {
-      assistantText = text;
+      assistantText = text2;
       foundAssistant = true;
       continue;
     }
     if (foundAssistant && turn.role === "user") {
-      userText = text;
+      userText = text2;
       break;
     }
   }
@@ -28772,12 +29228,8 @@ function nonNegativeInt(v) {
   return Number.isInteger(n) && n >= 0 ? n : null;
 }
 async function readLastAssistantUsage(transcriptPath) {
-  let raw;
-  try {
-    raw = await fs13.readFile(transcriptPath, "utf8");
-  } catch {
-    return null;
-  }
+  const raw = await readTranscriptTail(transcriptPath, MAX_LAST_EXCHANGE_BYTES);
+  if (!raw) return null;
   const lines = raw.split("\n").filter((l) => l.trim());
   for (let i = lines.length - 1; i >= 0; i--) {
     const line = lines[i];
@@ -29092,9 +29544,9 @@ function lastTurnHasInsistence(raw) {
     }
     const turn = "message" in parsed && parsed.message ? parsed.message : parsed;
     if (turn.role !== "user") continue;
-    const text = flattenContent(turn.content ?? "").trim();
-    if (!text) continue;
-    return INSISTENCE_FORCE_FLUSH_PATTERNS.some((re) => re.test(text));
+    const text2 = flattenContent(turn.content ?? "").trim();
+    if (!text2) continue;
+    return INSISTENCE_FORCE_FLUSH_PATTERNS.some((re) => re.test(text2));
   }
   return false;
 }
@@ -29105,18 +29557,22 @@ async function maybeScribeSession(ctx, payload, routing, lightMode = false) {
     if (lightMode) {
       const handle = await fs13.open(
         payload.transcript_path,
-        fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW
+        fsConstants2.O_RDONLY | fsConstants2.O_NOFOLLOW
       );
       try {
         const stat = await handle.stat();
-        if (!stat.isFile() || stat.size > 8 * 1024 * 1024) return;
-        const buffer = Buffer.alloc(Math.min(stat.size, 8 * 1024 * 1024));
+        if (!stat.isFile() || stat.size > MAX_SCRIBE_TRANSCRIPT_BYTES) return;
+        const buffer = Buffer.alloc(Math.min(stat.size, MAX_SCRIBE_TRANSCRIPT_BYTES));
         const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
         raw = buffer.subarray(0, bytesRead).toString("utf8");
       } finally {
         await handle.close();
       }
-    } else raw = await fs13.readFile(payload.transcript_path, "utf8");
+    } else {
+      const tail = await readTranscriptTail(payload.transcript_path, MAX_SCRIBE_TRANSCRIPT_BYTES);
+      if (!tail) return;
+      raw = tail;
+    }
   } catch {
     return;
   }
@@ -29156,9 +29612,9 @@ async function maybeScribeSession(ctx, payload, routing, lightMode = false) {
     }
     const turn = "message" in parsed && parsed.message ? parsed.message : parsed;
     if (turn.role !== "user" && turn.role !== "assistant") continue;
-    const text = flattenForScribe(turn.content ?? "").trim();
-    if (text) turns.push(`### ${turn.role}
-${text}`);
+    const text2 = flattenForScribe(turn.content ?? "").trim();
+    if (text2) turns.push(`### ${turn.role}
+${text2}`);
   }
   const transcript = lightMode ? flattenLightTranscript(raw) : turns.join("\n\n");
   const prevFlattened = prev && prev.session_id === sessionId ? prev.flattened_chars ?? 0 : 0;
@@ -29247,7 +29703,7 @@ function buildWorkingMemoryContent(input) {
     `- updated_at: ${updatedAt}`,
     ""
   ];
-  const redact = (text) => redactSecretShapes(text).redacted;
+  const redact = (text2) => redactSecretShapes(text2).redacted;
   if (input.task?.trim()) {
     lines.push("## Current task", "", redact(input.task.trim()), "");
   }
@@ -29263,9 +29719,9 @@ function buildWorkingMemoryContent(input) {
   }
   return truncateWorkingText(lines.join("\n").trimEnd() + "\n", WORKING_MEMORY_MAX_CHARS);
 }
-function truncateWorkingText(text, max) {
-  if (text.length <= max) return text;
-  return `${text.slice(0, Math.max(0, max - 1)).trimEnd()}\u2026`;
+function truncateWorkingText(text2, max) {
+  if (text2.length <= max) return text2;
+  return `${text2.slice(0, Math.max(0, max - 1)).trimEnd()}\u2026`;
 }
 async function maybeUpsertWorkingMemory(ctx, payload, routing) {
   const transcriptSessionId = sessionIdFromTranscriptPath(payload.transcript_path);
@@ -29296,7 +29752,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
     log("working memory: skipped \u2014 no resolve or exchange yet");
     return;
   }
-  const path16 = workingMemoryPath(sessionId);
+  const path17 = workingMemoryPath(sessionId);
   const callOpts = { accountId: routing.accountId };
   let documentId = state.working_memory_ids?.[sessionId] ?? null;
   if (!documentId) {
@@ -29305,7 +29761,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
         ctx.api.listDocuments(
           {
             kinds: ["memory"],
-            path: path16,
+            path: path17,
             ...routing.projectId ? { project_id: routing.projectId } : {}
           },
           callOpts
@@ -29313,7 +29769,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
         TIMEOUT_MS,
         []
       );
-      const hit = docs.find((d) => d.path === path16);
+      const hit = docs.find((d) => d.path === path17);
       if (hit) documentId = hit.id;
     } catch (err) {
       log(
@@ -29333,7 +29789,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
         scope: routing.projectId ? "project" : "team",
         kind: "memory",
         title: `Working memory \u2014 ${sessionId.slice(0, 12)}`,
-        path: path16,
+        path: path17,
         content,
         commit_message: "session working memory",
         project_id: routing.projectId,
@@ -29376,7 +29832,7 @@ async function maybeUpsertWorkingMemory(ctx, payload, routing) {
       Object.entries(next.working_memory_hashes).filter(([k]) => keep.has(k))
     );
     await writeState(next);
-    log(`working memory: upserted ${path16} (v${result.version_number})`);
+    log(`working memory: upserted ${path17} (v${result.version_number})`);
   } catch (err) {
     log(`working memory failed: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -29441,12 +29897,12 @@ async function runStopHandler(payload, opts = {}) {
 
 // packages/plugin-core/dist/plugin-runtime.js
 init_companion_client();
-import { createHash as createHash3, randomUUID as randomUUID5 } from "node:crypto";
+import { createHash as createHash3, randomUUID as randomUUID6 } from "node:crypto";
 var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code", "windsurf", "vscode"]);
 function ownVersion() {
-  const version2 = "0.2.81";
+  const version2 = "0.2.85";
   return typeof version2 === "string" && VERSION.test(version2) ? version2 : null;
 }
 async function reportPluginRuntime(report) {

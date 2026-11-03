@@ -3591,10 +3591,10 @@ var require_gray_matter = __commonJS({
 });
 
 // packages/plugin-core/src/workspace-binding.ts
-import { randomUUID as randomUUID2 } from "node:crypto";
+import { randomUUID as randomUUID3 } from "node:crypto";
 import { constants, promises as fs5 } from "node:fs";
-import os6 from "node:os";
-import path6 from "node:path";
+import os7 from "node:os";
+import path7 from "node:path";
 var GIT_POINTER_MAX_BYTES;
 var init_workspace_binding = __esm({
   "packages/plugin-core/src/workspace-binding.ts"() {
@@ -3610,9 +3610,9 @@ import readline from "node:readline/promises";
 
 // packages/plugin-core/src/client.ts
 import { promises as fs6 } from "node:fs";
-import path7 from "node:path";
-import os7 from "node:os";
-import { randomUUID as randomUUID3 } from "node:crypto";
+import path8 from "node:path";
+import os8 from "node:os";
+import { randomUUID as randomUUID4 } from "node:crypto";
 
 // packages/plugin-core/src/auth.ts
 init_atomic_rename();
@@ -4215,8 +4215,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path10, errorMaps, issueData } = params;
-  const fullPath = [...path10, ...issueData.path || []];
+  const { data, path: path11, errorMaps, issueData } = params;
+  const fullPath = [...path11, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -4332,11 +4332,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path10, key) {
+  constructor(parent, value, path11, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path10;
+    this._path = path11;
     this._key = key;
   }
   get path() {
@@ -7778,6 +7778,74 @@ var coerce = {
 };
 var NEVER = INVALID;
 
+// packages/shared/dist/agent-hosts.js
+var AGENT_HOSTS = [
+  { kind: "claude-code", label: "Claude Code", companion: "claude", provider: "anthropic", pickup: true },
+  { kind: "claude-ai", label: "Claude", provider: "anthropic" },
+  { kind: "codex", label: "Codex", companion: "codex", provider: "openai", pickup: true },
+  { kind: "cursor", label: "Cursor", companion: "cursor", pickup: true },
+  { kind: "windsurf", label: "Windsurf", pickup: true },
+  // Microsoft VS Code + GitHub Copilot agent mode (apps/vscode-extension).
+  // Registers the Memlin MCP server via the stable
+  // `lm.registerMcpServerDefinitionProvider` API (VS Code ≥ 1.101) plus
+  // sign-in/sync commands and a copilot-instructions directive. Plain VS Code
+  // has no lifecycle-hook or slash-command surface, so this kind is MCP + CLI
+  // + rules (no hooks/commands) — see AGENT_EXPECTED_CAPABILITIES.
+  { kind: "vscode", label: "VS Code" },
+  { kind: "gemini", label: "Gemini", provider: "google" },
+  { kind: "grok", label: "Grok", provider: "xai" },
+  // Nous Research Hermes Agent — autonomous, self-hosted, 24/7 (Feb 2026).
+  // Plugin system is Python-only; today this kind reflects MCP-only
+  // connections. Phase 2 ships a native Python plugin (apps/hermes-plugin/)
+  // wiring pre_tool_call into the same controller path Claude Code uses.
+  { kind: "hermes", label: "Hermes" },
+  // OpenClaw — Peter Steinberger's viral open-source autonomous personal
+  // agent (Discord/Slack-first UI, local-first, 247k+ stars by Mar 2026).
+  // Has MCP Registry support and a SKILL.md skills format at
+  // ~/.openclaw/workspace/skills/. MCP-only today; the Phase 3
+  // agentskills.io bridge is the bet for skills round-tripping.
+  { kind: "openclaw", label: "OpenClaw" },
+  // Google Antigravity — Google's agent-first IDE (Nov 2025), built by the
+  // former Windsurf/Codeium team on a VS Code fork. MCP servers live in
+  // ~/.gemini/antigravity/mcp_config.json (remote servers use `serverUrl`,
+  // exactly Memlin's hosted shape); project rules in .agent/rules/*.md and
+  // AGENTS.md. No lifecycle-hook surface yet — MCP + rules today. See
+  // packages/adapters/src/antigravity.ts.
+  // Its CLI takes a tier, never a model id (`agentapi new-conversation
+  // --model=pro`); without one it uses whatever was last chosen in its own
+  // window, which Memlin is not told, so a step always names a tier.
+  {
+    kind: "antigravity",
+    label: "Antigravity",
+    pickup: true,
+    handoffStart: "antigravity",
+    ownModels: {
+      family: "Gemini",
+      provider: "google",
+      note: "Antigravity picks which current Gemini model each tier uses; it does not say which.",
+      tiers: [
+        { value: "pro", label: "Gemini Pro (Antigravity's pro tier)" },
+        { value: "flash", label: "Gemini Flash (Antigravity's flash tier)" },
+        { value: "flash_lite", label: "Gemini Flash-Lite (Antigravity's flash-lite tier)" }
+      ]
+    }
+  },
+  { kind: "mcp", label: "MCP client" },
+  // Memlin Companion — the installable desktop tray app (apps/companion).
+  // A per-user background daemon (packages/companion-core) that keeps the
+  // token fresh, auto-links workspaces, and syncs plans continuously; other
+  // agents on the machine delegate to it over a local socket. One install
+  // per device, so agent_installations dedup by device name works as-is.
+  { kind: "companion", label: "Memlin Companion" }
+];
+var AGENT_KINDS = AGENT_HOSTS.map((host) => host.kind);
+var COMPANION_AGENT_KINDS = AGENT_HOSTS.filter((host) => "companion" in host).map(
+  (host) => host.kind
+);
+var COMPANION_HANDOFF_START_KINDS = AGENT_HOSTS.filter((host) => "handoffStart" in host).map(
+  (host) => host.kind
+);
+
 // packages/shared/dist/constants.js
 var DOCUMENT_KINDS = [
   "memory",
@@ -7836,47 +7904,6 @@ var MEMORY_TYPES = [
   "reference",
   "episodic",
   "working"
-];
-var AGENT_KINDS = [
-  "claude-code",
-  "claude-ai",
-  "codex",
-  "cursor",
-  "windsurf",
-  // Microsoft VS Code + GitHub Copilot agent mode (apps/vscode-extension).
-  // Registers the Memlin MCP server via the stable
-  // `lm.registerMcpServerDefinitionProvider` API (VS Code ≥ 1.101) plus
-  // sign-in/sync commands and a copilot-instructions directive. Plain VS Code
-  // has no lifecycle-hook or slash-command surface, so this kind is MCP + CLI
-  // + rules (no hooks/commands) — see AGENT_EXPECTED_CAPABILITIES.
-  "vscode",
-  "gemini",
-  "grok",
-  // Nous Research Hermes Agent — autonomous, self-hosted, 24/7 (Feb 2026).
-  // Plugin system is Python-only; today this kind reflects MCP-only
-  // connections. Phase 2 ships a native Python plugin (apps/hermes-plugin/)
-  // wiring pre_tool_call into the same controller path Claude Code uses.
-  "hermes",
-  // OpenClaw — Peter Steinberger's viral open-source autonomous personal
-  // agent (Discord/Slack-first UI, local-first, 247k+ stars by Mar 2026).
-  // Has MCP Registry support and a SKILL.md skills format at
-  // ~/.openclaw/workspace/skills/. MCP-only today; the Phase 3
-  // agentskills.io bridge is the bet for skills round-tripping.
-  "openclaw",
-  // Google Antigravity — Google's agent-first IDE (Nov 2025), built by the
-  // former Windsurf/Codeium team on a VS Code fork. MCP servers live in
-  // ~/.gemini/antigravity/mcp_config.json (remote servers use `serverUrl`,
-  // exactly Memlin's hosted shape); project rules in .agent/rules/*.md and
-  // AGENTS.md. No lifecycle-hook surface yet — MCP + rules today. See
-  // packages/adapters/src/antigravity.ts.
-  "antigravity",
-  "mcp",
-  // Memlin Companion — the installable desktop tray app (apps/companion).
-  // A per-user background daemon (packages/companion-core) that keeps the
-  // token fresh, auto-links workspaces, and syncs plans continuously; other
-  // agents on the machine delegate to it over a local socket. One install
-  // per device, so agent_installations dedup by device name works as-is.
-  "companion"
 ];
 var MEMBER_ROLES = ["owner", "admin", "member", "viewer"];
 var ACCOUNT_TIERS = ["free", "starter", "pro", "team", "enterprise"];
@@ -9085,10 +9112,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path10) {
-  if (!path10)
+function getElementAtPath(obj, path11) {
+  if (!path11)
     return obj;
-  return path10.reduce((acc, key) => acc?.[key], obj);
+  return path11.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -9408,11 +9435,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path10, issues) {
+function prefixIssues(path11, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path10);
+    iss.path.unshift(path11);
     return iss;
   });
 }
@@ -9549,7 +9576,7 @@ function treeifyError(error40, _mapper) {
     return issue2.message;
   };
   const result = { errors: [] };
-  const processError = (error41, path10 = []) => {
+  const processError = (error41, path11 = []) => {
     var _a, _b;
     for (const issue2 of error41.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
@@ -9559,7 +9586,7 @@ function treeifyError(error40, _mapper) {
       } else if (issue2.code === "invalid_element") {
         processError({ issues: issue2.issues }, issue2.path);
       } else {
-        const fullpath = [...path10, ...issue2.path];
+        const fullpath = [...path11, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -9589,9 +9616,9 @@ function treeifyError(error40, _mapper) {
   processError(error40);
   return result;
 }
-function toDotPath(path10) {
+function toDotPath(path11) {
   const segs = [];
-  for (const seg of path10) {
+  for (const seg of path11) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -19615,10 +19642,18 @@ var DESIGN_RESEARCH_SOURCES = [
     citationPrefix: "https://web.dev/blog/"
   }
 ];
+function isLocaleOnlyQuery(url2) {
+  const keys = [...url2.searchParams.keys()];
+  return keys.length > 0 && keys.every((key) => key === "hl") && url2.searchParams.getAll("hl").every((value) => /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(value));
+}
 function configuredDesignSource(value, platform) {
   try {
     const url2 = new URL(value);
-    if (url2.protocol !== "https:" || url2.username || url2.password || url2.search) return false;
+    if (url2.protocol !== "https:" || url2.username || url2.password) return false;
+    if (url2.search) {
+      if (!isLocaleOnlyQuery(url2)) return false;
+      url2.search = "";
+    }
     url2.hash = "";
     return DESIGN_RESEARCH_SOURCES.some(
       (source) => (!platform || source.platforms.includes(platform)) && (url2.href === source.url || "canonicalUrl" in source && url2.href === source.canonicalUrl || "citationPrefix" in source && url2.href.startsWith(source.citationPrefix))
@@ -19777,7 +19812,12 @@ var FeedResponseSchema = external_exports.object({
 }).strict();
 
 // packages/shared/dist/job-dispatch.js
-var JOB_KINDS = ["workflow_run", "model_watch_match", "model_watch_digest"];
+var JOB_KINDS = [
+  "workflow_run",
+  "model_watch_match",
+  "model_watch_digest",
+  "home_summary"
+];
 var JobMessageSchema = external_exports.object({
   version: external_exports.literal(1),
   kind: external_exports.enum(JOB_KINDS),
@@ -20235,19 +20275,19 @@ var ContextManifestV1Schema = external_exports.object({
       location: `linked_contexts.${index}`
     }))
   ];
-  references.forEach(({ ref, path: path10, location }) => {
+  references.forEach(({ ref, path: path11, location }) => {
     const identity = contextReferenceIdentityKey(ref);
     const prior = seen.get(identity);
     if (prior && prior.revision !== ref.revision) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path10,
+        path: path11,
         message: `context ${identity} has conflicting revisions in ${prior.location} and ${location}`
       });
     } else if (prior && location.startsWith("linked_contexts.")) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path10,
+        path: path11,
         message: `duplicate linked context ${identity}`
       });
     }
@@ -20561,11 +20601,11 @@ var ContextBundleV1Schema = external_exports.object({
         path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
       }))
     ];
-    for (const { ref, path: path10 } of references) {
+    for (const { ref, path: path11 } of references) {
       if (!contextKeys.has(contextReferenceKey(ref))) {
         ctx.addIssue({
           code: external_exports.ZodIssueCode.custom,
-          path: path10,
+          path: path11,
           message: "provider coverage is outside the exact manifest contexts"
         });
       }
@@ -22742,6 +22782,96 @@ var HOSTS = new Set(LIGHT_HOSTS);
 // packages/shared/dist/decision-prompt.js
 var encoder = new TextEncoder();
 
+// packages/shared/dist/persona-context.js
+var PersonaReferenceSchema = external_exports.object({
+  id: external_exports.string().min(1).max(128),
+  revision: external_exports.number().int().positive()
+}).strict();
+var PersonaContextAssessmentSchema = external_exports.object({
+  status: external_exports.enum(["disabled", "skipped", "unavailable", "assessed"]),
+  evaluator: external_exports.string().optional(),
+  policy_revision: external_exports.string().optional(),
+  candidates: external_exports.array(external_exports.object({ id: external_exports.string(), relevance: external_exports.number(), skill_fit: external_exports.number().nullable(), conflict: external_exports.boolean().nullable() })),
+  reason: external_exports.string().optional(),
+  usage: external_exports.object({ input_tokens: external_exports.number().nonnegative(), output_tokens: external_exports.number().nonnegative() }).optional()
+});
+var Citation = external_exports.object({
+  source: external_exports.enum(["memory", "skill", "web", "github", "slack", "work_item", "catalog", "feed", "repository"]),
+  id: external_exports.string(),
+  revision: external_exports.string(),
+  title: external_exports.string(),
+  url: external_exports.string().optional()
+}).strict();
+var PersonaContextV1Schema = external_exports.object({
+  schema_version: external_exports.literal(1),
+  persona: PersonaReferenceSchema.extend({
+    name: external_exports.string(),
+    instructions: external_exports.string(),
+    checks: external_exports.array(external_exports.string())
+  }),
+  task: external_exports.string(),
+  skills: external_exports.array(external_exports.object({
+    document_id: external_exports.string(),
+    version_id: external_exports.string(),
+    revision: external_exports.number().int().positive(),
+    title: external_exports.string(),
+    content: external_exports.string()
+  })),
+  learning: external_exports.object({
+    items: external_exports.array(external_exports.object({
+      id: external_exports.string(),
+      revision: external_exports.number().int().positive(),
+      title: external_exports.string(),
+      guidance: external_exports.string(),
+      url: external_exports.string(),
+      scope: external_exports.enum(["personal", "company", "project", "core"])
+    })),
+    omitted: external_exports.number().int().nonnegative()
+  }),
+  memories: external_exports.array(external_exports.object({
+    id: external_exports.string(),
+    title: external_exports.string(),
+    body: external_exports.string(),
+    kind: external_exports.enum(["learned", "feedback"]),
+    scope: external_exports.string(),
+    project_id: external_exports.string().nullable(),
+    updated_at: external_exports.string(),
+    version_number: external_exports.number(),
+    source_label: external_exports.string().nullable(),
+    evidence_url: external_exports.string().nullable(),
+    persona_finding_id: external_exports.string().nullable().optional()
+  })),
+  role: external_exports.object({
+    job_profile: external_exports.unknown().optional(),
+    execution_rubric: external_exports.unknown().optional(),
+    evaluated_research_protocol: external_exports.unknown().optional(),
+    platform_defaults: external_exports.unknown().optional(),
+    brand_guidelines: external_exports.unknown().optional()
+  }),
+  evidence: external_exports.array(external_exports.unknown()).optional(),
+  project_context: external_exports.array(external_exports.object({
+    id: external_exports.string(),
+    kind: external_exports.string(),
+    title: external_exports.string(),
+    body: external_exports.string(),
+    path: external_exports.string().nullable(),
+    revision: external_exports.number(),
+    mandatory: external_exports.boolean()
+  })),
+  citations: external_exports.array(Citation),
+  manifest: external_exports.object({
+    prepared_at: external_exports.string(),
+    source_ids: external_exports.array(external_exports.string()),
+    project_context_delivery: external_exports.enum(["included", "resolver_bundle"]).optional(),
+    project_context_references: external_exports.array(external_exports.object({ id: external_exports.string(), revision: external_exports.number() })).optional(),
+    omitted: external_exports.array(external_exports.object({ kind: external_exports.string(), count: external_exports.number().int().nonnegative(), reason: external_exports.string() })),
+    unavailable: external_exports.array(external_exports.string()),
+    assessment: PersonaContextAssessmentSchema.optional()
+  }),
+  handling: external_exports.string()
+});
+var STOP_WORDS = new Set("a an and are as at be by for from has have how i in is it its of on or our that the their this to use using was we what when where which with you your".split(" "));
+
 // packages/shared/dist/thought-handoff-v2.js
 var ThoughtHandoffRequestV2Schema = external_exports.object({
   version: external_exports.literal(2),
@@ -23575,10 +23705,10 @@ function validateFlowDefinitionSemantics(flow) {
       ],
       ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, path: `stages.${stageIndex}.bypass_target` }]
     ];
-    targets.forEach(({ target, path: path10 }) => {
+    targets.forEach(({ target, path: path11 }) => {
       if (!isReservedTarget(target) && !stageById.has(target)) {
         issues.push({
-          path: path10,
+          path: path11,
           code: "missing_transition_target",
           message: `transition target ${JSON.stringify(target)} does not exist`
         });
@@ -23608,7 +23738,7 @@ function validateFlowDefinitionSemantics(flow) {
   const visiting = /* @__PURE__ */ new Set();
   const visited = /* @__PURE__ */ new Set();
   let hasReachableEnd = false;
-  const visit = (stageId, path10, pathBounds) => {
+  const visit = (stageId, path11, pathBounds) => {
     reachable.add(stageId);
     if (visited.has(stageId)) return;
     visiting.add(stageId);
@@ -23624,7 +23754,7 @@ function validateFlowDefinitionSemantics(flow) {
         ...stage.default_transition === null ? [] : [{ target: stage.default_transition, bounded: false }],
         ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, bounded: false }]
       ];
-      const currentPath = [...path10, stageId];
+      const currentPath = [...path11, stageId];
       for (const edge of edges) {
         const { target } = edge;
         if (target === "$end") {
@@ -23732,18 +23862,18 @@ var FlowPackManifestBaseSchema = external_exports2.object({
   evals: external_exports2.array(ManifestEvalSchema).max(256),
   model_roles: external_exports2.array(ManifestModelRoleSchema).max(64)
 }).strict();
-function validateRelativePackPath(path10) {
-  if (path10.startsWith("/") || path10.startsWith("\\")) return "path must be relative";
-  if (/^[A-Za-z]:/.test(path10) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path10)) {
+function validateRelativePackPath(path11) {
+  if (path11.startsWith("/") || path11.startsWith("\\")) return "path must be relative";
+  if (/^[A-Za-z]:/.test(path11) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path11)) {
     return "drive-qualified paths and URI schemes are not allowed";
   }
-  if (/[\u0000-\u001f\u007f]/.test(path10)) return "control characters are not allowed";
-  if (/%(?:2e|2f|5c)/i.test(path10)) return "encoded path traversal is not allowed";
-  if (path10.includes("\\")) return "path must use forward slashes";
-  if (path10.split("/").some((segment) => segment === ".." || segment === ".")) {
+  if (/[\u0000-\u001f\u007f]/.test(path11)) return "control characters are not allowed";
+  if (/%(?:2e|2f|5c)/i.test(path11)) return "encoded path traversal is not allowed";
+  if (path11.includes("\\")) return "path must use forward slashes";
+  if (path11.split("/").some((segment) => segment === ".." || segment === ".")) {
     return "path traversal and dot segments are not allowed";
   }
-  if (path10.split("/").some((segment) => segment.length === 0)) {
+  if (path11.split("/").some((segment) => segment.length === 0)) {
     return "path cannot contain empty segments";
   }
   return null;
@@ -23790,22 +23920,22 @@ function validateFlowPackManifestSemantics(manifest) {
       issues
     );
     role.independence.compare_against_roles.forEach((comparedRole, comparedIndex) => {
-      const path10 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
+      const path11 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
       if (comparedRole === role.id) {
         issues.push({
-          path: path10,
+          path: path11,
           code: "self_referential_model_independence",
           message: "a model role cannot require independence from itself"
         });
       } else if (!modelRolesById.has(comparedRole)) {
         issues.push({
-          path: path10,
+          path: path11,
           code: "missing_independence_model_role",
           message: `independence policy references undeclared model role ${JSON.stringify(comparedRole)}`
         });
       } else if (modelRolesById.get(comparedRole)?.independence !== null) {
         issues.push({
-          path: path10,
+          path: path11,
           code: "independence_reference_not_author",
           message: `independence policy must compare against an author role; ${JSON.stringify(comparedRole)} declares its own independence policy`
         });
@@ -24072,18 +24202,158 @@ var Receipt = external_exports.object({
   reason: external_exports.string().optional()
 });
 
+// packages/shared/dist/screen-manifest.js
+var SCREEN_PLATFORMS = [...DESIGN_STANDARD_PLATFORMS, "desktop"];
+var SCREEN_STATE_KINDS = [
+  "default",
+  "stage",
+  "empty",
+  "loading",
+  "error",
+  "dialog",
+  "variant"
+];
+var SCREEN_STATE_VIA = [
+  "story",
+  "preview",
+  "fixture",
+  "route_query",
+  "mock",
+  "account",
+  "deeplink",
+  "observed",
+  "capture",
+  "design"
+];
+var SCREEN_STATE_EFFECTS = ["none", "read", "write"];
+var SCREEN_CONFIDENCE = ["declared", "extracted", "inferred"];
+var SCREEN_ENTRY_STATUS = ["proposed", "active", "stale"];
+var SCREEN_SOURCES = ["repo_file", "person", "extractor", "agent", "runtime"];
+var SCREEN_DISCOVERY_SOURCES = ["extractor", "agent", "runtime"];
+var SCREEN_MANIFEST_LIMITS = {
+  idChars: 80,
+  titleChars: 120,
+  entryChars: 500,
+  regionChars: 80,
+  pathChars: 300,
+  detailChars: 300,
+  filesPerScreen: 50,
+  statesPerScreen: 40,
+  evidencePerState: 20,
+  stateOrderMax: 999,
+  screensPerFile: 500,
+  /** The most screens one read returns; past it the read says it was cut. */
+  screensPerProject: 500,
+  /** The most open proposals one read returns, newest first. */
+  proposalsShown: 200,
+  /** The largest `.memlin/screens.yaml` read. */
+  fileBytes: 256 * 1024
+};
+var L = SCREEN_MANIFEST_LIMITS;
+var SCREEN_ID_PATTERN = new RegExp(`^[a-z0-9][a-z0-9._-]{0,${L.idChars - 1}}$`);
+var ScreenIdSchema = external_exports.string().regex(SCREEN_ID_PATTERN, "Use lower-case letters, digits, dots, dashes or underscores.");
+var text = (max) => external_exports.string().trim().min(1).max(max);
+var ScreenRepoPathSchema = external_exports.string().min(1).max(L.pathChars).refine(
+  (path11) => !path11.startsWith("/") && !path11.includes("\\") && !path11.split("/").some((part) => part === ".." || part === "") && // eslint-disable-next-line no-control-regex
+  !/[\u0000-\u001f\u007f]/.test(path11),
+  "Use a path inside the repository."
+);
+var ScreenEvidenceSchema = external_exports.object({
+  file: ScreenRepoPathSchema,
+  line: external_exports.number().int().positive(),
+  sha: external_exports.string().regex(/^[0-9a-f]{40}$/).optional()
+}).strict();
+var ScreenStateDeclarationSchema = external_exports.object({
+  id: ScreenIdSchema,
+  label: text(L.titleChars),
+  order: external_exports.number().int().min(0).max(L.stateOrderMax).optional(),
+  kind: external_exports.enum(SCREEN_STATE_KINDS),
+  via: external_exports.enum(SCREEN_STATE_VIA).optional(),
+  effects: external_exports.enum(SCREEN_STATE_EFFECTS).default("none"),
+  region: text(L.regionChars).optional(),
+  evidence: external_exports.array(ScreenEvidenceSchema).max(L.evidencePerState).default([])
+}).strict();
+var uniqueIds = (items) => new Set(items.map((item) => item.id)).size === items.length;
+var ScreenDeclarationSchema = external_exports.object({
+  id: ScreenIdSchema,
+  title: text(L.titleChars),
+  platform: external_exports.enum(SCREEN_PLATFORMS).optional(),
+  entry: text(L.entryChars).optional(),
+  files: external_exports.array(ScreenRepoPathSchema).max(L.filesPerScreen).default([]),
+  region: text(L.regionChars).optional(),
+  states: external_exports.array(ScreenStateDeclarationSchema).max(L.statesPerScreen).default([]).refine(uniqueIds, "Each state of a screen needs its own id.")
+}).strict();
+var ScreenManifestFileSchema = external_exports.object({
+  version: external_exports.literal(1),
+  screens: external_exports.array(ScreenDeclarationSchema).max(L.screensPerFile).refine(uniqueIds, "Each screen needs its own id.")
+}).strict();
+var ScreenProvenanceSchema = external_exports.object({
+  source: external_exports.enum(SCREEN_SOURCES),
+  /** The extractor, agent run, computer or file that produced it. */
+  detail: text(L.detailChars).optional()
+}).strict();
+var entryMeta = {
+  confidence: external_exports.enum(SCREEN_CONFIDENCE),
+  status: external_exports.enum(SCREEN_ENTRY_STATUS),
+  provenance: ScreenProvenanceSchema,
+  /** Set while a file it was found in changed after it was confirmed. */
+  stale_since: external_exports.string().datetime({ offset: true }).optional()
+};
+var ScreenStateSchema = ScreenStateDeclarationSchema.extend(entryMeta);
+var ScreenSchema = ScreenDeclarationSchema.extend({
+  ...entryMeta,
+  states: external_exports.array(ScreenStateSchema),
+  record: external_exports.object({ id: external_exports.string().uuid(), version: external_exports.number().int().positive() }).optional()
+});
+var ScreenProposalSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({
+    id: external_exports.string().uuid(),
+    kind: external_exports.literal("screen"),
+    screen: ScreenDeclarationSchema,
+    source: external_exports.enum(SCREEN_DISCOVERY_SOURCES),
+    detail: text(L.detailChars).optional(),
+    confidence: external_exports.enum(["extracted", "inferred"]),
+    created_at: external_exports.string()
+  }),
+  external_exports.object({
+    id: external_exports.string().uuid(),
+    kind: external_exports.literal("state"),
+    screen_id: ScreenIdSchema,
+    state: ScreenStateDeclarationSchema,
+    source: external_exports.enum(SCREEN_DISCOVERY_SOURCES),
+    detail: text(L.detailChars).optional(),
+    confidence: external_exports.enum(["extracted", "inferred"]),
+    created_at: external_exports.string()
+  })
+]);
+var ScreenManifestChangeSchema = external_exports.discriminatedUnion("action", [
+  external_exports.object({
+    action: external_exports.literal("save"),
+    screen: ScreenDeclarationSchema,
+    expected_version: external_exports.number().int().min(0)
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("remove"),
+    screen_id: ScreenIdSchema,
+    expected_version: external_exports.number().int().positive()
+  }).strict(),
+  external_exports.object({ action: external_exports.literal("accept"), proposal_id: external_exports.string().uuid() }).strict(),
+  external_exports.object({ action: external_exports.literal("reject"), proposal_id: external_exports.string().uuid() }).strict()
+]);
+
 // packages/shared/dist/native-workflow-task-connection.js
+var NATIVE_WORKFLOW_FILE_BYTES = 256e3;
 var uuid3 = external_exports.string().uuid();
 var NativeWorkflowTaskFileSchema = external_exports.object({
   id: uuid3,
   name: external_exports.string().min(1).max(120).regex(/^[A-Za-z0-9][A-Za-z0-9._ -]*\.(?:md|txt|json|csv)$/),
   title: external_exports.string().trim().min(1).max(200),
-  content: external_exports.string().min(1).max(16e3).refine((v) => new TextEncoder().encode(v).length <= 16e3),
+  content: external_exports.string().min(1).max(NATIVE_WORKFLOW_FILE_BYTES).refine((v) => new TextEncoder().encode(v).length <= NATIVE_WORKFLOW_FILE_BYTES),
   sha256: external_exports.string().regex(/^[a-f0-9]{64}$/),
-  bytes: external_exports.number().int().positive().max(16e3)
+  bytes: external_exports.number().int().positive().max(NATIVE_WORKFLOW_FILE_BYTES)
 }).strict();
 var NativeWorkflowTaskFilesSchema = external_exports.array(NativeWorkflowTaskFileSchema).max(4).refine(
-  (files) => files.reduce((total, file2) => total + file2.bytes, 0) <= 16e3,
+  (files) => files.reduce((total, file2) => total + file2.bytes, 0) <= NATIVE_WORKFLOW_FILE_BYTES,
   "Task files must fit the original protected result"
 );
 var NativeWorkflowPageSchema = external_exports.object({
@@ -24127,21 +24397,38 @@ var NativeWorkflowPageSchema = external_exports.object({
 
 // packages/plugin-core/src/memlin-api-client.ts
 init_auth_refusal();
-import { readFileSync } from "node:fs";
+import { readFileSync as readFileSync2 } from "node:fs";
 import crypto2 from "node:crypto";
-import os5 from "node:os";
+import os6 from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// packages/plugin-core/src/host.ts
+// packages/plugin-core/src/computer-id.ts
+import {
+  closeSync,
+  constants as fsConstants,
+  linkSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync
+} from "node:fs";
+import { randomUUID as randomUUID2 } from "node:crypto";
 import os3 from "node:os";
 import path4 from "node:path";
+
+// packages/plugin-core/src/host.ts
+import os4 from "node:os";
+import path5 from "node:path";
 
 // packages/plugin-core/src/private-mode.ts
 init_atomic_rename();
 import { promises as fs4 } from "node:fs";
-import path5 from "node:path";
-import os4 from "node:os";
+import path6 from "node:path";
+import os5 from "node:os";
 var PRIVATE_TTL_MS = 24 * 60 * 60 * 1e3;
 var DENIED_TTL_MS = 10 * 60 * 1e3;
 var FLOOR_TTL_MS = 30 * 24 * 60 * 60 * 1e3;
@@ -24154,16 +24441,16 @@ var RESOLVE_V2_MAX_LINE_BYTES = 2 * 1024 * 1024;
 init_workspace_binding();
 init_auth_refusal();
 function globalConfigFilePath() {
-  return process.env.MEMLIN_CONFIG_FILE || path7.join(os7.homedir(), ".config", "memlin", "config.json");
+  return process.env.MEMLIN_CONFIG_FILE || path8.join(os8.homedir(), ".config", "memlin", "config.json");
 }
-var CONFIG_DIR = path7.join(os7.homedir(), ".config", "memlin");
-var TOKEN_FILE = path7.join(CONFIG_DIR, "token.json");
+var CONFIG_DIR = path8.join(os8.homedir(), ".config", "memlin");
+var TOKEN_FILE = path8.join(CONFIG_DIR, "token.json");
 async function writeGlobalConfig(config2) {
   const file2 = globalConfigFilePath();
-  await fs6.mkdir(path7.dirname(file2), { recursive: true });
-  const tmp = path7.join(
-    path7.dirname(file2),
-    `${path7.basename(file2)}.tmp-${process.pid}-${randomUUID3()}`
+  await fs6.mkdir(path8.dirname(file2), { recursive: true });
+  const tmp = path8.join(
+    path8.dirname(file2),
+    `${path8.basename(file2)}.tmp-${process.pid}-${randomUUID4()}`
   );
   await fs6.writeFile(tmp, JSON.stringify(config2, null, 2), { mode: 384 });
   await fs6.chmod(tmp, 384).catch(() => {
@@ -24181,16 +24468,16 @@ function accessTokenSubject(accessToken) {
 
 // packages/plugin-core/src/login-bootstrap.ts
 import { promises as fs8 } from "node:fs";
-import path9 from "node:path";
-import { randomUUID as randomUUID4 } from "node:crypto";
+import path10 from "node:path";
+import { randomUUID as randomUUID5 } from "node:crypto";
 init_atomic_rename();
 init_auth_refusal();
 
 // packages/plugin-core/src/plugin-install.ts
 import { promises as fs7 } from "node:fs";
 import { existsSync } from "node:fs";
-import path8 from "node:path";
-import os8 from "node:os";
+import path9 from "node:path";
+import os9 from "node:os";
 
 // packages/plugin-core/src/login-bootstrap.ts
 var LoginBootstrapError = class extends Error {
@@ -24218,10 +24505,10 @@ async function restoreSnapshot(file2, snapshot) {
     await fs8.rm(file2, { force: true });
     return;
   }
-  await fs8.mkdir(path9.dirname(file2), { recursive: true });
-  const tmp = path9.join(
-    path9.dirname(file2),
-    `${path9.basename(file2)}.rollback-${process.pid}-${randomUUID4()}`
+  await fs8.mkdir(path10.dirname(file2), { recursive: true });
+  const tmp = path10.join(
+    path10.dirname(file2),
+    `${path10.basename(file2)}.rollback-${process.pid}-${randomUUID5()}`
   );
   await fs8.writeFile(tmp, snapshot, { mode: 384 });
   await fs8.chmod(tmp, 384).catch(() => {

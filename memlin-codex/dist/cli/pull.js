@@ -3426,11 +3426,11 @@ var require_gray_matter = __commonJS({
         return { data: {}, content: input, excerpt: "", orig: input };
       }
       let file2 = toFile(input);
-      const cached2 = matter3.cache[file2.content];
+      const cached3 = matter3.cache[file2.content];
       if (!options2) {
-        if (cached2) {
-          file2 = Object.assign({}, cached2);
-          file2.orig = cached2.orig;
+        if (cached3) {
+          file2 = Object.assign({}, cached3);
+          file2.orig = cached3.orig;
           return file2;
         }
         matter3.cache[file2.content] = file2;
@@ -4284,7 +4284,7 @@ var init_companion_client = __esm({
 });
 
 // packages/plugin-core/src/cli/pull.ts
-import path17 from "node:path";
+import path18 from "node:path";
 
 // packages/plugin-core/src/light-sync.ts
 import { promises as fs6, constants as constants2 } from "node:fs";
@@ -4769,8 +4769,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path18, errorMaps, issueData } = params;
-  const fullPath = [...path18, ...issueData.path || []];
+  const { data, path: path19, errorMaps, issueData } = params;
+  const fullPath = [...path19, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -4886,11 +4886,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path18, key) {
+  constructor(parent, value, path19, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path18;
+    this._path = path19;
     this._key = key;
   }
   get path() {
@@ -8332,6 +8332,74 @@ var coerce = {
 };
 var NEVER = INVALID;
 
+// packages/shared/dist/agent-hosts.js
+var AGENT_HOSTS = [
+  { kind: "claude-code", label: "Claude Code", companion: "claude", provider: "anthropic", pickup: true },
+  { kind: "claude-ai", label: "Claude", provider: "anthropic" },
+  { kind: "codex", label: "Codex", companion: "codex", provider: "openai", pickup: true },
+  { kind: "cursor", label: "Cursor", companion: "cursor", pickup: true },
+  { kind: "windsurf", label: "Windsurf", pickup: true },
+  // Microsoft VS Code + GitHub Copilot agent mode (apps/vscode-extension).
+  // Registers the Memlin MCP server via the stable
+  // `lm.registerMcpServerDefinitionProvider` API (VS Code ≥ 1.101) plus
+  // sign-in/sync commands and a copilot-instructions directive. Plain VS Code
+  // has no lifecycle-hook or slash-command surface, so this kind is MCP + CLI
+  // + rules (no hooks/commands) — see AGENT_EXPECTED_CAPABILITIES.
+  { kind: "vscode", label: "VS Code" },
+  { kind: "gemini", label: "Gemini", provider: "google" },
+  { kind: "grok", label: "Grok", provider: "xai" },
+  // Nous Research Hermes Agent — autonomous, self-hosted, 24/7 (Feb 2026).
+  // Plugin system is Python-only; today this kind reflects MCP-only
+  // connections. Phase 2 ships a native Python plugin (apps/hermes-plugin/)
+  // wiring pre_tool_call into the same controller path Claude Code uses.
+  { kind: "hermes", label: "Hermes" },
+  // OpenClaw — Peter Steinberger's viral open-source autonomous personal
+  // agent (Discord/Slack-first UI, local-first, 247k+ stars by Mar 2026).
+  // Has MCP Registry support and a SKILL.md skills format at
+  // ~/.openclaw/workspace/skills/. MCP-only today; the Phase 3
+  // agentskills.io bridge is the bet for skills round-tripping.
+  { kind: "openclaw", label: "OpenClaw" },
+  // Google Antigravity — Google's agent-first IDE (Nov 2025), built by the
+  // former Windsurf/Codeium team on a VS Code fork. MCP servers live in
+  // ~/.gemini/antigravity/mcp_config.json (remote servers use `serverUrl`,
+  // exactly Memlin's hosted shape); project rules in .agent/rules/*.md and
+  // AGENTS.md. No lifecycle-hook surface yet — MCP + rules today. See
+  // packages/adapters/src/antigravity.ts.
+  // Its CLI takes a tier, never a model id (`agentapi new-conversation
+  // --model=pro`); without one it uses whatever was last chosen in its own
+  // window, which Memlin is not told, so a step always names a tier.
+  {
+    kind: "antigravity",
+    label: "Antigravity",
+    pickup: true,
+    handoffStart: "antigravity",
+    ownModels: {
+      family: "Gemini",
+      provider: "google",
+      note: "Antigravity picks which current Gemini model each tier uses; it does not say which.",
+      tiers: [
+        { value: "pro", label: "Gemini Pro (Antigravity's pro tier)" },
+        { value: "flash", label: "Gemini Flash (Antigravity's flash tier)" },
+        { value: "flash_lite", label: "Gemini Flash-Lite (Antigravity's flash-lite tier)" }
+      ]
+    }
+  },
+  { kind: "mcp", label: "MCP client" },
+  // Memlin Companion — the installable desktop tray app (apps/companion).
+  // A per-user background daemon (packages/companion-core) that keeps the
+  // token fresh, auto-links workspaces, and syncs plans continuously; other
+  // agents on the machine delegate to it over a local socket. One install
+  // per device, so agent_installations dedup by device name works as-is.
+  { kind: "companion", label: "Memlin Companion" }
+];
+var AGENT_KINDS = AGENT_HOSTS.map((host) => host.kind);
+var COMPANION_AGENT_KINDS = AGENT_HOSTS.filter((host) => "companion" in host).map(
+  (host) => host.kind
+);
+var COMPANION_HANDOFF_START_KINDS = AGENT_HOSTS.filter((host) => "handoffStart" in host).map(
+  (host) => host.kind
+);
+
 // packages/shared/dist/constants.js
 var DOCUMENT_KINDS = [
   "memory",
@@ -8390,47 +8458,6 @@ var MEMORY_TYPES = [
   "reference",
   "episodic",
   "working"
-];
-var AGENT_KINDS = [
-  "claude-code",
-  "claude-ai",
-  "codex",
-  "cursor",
-  "windsurf",
-  // Microsoft VS Code + GitHub Copilot agent mode (apps/vscode-extension).
-  // Registers the Memlin MCP server via the stable
-  // `lm.registerMcpServerDefinitionProvider` API (VS Code ≥ 1.101) plus
-  // sign-in/sync commands and a copilot-instructions directive. Plain VS Code
-  // has no lifecycle-hook or slash-command surface, so this kind is MCP + CLI
-  // + rules (no hooks/commands) — see AGENT_EXPECTED_CAPABILITIES.
-  "vscode",
-  "gemini",
-  "grok",
-  // Nous Research Hermes Agent — autonomous, self-hosted, 24/7 (Feb 2026).
-  // Plugin system is Python-only; today this kind reflects MCP-only
-  // connections. Phase 2 ships a native Python plugin (apps/hermes-plugin/)
-  // wiring pre_tool_call into the same controller path Claude Code uses.
-  "hermes",
-  // OpenClaw — Peter Steinberger's viral open-source autonomous personal
-  // agent (Discord/Slack-first UI, local-first, 247k+ stars by Mar 2026).
-  // Has MCP Registry support and a SKILL.md skills format at
-  // ~/.openclaw/workspace/skills/. MCP-only today; the Phase 3
-  // agentskills.io bridge is the bet for skills round-tripping.
-  "openclaw",
-  // Google Antigravity — Google's agent-first IDE (Nov 2025), built by the
-  // former Windsurf/Codeium team on a VS Code fork. MCP servers live in
-  // ~/.gemini/antigravity/mcp_config.json (remote servers use `serverUrl`,
-  // exactly Memlin's hosted shape); project rules in .agent/rules/*.md and
-  // AGENTS.md. No lifecycle-hook surface yet — MCP + rules today. See
-  // packages/adapters/src/antigravity.ts.
-  "antigravity",
-  "mcp",
-  // Memlin Companion — the installable desktop tray app (apps/companion).
-  // A per-user background daemon (packages/companion-core) that keeps the
-  // token fresh, auto-links workspaces, and syncs plans continuously; other
-  // agents on the machine delegate to it over a local socket. One install
-  // per device, so agent_installations dedup by device name works as-is.
-  "companion"
 ];
 var MEMBER_ROLES = ["owner", "admin", "member", "viewer"];
 var ACCOUNT_TIERS = ["free", "starter", "pro", "team", "enterprise"];
@@ -9744,10 +9771,10 @@ function assignProp(target, prop, value) {
     configurable: true
   });
 }
-function getElementAtPath(obj, path18) {
-  if (!path18)
+function getElementAtPath(obj, path19) {
+  if (!path19)
     return obj;
-  return path18.reduce((acc, key) => acc?.[key], obj);
+  return path19.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -10067,11 +10094,11 @@ function aborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path18, issues) {
+function prefixIssues(path19, issues) {
   return issues.map((iss) => {
     var _a;
     (_a = iss).path ?? (_a.path = []);
-    iss.path.unshift(path18);
+    iss.path.unshift(path19);
     return iss;
   });
 }
@@ -10208,7 +10235,7 @@ function treeifyError(error40, _mapper) {
     return issue2.message;
   };
   const result = { errors: [] };
-  const processError = (error41, path18 = []) => {
+  const processError = (error41, path19 = []) => {
     var _a, _b;
     for (const issue2 of error41.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
@@ -10218,7 +10245,7 @@ function treeifyError(error40, _mapper) {
       } else if (issue2.code === "invalid_element") {
         processError({ issues: issue2.issues }, issue2.path);
       } else {
-        const fullpath = [...path18, ...issue2.path];
+        const fullpath = [...path19, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -10248,9 +10275,9 @@ function treeifyError(error40, _mapper) {
   processError(error40);
   return result;
 }
-function toDotPath(path18) {
+function toDotPath(path19) {
   const segs = [];
-  for (const seg of path18) {
+  for (const seg of path19) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -20274,10 +20301,18 @@ var DESIGN_RESEARCH_SOURCES = [
     citationPrefix: "https://web.dev/blog/"
   }
 ];
+function isLocaleOnlyQuery(url2) {
+  const keys = [...url2.searchParams.keys()];
+  return keys.length > 0 && keys.every((key) => key === "hl") && url2.searchParams.getAll("hl").every((value) => /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(value));
+}
 function configuredDesignSource(value, platform) {
   try {
     const url2 = new URL(value);
-    if (url2.protocol !== "https:" || url2.username || url2.password || url2.search) return false;
+    if (url2.protocol !== "https:" || url2.username || url2.password) return false;
+    if (url2.search) {
+      if (!isLocaleOnlyQuery(url2)) return false;
+      url2.search = "";
+    }
     url2.hash = "";
     return DESIGN_RESEARCH_SOURCES.some(
       (source) => (!platform || source.platforms.includes(platform)) && (url2.href === source.url || "canonicalUrl" in source && url2.href === source.canonicalUrl || "citationPrefix" in source && url2.href.startsWith(source.citationPrefix))
@@ -20436,7 +20471,12 @@ var FeedResponseSchema = external_exports.object({
 }).strict();
 
 // packages/shared/dist/job-dispatch.js
-var JOB_KINDS = ["workflow_run", "model_watch_match", "model_watch_digest"];
+var JOB_KINDS = [
+  "workflow_run",
+  "model_watch_match",
+  "model_watch_digest",
+  "home_summary"
+];
 var JobMessageSchema = external_exports.object({
   version: external_exports.literal(1),
   kind: external_exports.enum(JOB_KINDS),
@@ -20543,13 +20583,13 @@ var LIGHT_HOSTS = [
   "windsurf",
   "devin"
 ];
-function boundLightText(text, byteLimit) {
+function boundLightText(text2, byteLimit) {
   const encoder2 = new TextEncoder();
-  const bytes = encoder2.encode(text);
-  return bytes.length <= byteLimit ? text : new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, byteLimit)).replace(/\uFFFD$/, "");
+  const bytes = encoder2.encode(text2);
+  return bytes.length <= byteLimit ? text2 : new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, byteLimit)).replace(/\uFFFD$/, "");
 }
-function redactLightTranscript(text) {
-  return text.replace(
+function redactLightTranscript(text2) {
+  return text2.replace(
     /-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----/g,
     "[private key removed]"
   ).replace(
@@ -20560,10 +20600,10 @@ function redactLightTranscript(text) {
     "$1[removed]"
   );
 }
-function lightCaptureExcluded(text, paths = []) {
+function lightCaptureExcluded(text2, paths = []) {
   return /(?:^|[\s/\\"'`])(?:\.env(?:\.[\w-]+)?|id_rsa|id_ed25519|credentials\.json)(?=$|[\s/\\"'`:])/m.test(
-    text
-  ) || paths.some((p) => p.length > 0 && text.includes(p));
+    text2
+  ) || paths.some((p) => p.length > 0 && text2.includes(p));
 }
 
 // packages/shared/dist/skill-inventory.js
@@ -20919,19 +20959,19 @@ var ContextManifestV1Schema = external_exports.object({
       location: `linked_contexts.${index}`
     }))
   ];
-  references.forEach(({ ref, path: path18, location }) => {
+  references.forEach(({ ref, path: path19, location }) => {
     const identity = contextReferenceIdentityKey(ref);
     const prior = seen.get(identity);
     if (prior && prior.revision !== ref.revision) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path18,
+        path: path19,
         message: `context ${identity} has conflicting revisions in ${prior.location} and ${location}`
       });
     } else if (prior && location.startsWith("linked_contexts.")) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
-        path: path18,
+        path: path19,
         message: `duplicate linked context ${identity}`
       });
     }
@@ -21245,11 +21285,11 @@ var ContextBundleV1Schema = external_exports.object({
         path: ["coverage", coverageIndex, "omitted_contexts", index, "context_ref"]
       }))
     ];
-    for (const { ref, path: path18 } of references) {
+    for (const { ref, path: path19 } of references) {
       if (!contextKeys.has(contextReferenceKey(ref))) {
         ctx.addIssue({
           code: external_exports.ZodIssueCode.custom,
-          path: path18,
+          path: path19,
           message: "provider coverage is outside the exact manifest contexts"
         });
       }
@@ -23426,6 +23466,96 @@ var HOSTS = new Set(LIGHT_HOSTS);
 // packages/shared/dist/decision-prompt.js
 var encoder = new TextEncoder();
 
+// packages/shared/dist/persona-context.js
+var PersonaReferenceSchema = external_exports.object({
+  id: external_exports.string().min(1).max(128),
+  revision: external_exports.number().int().positive()
+}).strict();
+var PersonaContextAssessmentSchema = external_exports.object({
+  status: external_exports.enum(["disabled", "skipped", "unavailable", "assessed"]),
+  evaluator: external_exports.string().optional(),
+  policy_revision: external_exports.string().optional(),
+  candidates: external_exports.array(external_exports.object({ id: external_exports.string(), relevance: external_exports.number(), skill_fit: external_exports.number().nullable(), conflict: external_exports.boolean().nullable() })),
+  reason: external_exports.string().optional(),
+  usage: external_exports.object({ input_tokens: external_exports.number().nonnegative(), output_tokens: external_exports.number().nonnegative() }).optional()
+});
+var Citation = external_exports.object({
+  source: external_exports.enum(["memory", "skill", "web", "github", "slack", "work_item", "catalog", "feed", "repository"]),
+  id: external_exports.string(),
+  revision: external_exports.string(),
+  title: external_exports.string(),
+  url: external_exports.string().optional()
+}).strict();
+var PersonaContextV1Schema = external_exports.object({
+  schema_version: external_exports.literal(1),
+  persona: PersonaReferenceSchema.extend({
+    name: external_exports.string(),
+    instructions: external_exports.string(),
+    checks: external_exports.array(external_exports.string())
+  }),
+  task: external_exports.string(),
+  skills: external_exports.array(external_exports.object({
+    document_id: external_exports.string(),
+    version_id: external_exports.string(),
+    revision: external_exports.number().int().positive(),
+    title: external_exports.string(),
+    content: external_exports.string()
+  })),
+  learning: external_exports.object({
+    items: external_exports.array(external_exports.object({
+      id: external_exports.string(),
+      revision: external_exports.number().int().positive(),
+      title: external_exports.string(),
+      guidance: external_exports.string(),
+      url: external_exports.string(),
+      scope: external_exports.enum(["personal", "company", "project", "core"])
+    })),
+    omitted: external_exports.number().int().nonnegative()
+  }),
+  memories: external_exports.array(external_exports.object({
+    id: external_exports.string(),
+    title: external_exports.string(),
+    body: external_exports.string(),
+    kind: external_exports.enum(["learned", "feedback"]),
+    scope: external_exports.string(),
+    project_id: external_exports.string().nullable(),
+    updated_at: external_exports.string(),
+    version_number: external_exports.number(),
+    source_label: external_exports.string().nullable(),
+    evidence_url: external_exports.string().nullable(),
+    persona_finding_id: external_exports.string().nullable().optional()
+  })),
+  role: external_exports.object({
+    job_profile: external_exports.unknown().optional(),
+    execution_rubric: external_exports.unknown().optional(),
+    evaluated_research_protocol: external_exports.unknown().optional(),
+    platform_defaults: external_exports.unknown().optional(),
+    brand_guidelines: external_exports.unknown().optional()
+  }),
+  evidence: external_exports.array(external_exports.unknown()).optional(),
+  project_context: external_exports.array(external_exports.object({
+    id: external_exports.string(),
+    kind: external_exports.string(),
+    title: external_exports.string(),
+    body: external_exports.string(),
+    path: external_exports.string().nullable(),
+    revision: external_exports.number(),
+    mandatory: external_exports.boolean()
+  })),
+  citations: external_exports.array(Citation),
+  manifest: external_exports.object({
+    prepared_at: external_exports.string(),
+    source_ids: external_exports.array(external_exports.string()),
+    project_context_delivery: external_exports.enum(["included", "resolver_bundle"]).optional(),
+    project_context_references: external_exports.array(external_exports.object({ id: external_exports.string(), revision: external_exports.number() })).optional(),
+    omitted: external_exports.array(external_exports.object({ kind: external_exports.string(), count: external_exports.number().int().nonnegative(), reason: external_exports.string() })),
+    unavailable: external_exports.array(external_exports.string()),
+    assessment: PersonaContextAssessmentSchema.optional()
+  }),
+  handling: external_exports.string()
+});
+var STOP_WORDS = new Set("a an and are as at be by for from has have how i in is it its of on or our that the their this to use using was we what when where which with you your".split(" "));
+
 // packages/shared/dist/thought-handoff-v2.js
 var ThoughtHandoffRequestV2Schema = external_exports.object({
   version: external_exports.literal(2),
@@ -24259,10 +24389,10 @@ function validateFlowDefinitionSemantics(flow) {
       ],
       ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, path: `stages.${stageIndex}.bypass_target` }]
     ];
-    targets.forEach(({ target, path: path18 }) => {
+    targets.forEach(({ target, path: path19 }) => {
       if (!isReservedTarget(target) && !stageById.has(target)) {
         issues.push({
-          path: path18,
+          path: path19,
           code: "missing_transition_target",
           message: `transition target ${JSON.stringify(target)} does not exist`
         });
@@ -24292,7 +24422,7 @@ function validateFlowDefinitionSemantics(flow) {
   const visiting = /* @__PURE__ */ new Set();
   const visited = /* @__PURE__ */ new Set();
   let hasReachableEnd = false;
-  const visit = (stageId, path18, pathBounds) => {
+  const visit = (stageId, path19, pathBounds) => {
     reachable.add(stageId);
     if (visited.has(stageId)) return;
     visiting.add(stageId);
@@ -24308,7 +24438,7 @@ function validateFlowDefinitionSemantics(flow) {
         ...stage.default_transition === null ? [] : [{ target: stage.default_transition, bounded: false }],
         ...stage.bypass_target === null ? [] : [{ target: stage.bypass_target, bounded: false }]
       ];
-      const currentPath = [...path18, stageId];
+      const currentPath = [...path19, stageId];
       for (const edge of edges) {
         const { target } = edge;
         if (target === "$end") {
@@ -24416,18 +24546,18 @@ var FlowPackManifestBaseSchema = external_exports2.object({
   evals: external_exports2.array(ManifestEvalSchema).max(256),
   model_roles: external_exports2.array(ManifestModelRoleSchema).max(64)
 }).strict();
-function validateRelativePackPath(path18) {
-  if (path18.startsWith("/") || path18.startsWith("\\")) return "path must be relative";
-  if (/^[A-Za-z]:/.test(path18) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path18)) {
+function validateRelativePackPath(path19) {
+  if (path19.startsWith("/") || path19.startsWith("\\")) return "path must be relative";
+  if (/^[A-Za-z]:/.test(path19) || /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path19)) {
     return "drive-qualified paths and URI schemes are not allowed";
   }
-  if (/[\u0000-\u001f\u007f]/.test(path18)) return "control characters are not allowed";
-  if (/%(?:2e|2f|5c)/i.test(path18)) return "encoded path traversal is not allowed";
-  if (path18.includes("\\")) return "path must use forward slashes";
-  if (path18.split("/").some((segment) => segment === ".." || segment === ".")) {
+  if (/[\u0000-\u001f\u007f]/.test(path19)) return "control characters are not allowed";
+  if (/%(?:2e|2f|5c)/i.test(path19)) return "encoded path traversal is not allowed";
+  if (path19.includes("\\")) return "path must use forward slashes";
+  if (path19.split("/").some((segment) => segment === ".." || segment === ".")) {
     return "path traversal and dot segments are not allowed";
   }
-  if (path18.split("/").some((segment) => segment.length === 0)) {
+  if (path19.split("/").some((segment) => segment.length === 0)) {
     return "path cannot contain empty segments";
   }
   return null;
@@ -24474,22 +24604,22 @@ function validateFlowPackManifestSemantics(manifest) {
       issues
     );
     role.independence.compare_against_roles.forEach((comparedRole, comparedIndex) => {
-      const path18 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
+      const path19 = `model_roles.${roleIndex}.independence.compare_against_roles.${comparedIndex}`;
       if (comparedRole === role.id) {
         issues.push({
-          path: path18,
+          path: path19,
           code: "self_referential_model_independence",
           message: "a model role cannot require independence from itself"
         });
       } else if (!modelRolesById.has(comparedRole)) {
         issues.push({
-          path: path18,
+          path: path19,
           code: "missing_independence_model_role",
           message: `independence policy references undeclared model role ${JSON.stringify(comparedRole)}`
         });
       } else if (modelRolesById.get(comparedRole)?.independence !== null) {
         issues.push({
-          path: path18,
+          path: path19,
           code: "independence_reference_not_author",
           message: `independence policy must compare against an author role; ${JSON.stringify(comparedRole)} declares its own independence policy`
         });
@@ -24756,18 +24886,158 @@ var Receipt = external_exports.object({
   reason: external_exports.string().optional()
 });
 
+// packages/shared/dist/screen-manifest.js
+var SCREEN_PLATFORMS = [...DESIGN_STANDARD_PLATFORMS, "desktop"];
+var SCREEN_STATE_KINDS = [
+  "default",
+  "stage",
+  "empty",
+  "loading",
+  "error",
+  "dialog",
+  "variant"
+];
+var SCREEN_STATE_VIA = [
+  "story",
+  "preview",
+  "fixture",
+  "route_query",
+  "mock",
+  "account",
+  "deeplink",
+  "observed",
+  "capture",
+  "design"
+];
+var SCREEN_STATE_EFFECTS = ["none", "read", "write"];
+var SCREEN_CONFIDENCE = ["declared", "extracted", "inferred"];
+var SCREEN_ENTRY_STATUS = ["proposed", "active", "stale"];
+var SCREEN_SOURCES = ["repo_file", "person", "extractor", "agent", "runtime"];
+var SCREEN_DISCOVERY_SOURCES = ["extractor", "agent", "runtime"];
+var SCREEN_MANIFEST_LIMITS = {
+  idChars: 80,
+  titleChars: 120,
+  entryChars: 500,
+  regionChars: 80,
+  pathChars: 300,
+  detailChars: 300,
+  filesPerScreen: 50,
+  statesPerScreen: 40,
+  evidencePerState: 20,
+  stateOrderMax: 999,
+  screensPerFile: 500,
+  /** The most screens one read returns; past it the read says it was cut. */
+  screensPerProject: 500,
+  /** The most open proposals one read returns, newest first. */
+  proposalsShown: 200,
+  /** The largest `.memlin/screens.yaml` read. */
+  fileBytes: 256 * 1024
+};
+var L = SCREEN_MANIFEST_LIMITS;
+var SCREEN_ID_PATTERN = new RegExp(`^[a-z0-9][a-z0-9._-]{0,${L.idChars - 1}}$`);
+var ScreenIdSchema = external_exports.string().regex(SCREEN_ID_PATTERN, "Use lower-case letters, digits, dots, dashes or underscores.");
+var text = (max) => external_exports.string().trim().min(1).max(max);
+var ScreenRepoPathSchema = external_exports.string().min(1).max(L.pathChars).refine(
+  (path19) => !path19.startsWith("/") && !path19.includes("\\") && !path19.split("/").some((part) => part === ".." || part === "") && // eslint-disable-next-line no-control-regex
+  !/[\u0000-\u001f\u007f]/.test(path19),
+  "Use a path inside the repository."
+);
+var ScreenEvidenceSchema = external_exports.object({
+  file: ScreenRepoPathSchema,
+  line: external_exports.number().int().positive(),
+  sha: external_exports.string().regex(/^[0-9a-f]{40}$/).optional()
+}).strict();
+var ScreenStateDeclarationSchema = external_exports.object({
+  id: ScreenIdSchema,
+  label: text(L.titleChars),
+  order: external_exports.number().int().min(0).max(L.stateOrderMax).optional(),
+  kind: external_exports.enum(SCREEN_STATE_KINDS),
+  via: external_exports.enum(SCREEN_STATE_VIA).optional(),
+  effects: external_exports.enum(SCREEN_STATE_EFFECTS).default("none"),
+  region: text(L.regionChars).optional(),
+  evidence: external_exports.array(ScreenEvidenceSchema).max(L.evidencePerState).default([])
+}).strict();
+var uniqueIds = (items) => new Set(items.map((item) => item.id)).size === items.length;
+var ScreenDeclarationSchema = external_exports.object({
+  id: ScreenIdSchema,
+  title: text(L.titleChars),
+  platform: external_exports.enum(SCREEN_PLATFORMS).optional(),
+  entry: text(L.entryChars).optional(),
+  files: external_exports.array(ScreenRepoPathSchema).max(L.filesPerScreen).default([]),
+  region: text(L.regionChars).optional(),
+  states: external_exports.array(ScreenStateDeclarationSchema).max(L.statesPerScreen).default([]).refine(uniqueIds, "Each state of a screen needs its own id.")
+}).strict();
+var ScreenManifestFileSchema = external_exports.object({
+  version: external_exports.literal(1),
+  screens: external_exports.array(ScreenDeclarationSchema).max(L.screensPerFile).refine(uniqueIds, "Each screen needs its own id.")
+}).strict();
+var ScreenProvenanceSchema = external_exports.object({
+  source: external_exports.enum(SCREEN_SOURCES),
+  /** The extractor, agent run, computer or file that produced it. */
+  detail: text(L.detailChars).optional()
+}).strict();
+var entryMeta = {
+  confidence: external_exports.enum(SCREEN_CONFIDENCE),
+  status: external_exports.enum(SCREEN_ENTRY_STATUS),
+  provenance: ScreenProvenanceSchema,
+  /** Set while a file it was found in changed after it was confirmed. */
+  stale_since: external_exports.string().datetime({ offset: true }).optional()
+};
+var ScreenStateSchema = ScreenStateDeclarationSchema.extend(entryMeta);
+var ScreenSchema = ScreenDeclarationSchema.extend({
+  ...entryMeta,
+  states: external_exports.array(ScreenStateSchema),
+  record: external_exports.object({ id: external_exports.string().uuid(), version: external_exports.number().int().positive() }).optional()
+});
+var ScreenProposalSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({
+    id: external_exports.string().uuid(),
+    kind: external_exports.literal("screen"),
+    screen: ScreenDeclarationSchema,
+    source: external_exports.enum(SCREEN_DISCOVERY_SOURCES),
+    detail: text(L.detailChars).optional(),
+    confidence: external_exports.enum(["extracted", "inferred"]),
+    created_at: external_exports.string()
+  }),
+  external_exports.object({
+    id: external_exports.string().uuid(),
+    kind: external_exports.literal("state"),
+    screen_id: ScreenIdSchema,
+    state: ScreenStateDeclarationSchema,
+    source: external_exports.enum(SCREEN_DISCOVERY_SOURCES),
+    detail: text(L.detailChars).optional(),
+    confidence: external_exports.enum(["extracted", "inferred"]),
+    created_at: external_exports.string()
+  })
+]);
+var ScreenManifestChangeSchema = external_exports.discriminatedUnion("action", [
+  external_exports.object({
+    action: external_exports.literal("save"),
+    screen: ScreenDeclarationSchema,
+    expected_version: external_exports.number().int().min(0)
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("remove"),
+    screen_id: ScreenIdSchema,
+    expected_version: external_exports.number().int().positive()
+  }).strict(),
+  external_exports.object({ action: external_exports.literal("accept"), proposal_id: external_exports.string().uuid() }).strict(),
+  external_exports.object({ action: external_exports.literal("reject"), proposal_id: external_exports.string().uuid() }).strict()
+]);
+
 // packages/shared/dist/native-workflow-task-connection.js
+var NATIVE_WORKFLOW_FILE_BYTES = 256e3;
 var uuid3 = external_exports.string().uuid();
 var NativeWorkflowTaskFileSchema = external_exports.object({
   id: uuid3,
   name: external_exports.string().min(1).max(120).regex(/^[A-Za-z0-9][A-Za-z0-9._ -]*\.(?:md|txt|json|csv)$/),
   title: external_exports.string().trim().min(1).max(200),
-  content: external_exports.string().min(1).max(16e3).refine((v) => new TextEncoder().encode(v).length <= 16e3),
+  content: external_exports.string().min(1).max(NATIVE_WORKFLOW_FILE_BYTES).refine((v) => new TextEncoder().encode(v).length <= NATIVE_WORKFLOW_FILE_BYTES),
   sha256: external_exports.string().regex(/^[a-f0-9]{64}$/),
-  bytes: external_exports.number().int().positive().max(16e3)
+  bytes: external_exports.number().int().positive().max(NATIVE_WORKFLOW_FILE_BYTES)
 }).strict();
 var NativeWorkflowTaskFilesSchema = external_exports.array(NativeWorkflowTaskFileSchema).max(4).refine(
-  (files) => files.reduce((total, file2) => total + file2.bytes, 0) <= 16e3,
+  (files) => files.reduce((total, file2) => total + file2.bytes, 0) <= NATIVE_WORKFLOW_FILE_BYTES,
   "Task files must fit the original protected result"
 );
 var NativeWorkflowPageSchema = external_exports.object({
@@ -24820,6 +25090,7 @@ var AGENT_VERSION_HEADER = "Memlin-Agent-Version";
 var AGENT_CAPABILITIES_HEADER = "Memlin-Agent-Capabilities";
 var AGENT_PLATFORM_HEADER = "Memlin-Agent-Platform";
 var AGENT_ARCHITECTURE_HEADER = "Memlin-Agent-Architecture";
+var MEMLIN_AGENT_INSTALL_ID_HEADER = "Memlin-Agent-Install-Id";
 var AGENT_EXPECTED_CAPABILITIES = {
   "claude-code": ["cli", "commands", "hooks", "sync", "scribe", "resolve"],
   cursor: ["mcp", "commands", "hooks", "rules", "scribe", "resolve"],
@@ -24896,16 +25167,16 @@ var MemlinApiError = class extends Error {
   status;
   code;
 };
-function looksLikeHtml(text) {
-  const head = text.slice(0, 512).trimStart().toLowerCase();
-  return head.startsWith("<!doctype html") || head.startsWith("<html") || head.includes("<html") || head.startsWith("<") && /<\/(head|body|title|div|p)>/i.test(text);
+function looksLikeHtml(text2) {
+  const head = text2.slice(0, 512).trimStart().toLowerCase();
+  return head.startsWith("<!doctype html") || head.startsWith("<html") || head.includes("<html") || head.startsWith("<") && /<\/(head|body|title|div|p)>/i.test(text2);
 }
-function singleLine(text, max = 200) {
-  const collapsed = text.replace(/\s+/g, " ").trim();
+function singleLine(text2, max = 200) {
+  const collapsed = text2.replace(/\s+/g, " ").trim();
   return collapsed.length <= max ? collapsed : `${collapsed.slice(0, max - 1)}\u2026`;
 }
-function describeOpaqueBody(status, text) {
-  const trimmed = text.trim();
+function describeOpaqueBody(status, text2) {
+  const trimmed = text2.trim();
   if (!trimmed) return `HTTP ${status}`;
   if (looksLikeHtml(trimmed)) {
     const via = /cloudflare/i.test(trimmed) ? "Cloudflare " : "";
@@ -25458,9 +25729,9 @@ function hash2(content) {
 
 // packages/plugin-core/src/client.ts
 import { promises as fs10 } from "node:fs";
-import path12 from "node:path";
-import os9 from "node:os";
-import { randomUUID as randomUUID4 } from "node:crypto";
+import path13 from "node:path";
+import os10 from "node:os";
+import { randomUUID as randomUUID5 } from "node:crypto";
 
 // packages/plugin-core/src/auth.ts
 init_atomic_rename();
@@ -25674,17 +25945,148 @@ init_atomic_rename();
 
 // packages/plugin-core/src/memlin-api-client.ts
 init_auth_refusal();
-import { readFileSync as readFileSync2 } from "node:fs";
+import { readFileSync as readFileSync3 } from "node:fs";
 import crypto4 from "node:crypto";
-import os8 from "node:os";
+import os9 from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+// packages/plugin-core/src/computer-id.ts
+import {
+  closeSync,
+  constants as fsConstants,
+  linkSync,
+  mkdirSync,
+  openSync,
+  readFileSync as readFileSync2,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync
+} from "node:fs";
+import { randomUUID as randomUUID4 } from "node:crypto";
+import os7 from "node:os";
+import path11 from "node:path";
+var COMPUTER_ID_FILE_ENV = "MEMLIN_COMPUTER_ID_FILE";
+var UUID2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+var NIL = "00000000-0000-0000-0000-000000000000";
+var IN_PROGRESS_MS = 2e3;
+function computerIdFilePath() {
+  return process.env[COMPUTER_ID_FILE_ENV] || path11.join(os7.homedir(), ".config", "memlin", "computer-id.json");
+}
+function validId(value) {
+  if (typeof value !== "string") return null;
+  const id = value.trim().toLowerCase();
+  return UUID2.test(id) && id !== NIL ? id : null;
+}
+function readFileId(file2) {
+  let text2;
+  try {
+    text2 = readFileSync2(file2, "utf8");
+  } catch {
+    return { id: null, exists: false, youngMs: Infinity };
+  }
+  let age = Infinity;
+  try {
+    age = Date.now() - statSync(file2).mtimeMs;
+  } catch {
+  }
+  try {
+    const id = validId(JSON.parse(text2)?.computer_id);
+    if (id) return { id, exists: true, youngMs: age };
+  } catch {
+  }
+  return { id: null, exists: true, youngMs: age };
+}
+function sleepSync(ms) {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch {
+  }
+}
+function publish(file2, id) {
+  const dir = path11.dirname(file2);
+  mkdirSync(dir, { recursive: true, mode: 448 });
+  const body = JSON.stringify(
+    { version: 1, computer_id: id, created_at: (/* @__PURE__ */ new Date()).toISOString() },
+    null,
+    2
+  );
+  const tmp = path11.join(dir, `.computer-id.${process.pid}.${randomUUID4().slice(0, 8)}.tmp`);
+  writeFileSync(tmp, body, { mode: 384, flag: "wx" });
+  try {
+    linkSync(tmp, file2);
+    return true;
+  } catch (error40) {
+    const code = error40.code;
+    if (code === "EEXIST") return false;
+    try {
+      const fd = openSync(
+        file2,
+        fsConstants.O_CREAT | fsConstants.O_EXCL | fsConstants.O_WRONLY,
+        384
+      );
+      try {
+        writeFileSync(fd, body);
+      } finally {
+        closeSync(fd);
+      }
+      return true;
+    } catch (inner) {
+      if (inner.code === "EEXIST") return false;
+      throw inner;
+    }
+  } finally {
+    try {
+      unlinkSync(tmp);
+    } catch {
+    }
+  }
+}
+function resolveComputerId(file2) {
+  try {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const read2 = readFileId(file2);
+      if (read2.id) return read2.id;
+      if (read2.exists) {
+        if (read2.youngMs < IN_PROGRESS_MS) {
+          sleepSync(50);
+          const again = readFileId(file2);
+          if (again.id) return again.id;
+          if (again.exists && again.youngMs < IN_PROGRESS_MS && attempt < 4) continue;
+        }
+        try {
+          renameSync(file2, `${file2}.corrupt-${process.pid}`);
+        } catch {
+        }
+      }
+      const minted = randomUUID4();
+      if (publish(file2, minted)) return minted;
+    }
+  } catch {
+  }
+  return null;
+}
+var cached2;
+function getComputerId() {
+  if (process.env.MEMLIN_AGENT_DEVICE?.trim()) return null;
+  if (!process.env[COMPUTER_ID_FILE_ENV] && process.env.NODE_TEST_CONTEXT) return null;
+  const file2 = computerIdFilePath();
+  if (cached2?.key === file2) return cached2.id;
+  const id = resolveComputerId(file2);
+  cached2 = { key: file2, id };
+  return id;
+}
+function computerIdHeaders() {
+  const id = getComputerId();
+  return id ? { [MEMLIN_AGENT_INSTALL_ID_HEADER]: id } : {};
+}
 
 // packages/plugin-core/src/private-mode.ts
 init_atomic_rename();
 import { promises as fs9 } from "node:fs";
-import path11 from "node:path";
-import os7 from "node:os";
+import path12 from "node:path";
+import os8 from "node:os";
 var PRIVATE_HEADER = "Memlin-Private";
 var PRIVATE_UNTIL_HEADER = "Memlin-Private-Until";
 var PRIVATE_LEVEL_HEADER = "Memlin-Private-Level";
@@ -25720,7 +26122,7 @@ var PRIVATE_ALLOWED_WRITES = [
 var DENIED_TTL_MS = 10 * 60 * 1e3;
 var FLOOR_TTL_MS = 30 * 24 * 60 * 60 * 1e3;
 function stateFile() {
-  return path11.join(os7.homedir(), ".config", "memlin", "private-sessions.json");
+  return path12.join(os8.homedir(), ".config", "memlin", "private-sessions.json");
 }
 async function readPrivateState() {
   try {
@@ -25744,7 +26146,7 @@ async function writePrivateState(state, now) {
     if (now - floor.at > FLOOR_TTL_MS) delete state.floors?.[id];
   }
   const file2 = stateFile();
-  await fs9.mkdir(path11.dirname(file2), { recursive: true });
+  await fs9.mkdir(path12.dirname(file2), { recursive: true });
   const tmp = `${file2}.${process.pid}.${Date.now()}.tmp`;
   await fs9.writeFile(tmp, JSON.stringify(state, null, 2), { mode: 384 });
   await atomicRename(tmp, file2);
@@ -25820,12 +26222,12 @@ function isPrivateAllowedWrite(method, pathAndQuery) {
 // packages/plugin-core/src/memlin-api-client.ts
 var DEFAULT_API_URL = "https://memlin.ai/api/v1";
 function agentDevice() {
-  return process.env.MEMLIN_AGENT_DEVICE || os8.hostname() || "unknown";
+  return process.env.MEMLIN_AGENT_DEVICE || os9.hostname() || "unknown";
 }
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.81";
+  cachedAgentVersion = "0.2.85";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -25989,10 +26391,13 @@ var MemlinApiClient = class {
       Authorization: `Bearer ${token}`,
       [AGENT_KIND_HEADER]: kind,
       [AGENT_DEVICE_HEADER]: agentDevice(),
+      // The computer's permanent id, so a rename is not a new computer. Absent
+      // for a named agent (MEMLIN_AGENT_DEVICE) and on a profile that cannot keep it.
+      ...computerIdHeaders(),
       [AGENT_VERSION_HEADER]: version2,
       [AGENT_CAPABILITIES_HEADER]: (override.agentKind ? AGENT_EXPECTED_CAPABILITIES[kind] : agentCapabilities()).join(","),
-      [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os8.platform(),
-      [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os8.arch()
+      [AGENT_PLATFORM_HEADER]: process.env.MEMLIN_AGENT_PLATFORM || os9.platform(),
+      [AGENT_ARCHITECTURE_HEADER]: process.env.MEMLIN_AGENT_ARCH || os9.arch()
     };
     if (includeAccount && this.cfg.accountId) {
       h["Memlin-Account-Id"] = this.cfg.accountId;
@@ -26023,7 +26428,7 @@ var MemlinApiClient = class {
     );
     for (let attempt = 1; ; attempt++) {
       let res;
-      let text;
+      let text2;
       try {
         const timeoutSignal = AbortSignal.timeout(timeoutMs);
         res = await fetch(url2, {
@@ -26033,7 +26438,7 @@ var MemlinApiClient = class {
           signal: opts.signal ? AbortSignal.any([opts.signal, timeoutSignal]) : timeoutSignal,
           ...body !== void 0 ? { body: JSON.stringify(body) } : {}
         });
-        text = await res.text();
+        text2 = await res.text();
       } catch (error40) {
         if (attempt < maxAttempts && isRetriableNetworkError(error40)) {
           await delay(this.backoffMs(attempt));
@@ -26046,9 +26451,9 @@ var MemlinApiClient = class {
         continue;
       }
       let parsed = null;
-      if (text) {
+      if (text2) {
         try {
-          parsed = JSON.parse(text);
+          parsed = JSON.parse(text2);
         } catch {
         }
       }
@@ -26066,7 +26471,7 @@ var MemlinApiClient = class {
       }
       if (!res.ok) {
         const serverError = parsed?.error;
-        const errMsg = typeof serverError === "string" && serverError ? singleLine(serverError, 300) : describeOpaqueBody(res.status, text);
+        const errMsg = typeof serverError === "string" && serverError ? singleLine(serverError, 300) : describeOpaqueBody(res.status, text2);
         throw new MemlinApiError(
           `${method} ${pathAndQuery} \u2192 ${res.status}: ${errMsg}`,
           res.status,
@@ -26187,17 +26592,17 @@ var MemlinApiClient = class {
       await this.noteAuthOutcome(response.status, null, refusalAccountId);
       return response;
     }
-    const text = await response.text().catch(() => "");
+    const text2 = await response.text().catch(() => "");
     let serverError;
     let parsedBody = null;
     try {
-      const parsed = JSON.parse(text);
+      const parsed = JSON.parse(text2);
       parsedBody = parsed;
       serverError = typeof parsed.error === "string" ? parsed.error : parsed.error?.message ?? parsed.error?.code;
     } catch {
     }
     const refusalCode = await this.noteAuthOutcome(response.status, parsedBody, refusalAccountId);
-    const detail = response.status >= 500 ? `HTTP ${response.status} (upstream response suppressed)` : serverError ? singleLine(serverError, 300) : describeOpaqueBody(response.status, text);
+    const detail = response.status >= 500 ? `HTTP ${response.status} (upstream response suppressed)` : serverError ? singleLine(serverError, 300) : describeOpaqueBody(response.status, text2);
     throw new MemlinApiError(
       `${method} ${pathAndQuery} \u2192 ${response.status}: ${detail}`,
       response.status,
@@ -27222,8 +27627,8 @@ var MemlinApiClient = class {
     if (opts.severity) qs.set("severity", opts.severity);
     if (opts.limit) qs.set("limit", String(opts.limit));
     const query = qs.toString();
-    const path18 = `/feeds/${encodeURIComponent(key)}${query ? `?${query}` : ""}`;
-    return this.request("GET", path18, void 0, {
+    const path19 = `/feeds/${encodeURIComponent(key)}${query ? `?${query}` : ""}`;
+    return this.request("GET", path19, void 0, {
       accountId: opts.accountId,
       maxRetries: opts.maxRetries,
       requestTimeoutMs: opts.requestTimeoutMs
@@ -27278,10 +27683,10 @@ var MemlinApiClient = class {
 init_workspace_binding();
 init_auth_refusal();
 function globalConfigFilePath() {
-  return process.env.MEMLIN_CONFIG_FILE || path12.join(os9.homedir(), ".config", "memlin", "config.json");
+  return process.env.MEMLIN_CONFIG_FILE || path13.join(os10.homedir(), ".config", "memlin", "config.json");
 }
-var CONFIG_DIR = path12.join(os9.homedir(), ".config", "memlin");
-var TOKEN_FILE = path12.join(CONFIG_DIR, "token.json");
+var CONFIG_DIR = path13.join(os10.homedir(), ".config", "memlin");
+var TOKEN_FILE = path13.join(CONFIG_DIR, "token.json");
 async function readConfig() {
   try {
     const raw = await fs10.readFile(globalConfigFilePath(), "utf8");
@@ -27374,8 +27779,8 @@ function applyWorkspaceOverlay(config2, overlay) {
 // packages/plugin-core/src/apply.ts
 import { promises as fs11 } from "node:fs";
 import { existsSync as existsSync2 } from "node:fs";
-import os10 from "node:os";
-import path13 from "node:path";
+import os11 from "node:os";
+import path14 from "node:path";
 
 // packages/plugin-core/src/paths.ts
 var SLUG = /[^a-z0-9]+/g;
@@ -27407,12 +27812,12 @@ function inferLocalPath(kind, title, existing) {
 
 // packages/plugin-core/src/apply.ts
 function archiveRoot() {
-  return path13.join(os10.homedir(), ".config", "memlin", "archive");
+  return path14.join(os11.homedir(), ".config", "memlin", "archive");
 }
 async function archiveDestination(trackedRelPath) {
-  const base = path13.join(archiveRoot(), trackedRelPath);
+  const base = path14.join(archiveRoot(), trackedRelPath);
   if (!existsSync2(base)) return base;
-  const ext = path13.extname(base);
+  const ext = path14.extname(base);
   const stem = base.slice(0, base.length - ext.length);
   for (let i = 1; i < 1e3; i++) {
     const candidate = `${stem}.${i}${ext}`;
@@ -27442,7 +27847,7 @@ async function applyPullToLocal(docs, state, now, rootOverride, opts = {}) {
       out.collisions[localPath] = (out.collisions[localPath] ?? 1) + 1;
     }
     currentPaths.add(localPath);
-    const full = path13.join(root, localPath);
+    const full = path14.join(root, localPath);
     const contentHash = hash2(d.content);
     let needsWrite = true;
     try {
@@ -27451,7 +27856,7 @@ async function applyPullToLocal(docs, state, now, rootOverride, opts = {}) {
     } catch {
     }
     if (needsWrite) {
-      await fs11.mkdir(path13.dirname(full), { recursive: true });
+      await fs11.mkdir(path14.dirname(full), { recursive: true });
       await fs11.writeFile(full, d.content, "utf8");
       out.written.push(localPath);
     } else {
@@ -27468,7 +27873,7 @@ async function applyPullToLocal(docs, state, now, rootOverride, opts = {}) {
   for (const tracked of Object.keys(state.documents)) {
     if (!reconcileMissing) break;
     if (currentPaths.has(tracked)) continue;
-    const full = path13.join(root, tracked);
+    const full = path14.join(root, tracked);
     if (existsSync2(full)) {
       let userEdited = false;
       try {
@@ -27484,7 +27889,7 @@ async function applyPullToLocal(docs, state, now, rootOverride, opts = {}) {
       } else {
         const dest = await archiveDestination(tracked);
         try {
-          await fs11.mkdir(path13.dirname(dest), { recursive: true });
+          await fs11.mkdir(path14.dirname(dest), { recursive: true });
           await fs11.rename(full, dest);
           out.archived.push(tracked);
           out.removed.push(`${tracked} (archived)`);
@@ -27512,37 +27917,37 @@ function stateRow(d, h, at) {
 
 // packages/plugin-core/src/trigger-memories.ts
 import { promises as fs12 } from "node:fs";
-import os13 from "node:os";
-import path16 from "node:path";
+import os14 from "node:os";
+import path17 from "node:path";
 init_atomic_rename();
 
 // packages/plugin-core/src/edit-activity.ts
 import { execSync } from "node:child_process";
 import { realpathSync as realpathSync2 } from "node:fs";
-import path15 from "node:path";
-import os12 from "node:os";
+import path16 from "node:path";
+import os13 from "node:os";
 
 // packages/plugin-core/src/edit-broker-local.ts
 import crypto5 from "node:crypto";
 import {
-  closeSync,
+  closeSync as closeSync2,
   existsSync as existsSync3,
-  mkdirSync,
-  openSync,
-  readFileSync as readFileSync3,
+  mkdirSync as mkdirSync2,
+  openSync as openSync2,
+  readFileSync as readFileSync4,
   realpathSync,
-  renameSync,
+  renameSync as renameSync2,
   rmSync,
-  writeFileSync
+  writeFileSync as writeFileSync2
 } from "node:fs";
-import os11 from "node:os";
-import path14 from "node:path";
+import os12 from "node:os";
+import path15 from "node:path";
 import { execFileSync } from "node:child_process";
 
 // packages/plugin-core/src/trigger-memories.ts
 init_workspace_binding();
 function compiledTriggersPath() {
-  return path16.join(os13.homedir(), ".config", "memlin", "triggers.json");
+  return path17.join(os14.homedir(), ".config", "memlin", "triggers.json");
 }
 function decodeStoredEntry(raw, fallbackId) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -27638,17 +28043,17 @@ async function compileWorkspaceTriggers(args) {
       triggers
     };
   }
-  await fs12.mkdir(path16.dirname(file2), { recursive: true });
+  await fs12.mkdir(path17.dirname(file2), { recursive: true });
   const tmp = `${file2}.${process.pid}.tmp`;
   await fs12.writeFile(tmp, JSON.stringify(state, null, 2), "utf8");
   await atomicRename(tmp, file2);
   return { compiled: triggers.length, skipped };
 }
 function truncateMessage(content) {
-  const text = content.trim();
-  if (!text) return null;
-  if (text.length <= COMPILED_MESSAGE_MAX) return text;
-  return `${text.slice(0, COMPILED_MESSAGE_MAX - 1)}\u2026`;
+  const text2 = content.trim();
+  if (!text2) return null;
+  if (text2.length <= COMPILED_MESSAGE_MAX) return text2;
+  return `${text2.slice(0, COMPILED_MESSAGE_MAX - 1)}\u2026`;
 }
 async function workspaceRootFor(cwd) {
   try {
@@ -27664,7 +28069,7 @@ async function workspaceRootFor(cwd) {
   }
 }
 async function canonicalRoot(dir) {
-  const resolved = path16.resolve(dir);
+  const resolved = path17.resolve(dir);
   try {
     return await fs12.realpath(resolved);
   } catch {
@@ -27707,7 +28112,7 @@ async function main() {
     docs,
     state,
     (/* @__PURE__ */ new Date()).toISOString(),
-    targetDir ? path17.resolve(runtimeCwd(), targetDir) : void 0,
+    targetDir ? path18.resolve(runtimeCwd(), targetDir) : void 0,
     { reconcileMissing: !listTruncated }
   );
   if (result.reconciliationSkipped) {
