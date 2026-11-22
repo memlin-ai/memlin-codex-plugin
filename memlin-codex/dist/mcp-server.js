@@ -68013,6 +68013,24 @@ var SupportingEvidenceFileSchema = SupportingEvidenceDescriptorSchema.extend({
   text: external_exports.string().min(1).max(MAX_PERSONA_EVIDENCE_BYTES)
 }).strict();
 
+// packages/shared/dist/project-screen-inventory.js
+var evidenceSchema = external_exports.object({
+  appRoot: external_exports.string().max(600),
+  framework: external_exports.string().min(1).max(100),
+  route: external_exports.string().max(600),
+  platform: external_exports.enum(["native", "ios", "android", "web", "desktop", "unspecified"]),
+  sourceBlob: external_exports.string().regex(/^[a-f0-9]{40}$/),
+  title: external_exports.string().max(240).optional(),
+  navigation: external_exports.enum(["tab", "conditional tab", "hidden tab"]).optional(),
+  group: external_exports.string().max(480).optional(),
+  confidence: external_exports.literal("candidate").optional(),
+  states: external_exports.array(external_exports.object({ id: external_exports.string().max(120), label: external_exports.string().max(240) })).max(120).optional()
+});
+var coverageSchema = external_exports.object({
+  filesRead: external_exports.number().int().nonnegative(),
+  gaps: external_exports.array(external_exports.object({ path: external_exports.string().max(1e3), reason: external_exports.string().max(240) })).max(80)
+});
+
 // node_modules/.pnpm/openai@4.104.0_ws@8.20.1_zod@3.25.76/node_modules/openai/internal/qs/formats.mjs
 var default_format = "RFC3986";
 var formatters = {
@@ -90110,7 +90128,7 @@ var CreateHandoffArgs = external_exports.object({
 async function createHandoff(ctx, rawArgs) {
   const args = CreateHandoffArgs.parse(rawArgs);
   if (!ctx.userId) throw new Error("create_handoff: authenticated user identity is required");
-  const projectId = args.project_id ?? ctx.projectId ?? null;
+  const projectId = await resolveProjectFilter(ctx, args.project_id);
   if (!projectId) throw new Error("create_handoff: project_id is required (no bound project)");
   await requireEntitlementWith(ctx.rolesEntitlementReader ?? ctx.privilegedSupabase ?? ctx.supabase, {
     accountId: ctx.accountId,
@@ -94569,7 +94587,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.87";
+  cachedAgentVersion = "0.2.88";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -98144,7 +98162,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION2 = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code", "windsurf", "vscode"]);
 function ownVersion() {
-  const version5 = "0.2.87";
+  const version5 = "0.2.88";
   return typeof version5 === "string" && VERSION2.test(version5) ? version5 : null;
 }
 async function reportPluginRuntime(report) {
@@ -98557,19 +98575,36 @@ function normalizeGitRemote3(raw) {
   return s2 || null;
 }
 var codexTurn = new AsyncLocalStorage();
+var CODEX_SANDBOX_STATE = "codex/sandbox-state";
+function codexSandboxCwd(meta) {
+  for (const key2 of [CODEX_SANDBOX_STATE, "codex/sandbox-state-meta"]) {
+    const state = meta[key2];
+    if (!state || typeof state !== "object" || Array.isArray(state)) continue;
+    const raw = state.sandboxCwd;
+    if (typeof raw !== "string" || !raw) continue;
+    try {
+      const local = raw.startsWith("file:") ? fileURLToPath2(raw) : raw;
+      if (path23.isAbsolute(local) && existsSync5(local)) return path23.resolve(local);
+    } catch {
+    }
+  }
+  return void 0;
+}
 function readCodexTurn(meta) {
   if (agentKind() !== "codex" || !meta || typeof meta !== "object") return {};
-  const raw = meta["x-codex-turn-metadata"];
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  const { thread_id, session_id, turn_id, workspaces } = raw;
+  const record2 = meta;
+  const sandboxCwd = codexSandboxCwd(record2);
+  const raw = record2["x-codex-turn-metadata"];
+  const turn = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  const { thread_id, session_id, turn_id, workspaces } = turn;
   const session = thread_id ?? session_id;
   const roots = workspaces && typeof workspaces === "object" ? Object.keys(workspaces) : [];
-  if (roots.length > 1)
+  if (!sandboxCwd && roots.length > 1)
     throw new Error("Memlin cannot identify the active Codex workspace among multiple roots.");
   return {
     sessionId: typeof session === "string" ? session.trim() : void 0,
     turnId: typeof turn_id === "string" ? turn_id.trim() : void 0,
-    cwd: roots.length === 1 && path23.isAbsolute(roots[0]) ? path23.resolve(roots[0]) : void 0
+    cwd: sandboxCwd ?? (roots.length === 1 && path23.isAbsolute(roots[0]) ? path23.resolve(roots[0]) : void 0)
   };
 }
 var clientWorkspaceRoot;
@@ -98731,7 +98766,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.87"?.trim();
+  const env = "0.2.88"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }
@@ -98934,7 +98969,7 @@ async function reuseHookResolve(args, routing) {
           task: args.task,
           cwd: routing.cwd,
           workspace_signals: { cwd: routing.cwd },
-          plugin_version: "0.2.87",
+          plugin_version: "0.2.88",
           deadline_at: new Date(Date.now() + 8e3).toISOString()
         },
         { timeoutMs: 1500 }
@@ -99518,7 +99553,15 @@ var server = new Server(
   // Cosmetic MCP identity only (never written to the DB). 'dev' when we can't
   // resolve a real version — never the fabricated '0.1.0' floor.
   { name: "memlin", version: agentVersion2() ?? "dev" },
-  { capabilities: { tools: {}, prompts: {}, resources: {} } }
+  {
+    capabilities: {
+      tools: {},
+      prompts: {},
+      resources: {},
+      // Asks Codex for each call's working directory (codexSandboxCwd).
+      ...agentKind() === "codex" ? { experimental: { [CODEX_SANDBOX_STATE]: {} } } : {}
+    }
+  }
 );
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [...TOOLS]

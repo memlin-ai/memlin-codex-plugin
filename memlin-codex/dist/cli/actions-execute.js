@@ -25224,6 +25224,24 @@ var SupportingEvidenceFileSchema = SupportingEvidenceDescriptorSchema.extend({
   text: external_exports.string().min(1).max(MAX_PERSONA_EVIDENCE_BYTES)
 }).strict();
 
+// packages/shared/dist/project-screen-inventory.js
+var evidenceSchema = external_exports.object({
+  appRoot: external_exports.string().max(600),
+  framework: external_exports.string().min(1).max(100),
+  route: external_exports.string().max(600),
+  platform: external_exports.enum(["native", "ios", "android", "web", "desktop", "unspecified"]),
+  sourceBlob: external_exports.string().regex(/^[a-f0-9]{40}$/),
+  title: external_exports.string().max(240).optional(),
+  navigation: external_exports.enum(["tab", "conditional tab", "hidden tab"]).optional(),
+  group: external_exports.string().max(480).optional(),
+  confidence: external_exports.literal("candidate").optional(),
+  states: external_exports.array(external_exports.object({ id: external_exports.string().max(120), label: external_exports.string().max(240) })).max(120).optional()
+});
+var coverageSchema = external_exports.object({
+  filesRead: external_exports.number().int().nonnegative(),
+  gaps: external_exports.array(external_exports.object({ path: external_exports.string().max(1e3), reason: external_exports.string().max(240) })).max(80)
+});
+
 // packages/plugin-core/src/memlin-api-client.ts
 init_auth_refusal();
 import { readFileSync as readFileSync2 } from "node:fs";
@@ -25622,7 +25640,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.87";
+  cachedAgentVersion = "0.2.88";
   return cachedAgentVersion;
 }
 function agentCapabilities() {

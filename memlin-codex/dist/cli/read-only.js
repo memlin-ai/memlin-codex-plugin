@@ -26429,6 +26429,31 @@ var init_persona_evidence_files = __esm({
   }
 });
 
+// packages/shared/dist/project-screen-inventory.js
+var evidenceSchema, coverageSchema;
+var init_project_screen_inventory = __esm({
+  "packages/shared/dist/project-screen-inventory.js"() {
+    "use strict";
+    init_zod();
+    evidenceSchema = external_exports.object({
+      appRoot: external_exports.string().max(600),
+      framework: external_exports.string().min(1).max(100),
+      route: external_exports.string().max(600),
+      platform: external_exports.enum(["native", "ios", "android", "web", "desktop", "unspecified"]),
+      sourceBlob: external_exports.string().regex(/^[a-f0-9]{40}$/),
+      title: external_exports.string().max(240).optional(),
+      navigation: external_exports.enum(["tab", "conditional tab", "hidden tab"]).optional(),
+      group: external_exports.string().max(480).optional(),
+      confidence: external_exports.literal("candidate").optional(),
+      states: external_exports.array(external_exports.object({ id: external_exports.string().max(120), label: external_exports.string().max(240) })).max(120).optional()
+    });
+    coverageSchema = external_exports.object({
+      filesRead: external_exports.number().int().nonnegative(),
+      gaps: external_exports.array(external_exports.object({ path: external_exports.string().max(1e3), reason: external_exports.string().max(240) })).max(80)
+    });
+  }
+});
+
 // packages/shared/dist/index.js
 var init_dist = __esm({
   "packages/shared/dist/index.js"() {
@@ -26541,6 +26566,7 @@ var init_dist = __esm({
     init_native_memory_dates();
     init_native_workflow_task_connection();
     init_persona_evidence_files();
+    init_project_screen_inventory();
   }
 });
 
@@ -27165,7 +27191,7 @@ function agentDevice() {
 }
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.87";
+  cachedAgentVersion = "0.2.88";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
