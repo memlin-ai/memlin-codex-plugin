@@ -9294,6 +9294,13 @@ var init_authority = __esm({
   }
 });
 
+// packages/shared/dist/skill-probation.js
+var init_skill_probation = __esm({
+  "packages/shared/dist/skill-probation.js"() {
+    "use strict";
+  }
+});
+
 // packages/shared/dist/decision-authority.js
 var DECISION_AUTHORITY;
 var init_decision_authority = __esm({
@@ -24565,12 +24572,20 @@ var init_lexical = __esm({
   }
 });
 
+// packages/shared/dist/persona-task-package.js
+var init_persona_task_package = __esm({
+  "packages/shared/dist/persona-task-package.js"() {
+    "use strict";
+  }
+});
+
 // packages/shared/dist/persona-context.js
 var PersonaReferenceSchema, PersonaContextAssessmentSchema, Citation, PersonaContextV1Schema, STOP_WORDS;
 var init_persona_context = __esm({
   "packages/shared/dist/persona-context.js"() {
     "use strict";
     init_zod();
+    init_persona_task_package();
     PersonaReferenceSchema = external_exports.object({
       id: external_exports.string().min(1).max(128),
       revision: external_exports.number().int().positive()
@@ -26396,6 +26411,24 @@ var init_native_workflow_task_connection = __esm({
   }
 });
 
+// packages/shared/dist/persona-evidence-files.js
+var MAX_PERSONA_EVIDENCE_BYTES, SupportingEvidenceDescriptorSchema, SupportingEvidenceFileSchema;
+var init_persona_evidence_files = __esm({
+  "packages/shared/dist/persona-evidence-files.js"() {
+    "use strict";
+    init_zod();
+    MAX_PERSONA_EVIDENCE_BYTES = 2 * 1024 * 1024;
+    SupportingEvidenceDescriptorSchema = external_exports.object({
+      path: external_exports.string().regex(/^memlin-persona-evidence-[a-f0-9]{64}\.json$/),
+      sha256: external_exports.string().regex(/^[a-f0-9]{64}$/),
+      bytes: external_exports.number().int().positive().max(MAX_PERSONA_EVIDENCE_BYTES)
+    }).strict();
+    SupportingEvidenceFileSchema = SupportingEvidenceDescriptorSchema.extend({
+      text: external_exports.string().min(1).max(MAX_PERSONA_EVIDENCE_BYTES)
+    }).strict();
+  }
+});
+
 // packages/shared/dist/index.js
 var init_dist = __esm({
   "packages/shared/dist/index.js"() {
@@ -26427,6 +26460,7 @@ var init_dist = __esm({
     init_research_sources();
     init_current_work();
     init_authority();
+    init_skill_probation();
     init_decision_authority();
     init_feedback_signals();
     init_outcome_fitness();
@@ -26506,6 +26540,7 @@ var init_dist = __esm({
     init_screen_manifest();
     init_native_memory_dates();
     init_native_workflow_task_connection();
+    init_persona_evidence_files();
   }
 });
 
@@ -27130,7 +27165,7 @@ function agentDevice() {
 }
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.85";
+  cachedAgentVersion = "0.2.87";
   return cachedAgentVersion;
 }
 function agentCapabilities() {

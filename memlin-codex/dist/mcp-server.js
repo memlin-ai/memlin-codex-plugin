@@ -32020,6 +32020,7 @@ var init_workspace_binding = __esm({
 });
 
 // apps/mcp-server/src/index.ts
+import { AsyncLocalStorage } from "node:async_hooks";
 import { execSync as execSync3 } from "node:child_process";
 import { randomUUID as randomUUID7 } from "node:crypto";
 import { existsSync as existsSync5, readFileSync as readFileSync8 } from "node:fs";
@@ -61334,6 +61335,66 @@ function byAuthorityThenScore(tierOf, scoreOf) {
   };
 }
 
+// packages/shared/dist/skill-probation.js
+var PROBATION_SKILL_MAX_PER_BUNDLE = 2;
+var PROBATION_SKILL_NOTICE = "> Learned skill, not reviewed by a person. Captured automatically from an earlier session. Treat it as a suggestion: check it against the code before relying on it, and it never overrides an approved skill, a decision or the user.";
+function learnedSkillProbationEnabled(similarityThresholds) {
+  return typeof similarityThresholds === "object" && similarityThresholds !== null && similarityThresholds.learned_skills === "probation";
+}
+function shadowSkillJudgeEnabled(similarityThresholds) {
+  return typeof similarityThresholds === "object" && similarityThresholds !== null && similarityThresholds.shadow_skill_judge === "jev";
+}
+function isProbationSkill(row) {
+  if (row.kind !== "skill" || row.status !== "draft") return false;
+  const meta = row.metadata;
+  if (!meta || meta.status !== "active") return false;
+  const proposedBy = typeof meta.proposed_by === "string" ? meta.proposed_by : "";
+  const learned = meta.provenance === "model_extracted" || proposedBy.startsWith("scribe");
+  if (!learned) return false;
+  if (meta.review_hold === true || meta.sensitive === true) return false;
+  if (Array.isArray(meta.sensitive_topics) && meta.sensitive_topics.length > 0) return false;
+  return true;
+}
+var PRODUCTION_ACTION_PATTERNS = [
+  // Schema and data applied to production outside the deploy script.
+  /\b(apply|applies|applying|run|runs|running|execute|backfill|record)\b[^.\n]{0,80}\b(to|in|on|against)\s+(prod|production|the live)\b/i,
+  /\b(prod|production)\b[^.\n]{0,60}\b(migration|schema_migrations|ledger|sql)\b/i,
+  /\bmanagement api\b|\brun-remote-sql\b|\bsupabase db push\b|\bsql editor\b|\bapply-migrations?\b/i,
+  /\bservice[_ -]role\b|\bSUPABASE_SERVICE_ROLE_KEY\b|\badmin client\b[^.\n]{0,40}\b(script|write|update|delete)\b/i,
+  // Deploy queue and releases.
+  /\bdeploy[_ -](lease|leases|waiter|waiters|guard)\b[^.\n]{0,80}\b(clear|release|delete|remove|unblock|reset)\b/i,
+  /\b(clear|release|delete|remove)\b[^.\n]{0,60}\b(lease|waiter)\b/i,
+  /\b(merge and deploy|hand-deploy(ed)?|config-zip|--managed-plugin-stage|--refresh-(native-)?plugins)\b/i,
+  /\b(sign|signing|notari[sz]e|publish)\b[^.\n]{0,60}\b(catalog|release|companion|plugin)\b/i,
+  // Credentials, access and production settings.
+  /\b(rotate|reset|set|update|grant|revoke)\b[^.\n]{0,60}\b(password|credential|secret|token|private key|platform-admin|admin claim|role assignment)\b/i,
+  /\bkey ?vault\b|\baz (webapp|vm|keyvault|functionapp|role)\b|\bapp ?settings?\b[^.\n]{0,40}\b(set|change|update|production)\b/i,
+  /\bset-platform-admin\b|\bAUTH0_CLIENT_SECRET\b|\bbranch[- ]protection\b|\bforce[- ]push\b/i,
+  /\bMEMLIN_RATE_LIMIT_MODE\b|\b(disable|bypass)\b[^.\n]{0,40}\brate limit/i,
+  // Bulk writes to live data.
+  /\b(bulk|sweep|drain|purge|mass)\b[^.\n]{0,60}\b(delete|merge|reject|archive|retract|rehome|update)\b/i,
+  /--(apply|merge-safe|full)\b|\bAPPLY=1\b|\bin bulk\b/i,
+  /\b(UPDATE|DELETE FROM|TRUNCATE|DROP (TABLE|FUNCTION|INDEX))\b\s+[a-z_."]+/,
+  /\b(restart|stop)\b[^.\n]{0,40}\b(production|prod|web app|app service)\b/i
+];
+function skillActsOnProduction(title, body) {
+  const text3 = `${title}
+${body}`;
+  return PRODUCTION_ACTION_PATTERNS.some((re2) => re2.test(text3));
+}
+var LEARNED_SKILL_WEIGHT = 0.9;
+function skillTier(metadata) {
+  const meta = metadata ?? {};
+  if (meta.platform_skill === true || meta.source_template_id != null || meta.source_template_slug != null || meta.source_skill_id != null || typeof meta.imported_from === "string" && meta.imported_from.length > 0) {
+    return "core";
+  }
+  const proposedBy = typeof meta.proposed_by === "string" ? meta.proposed_by : "";
+  if (meta.provenance === "model_extracted" || proposedBy.startsWith("scribe") || meta.scribe_run_id != null) {
+    return "learned";
+  }
+  return "core";
+}
+
 // packages/shared/dist/decision-authority.js
 var DECISION_AUTHORITY = {
   REQUIRED_GOVERNANCE: AUTHORITY_TIER.REQUIRED_GOVERNANCE,
@@ -67939,6 +68000,17 @@ var NativeWorkflowPageSchema = external_exports.object({
       }).strict()
     ).max(80)
   }).strict()
+}).strict();
+
+// packages/shared/dist/persona-evidence-files.js
+var MAX_PERSONA_EVIDENCE_BYTES = 2 * 1024 * 1024;
+var SupportingEvidenceDescriptorSchema = external_exports.object({
+  path: external_exports.string().regex(/^memlin-persona-evidence-[a-f0-9]{64}\.json$/),
+  sha256: external_exports.string().regex(/^[a-f0-9]{64}$/),
+  bytes: external_exports.number().int().positive().max(MAX_PERSONA_EVIDENCE_BYTES)
+}).strict();
+var SupportingEvidenceFileSchema = SupportingEvidenceDescriptorSchema.extend({
+  text: external_exports.string().min(1).max(MAX_PERSONA_EVIDENCE_BYTES)
 }).strict();
 
 // node_modules/.pnpm/openai@4.104.0_ws@8.20.1_zod@3.25.76/node_modules/openai/internal/qs/formats.mjs
@@ -81900,6 +81972,56 @@ function cosine(a2, b2) {
 
 // packages/mcp-tools/src/candidate-lanes.ts
 var RRF_TO_SIMILARITY_SCALE = 30;
+var UI_DESIGN_FACET_QUERY = "UI design system conventions for this app: components, primitives, design tokens, styling, layout, cards, spacing, typography rules";
+var UI_DESIGN_FACET_LIMITS = {
+  memory: 6,
+  decision: 2
+};
+var UI_DESIGN_FACET_MIN_COSINE = 0.5;
+var UI_TASK_TERMS = /\b(ui|ux|redesign(?:ed|ing)?|restyl(?:e|ed|ing)|styling|tailwind|css|front[- ]?end|design system|design standards?|design tokens?|visual design|dark mode|light mode|layout|sidebar|modal|dialog|tooltip|dropdown|navbar|typography|responsive)\b/i;
+var UI_BUILD_VERB = /\b(build|add|create|design|polish|rework|restructure|lay ?out|improve|update|fix|make)\b/i;
+var UI_SURFACE_NOUN = /\b(page|screen|view|panel|form|dashboard|settings (?:section|page|screen|tab)|section|card|button|table|component|banner|empty state|onboarding)\b/i;
+var NOT_APP_UI = /\b(email|newsletter|blog|tweet|press release|pitch deck|slides?)\b/i;
+function taskLooksLikeUiWork(task) {
+  if (!task || NOT_APP_UI.test(task)) return false;
+  if (UI_TASK_TERMS.test(task)) return true;
+  return UI_BUILD_VERB.test(task) && UI_SURFACE_NOUN.test(task);
+}
+async function uiDesignFacet(req, kindResults, addRows) {
+  const ids = /* @__PURE__ */ new Set();
+  if (!req.designFacetVec) return ids;
+  await Promise.all(
+    kindResults.map(async (pool) => {
+      const limit2 = UI_DESIGN_FACET_LIMITS[pool.kind];
+      if (!limit2) return;
+      try {
+        const { data, error: error40 } = await req.ctx.supabase.rpc("search_documents", {
+          p_account_id: req.ctx.accountId,
+          p_project_id: req.projectId,
+          p_query_embedding: req.designFacetVec,
+          p_kinds: [pool.kind],
+          p_scopes: null,
+          p_limit: limit2
+        });
+        if (error40 || !Array.isArray(data)) return;
+        const present = new Set(pool.rows.map((r2) => r2.id));
+        for (const raw of data) {
+          if (typeof raw.similarity !== "number" || raw.similarity < UI_DESIGN_FACET_MIN_COSINE) {
+            continue;
+          }
+          if (present.has(raw.id)) {
+            ids.add(raw.id);
+          } else if (addRows) {
+            ids.add(raw.id);
+            pool.rows.push({ ...raw, match_sources: ["ui_design_facet"] });
+          }
+        }
+      } catch {
+      }
+    })
+  );
+  return ids;
+}
 function isMissingResolveCandidatesRpc(error40) {
   if (!error40) return false;
   return error40.code === "PGRST202" || error40.code === "42883" || /could not find the function|function .*resolve_candidates_v2.*does not exist/i.test(
@@ -82060,7 +82182,8 @@ async function consolidatedSearch(req) {
     return {
       kindResults: req.kinds.map((kind2) => ({ kind: kind2, rows: grouped.get(kind2) ?? [] })),
       usedConsolidated: true,
-      consolidatedById
+      consolidatedById,
+      designFacetIds: /* @__PURE__ */ new Set()
     };
   }
   if (isMissingResolveCandidatesRpc(error40)) {
@@ -82076,7 +82199,10 @@ async function consolidatedSearch(req) {
 async function searchCandidates(req, lanes = FANOUT_LANES) {
   if (req.hybrid && req.resolveId && req.requestHash) {
     const consolidated = await consolidatedSearch(req);
-    if (consolidated) return consolidated;
+    if (consolidated) {
+      consolidated.designFacetIds = await uiDesignFacet(req, consolidated.kindResults, false);
+      return consolidated;
+    }
   }
   const kindResults = await Promise.all(
     req.kinds.map(async (kind2) => {
@@ -82085,7 +82211,12 @@ async function searchCandidates(req, lanes = FANOUT_LANES) {
       return { kind: kind2, rows: mergeLaneRows(outputs) };
     })
   );
-  return { kindResults, usedConsolidated: false, consolidatedById: /* @__PURE__ */ new Map() };
+  return {
+    kindResults,
+    usedConsolidated: false,
+    consolidatedById: /* @__PURE__ */ new Map(),
+    designFacetIds: await uiDesignFacet(req, kindResults, true)
+  };
 }
 
 // packages/mcp-tools/src/rerank-excerpt.ts
@@ -84201,6 +84332,7 @@ var MARGINAL_CUTOFF_DEFAULT = 0.55;
 var FITNESS_BOOST_MIN_SIMILARITY = 0.5;
 var MARGINAL_CUTOFF_MAX = 0.95;
 var MARGINAL_CUTOFF_MIN_KEEP = 5;
+var RERANK_FALLBACK_HISTORICAL_MEMORY_CAP = 5;
 function resolveMarginalCutoff(raw) {
   if (raw === void 0 || raw === null) return MARGINAL_CUTOFF_DEFAULT;
   if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return MARGINAL_CUTOFF_OFF;
@@ -85342,6 +85474,12 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const projectTeamPromise = providerOnly || prefetchedProjectBrain ? Promise.resolve({ teamId: null, error: null }) : getProjectTeamId(ctx, projectId);
   const projectBrainPolicyPromise = providerOnly ? Promise.resolve(emptyProjectBrainPolicy()) : prefetchedProjectBrain ? Promise.resolve(prefetchedProjectBrain) : loadProjectBrainPolicy(ctx, projectId, projectTeamPromise, governanceUserId);
   let customThresholds = null;
+  let learnedSkillProbation = false;
+  let shadowSkillJudgeOptIn = false;
+  let shadowJudgeInputs = [];
+  let shadowJudgeScores = {};
+  const probationSkillIds = /* @__PURE__ */ new Set();
+  const probationWithheld = [];
   let thresholdsMode = "default";
   let brandContextMode = "always";
   const accountSettingsPromise = providerOnly ? Promise.resolve({ accThresholds: null, accThresholdsErr: null }) : (async () => {
@@ -85369,17 +85507,21 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   }).finally(() => {
     embeddingMs = Date.now() - embeddingStartedAt;
   });
+  const designFacetPromise = !providerOnly && ctx.embed && taskLooksLikeUiWork(args.task) ? ctx.embed(UI_DESIGN_FACET_QUERY).catch(() => null) : Promise.resolve(null);
   const startupWaitStartedAt = Date.now();
-  const [{ accThresholds, accThresholdsErr }, projectBrainPolicy, queryVec] = await Promise.all([
+  const [{ accThresholds, accThresholdsErr }, projectBrainPolicy, queryVec, designFacetVec] = await Promise.all([
     accountSettingsPromise,
     projectBrainPolicyPromise,
-    embeddingPromise
+    embeddingPromise,
+    designFacetPromise
   ]);
   blockedMs.startup_wait = Date.now() - startupWaitStartedAt;
   if (accThresholdsErr) {
     console.warn(`[resolver] similarity-thresholds lookup failed: ${accThresholdsErr.message}`);
   } else if (accThresholds && accThresholds.similarity_thresholds) {
     const rawThresh = accThresholds.similarity_thresholds;
+    learnedSkillProbation = learnedSkillProbationEnabled(rawThresh);
+    shadowSkillJudgeOptIn = shadowSkillJudgeEnabled(rawThresh);
     if (rawThresh.mode === "custom" || rawThresh.mode === "learned") {
       customThresholds = rawThresh.thresholds ?? null;
       thresholdsMode = rawThresh.mode;
@@ -85669,8 +85811,10 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   const {
     kindResults: documentKindResults,
     usedConsolidated: usedConsolidatedCandidates,
-    consolidatedById: consolidatedCandidateById
+    consolidatedById: consolidatedCandidateById,
+    designFacetIds
   } = await searchCandidates({
+    designFacetVec,
     ctx,
     task: args.task,
     projectId,
@@ -86209,7 +86353,12 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         }
         if (inheritedDefault) projectBrainPolicy.inheritedDefaultIds.push(c2.id);
         if (inheritedRequired) projectBrainPolicy.requiredIds.push(c2.id);
-        if ((c2.kind === "goal" || c2.kind === "skill" || c2.kind === "decision" && c2.rerankAdmission) && status !== "approved") {
+        if (c2.kind === "skill") c2.skillTier = skillTier(meta);
+        if (learnedSkillProbation && c2.kind === "skill" && status !== "approved" && isProbationSkill({ kind: c2.kind, status, metadata: meta })) {
+          probationSkillIds.add(c2.id);
+          c2.authorityTier = AUTHORITY_TIER.HISTORICAL;
+        }
+        if (!probationSkillIds.has(c2.id) && (c2.kind === "goal" || c2.kind === "skill" || c2.kind === "decision" && c2.rerankAdmission) && status !== "approved") {
           omittedCandidates.push({
             id: c2.id,
             kind: c2.kind,
@@ -86491,10 +86640,12 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
   };
   const skillRerankAdmissionCandidateIds = candidates.filter((candidate) => candidate.kind === "skill" && candidate.rerankAdmission).map((candidate) => candidate.id);
   const decisionRerankAdmissionCandidateIds = candidates.filter((candidate) => candidate.kind === "decision" && candidate.rerankAdmission).map((candidate) => candidate.id);
+  const judgeRescuedIds = /* @__PURE__ */ new Set();
   const dropUnverifiedRerankAdmissions = (detail2) => {
     for (let i2 = candidates.length - 1; i2 >= 0; i2--) {
       const candidate = candidates[i2];
       if (!candidate?.rerankAdmission) continue;
+      if (judgeRescuedIds.has(candidate.id)) continue;
       omittedCandidates.push({
         id: candidate.id,
         kind: candidate.kind,
@@ -86550,6 +86701,12 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
             excerpt: rerankExcerpt(c2.id)
           }));
           observeInputs("provisional-skill-judge", judgeInputs);
+          shadowJudgeInputs = judgeInputs.map((input) => ({
+            id: input.id,
+            title: input.title,
+            excerpt: input.excerpt,
+            version: candidates.find((c2) => c2.id === input.id)?.citation.version_number ?? null
+          }));
           judgeRun = startAdmissionJudge(
             args.task,
             judgeInputs,
@@ -86663,6 +86820,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
           if (judge.scorer && !judgeRun.scorerCurrent?.()) {
             judge = await judgeRun.currentJudgeForApplication();
           }
+          shadowJudgeScores = { ...judge.scores };
           const applied = applyAdmissionJudgeScores(
             scores,
             judge.scores,
@@ -86710,6 +86868,36 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       rerankAuditScores = null;
       rerankLatencyMs = null;
       rerankFallbackReason = e2 instanceof HostedRerankResponseError ? e2.fallbackReason : "rerank_error";
+      if (judgeRun) {
+        try {
+          const judge = await judgeRun.outcome;
+          if (!judge.error && !judge.scorer) {
+            let judged = 0;
+            for (const c2 of candidates) {
+              if (c2.kind !== "skill" || !c2.rerankAdmission) continue;
+              const score = judge.scores[c2.id];
+              if (typeof score !== "number" || !Number.isFinite(score)) continue;
+              judged += 1;
+              if (score >= RERANK_SKILL_MIN_SCORE) {
+                c2.score = score * candidateKindWeight(c2.kind);
+                judgeRescuedIds.add(c2.id);
+              }
+            }
+            admissionJudge = {
+              attempted: skillRerankAdmissionCandidateIds.length,
+              scored: judged,
+              latency_ms: judge.latency_ms,
+              error: null,
+              identity: judge.identity,
+              breaker: {
+                decision: judgeDecision,
+                ...admissionJudgeBreaker.snapshot(ctx.accountId)
+              }
+            };
+          }
+        } catch {
+        }
+      }
       dropUnverifiedRerankAdmissions(
         rerankFallbackReason === "rerank_error" ? "provisional candidate dropped because reranker failed; configured threshold remains authoritative" : `provisional candidate dropped because reranker returned ${rerankFallbackReason}`
       );
@@ -87013,7 +87201,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     if (f2 <= 1) return f2;
     return c2.similarity >= FITNESS_BOOST_MIN_SIMILARITY ? f2 : 1;
   };
-  const baseEffectiveScore = (c2) => c2.score * c2.decayMultiplier * gatedFitness(c2) * memoryTypeMultiplier(c2);
+  const skillTierMultiplier = (c2) => learnedSkillProbation && c2.kind === "skill" && c2.skillTier === "learned" ? LEARNED_SKILL_WEIGHT : 1;
+  const baseEffectiveScore = (c2) => c2.score * c2.decayMultiplier * gatedFitness(c2) * memoryTypeMultiplier(c2) * skillTierMultiplier(c2);
   const supersessionWaitStartedAt = Date.now();
   const {
     evidenceById: supersessionEvidence,
@@ -87181,8 +87370,33 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       blockedMs.redundancy_pairs = Date.now() - redundancyPairsStartedAt;
     }
   }
+  if (probationSkillIds.size > 0) {
+    let kept = 0;
+    const ranked = candidates.filter((c2) => probationSkillIds.has(c2.id)).sort(byPrecedence);
+    for (const c2 of ranked) {
+      const body = bodyMap.get(c2.id) ?? "";
+      const reason = !body.trim() || skillActsOnProduction(c2.title, body) ? "acts_on_production" : kept >= PROBATION_SKILL_MAX_PER_BUNDLE ? "over_cap" : null;
+      if (!reason) {
+        kept += 1;
+        continue;
+      }
+      probationSkillIds.delete(c2.id);
+      probationWithheld.push({ id: c2.id, reason });
+      omittedCandidates.push({
+        id: c2.id,
+        kind: c2.kind,
+        title: c2.title,
+        similarity: c2.similarity,
+        reason: "status_filtered",
+        detail: reason === "over_cap" ? `learned skill on probation: over the ${PROBATION_SKILL_MAX_PER_BUNDLE} per bundle limit` : "learned skill acts on production: needs a person to approve it",
+        path: c2.citation.path
+      });
+      const at2 = candidates.indexOf(c2);
+      if (at2 >= 0) candidates.splice(at2, 1);
+    }
+  }
   const skillCands = candidates.filter((c2) => c2.kind === "skill").sort(byPrecedence);
-  const primarySkill = skillCands[0] ?? null;
+  const primarySkill = skillCands.find((c2) => !probationSkillIds.has(c2.id)) ?? null;
   const budgetOrder = [];
   if (primarySkill) budgetOrder.push(primarySkill);
   const byScoreDesc = (a2, b2) => effectiveScore(b2) - effectiveScore(a2);
@@ -87208,6 +87422,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       if ((c2.authorityTier ?? AUTHORITY_TIER.HISTORICAL) <= AUTHORITY_TIER.USER_CORRECTION) {
         protectedIds.add(c2.id);
       }
+      if (designFacetIds.has(c2.id)) protectedIds.add(c2.id);
     }
     const kept = [];
     for (const c2 of rest) {
@@ -87226,6 +87441,33 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         similarity: c2.similarity,
         reason: "marginal_value",
         detail: `effective score ${effectiveScore(c2).toFixed(3)} below ${(marginalFraction * 100).toFixed(0)}% of the best ${c2.kind} (${ref.toFixed(3)}) \u2014 trimmed as low marginal value`,
+        path: c2.citation.path
+      });
+    }
+    rest = kept;
+  }
+  let rerankFallbackCapDropped = 0;
+  let rerankFallbackCapTokensSaved = 0;
+  const rerankUnavailableReason = rerankFallbackReason ?? (!rerankerConfigured && !skipRerank ? "unconfigured" : null);
+  if (rerankUnavailableReason !== null && marginalFraction > MARGINAL_CUTOFF_OFF) {
+    let keptHistorical = 0;
+    const kept = [];
+    for (const c2 of rest) {
+      const capped = c2.kind === "memory" && (c2.authorityTier ?? AUTHORITY_TIER.HISTORICAL) >= AUTHORITY_TIER.HISTORICAL && !designFacetIds.has(c2.id);
+      if (!capped || keptHistorical < RERANK_FALLBACK_HISTORICAL_MEMORY_CAP) {
+        if (capped) keptHistorical += 1;
+        kept.push(c2);
+        continue;
+      }
+      rerankFallbackCapDropped += 1;
+      rerankFallbackCapTokensSaved += estimateTokens(bodyMap.get(c2.id) ?? "");
+      omittedCandidates.push({
+        id: c2.id,
+        kind: c2.kind,
+        title: c2.title,
+        similarity: c2.similarity,
+        reason: "marginal_value",
+        detail: `reranker unavailable (${rerankUnavailableReason}); kept the ${RERANK_FALLBACK_HISTORICAL_MEMORY_CAP} strongest unreviewed memories and trimmed the rest`,
         path: c2.citation.path
       });
     }
@@ -87331,6 +87573,9 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         resolved_version_number: resolvedVersionNumber
       });
     }
+    if (probationSkillIds.has(c2.id)) body = `${PROBATION_SKILL_NOTICE}
+
+${body}`;
     const cost = estimateTokens(body);
     if (!isPrimary && used + cost > maxTokens) {
       truncated = true;
@@ -87379,6 +87624,8 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       component_id: c2.componentId,
       component_name: c2.componentName,
       repo: c2.repo ?? null,
+      ...probationSkillIds.has(c2.id) ? { trust: "probation" } : {},
+      ...c2.kind === "skill" && c2.skillTier ? { skill_tier: c2.skillTier } : {},
       version_tag: versionTag,
       collapsed_duplicates: c2.collapsedDuplicates?.length,
       authority_tier: c2.authorityTier,
@@ -88000,6 +88247,7 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
       decay: round4(c2.decayMultiplier),
       fitness: round4(gatedFitness(c2)),
       memory_type_weight: round4(memoryTypeMultiplier(c2)),
+      skill_tier_weight: round4(skillTierMultiplier(c2)),
       authority_tier: c2.authorityTier ?? AUTHORITY_TIER.HISTORICAL,
       effective: round4(effectiveScore(c2))
     } : void 0;
@@ -88372,6 +88620,19 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
     // Marginal-value cutoff telemetry — present when the weak tail was
     // trimmed. Like dedupe, est_tokens_saved is the budget NOT spent (these
     // items were dropped before the budget loop, not refilled).
+    // Learned skills this resolve handled on probation terms; null when the
+    // account has not opted in or none qualified.
+    learned_skill_probation: probationSkillIds.size > 0 || probationWithheld.length > 0 ? { candidate_ids: [...probationSkillIds], withheld: probationWithheld } : null,
+    // Present on UI-shaped tasks: how many candidates the design facet named.
+    ui_design_facet: designFacetIds.size > 0 ? { candidate_count: designFacetIds.size } : null,
+    // Present when the reranker gave no usable scores, or none is configured,
+    // and the unreviewed memory tail was capped because of it.
+    rerank_fallback_memory_cap: rerankFallbackCapDropped > 0 ? {
+      cap: RERANK_FALLBACK_HISTORICAL_MEMORY_CAP,
+      reason: rerankUnavailableReason,
+      dropped_count: rerankFallbackCapDropped,
+      est_tokens_saved: rerankFallbackCapTokensSaved
+    } : null,
     marginal_cutoff: marginalDroppedCount > 0 ? {
       fraction: marginalFraction,
       dropped_count: marginalDroppedCount,
@@ -88421,6 +88682,20 @@ async function assembleBundle(ctx, rawArgs, audit = {}) {
         console.warn(`[resolver] audit log failed: ${auditErr.message}`);
       } else if (typeof auditData === "string") {
         auditId = auditData;
+      }
+      if (auditId && shadowSkillJudgeOptIn && ctx.shadowSkillJudge && shadowJudgeInputs.length > 0 && // A resolve that keeps no record of its task exports none of it either.
+      !audit.omitTaskFromAudit) {
+        try {
+          void Promise.resolve(
+            ctx.shadowSkillJudge({
+              auditId,
+              task: args.task,
+              candidates: shadowJudgeInputs,
+              judgeScores: shadowJudgeScores
+            })
+          ).catch(() => void 0);
+        } catch {
+        }
       }
     } catch (e2) {
       console.warn(
@@ -94294,7 +94569,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.85";
+  cachedAgentVersion = "0.2.87";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -96667,6 +96942,15 @@ async function recordLocalOutcome(ctx, accountId, metadata) {
   } catch {
   }
 }
+function runCheckoutId(env = process.env) {
+  const value = env.MEMLIN_RUN_CHECKOUT;
+  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) ? value : null;
+}
+function runCheckoutVerdict(intent, holder, identity) {
+  if (holder.worktree_id === identity.worktreeId) return { separate: false };
+  const sameLines = Boolean(holder.base_hash) && holder.base_hash === intent.baseHash && holder.ranges.length > 0 && intent.ranges.length > 0 && rangesOverlap(intent.ranges, holder.ranges);
+  return { separate: true, same_lines: sameLines };
+}
 function conflictReason(intent, holder, conflictId, holderRoot, duplicate) {
   const command = holderRoot ? `git -C ${JSON.stringify(holderRoot)} diff -- ${JSON.stringify(intent.path)}` : holder.branch ? `git diff HEAD...${JSON.stringify(holder.branch)} -- ${JSON.stringify(intent.path)}` : `git diff -- ${JSON.stringify(intent.path)}`;
   return [
@@ -96788,7 +97072,7 @@ async function prepareEditBroker(ctx, payload2, projectId, projectAccountId) {
       { action: "status", project_id: projectId, session_id: sessionId },
       accountOpts
     );
-    const waiter = status.conflicts?.find(
+    const waiter = runCheckoutId() ? void 0 : status.conflicts?.find(
       (raw) => raw.owner_session_id === sessionId && typeof raw.id === "string" && typeof raw.path === "string" && paths.includes(raw.path)
     );
     if (waiter) {
@@ -96872,6 +97156,27 @@ async function prepareEditBroker(ctx, payload2, projectId, projectAccountId) {
           };
         }
         if (immediatelyCompatible(intent, holder, identity)) {
+          compatible.add(holder.id);
+          continue;
+        }
+        const run = runCheckoutId();
+        const verdict = run ? runCheckoutVerdict(intent, holder, identity) : { separate: false };
+        if (run && verdict.separate) {
+          await recordLocalOutcome(ctx, projectAccountId, {
+            project_id: projectId,
+            session_id: sessionId,
+            path: intent.path,
+            outcome: verdict.same_lines ? "run_overlap_same_lines" : "run_separate_checkout",
+            run_id: run,
+            holder_session: shortSession(holder.session_id),
+            holder_branch: holder.branch ?? null,
+            conflict_id: result?.conflict_id ?? null
+          });
+          if (result?.conflict_id)
+            await ctx.api.editBroker(
+              { action: "resolve", project_id: projectId, session_id: sessionId, conflict_id: result.conflict_id, resolution: "reconciled" },
+              accountOpts
+            ).catch(() => void 0);
           compatible.add(holder.id);
           continue;
         }
@@ -97839,7 +98144,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION2 = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code", "windsurf", "vscode"]);
 function ownVersion() {
-  const version5 = "0.2.85";
+  const version5 = "0.2.87";
   return typeof version5 === "string" && VERSION2.test(version5) ? version5 : null;
 }
 async function reportPluginRuntime(report) {
@@ -98251,8 +98556,26 @@ function normalizeGitRemote3(raw) {
   }
   return s2 || null;
 }
+var codexTurn = new AsyncLocalStorage();
+function readCodexTurn(meta) {
+  if (agentKind() !== "codex" || !meta || typeof meta !== "object") return {};
+  const raw = meta["x-codex-turn-metadata"];
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const { thread_id, session_id, turn_id, workspaces } = raw;
+  const session = thread_id ?? session_id;
+  const roots = workspaces && typeof workspaces === "object" ? Object.keys(workspaces) : [];
+  if (roots.length > 1)
+    throw new Error("Memlin cannot identify the active Codex workspace among multiple roots.");
+  return {
+    sessionId: typeof session === "string" ? session.trim() : void 0,
+    turnId: typeof turn_id === "string" ? turn_id.trim() : void 0,
+    cwd: roots.length === 1 && path23.isAbsolute(roots[0]) ? path23.resolve(roots[0]) : void 0
+  };
+}
 var clientWorkspaceRoot;
 function runtimeCwd() {
+  const turnRoot = codexTurn.getStore()?.cwd;
+  if (turnRoot) return turnRoot;
   if (clientWorkspaceRoot) return clientWorkspaceRoot;
   for (const key2 of [
     "CLAUDE_PROJECT_DIR",
@@ -98375,6 +98698,8 @@ function agentKind() {
   return process.env.MEMLIN_HOST || process.env.MEMLIN_AGENT_KIND || "mcp";
 }
 function agentSessionId() {
+  const session = codexTurn.getStore()?.sessionId;
+  if (session) return session;
   const explicit = process.env.MEMLIN_SESSION_ID?.trim();
   if (explicit) return explicit;
   if (agentKind() === "codex") return process.env.CODEX_THREAD_ID?.trim() || null;
@@ -98406,7 +98731,7 @@ function readNearestPackageVersion() {
 var cachedAgentVersion2;
 function agentVersion2() {
   if (cachedAgentVersion2 !== void 0) return cachedAgentVersion2;
-  const env = "0.2.85"?.trim();
+  const env = "0.2.87"?.trim();
   cachedAgentVersion2 = env || readNearestPackageVersion();
   return cachedAgentVersion2;
 }
@@ -98596,10 +98921,45 @@ function rejectedCompanionReuse(result) {
 async function reuseHookResolve(args, routing) {
   const beganAt = Date.now();
   if (agentKind() !== "codex") return null;
-  const hookResolveRef = typeof args.hook_resolve_ref === "string" ? args.hook_resolve_ref.trim() : "";
+  let hookResolveRef = typeof args.hook_resolve_ref === "string" ? args.hook_resolve_ref.trim() : "";
+  const turn = codexTurn.getStore();
+  if (!hookResolveRef && turn?.turnId && turn.sessionId && typeof args.task === "string" && companionRequestProfile(args) === CODEX_HOOK_RESOLVE_PROFILE) {
+    const pin = await findWorkspaceBinding(routing.cwd);
+    const verifiedWorkspace = pin ? pin.binding.account_id === routing.accountId && pin.binding.project_id === routing.projectId : routing.bindingSource === "git_remote" || routing.bindingSource === "local_path";
+    if (turn.cwd === routing.cwd && verifiedWorkspace && routing.projectId) {
+      const identity = { host: "codex", session_id: turn.sessionId, turn_id: turn.turnId };
+      const started = await companionResolveStart(
+        {
+          ...identity,
+          task: args.task,
+          cwd: routing.cwd,
+          workspace_signals: { cwd: routing.cwd },
+          plugin_version: "0.2.87",
+          deadline_at: new Date(Date.now() + 8e3).toISOString()
+        },
+        { timeoutMs: 1500 }
+      );
+      if (!started || started.phase?.error) {
+        throw new Error(
+          started?.phase?.error?.message ?? "Memlin Companion could not start context for this turn."
+        );
+      }
+      const phase = started.phase?.hook_resolve_ref ? started.phase : (await companionResolveJoin({
+        ...identity,
+        resolve_id: started.resolve_id,
+        wait_ms: 7e3
+      }))?.phase;
+      hookResolveRef = phase?.hook_resolve_ref ?? "";
+      if (!hookResolveRef) {
+        throw new Error(
+          phase?.error?.message ?? "Memlin context is pending for this turn. Retry the request."
+        );
+      }
+    }
+  }
   if (!hookResolveRef || typeof args.task !== "string") {
     throw new Error(
-      "Memlin did not start a duplicate resolve: this Codex tool call did not include the hook_resolve_ref from the current turn. Continue with hook-delivered context."
+      "Memlin did not start a duplicate resolve: this Codex tool call did not include the hook_resolve_ref from the current turn. No context was verified for this request."
     );
   }
   const reused = await companionResolveReuse({
@@ -98625,6 +98985,9 @@ async function reuseHookResolve(args, routing) {
   }
   if (reused.status !== "reused" || !reused.result || !reused.resolve_id || !reused.turn_id || !reused.phase) {
     throw rejectedCompanionReuse(reused);
+  }
+  if (turn?.turnId && reused.turn_id !== turn.turnId || turn?.sessionId && reused.session_id !== turn.sessionId) {
+    throw new Error("Memlin Companion returned a resolve from a different Codex turn.");
   }
   const reserveRequest = {
     resolve_id: reused.resolve_id,
@@ -99080,6 +99443,13 @@ async function refreshClientWorkspace() {
   }
 }
 async function refreshCfg() {
+  if (codexTurn.getStore()?.cwd) {
+    const scoped = await resolveConfig();
+    if (scoped.authConfigRevision !== authConfigRevision(await readConfig().catch(() => null))) {
+      throw new Error("Memlin account changed while request configuration was resolving.");
+    }
+    return scoped;
+  }
   await refreshClientWorkspace();
   if (!cfg) {
     if (!cfgResolveInFlight) {
@@ -99224,6 +99594,13 @@ server.setRequestHandler(ReadResourceRequestSchema, async (req) => {
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
   const name = req.params.name;
   const args = req.params.arguments ?? {};
+  try {
+    return await codexTurn.run(readCodexTurn(req.params._meta), () => handleToolCall(name, args));
+  } catch (error40) {
+    return toolErrorResponse(error40);
+  }
+});
+async function handleToolCall(name, args) {
   if (name === "memlin_status") {
     let statusCfg = null;
     let configError = null;
@@ -99288,7 +99665,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   } catch (error40) {
     return toolErrorResponse(error40);
   }
-});
+}
 var transport = new StdioServerTransport();
 var stopRuntimeHeartbeat;
 server.oninitialized = () => {

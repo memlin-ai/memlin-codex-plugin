@@ -25256,6 +25256,17 @@ var NativeWorkflowPageSchema = external_exports.object({
   }).strict()
 }).strict();
 
+// packages/shared/dist/persona-evidence-files.js
+var MAX_PERSONA_EVIDENCE_BYTES = 2 * 1024 * 1024;
+var SupportingEvidenceDescriptorSchema = external_exports.object({
+  path: external_exports.string().regex(/^memlin-persona-evidence-[a-f0-9]{64}\.json$/),
+  sha256: external_exports.string().regex(/^[a-f0-9]{64}$/),
+  bytes: external_exports.number().int().positive().max(MAX_PERSONA_EVIDENCE_BYTES)
+}).strict();
+var SupportingEvidenceFileSchema = SupportingEvidenceDescriptorSchema.extend({
+  text: external_exports.string().min(1).max(MAX_PERSONA_EVIDENCE_BYTES)
+}).strict();
+
 // packages/plugin-core/src/client.ts
 import { promises as fs6 } from "node:fs";
 import path9 from "node:path";
@@ -25977,7 +25988,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.85";
+  cachedAgentVersion = "0.2.87";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -27842,7 +27853,16 @@ import { promises as fs10 } from "node:fs";
 import path13 from "node:path";
 import os11 from "node:os";
 var PENDING_BUNDLE_MAX_AGE_MS = 10 * 60 * 1e3;
+function handoffCwd(fallback) {
+  const raw = process.env.MEMLIN_RESOLVE_CWD?.trim();
+  return raw && path13.isAbsolute(raw) ? raw : fallback;
+}
+var RESOLVE_TASK_MAX_CHARS = 4e3;
+function boundResolveTask(task) {
+  return task.length > RESOLVE_TASK_MAX_CHARS ? task.slice(0, RESOLVE_TASK_MAX_CHARS) : task;
+}
 var PENDING_BUNDLE_DIR = "pending-bundles";
+var PENDING_BUNDLE_PRUNE_AGE_MS = 24 * 60 * 60 * 1e3;
 function pendingBundleSpoolDir() {
   return process.env.MEMLIN_PENDING_BUNDLE_DIR ?? path13.join(os11.homedir(), ".config", "memlin", PENDING_BUNDLE_DIR);
 }
@@ -28899,6 +28919,10 @@ function parseResolveArgs(argv) {
   const kinds = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
+    if (a === "--") {
+      positional.push(...argv.slice(i + 1).filter(Boolean));
+      break;
+    }
     if (a === "--project" || a === "-p") {
       project = argv[++i];
       if (!project) return { error: "--project requires a value" };
@@ -29097,7 +29121,7 @@ async function serveStaleBundle(opts) {
     try {
       await writePendingBundle({
         task: opts.task,
-        cwd: opts.cwd,
+        cwd: handoffCwd(opts.cwd),
         host: "codex",
         session_id: process.env.MEMLIN_SESSION_ID ?? null,
         rendered,
@@ -29196,7 +29220,9 @@ async function main() {
   try {
     result = await api.resolve(
       {
-        task: parsed.task,
+        // Bounded for the server's limit; the handoff identity below keeps
+        // the full prompt, which is what the hook matches on.
+        task: boundResolveTask(parsed.task),
         project_id: projectId,
         // Forward the caller's environment context so the server can infer the
         // active component. The resolver tolerates either being null (just falls
@@ -29276,7 +29302,8 @@ async function main() {
     try {
       await writePendingBundle({
         task: parsed.task,
-        cwd,
+        // The hook's cwd, not ours: it is the identity the hook claims on.
+        cwd: handoffCwd(cwd),
         host,
         session_id: sessionId,
         resolve_id: resolveId,
@@ -29331,7 +29358,8 @@ async function main() {
       task: parsed.task,
       audit_id: result.audit_id,
       resolved_at: Date.now(),
-      cwd,
+      // Continuity compares this with the hook's cwd, like the handoff does.
+      cwd: handoffCwd(cwd),
       had_content: bundleHasContent,
       // Every adapter spawns this CLI with MEMLIN_HOST set; the Claude Code
       // plugin is the unset default. The continuity check matches on this so

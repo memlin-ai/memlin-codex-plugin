@@ -25332,6 +25332,17 @@ var NativeWorkflowPageSchema = external_exports.object({
   }).strict()
 }).strict();
 
+// packages/shared/dist/persona-evidence-files.js
+var MAX_PERSONA_EVIDENCE_BYTES = 2 * 1024 * 1024;
+var SupportingEvidenceDescriptorSchema = external_exports.object({
+  path: external_exports.string().regex(/^memlin-persona-evidence-[a-f0-9]{64}\.json$/),
+  sha256: external_exports.string().regex(/^[a-f0-9]{64}$/),
+  bytes: external_exports.number().int().positive().max(MAX_PERSONA_EVIDENCE_BYTES)
+}).strict();
+var SupportingEvidenceFileSchema = SupportingEvidenceDescriptorSchema.extend({
+  text: external_exports.string().min(1).max(MAX_PERSONA_EVIDENCE_BYTES)
+}).strict();
+
 // packages/plugin-core/dist/client.js
 import { promises as fs6 } from "node:fs";
 import path9 from "node:path";
@@ -26067,7 +26078,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.85";
+  cachedAgentVersion = "0.2.87";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -28550,6 +28561,15 @@ async function recordLocalOutcome(ctx, accountId, metadata) {
   } catch {
   }
 }
+function runCheckoutId(env = process.env) {
+  const value = env.MEMLIN_RUN_CHECKOUT;
+  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) ? value : null;
+}
+function runCheckoutVerdict(intent, holder, identity) {
+  if (holder.worktree_id === identity.worktreeId) return { separate: false };
+  const sameLines = Boolean(holder.base_hash) && holder.base_hash === intent.baseHash && holder.ranges.length > 0 && intent.ranges.length > 0 && rangesOverlap(intent.ranges, holder.ranges);
+  return { separate: true, same_lines: sameLines };
+}
 function conflictReason(intent, holder, conflictId, holderRoot, duplicate) {
   const command = holderRoot ? `git -C ${JSON.stringify(holderRoot)} diff -- ${JSON.stringify(intent.path)}` : holder.branch ? `git diff HEAD...${JSON.stringify(holder.branch)} -- ${JSON.stringify(intent.path)}` : `git diff -- ${JSON.stringify(intent.path)}`;
   return [
@@ -28671,7 +28691,7 @@ async function prepareEditBroker(ctx, payload, projectId, projectAccountId) {
       { action: "status", project_id: projectId, session_id: sessionId },
       accountOpts
     );
-    const waiter = status.conflicts?.find(
+    const waiter = runCheckoutId() ? void 0 : status.conflicts?.find(
       (raw) => raw.owner_session_id === sessionId && typeof raw.id === "string" && typeof raw.path === "string" && paths.includes(raw.path)
     );
     if (waiter) {
@@ -28755,6 +28775,27 @@ async function prepareEditBroker(ctx, payload, projectId, projectAccountId) {
           };
         }
         if (immediatelyCompatible(intent, holder, identity)) {
+          compatible.add(holder.id);
+          continue;
+        }
+        const run = runCheckoutId();
+        const verdict = run ? runCheckoutVerdict(intent, holder, identity) : { separate: false };
+        if (run && verdict.separate) {
+          await recordLocalOutcome(ctx, projectAccountId, {
+            project_id: projectId,
+            session_id: sessionId,
+            path: intent.path,
+            outcome: verdict.same_lines ? "run_overlap_same_lines" : "run_separate_checkout",
+            run_id: run,
+            holder_session: shortSession(holder.session_id),
+            holder_branch: holder.branch ?? null,
+            conflict_id: result?.conflict_id ?? null
+          });
+          if (result?.conflict_id)
+            await ctx.api.editBroker(
+              { action: "resolve", project_id: projectId, session_id: sessionId, conflict_id: result.conflict_id, resolution: "reconciled" },
+              accountOpts
+            ).catch(() => void 0);
           compatible.add(holder.id);
           continue;
         }
@@ -29721,7 +29762,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code", "windsurf", "vscode"]);
 function ownVersion() {
-  const version2 = "0.2.85";
+  const version2 = "0.2.87";
   return typeof version2 === "string" && VERSION.test(version2) ? version2 : null;
 }
 async function reportPluginRuntime(report) {

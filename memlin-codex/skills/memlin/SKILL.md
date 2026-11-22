@@ -36,7 +36,7 @@ current message, treat `<memlin-resolved-context>`,
 **`memlin_resolve_task`** again. A pending marker means the same resolve is
 still running and will be offered on the next turn. If no current marker is
 present and no applicable Memlin bundle was inherited, call
-**`memlin_resolve_task`** once as a fallback. Delegated agents reuse inherited
+**`memlin_resolve_task`** once as a fallback. Use the original prompt text and the active workspace path so Companion can join any work already started for this turn. Delegated agents reuse inherited
 context only when it applies to their task. Other Memlin MCP tools remain
 available for exploration and explicit operations.
 

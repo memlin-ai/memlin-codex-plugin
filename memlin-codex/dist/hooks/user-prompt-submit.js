@@ -25313,6 +25313,17 @@ var NativeWorkflowPageSchema = external_exports.object({
   }).strict()
 }).strict();
 
+// packages/shared/dist/persona-evidence-files.js
+var MAX_PERSONA_EVIDENCE_BYTES = 2 * 1024 * 1024;
+var SupportingEvidenceDescriptorSchema = external_exports.object({
+  path: external_exports.string().regex(/^memlin-persona-evidence-[a-f0-9]{64}\.json$/),
+  sha256: external_exports.string().regex(/^[a-f0-9]{64}$/),
+  bytes: external_exports.number().int().positive().max(MAX_PERSONA_EVIDENCE_BYTES)
+}).strict();
+var SupportingEvidenceFileSchema = SupportingEvidenceDescriptorSchema.extend({
+  text: external_exports.string().min(1).max(MAX_PERSONA_EVIDENCE_BYTES)
+}).strict();
+
 // packages/plugin-core/dist/client.js
 import { promises as fs6 } from "node:fs";
 import path9 from "node:path";
@@ -26034,7 +26045,7 @@ function agentDevice() {
 var cachedAgentVersion = null;
 function agentVersion() {
   if (cachedAgentVersion) return cachedAgentVersion;
-  cachedAgentVersion = "0.2.85";
+  cachedAgentVersion = "0.2.87";
   return cachedAgentVersion;
 }
 function agentCapabilities() {
@@ -27720,7 +27731,7 @@ var PLUGIN_RUNTIME_TIMEOUT_MS = 150;
 var VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$/;
 var HOSTS3 = /* @__PURE__ */ new Set(["cursor", "antigravity", "codex", "claude-code", "windsurf", "vscode"]);
 function ownVersion() {
-  const version2 = "0.2.85";
+  const version2 = "0.2.87";
   return typeof version2 === "string" && VERSION.test(version2) ? version2 : null;
 }
 async function reportPluginRuntime(report) {
@@ -28009,7 +28020,15 @@ var PENDING_BUNDLE_MAX_AGE_MS = 10 * 60 * 1e3;
 function pendingBundlePath() {
   return process.env.MEMLIN_RESOLVE_OUT ?? path13.join(os13.homedir(), ".config", "memlin", "pending-bundle.json");
 }
+var RESOLVE_TASK_MAX_CHARS = 4e3;
+function boundResolveTask(task) {
+  return task.length > RESOLVE_TASK_MAX_CHARS ? task.slice(0, RESOLVE_TASK_MAX_CHARS) : task;
+}
+function hookResolveTask(prompt) {
+  return boundResolveTask(prompt.trim());
+}
 var PENDING_BUNDLE_DIR = "pending-bundles";
+var PENDING_BUNDLE_PRUNE_AGE_MS = 24 * 60 * 60 * 1e3;
 function pendingBundleSpoolDir() {
   return process.env.MEMLIN_PENDING_BUNDLE_DIR ?? path13.join(os13.homedir(), ".config", "memlin", PENDING_BUNDLE_DIR);
 }
@@ -28109,11 +28128,12 @@ function resolveBudgetMs(defaultMs = DEFAULT_RESOLVE_BUDGET_MS) {
 }
 function runResolveWithBudget(opts) {
   const budget = opts.budgetMs ?? resolveBudgetMs();
-  const outputFile = pendingBundlePathFor(opts.cwd, opts.host, opts.sessionId ?? null, opts.task);
+  const task = hookResolveTask(opts.task);
+  const outputFile = pendingBundlePathFor(opts.cwd, opts.host, opts.sessionId ?? null, task);
   return new Promise((resolve) => {
     let child;
     try {
-      child = spawn(process.execPath, [opts.resolveBin, opts.task], {
+      child = spawn(process.execPath, [opts.resolveBin, "--", task], {
         windowsHide: true,
         cwd: opts.cwd,
         env: {
@@ -28123,6 +28143,9 @@ function runResolveWithBudget(opts) {
           // to this file (atomic), and report a resolve.delivery telemetry
           // row when the deadline was missed.
           MEMLIN_RESOLVE_OUT: outputFile,
+          // The identity the claim below matches on. Without it the child
+          // stamps its own idea of the cwd (see handoffCwd).
+          MEMLIN_RESOLVE_CWD: opts.cwd,
           MEMLIN_RESOLVE_DEADLINE_MS: String(budget),
           // Forward the agent's session id so the resolve's usage_event is
           // attributable to this session (concurrent-work awareness).
@@ -28144,7 +28167,7 @@ function runResolveWithBudget(opts) {
       if (claimInFlight) return claimInFlight;
       claimInFlight = takePendingBundle(opts.cwd, opts.host, {
         sessionId: opts.sessionId ?? null,
-        task: opts.task
+        task
       }).finally(() => {
         claimInFlight = null;
       });
@@ -28173,14 +28196,14 @@ function runResolveWithBudget(opts) {
     const bundlePoll = setInterval(() => {
       if (!settled) void settleFromBundle();
     }, 40);
-    child.on("exit", () => {
+    child.on("exit", (code) => {
       if (settled) return;
       void settleFromBundle().then((found) => {
         if (found || settled) return;
         settled = true;
         clearTimeout(timer);
         clearInterval(bundlePoll);
-        resolve({ bundle: null, stillRunning: false });
+        resolve({ bundle: null, stillRunning: false, exitCode: code });
       });
     });
     child.on("error", () => {
@@ -28757,7 +28780,7 @@ async function runCompanionPath(mode, input, prompt, cwd, beganAt, systemMessage
     session_id: input.session_id ?? null,
     turn_id: input.turn_id,
     join_only: mode === "full",
-    plugin_version: "0.2.85",
+    plugin_version: "0.2.87",
     deadline_at: new Date(beganAt + CODEX_RESOLVE_BUDGET_MAX_MS).toISOString(),
     workspace_signals: { cwd }
   };

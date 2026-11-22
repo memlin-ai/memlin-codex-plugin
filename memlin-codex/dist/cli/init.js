@@ -24395,6 +24395,17 @@ var NativeWorkflowPageSchema = external_exports.object({
   }).strict()
 }).strict();
 
+// packages/shared/dist/persona-evidence-files.js
+var MAX_PERSONA_EVIDENCE_BYTES = 2 * 1024 * 1024;
+var SupportingEvidenceDescriptorSchema = external_exports.object({
+  path: external_exports.string().regex(/^memlin-persona-evidence-[a-f0-9]{64}\.json$/),
+  sha256: external_exports.string().regex(/^[a-f0-9]{64}$/),
+  bytes: external_exports.number().int().positive().max(MAX_PERSONA_EVIDENCE_BYTES)
+}).strict();
+var SupportingEvidenceFileSchema = SupportingEvidenceDescriptorSchema.extend({
+  text: external_exports.string().min(1).max(MAX_PERSONA_EVIDENCE_BYTES)
+}).strict();
+
 // packages/plugin-core/src/memlin-api-client.ts
 init_auth_refusal();
 import { readFileSync as readFileSync2 } from "node:fs";
